@@ -12,7 +12,7 @@ export interface Method<R extends Context, T extends Shape, U extends Responses,
   integration: Integration<R>;
   request: {
     shape: T;
-    mappings: RequestMappings<T, M>;
+    mappings?: RequestMappings<T, M>;
   }
 
   responses: U;
@@ -32,29 +32,25 @@ export type RequestMappings<S extends Shape, M extends MethodName> = M extends '
   { [K in keyof S]+?: MappingType<S[K]>; };
 
 export type Responses =  {
-  [StatusCode.Ok]: Shape;
-  [StatusCode.InternalError]: Shape
+  [StatusCode.Ok]: Type<any>;
+  [StatusCode.InternalError]: Type<any>
 } & {
-  [S in StatusCode]?: Shape;
+  [S in StatusCode]?: Type<any>;
 };
 
 // TODO: Why do we need to use GetShape when all values of Responses is a Shape????
-type GetShape<T> = T extends Shape ? T : never;
+type GetShape<T> = T extends Type<infer V> ? V : never;
 export interface Response<R extends Responses, S extends keyof R> {
   statusCode: S;
-  headers?: { [key: string]: string };
-  payload: RuntimeShape<GetShape<R[S]>>;
+  payload: GetShape<R[S]>;
 }
 
 // TODO: Why do we need this function to enforce type safety .. ?
 export function response<R extends Responses, S extends keyof R>(
     statusCode: S,
-    response: {
-      headers?: { [key: string]: string },
-      payload: RuntimeShape<GetShape<R[S]>>
-    }): Response<R, S> {
+    payload: GetShape<R[S]>): Response<R, S> {
   return {
     statusCode,
-    ...response
+    payload
   };
 }

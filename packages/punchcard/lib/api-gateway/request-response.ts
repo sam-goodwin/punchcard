@@ -47,6 +47,7 @@ export interface ApiRequestIdentity {
 export enum StatusCode {
   Ok = 200,
   NotFound = 404,
+  Conflict = 409,
   InternalError = 500
 }
 

@@ -10,16 +10,17 @@
     "cdk": "cdk",
     "jest": "jest"
   },
-  "devDependencies": {
-    "@types/node": "^11.13.7",
-    "aws-sdk": "^2.395.0",
-    "jest": "^24.7.1",
-    "typescript": "^3.4.0",
-    "tslint": "^5.10.0"
-  },
   "dependencies": {
     "@aws-cdk/aws-dynamodb": "^0.28.0",
     "@aws-cdk/cdk": "^0.28.0",
-    "punchcard": "^0.1.0"
+    "@types/uuid": "^3.4.4",
+    "punchcard": "^0.1.0",
+    "uuid": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^11.13.7",
+    "aws-sdk": "^2.395.0",
+    "typescript": "^3.4.0",
+    "tslint": "^5.10.0"
   }
 }

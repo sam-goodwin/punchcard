@@ -140,9 +140,8 @@ export class OrdPath<T extends Type<V>, V> extends BaseDynamoPath<T, V> {
  */
 export function toFacade<S extends Shape>(schema: S): Facade<S> {
   const facade: any = {};
-// tslint:disable-next-line: forin
-  for (const name in schema) {
-    facade[name] = schema[name].toDynamoPath(new RootParent(name), name);
+  for (const [name, value] of Object.entries(schema)) {
+    facade[name] = value.toDynamoPath(new RootParent(name), name);
   }
   return facade;
 }

@@ -3,7 +3,7 @@ import cdk = require('@aws-cdk/cdk');
 
 import { isRuntime } from '../constants';
 import { Context } from '../runtime';
-import { jsonSchema, Kind, Mapper, Raw, Shape, StructType } from '../shape';
+import { jsonSchema, Kind, Mapper, Raw, Shape, StructType, Type } from '../shape';
 import { Tree } from '../tree';
 import { Method, MethodName, RequestMappings, Response, Responses } from './method';
 import { StatusCode } from './request-response';
@@ -47,19 +47,19 @@ export class Resource extends Tree<Resource> {
     if (handler) {
       const request = handler.requestMapper.read(event);
       let result: Response<any, any>;
-      let response: Mapper<any, any>;
+      let responseMapper: Mapper<any, any>;
       try {
         result = await handler.handler(request, context);
-        response = (handler.responseMappers as any)[result.statusCode];
+        responseMapper = (handler.responseMappers as any)[result.statusCode];
       } catch (err) {
         console.error('api gateway handler threw error', err.message);
         throw err;
       }
-      if (response === undefined) {
+      if (responseMapper === undefined) {
         throw new Error(`unexpected status code: ${result.statusCode}`);
       }
       try {
-        const payload = response.write(result.payload);
+        const payload = responseMapper.write(result.payload);
         if (result.statusCode === StatusCode.Ok) {
           return payload;
         } else {
@@ -110,10 +110,9 @@ export class Resource extends Tree<Resource> {
   }
 
   private addMethod<R extends Context, T extends Shape, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
-    method.integration.mapResource(this);
     this.makeHandler(methodName, method);
     if (isRuntime()) {
-      // don't do expensive work when at runtime
+      // don't do expensive work at runtime
       return;
     }
 
@@ -170,7 +169,7 @@ export class Resource extends Tree<Resource> {
           'application/json': new apigateway.CfnModel(responses, statusCode, {
             restApiId: this.restApiId,
             contentType: 'application/json',
-            schema: jsonSchema((method.responses as any)[statusCode] as any)
+            schema: (method.responses as {[key: string]: Type<any>})[statusCode].toJsonSchema()
           }).modelName
         },
         // TODO: responseParameters
@@ -179,10 +178,11 @@ export class Resource extends Tree<Resource> {
   }
 
   private makeHandler(httpMethod: string, method: Method<any, any, any, any>): void {
+    method.integration.mapResource(this);
     const responseMappers: ResponseMappers = {} as ResponseMappers;
     Object.keys(method.responses).forEach(statusCode => {
       // TODO: can we return raw here?
-      (responseMappers as any)[statusCode] = Raw.forShape(method.responses[statusCode] as any);
+      (responseMappers as any)[statusCode] = Raw.forType(method.responses[statusCode]);
     });
     this.methods[httpMethod.toUpperCase()] = {
       handler: method.handle,
@@ -194,7 +194,7 @@ export class Resource extends Tree<Resource> {
 
 function velocityTemplate<S extends Shape>(
     shape: Shape,
-    mappings: RequestMappings<S, any>,
+    mappings?: RequestMappings<S, any>,
     root: string = "$input.path('$')"): string {
 
   let template = `#set($inputRoot = ${root})\n`;
@@ -233,7 +233,7 @@ function velocityTemplate<S extends Shape>(
   }
 
   let i = 0;
-  const keys = new Set(Object.keys(shape).concat(Object.keys(mappings)));
+  const keys = new Set(Object.keys(shape).concat(Object.keys(mappings || {})));
   for (const childName of keys) {
     walk(shape, childName, (mappings as any)[childName], 1);
     if (i + 1 < keys.size) {

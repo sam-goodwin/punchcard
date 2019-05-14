@@ -139,7 +139,7 @@ export function code(scope: cdk.IConstruct): lambda.Code {
 const app = require('./app').default;
 
 if (app === undefined) {
-  throw new Error('app is null, are you exporting your cdk.App as the default in your app module?');
+  throw new Error('app is null, are you exporting your cdk.App as the default in your main module (i.e. index.js)?');
 }
 
 app.run = (() => {

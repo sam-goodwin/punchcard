@@ -64,7 +64,9 @@ abstract class TableClientBase<S extends Shape, Key extends Shape> implements Ta
 
   // TODO: Support paging, etc.
   public async scan(): Promise<Array<RuntimeShape<S>>> {
-    const result = await this.client.scan().promise();
+    const result = await this.client.scan({
+      TableName: this.tableName
+    }).promise();
     if (result.Items) {
       return result.Items.map(item => this.table.mapper.read(item));
     } else {
@@ -204,42 +206,6 @@ export class SortedTableClientImpl<S extends Shape, PKey extends keyof S, SKey e
     }
   }
 }
-
-// export class LocalIndexClient<S extends Shape, PKey extends keyof S, SKey extends keyof S> {
-//   public readonly indexName: string;
-//   public readonly tableName: string;
-//   public readonly shape: S;
-//   public readonly client: AWS.DynamoDB;
-
-//   private readonly mapper: Mapper<RuntimeShape<S>, AWS.DynamoDB.AttributeMap>;
-//   private readonly partitionKey: PKey;
-//   private readonly sortKey: SKey;
-
-//   constructor(props: TableClientProps<S, PKey, SKey> & {indexName: string}) {
-//     this.indexName = props.indexName;
-//     this.tableName = props.tableName;
-//     this.shape = props.shape;
-//     this.client = props.client;
-
-//     this.mapper = new Dynamo.Mapper(struct(props.shape));
-//     this.partitionKey = props.partitionKey;
-//     this.sortKey = props.sortKey;
-//   }
-
-//   public async query(query: Query<S, PKey, SKey>): Promise<Array<RuntimeShape<S>>> {
-//     const result = await this.client.query({
-//       TableName: this.tableName,
-//       IndexName: this.indexName,
-//       ...compileQuery(this.shape, query, this.partitionKey, this.sortKey)
-//     }).promise();
-
-//     if (result.Items) {
-//         return result.Items.map(item => this.mapper.read(item));
-//     } else {
-//         return [];
-//     }
-//   }
-// }
 
 export interface PutRequest<T extends Shape> {
   item: RuntimeShape<T>;
