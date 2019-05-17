@@ -1,5 +1,4 @@
 export * from './api-gateway';
-export * from './bootstrap';
 export * from './dynamodb';
 export * from './property-bag';
 export * from './runtime';
