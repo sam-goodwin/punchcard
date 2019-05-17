@@ -104,6 +104,18 @@ function bootstrapTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
     table.bootstrap(bag);
     expect(bag.hasCache(Table.cacheKey)).toBe(true);
   });
+  it('should use cached dynamo client', () => {
+    const ddbClientConstructor = sinon.spy(AWS, 'DynamoDB');
+
+    const table = makeTable(new cdk.Stack(new cdk.App(), 'hello'));
+    const bag = new RuntimePropertyBag('test', {}, {});
+    bag.set('tableName', 'table-name');
+    table.bootstrap(bag);
+    table.bootstrap(bag);
+    expect(ddbClientConstructor.calledOnce).toEqual(true);
+
+    ddbClientConstructor.restore();
+  });
 }
 
 describe('HashTable', () => {

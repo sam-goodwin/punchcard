@@ -32,6 +32,7 @@ const table = {
   }),
   list: array(integer()),
   map: map(string()),
+  intMap: map(integer()),
   stringSetAttribute: set(string()),
   intSetAttribute: set(integer()),
   floatSetAttribute: set(float()),
@@ -49,6 +50,7 @@ const table = {
   }),
   other_list: array(integer()),
   other_map: map(string()),
+  other_intMap: map(integer()),
   other_stringSetAttribute: set(string()),
   other_intSetAttribute: set(integer()),
   other_floatSetAttribute: set(float()),
@@ -239,7 +241,7 @@ describe('update-expression', () => {
       });
     });
 
-    describe('to', () => {
+    describe('to another attribute', () => {
       it('boolean', () => {
         expect(render(facade.boolAttribute.set(facade.other_boolAttribute))).toEqual({
           UpdateExpression: '#0 = #1',
@@ -371,6 +373,74 @@ describe('update-expression', () => {
             '#1': 'other_list',
           },
           ExpressionAttributeValues: {}
+        });
+      });
+    });
+
+    describe('to another computation', () => {
+      it('int', () => {
+        expect(render(facade.intAttribute.set(facade.other_intAttribute.plus(1)))).toEqual({
+          UpdateExpression: '#0 = #1 + :0',
+          ExpressionAttributeNames: {
+            '#0': 'intAttribute',
+            '#1': 'other_intAttribute',
+          },
+          ExpressionAttributeValues: {
+            ':0': { N: '1' }
+          }
+        });
+      });
+
+      it('float', () => {
+        expect(render(facade.floatAttribute.set(facade.other_floatAttribute.plus(1.1)))).toEqual({
+          UpdateExpression: '#0 = #1 + :0',
+          ExpressionAttributeNames: {
+            '#0': 'floatAttribute',
+            '#1': 'other_floatAttribute',
+          },
+          ExpressionAttributeValues: {
+            ':0': { N: '1.1' }
+          }
+        });
+      });
+
+      it('timestamp', () => {
+        expect(render(facade.timestampAttribute.set(facade.other_timestampAttribute.plusMs(100)))).toEqual({
+          UpdateExpression: '#0 = #1 + :0',
+          ExpressionAttributeNames: {
+            '#0': 'timestampAttribute',
+            '#1': 'other_timestampAttribute',
+          },
+          ExpressionAttributeValues: {
+            ':0': { N: '100' }
+          }
+        });
+      });
+
+      it('map key', () => {
+        expect(render(facade.intMap.get('key').set(facade.other_intMap.get('key').plus(1)))).toEqual({
+          UpdateExpression: '#0.#1 = #2.#1 + :0',
+          ExpressionAttributeNames: {
+            '#0': 'intMap',
+            '#1': 'key',
+            '#2': 'other_intMap'
+          },
+          ExpressionAttributeValues: {
+            ':0': { N: '1' }
+          }
+        });
+      });
+
+      it('list item', () => {
+        expect(render(facade.list.get(1).set(facade.other_list.get(1).plus(1)))).toEqual({
+          UpdateExpression: '#0[1] = #1[1] + :0',
+          ExpressionAttributeNames: {
+            '#0': 'list',
+            '#1': 'other_list',
+          },
+          ExpressionAttributeValues: {
+            ':0': { N: '1' }
+          }
         });
       });
     });
