@@ -1,26 +1,26 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
-import { isRuntime, RUNTIME_ENV, WEBPACK_MODE, ENTRYPOINT_SYMBOL_NAME } from '../constants';
+import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../constants';
 import { Entrypoint, entrypoint } from '../runtime';
-import { Context, PropertyBag, RunContext, RuntimePropertyBag } from '../runtime';
+import { Lifted, PropertyBag, RuntimeContext, RuntimePropertyBag } from '../runtime';
 import { Mapper, Raw } from '../shape';
 import { Omit } from '../utils';
 
 import fs = require('fs');
 import path = require('path');
 
-export type FunctionProps<T, U, C extends Context> = {
+export type FunctionProps<T, U, C extends RuntimeContext> = {
   requestMapper?: Mapper<T, any>;
   responseMapper?: Mapper<U, any>;
   context?: C;
-  handle: (event: T, run: RunContext<C>, context: any) => Promise<U>;
+  handle: (event: T, run: Lifted<C>, context: any) => Promise<U>;
 } & Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>;
 
-export class Function<T, U, C extends Context> extends lambda.Function implements Entrypoint {
+export class Function<T, U, C extends RuntimeContext> extends lambda.Function implements Entrypoint {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
-  public readonly handle: (event: T, run: RunContext<C>, context: any) => Promise<U>;
+  public readonly handle: (event: T, run: Lifted<C>, context: any) => Promise<U>;
 
   private readonly requestMapper: Mapper<T, any>;
   private readonly responseMapper: Mapper<U, any>;
@@ -64,7 +64,7 @@ export class Function<T, U, C extends Context> extends lambda.Function implement
     }
     const runtimeProperties = new RuntimePropertyBag(this.node.uniqueId, bag, {});
 
-    const run: RunContext<C> = {} as any;
+    const run: Lifted<C> = {} as any;
 
     if (this.context) {
       for (const [name, r] of Object.entries(this.context)) {

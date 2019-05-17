@@ -4,7 +4,7 @@ import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import cdk = require('@aws-cdk/cdk');
 
-import { Run, RunTarget } from '../runtime';
+import { Client, Runtime } from '../runtime';
 import { RuntimePropertyBag } from '../runtime';
 import { Dynamo, Mapper, RuntimeShape, Shape, struct } from "../shape";
 import { Omit } from '../utils';
@@ -27,8 +27,8 @@ interface TableProps<S extends Shape, K extends Shape> {
   props: dynamodb.TableProps
 }
 
-export abstract class Table<Client extends TableClient<S, K>, S extends Shape, K extends Shape>
-    extends dynamodb.Table implements Run<Client>, ITable<S, K> {
+export abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Shape>
+    extends dynamodb.Table implements Client<C>, ITable<S, K> {
   public static readonly cacheKey = 'aws:dynamodb';
 
   public readonly shape: S;
@@ -48,7 +48,7 @@ export abstract class Table<Client extends TableClient<S, K>, S extends Shape, K
     this.facade = toFacade(props.shape);
   }
 
-  public bootstrap(properties: RuntimePropertyBag): Client {
+  public bootstrap(properties: RuntimePropertyBag): C {
     let client: AWS.DynamoDB = properties.tryLookupCache(Table.cacheKey);
     if (!client) {
       client = new AWS.DynamoDB();
@@ -57,13 +57,13 @@ export abstract class Table<Client extends TableClient<S, K>, S extends Shape, K
     return this.makeClient(properties.get('tableName'), client);
   }
 
-  protected abstract makeClient(tableName: string, client: AWS.DynamoDB): Client;
+  protected abstract makeClient(tableName: string, client: AWS.DynamoDB): C;
 
-  public install(target: RunTarget): void {
+  public install(target: Runtime): void {
     this.readWriteData().install(target);
   }
 
-  private _install(grant: (grantable: iam.IGrantable) => void): Run<Client> {
+  private _install(grant: (grantable: iam.IGrantable) => void): Client<C> {
     return {
       install: (target) => {
         target.properties.set('tableName', this.tableName);
@@ -73,19 +73,19 @@ export abstract class Table<Client extends TableClient<S, K>, S extends Shape, K
     };
   }
 
-  public readData(): Run<Client> {
+  public readData(): Client<C> {
     return this._install(this.grantReadData.bind(this));
   }
 
-  public readWriteData(): Run<Client> {
+  public readWriteData(): Client<C> {
     return this._install(this.grantReadWriteData.bind(this));
   }
 
-  public writeData(): Run<Client> {
+  public writeData(): Client<C> {
     return this._install(this.grantWriteData.bind(this));
   }
 
-  public fullAccess(): Run<Client> {
+  public fullAccess(): Client<C> {
     return this._install(this.grantFullAccess.bind(this));
   }
 }

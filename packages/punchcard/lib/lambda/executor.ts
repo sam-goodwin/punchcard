@@ -3,7 +3,7 @@ import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 
 import { Integration, LambdaIntegration, Resource } from '../api-gateway';
-import { Context, RunContext } from '../runtime';
+import { Lifted, RuntimeContext } from '../runtime';
 import { Mapper } from '../shape/mapper/mapper';
 import { Raw } from '../shape/mapper/raw';
 import { Omit } from '../utils';
@@ -39,11 +39,11 @@ export class LambdaExecutorService {
     memorySize: 128
   }) {}
 
-  public run<T, U, C extends Context>(scope: cdk.Construct, id: string, props: {
+  public run<T, U, C extends RuntimeContext>(scope: cdk.Construct, id: string, props: {
     requestMapper?: Mapper<T, any>,
     responseMapper?: Mapper<U, any>,
     context: C,
-    handle: (event: T, run: RunContext<C>, context: any) => Promise<U>;
+    handle: (event: T, run: Lifted<C>, context: any) => Promise<U>;
   }): Function<T, U, C> {
     return new Function<T, U, C>(scope, id, {
       ...this.props,
@@ -51,10 +51,10 @@ export class LambdaExecutorService {
     });
   }
 
-  public schedule<C extends Context>(scope: cdk.Construct, id: string, props: {
+  public schedule<C extends RuntimeContext>(scope: cdk.Construct, id: string, props: {
     rate: Rate;
     context: C;
-    handle: (event: CloudwatchEvent, run: RunContext<C>, context: any) => Promise<any>;
+    handle: (event: CloudwatchEvent, run: Lifted<C>, context: any) => Promise<any>;
   }): Function<CloudwatchEvent, any, C> {
     scope = new cdk.Construct(scope, id);
     const f = new Function(scope, 'Function', {
@@ -70,14 +70,14 @@ export class LambdaExecutorService {
     return f;
   }
 
-  public apiIntegration<C extends Context>(parent: cdk.Construct, id: string, props: {
+  public apiIntegration<C extends RuntimeContext>(parent: cdk.Construct, id: string, props: {
     context: C;
   }): Integration<C> {
     const handler = this.run(parent, id, {
       requestMapper: Raw.passthrough(),
       responseMapper: Raw.passthrough(),
       context: props.context,
-      handle: async (event: any, runtimeContext: RunContext<C>) => {
+      handle: async (event: any, runtimeContext: Lifted<C>) => {
         console.log(JSON.stringify(event, null, 2));
         const resourceId = event.__resourceId; // TODO: we implicitly know this field exists - magic field. see ../api-gateway/resource.ts
         const resource: Resource = integration.findResource(resourceId);

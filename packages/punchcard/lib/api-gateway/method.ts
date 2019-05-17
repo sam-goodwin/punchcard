@@ -1,14 +1,14 @@
 import { RuntimeShape, Shape } from '../shape/shape';
 import { StructType, Type } from '../shape/types';
 
-import { Context, RunContext } from '../runtime';
+import { RuntimeContext, Lifted } from '../runtime';
 import { Integration } from './integration';
 import { StatusCode, } from './request-response';
 import { TypedMapping } from './variable';
 
 export type MethodName = 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT';
 
-export interface Method<R extends Context, T extends Shape, U extends Responses, M extends MethodName> {
+export interface Method<R extends RuntimeContext, T extends Shape, U extends Responses, M extends MethodName> {
   integration: Integration<R>;
   request: {
     shape: T;
@@ -17,7 +17,7 @@ export interface Method<R extends Context, T extends Shape, U extends Responses,
 
   responses: U;
 
-  handle: (request: RuntimeShape<T>, runtimeContext: RunContext<R>) => Promise<Response<U, keyof U>>
+  handle: (request: RuntimeShape<T>, runtimeContext: Lifted<R>) => Promise<Response<U, keyof U>>
 }
 
 export type MappingType<T extends Type<any>> =

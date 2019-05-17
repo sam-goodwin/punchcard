@@ -5,7 +5,7 @@ import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import 'jest';
 // tslint:disable-next-line: max-line-length
-import { array, bigint, binary, double, float, HashTable, integer, map, optional, PropertyBag, RuntimePropertyBag, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type, Run } from '../../lib';
+import { array, bigint, binary, double, float, HashTable, integer, map, optional, PropertyBag, RuntimePropertyBag, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type, Client } from '../../lib';
 
 function keyTypeTests(makeTable: (type: Type<any>) => void) {
   it('should accept string partition key type', () => {
@@ -56,7 +56,7 @@ function keyTypeTests(makeTable: (type: Type<any>) => void) {
 
 // tests for installing the table into an RunTarget
 function installTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
-  function installTest(getRun: (t: Table<any, any, any>) => Run<any>, expectedGrant: keyof Table<any, any, any>) {
+  function installTest(getRun: (t: Table<any, any, any>) => Client<any>, expectedGrant: keyof Table<any, any, any>) {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
     const table = makeTable(stack);
     const tableSpy = sinon.spy(table, expectedGrant);
