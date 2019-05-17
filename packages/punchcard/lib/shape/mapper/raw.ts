@@ -115,7 +115,6 @@ export namespace Raw {
           Reader.throwError(type.kind, parsed, 'object');
         }
 
-// tslint:disable-next-line: no-shadowed-variable
         const struct = type as any as StructType<any>;
         const result: any = {};
         Object.keys(struct.shape).forEach(name => {

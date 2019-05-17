@@ -27,6 +27,32 @@ describe('string', () => {
   shouldThrow('pattern does not match', 'a', {pattern: /[0-9]+/});
 });
 
+describe('binary', () => {
+  function shouldRead(desc: string, value: string, constraints?: BinaryTypeConstraints) {
+    const buf = Buffer.from(value);
+    it(`should read if ${desc}`, () => {
+      expect(Raw.forType(binary(constraints)).read(buf.toString('base64'))).toEqual(buf);
+    });
+  }
+
+  function shouldThrow(desc: string, value: string, constraints?: BinaryTypeConstraints) {
+    it(`should throw if ${desc}`, () => {
+      expect(() => Raw.forType(binary(constraints)).read(Buffer.from(value).toString('base64'))).toThrow();
+    });
+  }
+  shouldRead('is a string', 'string');
+  shouldRead('< maximum length', '1', {maxLength: 2});
+  shouldRead('= maximum length', '12', {maxLength: 2});
+  shouldRead('> minimum length', '12', {minLength: 1});
+  shouldRead('= minimum length', '1', {minLength: 1});
+
+  it('should throw if not a string', () => {
+    expect(() => Raw.forType(binary()).read(1 as any)).toThrow();
+  });
+  shouldThrow('> maximum length', '1', {maxLength: 0});
+  shouldThrow('< minimum length', '', {minLength: 1});
+});
+
 function wholeNumberTests(f: (constraints?: NumberConstraints) => Type<number>) {
   function shouldRead(desc: string, value: number, constraints?: NumberConstraints) {
     it(`should read if ${desc}`, () => {
