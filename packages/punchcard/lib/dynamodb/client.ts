@@ -48,7 +48,7 @@ abstract class TableClientBase<S extends Shape, Key extends Shape> implements Ta
     const result = await this.client.batchGetItem({
       RequestItems: {
         [this.tableName]: {
-          Keys: keys.map(key => this.table.keyMapper.write(key))
+          Keys: keys.map(key => this.table.keyMapper.write(key)),
         }
       }
     }).promise();
@@ -56,7 +56,7 @@ abstract class TableClientBase<S extends Shape, Key extends Shape> implements Ta
     if (result.Responses) {
       const items = result.Responses[this.tableName];
       if (items) {
-        return items.map(item => this.table.mapper.read(item));
+        return items.map(item => this.table.mapper.read(item.Item as AWS.DynamoDB.AttributeMap));
       }
     }
     throw new Error('TODO');
@@ -74,7 +74,7 @@ abstract class TableClientBase<S extends Shape, Key extends Shape> implements Ta
     }
   }
 
-  public put(put: PutRequest<S>): Promise<AWS.DynamoDB.Types.PutItemOutput> {
+  public put(put: PutRequest<S>): Promise<AWS.DynamoDB.PutItemOutput> {
     let expression: Partial<CompiledExpression> = {};
     if (put.if) {
       expression = put.if(this.table.facade).render(new CompileContextImpl());
@@ -165,6 +165,9 @@ abstract class TableClientBase<S extends Shape, Key extends Shape> implements Ta
       ExpressionAttributeNames: context.names,
       ExpressionAttributeValues: context.values
     };
+    if (ConditionExpression === undefined) {
+      delete updateRequest.ConditionExpression;
+    }
     return await this.client.updateItem(updateRequest).promise();
   }
 }

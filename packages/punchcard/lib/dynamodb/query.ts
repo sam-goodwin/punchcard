@@ -24,12 +24,16 @@ export function compileQuery<T extends Shape, PKey extends keyof T, SKey extends
     keyConditionExpression += ` AND ${(keyComparison.compile(table.sortKey.toString(), table.shape[table.sortKey], context))}`;
   }
 
-  return {
+  const q = {
     KeyConditionExpression: keyConditionExpression,
     ExpressionAttributeNames: context.names,
     ExpressionAttributeValues: context.values,
     FilterExpression: query.filter ? query.filter(table.facade).compile(context) : undefined
   };
+  if (q.FilterExpression === undefined) {
+    delete q.FilterExpression;
+  }
+  return q;
 }
 
 /**
