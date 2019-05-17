@@ -5,7 +5,7 @@
   "types": "lib/index.ts",
   "scripts": {
     "build": "tsc",
-    "test": "jest",
+    "test": "jest --verbose",
     "watch": "tsc -w",
     "cdk": "cdk"
   },

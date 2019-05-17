@@ -16,7 +16,7 @@ export class OptionalType<T extends Type<V>, V> implements Type<V | undefined> {
   constructor(public readonly type: T) {}
 
   public validate(_value: V | undefined): void {
-    if (_value !== undefined) {
+    if (_value !== undefined && _value !== null) {
       this.type.validate(_value);
     }
   }

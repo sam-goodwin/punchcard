@@ -8,19 +8,19 @@ export namespace TimestampFormat {
       return date.toISOString();
     },
     read(date: string) {
-      return new Date(Date.parse(date));
+      return moment.utc(date).toDate();
     }
   };
 // tslint:disable-next-line: variable-name
   export const AwsGlue = {
     write(value: Date) {
       // TODO: why the f doesn't athena support ISO8601 string lol
-      return moment(value).format('YYYY-MM-DD HH:mm:ss.SSS');
+      return moment.utc(value).format('YYYY-MM-DD HH:mm:ss.SSS');
 
       // return `${date} ${time}`
     },
     read(value: string) {
-      return moment(value).toDate();
+      return moment.utc(value).toDate();
     }
   };
 }

@@ -1,8 +1,42 @@
 import 'jest';
 // tslint:disable-next-line: max-line-length
-import { array, ArrayTypeConstraints, bigint, double, float, integer, map, MapTypeConstraints, NumberConstraints, optional, PrimitiveType, Raw, set, SetTypeConstraints, smallint, string, StringTypeConstraints, struct, tinyint, Type, Shape, RuntimeShape, binary, BinaryTypeConstraints } from '../../lib';
+import { array, ArrayTypeConstraints, bigint, double, float, integer, map, MapTypeConstraints, NumberConstraints, optional, PrimitiveType, Raw, set, SetTypeConstraints, smallint, string, StringTypeConstraints, struct, tinyint, Type, Shape, RuntimeShape, binary, BinaryTypeConstraints, boolean, timestamp, TimestampFormat } from '../../lib';
+
+describe('boolean', () => {
+  const mapper = Raw.forType(boolean);
+  it('should read true', () => expect(mapper.read(true)).toEqual(true));
+  it('should read false', () => expect(mapper.read(false)).toEqual(false));
+  it('should throw if not boolean', () => expect(() => mapper.read('not a boolean' as any)).toThrow());
+
+  it('should write true', () => expect(mapper.write(true)).toEqual(true));
+  it('should write false', () => expect(mapper.write(false)).toEqual(false));
+});
+
+describe('timestamp', () => {
+  it('should read ISO8601 string', () => {
+    expect(Raw.forType(timestamp).read(new Date(0).toISOString())).toEqual(new Date(0));
+  });
+  it('should read non ISO8601 format', () => {
+    expect(Raw.forType(timestamp).read('2019-01-01 00:00:00Z')).toEqual(new Date(Date.parse('2019-01-01T00:00:00.000Z')));
+  });
+  it('should assume UTC format', () => {
+    expect(Raw.forType(timestamp).read('2019-01-01 00:00:00')).toEqual(new Date(Date.parse('2019-01-01T00:00:00.000Z')));
+  });
+  it('should write ISO8601 string', () => {
+    expect(Raw.forType(timestamp).write(new Date(0))).toEqual(new Date(0).toISOString());
+  });
+  it('should write AWSGlue format', () => {
+    expect(Raw.forType(timestamp, {
+      writer: new Raw.Writer({
+        timestampFormat: TimestampFormat.AwsGlue
+      })
+    }).write(new Date(0))).toEqual('1970-01-01 00:00:00.000');
+  });
+});
 
 describe('string', () => {
+  it('should write string', () => expect(Raw.forType(string()).write('string')).toEqual('string'));
+
   function shouldRead(desc: string, value: string, constraints?: StringTypeConstraints) {
     it(`should read if ${desc}`, () => {
       expect(Raw.forType(string(constraints)).read(value)).toEqual(value);
@@ -28,6 +62,9 @@ describe('string', () => {
 });
 
 describe('binary', () => {
+  it('should write binary as base64 encoded string', () =>
+    expect(Raw.forType(binary()).write(Buffer.from('string'))).toEqual(Buffer.from('string').toString('base64')));
+
   function shouldRead(desc: string, value: string, constraints?: BinaryTypeConstraints) {
     const buf = Buffer.from(value);
     it(`should read if ${desc}`, () => {
@@ -54,6 +91,10 @@ describe('binary', () => {
 });
 
 function wholeNumberTests(f: (constraints?: NumberConstraints) => Type<number>) {
+  it('should write a whole number', () => {
+    expect(Raw.forType(f()).write(1)).toEqual(1);
+  });
+
   function shouldRead(desc: string, value: number, constraints?: NumberConstraints) {
     it(`should read if ${desc}`, () => {
       expect(Raw.forType(f(constraints)).read(value)).toEqual(value);
@@ -86,6 +127,10 @@ function wholeNumberTests(f: (constraints?: NumberConstraints) => Type<number>) 
 }
 
 function floatingPointNumberTests(f: (constraints?: NumberConstraints) => Type<number>) {
+  it('should write a floating point number', () => {
+    expect(Raw.forType(f()).write(1.1)).toEqual(1.1);
+  });
+
   function shouldRead(desc: string, value: number, constraints?: NumberConstraints) {
     it(`should read if ${desc}`, () => {
       expect(Raw.forType(f(constraints)).read(value)).toEqual(value);
@@ -139,6 +184,10 @@ describe('double', () => {
 });
 
 describe('set', () => {
+  it('should write Set as array', () => {
+    expect(Raw.forType(set(string())).write(new Set('a'))).toEqual(['a']);
+  });
+
   function shouldRead(desc: string, a: string[], constraints?: SetTypeConstraints, stringConstraints?: StringTypeConstraints) {
     it(`should read ${desc}`, () => {
       const v: Set<string> = Raw.forType(set(string(stringConstraints), constraints)).read(a) as Set<string>;
@@ -164,6 +213,10 @@ describe('set', () => {
 });
 
 describe('array', () => {
+  it('should write array', () => {
+    expect(Raw.forType(array(string())).write(['a'])).toEqual(['a']);
+  });
+
   function shouldRead(desc: string, a: string[], constraints?: ArrayTypeConstraints, stringConstraints?: StringTypeConstraints) {
     it(`should read ${desc}`, () => {
       expect(Raw.forType(array(string(stringConstraints), constraints)).read(a)).toEqual(a);
@@ -201,6 +254,10 @@ describe('array', () => {
 });
 
 describe('map', () => {
+  it('should write map', () => {
+    expect(Raw.forType(map(string())).write({a: 'a'})).toEqual({a: 'a'});
+  });
+
   function shouldRead(desc: string, a: {[key: string]: string}, constraints?: MapTypeConstraints, stringConstraints?: StringTypeConstraints) {
     it(`should read ${desc}`, () => {
       expect(Raw.forType(map(string(stringConstraints), constraints)).read(a)).toEqual(a);
@@ -229,6 +286,23 @@ describe('map', () => {
 });
 
 describe('optional', () => {
+  it('should write undefined as null', () => {
+    expect(Raw.forType(optional(string()) as Type<string>).write(undefined as any)).toEqual(null);
+  });
+  it('should write null as null', () => {
+    expect(Raw.forType(optional(string()) as Type<string>).write(null as any)).toEqual(null);
+  });
+  it('should not write nulls if configured', () => {
+    expect(Raw.forType(optional(string()) as Type<string>, {
+      writer: new Raw.Writer({
+        writeNulls: false
+      })
+    }).write(null as any)).toEqual(undefined);
+  });
+  it('should write value', () => {
+    expect(Raw.forType(optional(string()) as Type<string>).write('string')).toEqual('string');
+  });
+
   it('should read undefined', () => {
     expect(Raw.forType(optional(string()) as Type<string>).read(undefined)).toEqual(undefined);
   });
@@ -241,6 +315,10 @@ describe('optional', () => {
 });
 
 describe('struct', () => {
+  it('should write struct', () => {
+    expect(Raw.forShape({a: string()}).write({a: 'string'})).toEqual({a: 'string'});
+  });
+
   function shouldRead<S extends Shape>(desc: string, shape: S, a: RuntimeShape<S>) {
     it(`should read if ${desc}`, () => {
       expect(Raw.forShape(shape).read(a)).toEqual(a);
