@@ -68,7 +68,7 @@ export class Function<T, U, C extends Context> extends lambda.Function implement
 
     if (this.context) {
       for (const [name, r] of Object.entries(this.context)) {
-        run[name] = r.run(runtimeProperties.push(name));
+        run[name] = r.bootstrap(runtimeProperties.push(name));
       }
     }
 

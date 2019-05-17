@@ -89,19 +89,19 @@ function installTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
 }
 
 // tests for bootstrapping a runnable client from a property bag
-function runTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
+function bootstrapTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
   it('should lookup tableName from properties', () => {
     const table = makeTable(new cdk.Stack(new cdk.App(), 'hello'));
     const bag = new RuntimePropertyBag('test', {}, {});
     bag.set('tableName', 'table-name');
-    const client = table.run(bag);
+    const client = table.bootstrap(bag);
     expect((client as any).tableName).toEqual('table-name');
   });
   it('should create and cache dynamo client', () => {
     const table = makeTable(new cdk.Stack(new cdk.App(), 'hello'));
     const bag = new RuntimePropertyBag('test', {}, {});
     bag.set('tableName', 'table-name');
-    table.run(bag);
+    table.bootstrap(bag);
     expect(bag.hasCache(Table.cacheKey)).toBe(true);
   });
 }
@@ -133,8 +133,8 @@ describe('HashTable', () => {
   describe('install', () => {
     installTests(boringTable);
   });
-  describe('run', () => {
-    runTests(boringTable);
+  describe('bootstrap', () => {
+    bootstrapTests(boringTable);
   });
 });
 describe('SortedTable', () => {
@@ -168,7 +168,7 @@ describe('SortedTable', () => {
   describe('install', () => {
     installTests(boringTable);
   });
-  describe('run', () => {
-    runTests(boringTable);
+  describe('bootstrap', () => {
+    bootstrapTests(boringTable);
   });
 });

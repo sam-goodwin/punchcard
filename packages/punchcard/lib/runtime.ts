@@ -16,7 +16,7 @@ export type RunContext<C extends Context> = {
 
 export interface Run<R> {
   install(target: RunTarget): void;
-  run(properties: RuntimePropertyBag): R;
+  bootstrap(properties: RuntimePropertyBag): R;
 }
 
 export const entrypoint = Symbol.for(ENTRYPOINT_SYMBOL_NAME);

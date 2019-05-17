@@ -48,7 +48,7 @@ export abstract class Table<Client extends TableClient<S, K>, S extends Shape, K
     this.facade = toFacade(props.shape);
   }
 
-  public run(properties: RuntimePropertyBag): Client {
+  public bootstrap(properties: RuntimePropertyBag): Client {
     let client: AWS.DynamoDB = properties.tryLookupCache(Table.cacheKey);
     if (!client) {
       client = new AWS.DynamoDB();
@@ -69,7 +69,7 @@ export abstract class Table<Client extends TableClient<S, K>, S extends Shape, K
         target.properties.set('tableName', this.tableName);
         grant(target.grantable);
       },
-      run: this.run.bind(this)
+      bootstrap: this.bootstrap.bind(this)
     };
   }
 
