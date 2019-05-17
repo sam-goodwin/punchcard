@@ -1,13 +1,13 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../constants';
-import { Entrypoint, entrypoint } from '../runtime';
-import { Lifted, PropertyBag, RuntimeContext, RuntimePropertyBag } from '../runtime';
+import { Entrypoint, entrypoint, Lifted, RuntimeContext } from '../runtime';
 import { Mapper, Raw } from '../shape';
 import { Omit } from '../utils';
 
 import fs = require('fs');
 import path = require('path');
+import { PropertyBag, RuntimePropertyBag } from '../property-bag';
 
 export type FunctionProps<T, U, C extends RuntimeContext> = {
   requestMapper?: Mapper<T, any>;

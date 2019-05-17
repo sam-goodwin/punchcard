@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@types/jest": "^23.0.0",
-    "@types/node": "^8.10.48",
+    "@types/node": "^10.14.6",
     "@types/sinon": "^7.0.11",
     "@aws-cdk/cdk": "^0.28.0",
     "@aws-cdk/assert": "^0.28.0",

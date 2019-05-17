@@ -4,8 +4,8 @@ import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import cdk = require('@aws-cdk/cdk');
 
+import { RuntimePropertyBag } from '../property-bag';
 import { Client, Runtime } from '../runtime';
-import { RuntimePropertyBag } from '../runtime';
 import { Dynamo, Mapper, RuntimeShape, Shape, struct } from "../shape";
 import { Omit } from '../utils';
 import { HashTableClient, HashTableClientImpl, SortedTableClient, SortedTableClientImpl, TableClient } from "./client";
