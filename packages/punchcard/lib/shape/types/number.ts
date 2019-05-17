@@ -116,7 +116,7 @@ const defaultDouble = new DoubleType();
 const defaultSmallInt = new SmallIntType();
 const defaultTinyInt = new TinyIntType();
 
-export function bigInt(constraints?: NumberConstraints) {
+export function bigint(constraints?: NumberConstraints) {
   if (constraints) {
     return new BigIntType(constraints);
   } else {

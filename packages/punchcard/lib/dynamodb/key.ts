@@ -16,6 +16,8 @@ export function keyType(kind: Kind): dynamodb.AttributeType {
     case Kind.Number:
     case Kind.Integer:
       return dynamodb.AttributeType.Number;
+    case Kind.Binary:
+      return dynamodb.AttributeType.Binary;
     default:
       throw new Error(`key Kind must be String, Number or Integer, got ${kind}`);
   }

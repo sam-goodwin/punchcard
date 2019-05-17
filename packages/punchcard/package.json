@@ -17,13 +17,16 @@
   "devDependencies": {
     "@types/jest": "^23.0.0",
     "@types/node": "^8.10.48",
+    "@types/sinon": "^7.0.11",
     "@aws-cdk/cdk": "^0.28.0",
+    "@aws-cdk/assert": "^0.28.0",
     "@aws-cdk/aws-apigateway": "^0.28.0",
     "@aws-cdk/aws-dynamodb": "^0.28.0",
     "@aws-cdk/aws-iam": "^0.28.0",
     "@aws-cdk/aws-lambda": "^0.28.0",
     "aws-sdk": "^2.453.0",
     "jest": "^23.0.0",
+    "sinon": "^7.3.2",
     "tslint": "^5.16.0",
     "typescript": "^3.4.5"
   },

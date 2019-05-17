@@ -1,6 +1,7 @@
 import AWS = require('aws-sdk');
 
 import dynamodb = require('@aws-cdk/aws-dynamodb');
+import iam = require('@aws-cdk/aws-iam');
 import cdk = require('@aws-cdk/cdk');
 
 import { Run, RunTarget } from '../runtime';
@@ -26,7 +27,7 @@ interface TableProps<S extends Shape, K extends Shape> {
   props: dynamodb.TableProps
 }
 
-abstract class Table<Client extends TableClient<S, K>, S extends Shape, K extends Shape>
+export abstract class Table<Client extends TableClient<S, K>, S extends Shape, K extends Shape>
     extends dynamodb.Table implements Run<Client>, ITable<S, K> {
   public static readonly cacheKey = 'aws:dynamodb';
 
@@ -47,21 +48,6 @@ abstract class Table<Client extends TableClient<S, K>, S extends Shape, K extend
     this.facade = toFacade(props.shape);
   }
 
-  public readOnly(): Run<Client> {
-    return {
-      install: (target) => {
-        target.properties.set('tableName', this.tableName);
-        this.grantReadData(target.grantable);
-      },
-      run: this.run.bind(this)
-    };
-  }
-
-  public install(target: RunTarget): void {
-    target.properties.set('tableName', this.tableName);
-    this.grantReadWriteData(target.grantable);
-  }
-
   public run(properties: RuntimePropertyBag): Client {
     let client: AWS.DynamoDB = properties.tryLookupCache(Table.cacheKey);
     if (!client) {
@@ -72,6 +58,36 @@ abstract class Table<Client extends TableClient<S, K>, S extends Shape, K extend
   }
 
   protected abstract makeClient(tableName: string, client: AWS.DynamoDB): Client;
+
+  public install(target: RunTarget): void {
+    this.readWriteData().install(target);
+  }
+
+  private _install(grant: (grantable: iam.IGrantable) => void): Run<Client> {
+    return {
+      install: (target) => {
+        target.properties.set('tableName', this.tableName);
+        grant(target.grantable);
+      },
+      run: this.run.bind(this)
+    };
+  }
+
+  public readData(): Run<Client> {
+    return this._install(this.grantReadData.bind(this));
+  }
+
+  public readWriteData(): Run<Client> {
+    return this._install(this.grantReadWriteData.bind(this));
+  }
+
+  public writeData(): Run<Client> {
+    return this._install(this.grantWriteData.bind(this));
+  }
+
+  public fullAccess(): Run<Client> {
+    return this._install(this.grantFullAccess.bind(this));
+  }
 }
 
 export type HashTableProps<S extends Shape, P extends keyof S> = {
