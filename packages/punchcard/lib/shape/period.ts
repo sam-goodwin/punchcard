@@ -33,7 +33,7 @@ export namespace Period {
       day: smallint(),
       hour: smallint(),
       minute: smallint()
-    }
+    };
   }
 
   export type PT1M = typeof PT1M.schema;
@@ -41,12 +41,12 @@ export namespace Period {
     id: 'minutely',
     schema: schemas.PT1M,
     milliseconds: 60 * 1000
-  }
+  };
 
   export type PT1H = typeof PT1H.schema;
   export const PT1H: Period<typeof schemas.PT1H> = {
     id: 'hourly',
     schema: schemas.PT1H,
     milliseconds: 60 * 60 * 1000
-  }
+  };
 }

@@ -4,7 +4,7 @@
   "main": "lib/index.js",
   "types": "lib/index.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && tslint --project .",
     "test": "jest --verbose",
     "watch": "tsc -w",
     "cdk": "cdk"

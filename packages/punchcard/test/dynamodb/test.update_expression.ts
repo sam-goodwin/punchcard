@@ -61,9 +61,9 @@ const facade = toFacade(table);
 
 function render(u: SetAction<any, any>) {
   const context = new CompileContextImpl();
-  const string = u.compile(context);
+  const s = u.compile(context);
   return {
-    UpdateExpression: string,
+    UpdateExpression: s,
     ExpressionAttributeNames: context.names,
     ExpressionAttributeValues: context.values
   };

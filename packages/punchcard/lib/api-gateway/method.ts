@@ -1,7 +1,7 @@
 import { RuntimeShape, Shape } from '../shape/shape';
 import { StructType, Type } from '../shape/types';
 
-import { RuntimeContext, Lifted } from '../runtime';
+import { Lifted, RuntimeContext } from '../runtime';
 import { Integration } from './integration';
 import { StatusCode, } from './request-response';
 import { TypedMapping } from './variable';

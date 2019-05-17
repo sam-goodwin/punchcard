@@ -1,6 +1,6 @@
 import 'jest';
 // tslint:disable-next-line: max-line-length
-import { array, ArrayTypeConstraints, bigint, double, float, integer, map, MapTypeConstraints, NumberConstraints, optional, PrimitiveType, Raw, set, SetTypeConstraints, smallint, string, StringTypeConstraints, struct, tinyint, Type, Shape, RuntimeShape, binary, BinaryTypeConstraints, boolean, timestamp, TimestampFormat } from '../../lib';
+import { array, ArrayTypeConstraints, bigint, binary, BinaryTypeConstraints, boolean, double, float, integer, map, MapTypeConstraints, NumberConstraints, optional, Raw, RuntimeShape, set, SetTypeConstraints, Shape, smallint, string, StringTypeConstraints, struct, timestamp, TimestampFormat, tinyint, Type } from '../../lib';
 
 describe('boolean', () => {
   const mapper = Raw.forType(boolean);
