@@ -20,11 +20,11 @@ export namespace Raw {
     return pass;
   }
 
-  export function forShape<S extends Shape>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, string> {
+  export function forShape<S extends Shape>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, any> {
     return Raw.forType(struct(shape), configuration);
   }
 
-  export function forType<T extends Type<V>, V>(type: T, configuration?: Configuration): IMapper<V, string> {
+  export function forType<T extends Type<V>, V>(type: T, configuration?: Configuration): IMapper<V, any> {
     return new Mapper(type, configuration);
   }
 
@@ -69,8 +69,6 @@ export namespace Raw {
     public static readonly instance: Reader = new Reader();
 
     private static throwError(kind: Kind, parsed: any, expected: string) {
-// tslint:disable-next-line: no-console
-      console.log('typeof parsed', typeof parsed);
       throw new Error(`expected a value with type ${expected} for ${kind}, got ${typeof parsed}`);
     }
 

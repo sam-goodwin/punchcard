@@ -7,7 +7,7 @@ export interface TypeSet<T extends Type<V>, V> extends Set<V> {
 export namespace TypeSet {
   const primitives = [Kind.Boolean, Kind.Integer, Kind.Number, Kind.String];
   export const forType = <T extends Type<V>, V>(type: T): TypeSet<T, V> => {
-    if (type.kind in primitives) {
+    if (primitives.find(v => v === type.kind)) {
       return new PrimitiveSet(type);
     } else {
       return new GeneralSet(type);
@@ -17,7 +17,7 @@ export namespace TypeSet {
 
 class PrimitiveSet<T extends Type<V>, V> implements Set<V> {
   public [Symbol.toStringTag]: 'Set' = 'Set';
-  public size: number;
+  public size: number = 0;
 
   private readonly delegate: Set<V> = new Set();
 
@@ -68,7 +68,7 @@ class PrimitiveSet<T extends Type<V>, V> implements Set<V> {
 class GeneralSet<T extends Type<V>, V> implements Set<V> {
   public readonly [Symbol.toStringTag]: 'Set' = 'Set';
 
-  public size: number;
+  public size: number = 0;
 
   private readonly map = new Map<number, V[]>();
 

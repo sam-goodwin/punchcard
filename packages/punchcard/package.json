@@ -7,8 +7,7 @@
     "build": "tsc",
     "test": "jest",
     "watch": "tsc -w",
-    "cdk": "cdk",
-    "jest": "jest"
+    "cdk": "cdk"
   },
   "author": {
     "name": "Sam Goodwin",

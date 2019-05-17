@@ -21,6 +21,7 @@ export class ArrayType<T extends Type<V>, V> implements Type<V[]> {
   constructor(public readonly itemType: T, private readonly constraints?: ArrayTypeConstraints) {}
 
   public validate(value: V[]): void {
+    value.forEach(v => this.itemType.validate(v));
     if (!this.constraints) {
       return;
     }

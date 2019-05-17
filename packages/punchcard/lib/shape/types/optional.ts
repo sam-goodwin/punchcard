@@ -16,7 +16,9 @@ export class OptionalType<T extends Type<V>, V> implements Type<V | undefined> {
   constructor(public readonly type: T) {}
 
   public validate(_value: V | undefined): void {
-    // do nothing
+    if (_value !== undefined) {
+      this.type.validate(_value);
+    }
   }
 
   public toDynamoPath(parent: DynamoPath, name: string): InferDynamoPathType<T> {

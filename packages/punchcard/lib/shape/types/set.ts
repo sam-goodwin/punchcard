@@ -20,6 +20,7 @@ export class SetType<T extends Type<V>, V> implements Type<TypeSet<T, V>> {
   constructor(public readonly itemType: T, private readonly constraints?: SetTypeConstraints) {}
 
   public validate(value: TypeSet<T, V>): void {
+    value.forEach(v => this.itemType.validate(v));
     if (!this.constraints) {
       return;
     }
