@@ -5,7 +5,7 @@ import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import 'jest';
 // tslint:disable-next-line: max-line-length
-import { array, bigint, binary, Client, double, float, HashTable, integer, map, optional, PropertyBag, RuntimePropertyBag, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type } from '../../lib';
+import { array, bigint, binary, Cache, Client, double, float, HashTable, integer, map, optional, PropertyBag, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type } from '../../lib';
 
 function keyTypeTests(makeTable: (type: Type<any>) => void) {
   it('should accept string partition key type', () => {
@@ -92,26 +92,29 @@ function installTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
 function bootstrapTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
   it('should lookup tableName from properties', () => {
     const table = makeTable(new cdk.Stack(new cdk.App(), 'hello'));
-    const bag = new RuntimePropertyBag('test', {}, {});
+    const bag = new PropertyBag('test', {});
+    const cache = new Cache();
     bag.set('tableName', 'table-name');
-    const client = table.bootstrap(bag);
+    const client = table.bootstrap(bag, cache);
     expect((client as any).tableName).toEqual('table-name');
   });
   it('should create and cache dynamo client', () => {
     const table = makeTable(new cdk.Stack(new cdk.App(), 'hello'));
-    const bag = new RuntimePropertyBag('test', {}, {});
+    const bag = new PropertyBag('test', {});
+    const cache = new Cache();
     bag.set('tableName', 'table-name');
-    table.bootstrap(bag);
-    expect(bag.hasCache(Table.cacheKey)).toBe(true);
+    table.bootstrap(bag, cache);
+    expect(cache.has(Table.cacheKey)).toBe(true);
   });
   it('should use cached dynamo client', () => {
     const ddbClientConstructor = sinon.spy(AWS, 'DynamoDB');
 
     const table = makeTable(new cdk.Stack(new cdk.App(), 'hello'));
-    const bag = new RuntimePropertyBag('test', {}, {});
+    const bag = new PropertyBag('test', {});
+    const cache = new Cache();
     bag.set('tableName', 'table-name');
-    table.bootstrap(bag);
-    table.bootstrap(bag);
+    table.bootstrap(bag, cache);
+    table.bootstrap(bag, cache);
     expect(ddbClientConstructor.calledOnce).toEqual(true);
 
     ddbClientConstructor.restore();

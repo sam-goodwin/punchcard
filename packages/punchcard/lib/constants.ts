@@ -16,3 +16,6 @@ export function getRuntime(): string {
 export function tryGetRuntime(): string | undefined {
   return process.env[RUNTIME_ENV];
 }
+export function setRuntime(value?: string): void {
+  process.env[RUNTIME_ENV] = value || 'runtime';
+}

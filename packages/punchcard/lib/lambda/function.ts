@@ -1,13 +1,15 @@
+import AWS = require('aws-sdk');
+
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../constants';
-import { Entrypoint, entrypoint, Lifted, RuntimeContext } from '../runtime';
+import { Client, Entrypoint, entrypoint, Lifted, Runtime, RuntimeContext } from '../runtime';
 import { Mapper, Raw } from '../shape';
 import { Omit } from '../utils';
 
 import fs = require('fs');
 import path = require('path');
-import { PropertyBag, RuntimePropertyBag } from '../property-bag';
+import { Cache, PropertyBag } from '../property-bag';
 
 export type FunctionProps<T, U, C extends RuntimeContext> = {
   requestMapper?: Mapper<T, any>;
@@ -16,7 +18,9 @@ export type FunctionProps<T, U, C extends RuntimeContext> = {
   handle: (event: T, run: Lifted<C>, context: any) => Promise<U>;
 } & Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>;
 
-export class Function<T, U, C extends RuntimeContext> extends lambda.Function implements Entrypoint {
+export class Function<T, U, C extends RuntimeContext>
+    extends lambda.Function
+    implements Entrypoint, Client<Function.Client<T, U>> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
@@ -62,13 +66,14 @@ export class Function<T, U, C extends RuntimeContext> extends lambda.Function im
         bag[env] = value;
       }
     }
-    const runtimeProperties = new RuntimePropertyBag(this.node.uniqueId, bag, {});
+    const cache = new Cache();
+    const runtimeProperties = new PropertyBag(this.node.uniqueId, bag);
 
     const run: Lifted<C> = {} as any;
 
     if (this.context) {
       for (const [name, r] of Object.entries(this.context)) {
-        run[name] = r.bootstrap(runtimeProperties.push(name));
+        run[name] = r.bootstrap(runtimeProperties.push(name), cache);
       }
     }
 
@@ -77,6 +82,52 @@ export class Function<T, U, C extends RuntimeContext> extends lambda.Function im
       const result = await this.handle(parsed, run, context);
       return this.responseMapper.write(result);
     });
+  }
+
+  public install(target: Runtime): void {
+    this.grantInvoke(target.grantable);
+    target.properties.set('functionArn', this.functionArn);
+  }
+
+  public bootstrap(properties: PropertyBag, cache: Cache): Function.Client<T, U> {
+    return new Function.Client(
+      cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
+      properties.get('functionArn'),
+      this.requestMapper,
+      this.responseMapper
+    );
+  }
+}
+
+export namespace Function {
+  export class Client<T, U> {
+    constructor(
+      private readonly client: AWS.Lambda,
+      private readonly functionArn: string,
+      private readonly requestMapper: Mapper<T, string>,
+      private readonly responseMapper: Mapper<U, string>) {}
+
+    public async invoke(request: T): Promise<U> {
+      const response = await this.client.invoke({
+        FunctionName: this.functionArn,
+        InvocationType: 'RequestResponse',
+        Payload: this.requestMapper.write(request)
+      }).promise();
+
+      if (response.StatusCode === 200) {
+        if (typeof response.Payload === 'string') {
+          return this.responseMapper.read(response.Payload);
+        } else {
+          if (Buffer.isBuffer(response.Payload)) {
+            return this.responseMapper.read(response.Payload.toString('utf8'));
+          } else {
+            throw new Error(`Unknown response payload type: ${typeof response.Payload}`);
+          }
+        }
+      } else {
+        throw new Error(`Function returned non-200 status code, '${response.StatusCode}' with error, '${response.FunctionError}'`);
+      }
+    }
   }
 }
 

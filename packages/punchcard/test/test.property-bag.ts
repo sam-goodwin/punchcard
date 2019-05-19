@@ -1,5 +1,6 @@
 import 'jest';
-import { PropertyBag, RuntimePropertyBag } from '../lib';
+import sinon = require('sinon');
+import { Cache, PropertyBag } from '../lib';
 
 describe('PropertyBag', () => {
   it('should append prefix keys when setting a value', () => {
@@ -27,40 +28,46 @@ describe('PropertyBag', () => {
   });
 });
 
-describe('RuntimePropertyBag', () => {
-  it('insertCache should store a value in the cache', () => {
-    const cache = {};
-    const bag = new RuntimePropertyBag('test', {}, cache);
-    bag.insertCache('key', 1);
-    expect(cache).toEqual({
+describe('Cache', () => {
+  it('insert should store a value in the cache', () => {
+    const cache = new Cache();
+    cache.insert('key', 1);
+    expect((cache as any).cache).toEqual({
       key: 1
     });
   });
-  it('hasCache should return true if key exists in cache', () => {
-    const bag = new RuntimePropertyBag('test', {}, {});
-    bag.insertCache('key', 1);
-    expect(bag.hasCache('key')).toEqual(true);
+  it('has should return true if key exists in cache', () => {
+    const cache = new Cache();
+    cache.insert('key', 1);
+    expect(cache.has('key')).toEqual(true);
   });
-  it('hasCache should return false if key does not exist in cache', () => {
-    const bag = new RuntimePropertyBag('test', {}, {});
-    expect(bag.hasCache('key')).toEqual(false);
+  it('has should return false if key does not exist in cache', () => {
+    const cache = new Cache();
+    expect(cache.has('key')).toEqual(false);
   });
-  it('lookupCache should return value if it exists in cache', () => {
-    const bag = new RuntimePropertyBag('test', {}, {});
-    bag.insertCache('key', 1);
-    expect(bag.lookupCache('key')).toEqual(1);
+  it('get should return value if it exists in cache', () => {
+    const cache = new Cache();
+    cache.insert('key', 1);
+    expect(cache.get('key')).toEqual(1);
   });
-  it('lookupCache should throw error if key is not in cache', () => {
-    const bag = new RuntimePropertyBag('test', {}, {});
-    expect(() => bag.lookupCache('key')).toThrow();
+  it('get should throw error if key is not in cache', () => {
+    const cache = new Cache();
+    expect(() => cache.get('key')).toThrow();
   });
-  it('tryLookupCache should return value if it exists in cache', () => {
-    const bag = new RuntimePropertyBag('test', {}, {});
-    bag.insertCache('key', 1);
-    expect(bag.tryLookupCache('key')).toEqual(1);
+  it('tryGet should return value if it exists in cache', () => {
+    const cache = new Cache();
+    cache.insert('key', 1);
+    expect(cache.tryGet('key')).toEqual(1);
   });
-  it('tryLokupCache should return undefined if key is not in cache', () => {
-    const bag = new RuntimePropertyBag('test', {}, {});
-    expect(bag.tryLookupCache('key')).toEqual(undefined);
+  it('tryGet should return undefined if key is not in cache', () => {
+    const cache = new Cache();
+    expect(cache.tryGet('key')).toEqual(undefined);
+  });
+  it('getOrCreate should create if the key is not in cache', () => {
+    const cache = new Cache();
+    const fake = sinon.fake.returns('value');
+    cache.getOrCreate('key', fake);
+    expect(fake.calledOnce).toBe(true);
+    expect(cache.get('key')).toEqual('value');
   });
 });

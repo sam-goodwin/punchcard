@@ -227,7 +227,7 @@ function velocityTemplate<S extends Shape>(
       } else {
         path = `$inputRoot.${name}`;
       }
-      // TODO: understand type, quote strings etc.
+      // #if ((! $car.fuel) && ("$!car.fuel" == ""))
       template += `"${name}":${path}`;
     }
   }
@@ -245,3 +245,136 @@ function velocityTemplate<S extends Shape>(
   template += '}\n';
   return template;
 }
+
+// class VelocityTemplate<S extends Shape> {
+//   constructor(shape: S, mappings: RequestMappings<S, any> = {}, root: string = "$input.path('$')") {
+//     function walk(type: Type<any>): Renderer {
+//       switch (type.kind) {
+//         case Kind.Binary:
+//         case Kind.String:
+//         case Kind.Timestamp:
+
+//       }
+//     }
+
+//     for (const [name, schema] of Object.entries(shape)) {
+//       switch (schema.kind) {
+//         case Kind.Binary:
+//         case Kind.String:
+//         case Kind.Timestamp:
+
+//       }
+//     }
+//   }
+// }
+
+// interface Renderer {
+//   render(generator: Generator): void;
+// }
+
+// class Value implements Renderer {
+//   constructor(private readonly value: string) {}
+//   public render(generator: Generator): void {
+//     generator.write(this.value);
+//   }
+// }
+// class Quote implements Renderer {
+//   constructor(private readonly delegate: Renderer) {}
+//   public render(generator: Generator): void {
+//     generator.write('"');
+//     this.delegate.render(generator);
+//     generator.write('"');
+//   }
+// }
+// class Property implements Renderer {
+//   constructor(
+//     private readonly property: string,
+//     private readonly name: string,
+//     private readonly value: Renderer) {}
+
+//   public render(generator: Generator): void {
+//     generator.line(`#if ((! ${this.property}) && ("$!${this.property}" == "")`);
+//     generator.write(`"${this.name}:`);
+//     this.value.render(generator);
+//     generator.line('');
+//     generator.line('#else');
+//     generator.line(`"${this.name}":null`);
+//     generator.line('#end');
+//   }
+// }
+// class Csv implements Renderer {
+//   constructor(private readonly items: Renderer[]) {}
+//   public render(generator: Generator): void {
+//     for (let i = 0; i < this.items.length; i++) {
+//       this.items[i].render(generator);
+//       if (i + 1 === this.items.length) {
+//         generator.write(',');
+//       }
+//     }
+//   }
+// }
+// class JsonObject implements Renderer {
+//   private readonly csv: Csv;
+//   constructor(properties: Property[]) {
+//     this.csv = new Csv(properties);
+//   }
+//   public render(generator: Generator): void {
+//     generator.line('{').indent();
+//     this.csv.render(generator);
+//     generator.line('}').unindent();
+//   }
+// }
+
+// class StringBuilder {
+//   private readonly items: string[] = [];
+
+//   public append(str: string): void {
+//     this.items.push(str);
+//   }
+
+//   public get stringValue(): string {
+//     return this.items.join('');
+//   }
+// }
+
+// class Generator {
+//   private indented: boolean = false;
+//   private depth: number = 0;
+//   private readonly template: StringBuilder = new StringBuilder();
+
+//   public set(variable: string, value: string): Generator {
+//     return this.line(`#set ($${variable} = ${value})`);
+//   }
+
+//   public indent(): Generator {
+//     this.depth += 1;
+//     return this;
+//   }
+
+//   public unindent(): Generator {
+//     this.depth -= 1;
+//     if (this.depth < 0) {
+//       throw new Error(`indent underflow`);
+//     }
+//     return this;
+//   }
+
+//   public line(line: string): Generator {
+//     this.write(line + '\n');
+//     this.indented = false;
+//     return this;
+//   }
+
+//   public write(content: string): Generator {
+//     if (!this.indented) {
+//       this.template.append('  '.repeat(this.depth));
+//       this.indented = true;
+//     }
+//     this.template.append(content);
+//     return this;
+//   }
+
+//   public render(): string {
+//     return this.template.stringValue;
+//   }
+// }

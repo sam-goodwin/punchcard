@@ -4,7 +4,7 @@ import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import cdk = require('@aws-cdk/cdk');
 
-import { RuntimePropertyBag } from '../property-bag';
+import { Cache, PropertyBag } from '../property-bag';
 import { Client, Runtime } from '../runtime';
 import { Dynamo, Mapper, RuntimeShape, Shape, struct } from "../shape";
 import { Omit } from '../utils';
@@ -48,13 +48,10 @@ export abstract class Table<C extends TableClient<S, K>, S extends Shape, K exte
     this.facade = toFacade(props.shape);
   }
 
-  public bootstrap(properties: RuntimePropertyBag): C {
-    let client: AWS.DynamoDB = properties.tryLookupCache(Table.cacheKey);
-    if (!client) {
-      client = new AWS.DynamoDB();
-      properties.insertCache(Table.cacheKey, client);
-    }
-    return this.makeClient(properties.get('tableName'), client);
+  public bootstrap(properties: PropertyBag, cache: Cache): C {
+    return this.makeClient(
+      properties.get('tableName'),
+      cache.getOrCreate(Table.cacheKey, () => new AWS.DynamoDB()));
   }
 
   protected abstract makeClient(tableName: string, client: AWS.DynamoDB): C;

@@ -2,7 +2,7 @@ import cdk = require('@aws-cdk/cdk');
 import punchcard = require('punchcard');
 import uuid = require('uuid');
 
-import { $input, array, double, integer, optional, response, StatusCode, string, struct, attribute_not_exists } from 'punchcard';
+import { $input, array, attribute_not_exists, double, response, StatusCode, string, struct } from 'punchcard';
 
 const app = new cdk.App();
 export default app;
@@ -91,6 +91,7 @@ pets.setPostMethod({
     [StatusCode.Ok]: struct({
       id: string()
     }),
+    [StatusCode.Conflict]: string(),
     [StatusCode.InternalError]: struct({
       errorMessage: string()
     })
@@ -111,9 +112,7 @@ pets.setPostMethod({
     } catch (err) {
       const e = err as AWS.AWSError;
       if (e.code === 'ConditionalCheckFailedException') {
-        return response(StatusCode.InternalError, {
-          errorMessage: `item with id ${id} already exists`
-        });
+        return response(StatusCode.Conflict, `item with id ${id} already exists`);
       } else {
         return response(StatusCode.InternalError, {
           errorMessage: e.message

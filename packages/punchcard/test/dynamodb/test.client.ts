@@ -1,9 +1,7 @@
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import 'jest';
-import { HashTable, HashTableClientImpl, Shape, string, SortedTableClientImpl, SortedTable, Query, equals, lessThan } from '../../lib';
-
-import sinon = require('sinon');
+import { HashTable, HashTableClientImpl, lessThan, Query, Shape, SortedTable, SortedTableClientImpl, string } from '../../lib';
 
 describe('HashTable', () => {
   function makeTable<S extends Shape, P extends keyof S>(shape: S, partitionKey: P, mock: AWS.DynamoDB): HashTableClientImpl<S, P> {
@@ -409,5 +407,5 @@ describe('SortedTable', () => {
         ':1': { S: 'some-value' }
       }
     });
-  })
+  });
 });

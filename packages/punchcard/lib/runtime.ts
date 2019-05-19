@@ -1,6 +1,6 @@
 import iam = require('@aws-cdk/aws-iam');
 import { ENTRYPOINT_SYMBOL_NAME } from './constants';
-import { PropertyBag, RuntimePropertyBag } from './property-bag';
+import { Cache, PropertyBag } from './property-bag';
 
 /**
  * A `Runtime` is an abstract compute container, such as an AWS Lambda Function, EC2 Instance
@@ -48,7 +48,7 @@ export interface Client<C> {
    * Bootstrap the runtime interface of a construct.
    * @param properties a bag of properties and cached values
    */
-  bootstrap(properties: RuntimePropertyBag): C;
+  bootstrap(properties: PropertyBag, cache: Cache): C;
 }
 
 export const entrypoint = Symbol.for(ENTRYPOINT_SYMBOL_NAME);

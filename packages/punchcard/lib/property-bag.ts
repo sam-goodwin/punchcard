@@ -61,18 +61,19 @@ export class PropertyBag {
   }
 }
 
-/**
- * A property bag, also containing a cache for heavy state such as AWS clients.
- *
- * Cached values are not namespaced - consumers are responsible for avoiding collisions.
- */
-export class RuntimePropertyBag extends PropertyBag {
-  constructor(namespace: string, bag: {[key: string]: string}, protected readonly cache: {[key: string]: any}) {
-    super(namespace, bag);
-  }
+export class Cache {
+  private readonly cache: {[key: string]: any} = {};
 
-  public push(namespace: string): RuntimePropertyBag {
-    return new RuntimePropertyBag(`${this.namespace}_${namespace}`, this.bag, this.cache);
+  /**
+   * Get an item from the cache, creating it and caching it first (if it does not exist).
+   * @param key cache key
+   * @param fac function to create instance if it does not exist
+   */
+  public getOrCreate<T>(key: string, fac: () => T): T {
+    if (!this.has(key)) {
+      this.insert(key, fac());
+    }
+    return this.get(key);
   }
 
   /**
@@ -80,8 +81,8 @@ export class RuntimePropertyBag extends PropertyBag {
    * @param key cache key
    * @param value value to cache
    */
-  public insertCache(key: string, value: any): void {
-    if (this.hasCache(key)) {
+  public insert(key: string, value: any): void {
+    if (this.has(key)) {
       throw new Error(`cache already contains key '${key}'`);
     }
     this.cache[key] = value;
@@ -91,7 +92,7 @@ export class RuntimePropertyBag extends PropertyBag {
    * Check if a value exists in the cache.
    * @param key cache key to check
    */
-  public hasCache(key: string): boolean {
+  public has(key: string): boolean {
     return this.cache[key] !== undefined;
   }
 
@@ -101,8 +102,8 @@ export class RuntimePropertyBag extends PropertyBag {
    * @return the cached value
    * @throws if no value exists in the cache
    */
-  public lookupCache(key: string): any {
-    const v = this.tryLookupCache(key);
+  public get(key: string): any {
+    const v = this.tryGet(key);
     if (v === undefined) {
       throw new Error(`cache has no entry for '${key}'`);
     }
@@ -114,7 +115,7 @@ export class RuntimePropertyBag extends PropertyBag {
    * @param key cache key to lookup
    * @return the cached value or undefined if it does not exist.
    */
-  public tryLookupCache(name: string) {
+  public tryGet(name: string) {
     return this.cache[name];
   }
 }
