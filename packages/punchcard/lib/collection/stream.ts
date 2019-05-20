@@ -32,7 +32,7 @@ export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>
     return new ContextualizedStream(this, this.context).forEach(scope, id, f, props);
   }
 
-  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateStreamProps> {
+  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateStreamProps> {
     return new ContextualizedStream(this, {
       ...this.context,
       ...context
@@ -86,7 +86,7 @@ export class ContextualizedStream<T, R extends ClientContext> implements IEnumer
       timeout: 10
     });
     const lambdaFn = props.executorService.run(scope, id, {
-      context: this.context,
+      clients: this.context,
       handle: async (event: KinesisEvent, context) => {
         const records = event.Records.map(record => this.stream.mapper.read(new Buffer(record.kinesis.data, 'base64')));
         await f(records, context);
@@ -100,7 +100,7 @@ export class ContextualizedStream<T, R extends ClientContext> implements IEnumer
     return this.forBatch(scope, id, (values, clients) => Promise.all(values.map(v => f(v, clients))), props);
   }
 
-  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateStreamProps> {
+  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateStreamProps> {
     return new ContextualizedStream(this.stream, {
       ...this.context,
       ...context

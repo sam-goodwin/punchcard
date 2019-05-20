@@ -11,7 +11,7 @@ export interface IEnumerable<T, R extends ClientContext, P extends EnumerateProp
   readonly context: R;
   forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<R>) => Promise<any>, props?: P): lambda.Function;
   forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<R>) => Promise<any>, props?: P): lambda.Function;
-  with<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, P>;
+  clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, P>;
 }
 
 export interface IStream<T, R extends ClientContext, P extends EnumerateProps> extends IEnumerable<T, R, P> {

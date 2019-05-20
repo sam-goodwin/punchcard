@@ -38,7 +38,7 @@ const table = new HashTable(stack, 'count-table', {
 });
 
 queue
-  .with({table: table.writeData()}) // use the table (with write permissions) at runtime
+  .clients({table: table.writeData()}) // use the table (with write permissions) at runtime
   .forEach(stack, 'OnMessage', async (event, {table}) => {
     // do something for each message in the SQS Queue
     // (runs in an AWS Lambda Function)
@@ -67,7 +67,7 @@ queue
 
 // publish a dummy SNS message every minute
 new LambdaExecutorService().schedule(stack, 'DummyData', {
-  context: {
+  clients: {
     topic
   },
   rate: Rate.minutes(1),

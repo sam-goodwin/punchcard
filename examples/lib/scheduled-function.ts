@@ -22,7 +22,7 @@ const table = new HashTable(stack, 'my-table', {
 const executorService = new LambdaExecutorService();
 
 executorService.schedule(stack, 'Poller', {
-  context: {
+  clients: {
     table
   },
   rate: Rate.minutes(1),

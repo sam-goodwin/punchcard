@@ -42,7 +42,7 @@ export class LambdaExecutorService {
   public run<T, U, C extends ClientContext>(scope: cdk.Construct, id: string, props: {
     requestMapper?: Mapper<T, any>,
     responseMapper?: Mapper<U, any>,
-    context: C,
+    clients: C,
     handle: (event: T, run: Clients<C>, context: any) => Promise<U>;
   }): Function<T, U, C> {
     return new Function<T, U, C>(scope, id, {
@@ -53,7 +53,7 @@ export class LambdaExecutorService {
 
   public schedule<C extends ClientContext>(scope: cdk.Construct, id: string, props: {
     rate: Rate;
-    context: C;
+    clients: C;
     handle: (event: CloudwatchEvent, run: Clients<C>, context: any) => Promise<any>;
   }): Function<CloudwatchEvent, any, C> {
     scope = new cdk.Construct(scope, id);
@@ -71,12 +71,12 @@ export class LambdaExecutorService {
   }
 
   public apiIntegration<C extends ClientContext>(parent: cdk.Construct, id: string, props: {
-    context: C;
+    clients: C;
   }): Integration<C> {
     const handler = this.run(parent, id, {
       requestMapper: Raw.passthrough(),
       responseMapper: Raw.passthrough(),
-      context: props.context,
+      clients: props.clients,
       handle: async (event: any, runtimeContext: Clients<C>) => {
         console.log(JSON.stringify(event, null, 2));
         const resourceId = event.__resourceId; // TODO: we implicitly know this field exists - magic field. see ../api-gateway/resource.ts

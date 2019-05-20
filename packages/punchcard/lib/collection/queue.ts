@@ -33,7 +33,7 @@ export class Queue<T> extends sqs.Queue implements Client<Queue.Client<T>>, IEnu
     return new ContextualizedQueue(this, this.context).forEach(scope, id, f, props);
   }
 
-  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateQueueProps> {
+  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateQueueProps> {
     return new ContextualizedQueue(this, {
       ...this.context,
       ...context
@@ -86,7 +86,7 @@ export class ContextualizedQueue<T, R extends ClientContext> implements IEnumera
       memorySize: 128
     });
     const lambdaFn = props.executorService.run(scope, id, {
-      context: this.context,
+      clients: this.context,
       handle: async (event: SQSEvent, context: Clients<R>) => {
         const records = event.Records.map(record => this.queue.mapper.read(record.body));
         await f(records, context);
@@ -100,7 +100,7 @@ export class ContextualizedQueue<T, R extends ClientContext> implements IEnumera
     return this.forBatch(scope, id, (values, clients) => Promise.all(values.map(v => f(v, clients))), props);
   }
 
-  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateQueueProps> {
+  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateQueueProps> {
     return new ContextualizedQueue(this.queue, {
       ...this.context,
       ...context

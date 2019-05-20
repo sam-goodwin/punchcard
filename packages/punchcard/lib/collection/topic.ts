@@ -38,7 +38,7 @@ export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, IEnu
     return new ContextualizedTopic(this, this.context).forEach(scope, id, f, props);
   }
 
-  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateProps> {
+  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateProps> {
     return new ContextualizedTopic(this, context);
   }
 
@@ -62,7 +62,7 @@ export class ContextualizedTopic<T, R extends ClientContext> implements IEnumera
       timeout: 10
     });
     const lambdaFn = props.executorService.run(scope, id, {
-      context: this.context,
+      clients: this.context,
       handle: async (event: SNSEvent, context) => {
         const records = event.Records.map(record => this.topic.mapper.read(record.Sns.Message));
         await f(records, context);
@@ -76,7 +76,7 @@ export class ContextualizedTopic<T, R extends ClientContext> implements IEnumera
     return this.forBatch(scope, id, (values, clients) => Promise.all(values.map(v => f(v, clients))), props);
   }
 
-  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateProps> {
+  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateProps> {
     return new ContextualizedTopic(this.topic, {
       ...this.context,
       ...context

@@ -25,7 +25,7 @@ const executorService = new punchcard.LambdaExecutorService({
 });
 
 const endpoint = executorService.apiIntegration(stack, 'MyEndpoint', {
-  context: {
+  clients: {
     petStore
   }
 });
