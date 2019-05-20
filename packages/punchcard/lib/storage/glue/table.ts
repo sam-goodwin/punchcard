@@ -149,6 +149,9 @@ export namespace Table {
 
   export type UpdatePartitionRequest<P extends Partition> = {Partition: RuntimeShape<P>, UpdatedPartition: CreatePartitionRequest<P>};
 
+  /**
+   * Client for getting, creating and updating partitions in a Table.
+   */
   export class Client<T extends Shape, P extends Partition> {
     private readonly partitions: string[];
 

@@ -10,7 +10,7 @@ import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { Mapper } from '../shape';
 import { Omit } from '../utils';
-import { EnumerateProps, IEnumerable } from './collection';
+import { EnumerateProps, IEnumerable } from './enumerable';
 
 export type EnumerateQueueProps = EnumerateProps & events.SqsEventSourceProps;
 export interface QueueProps<T> extends sqs.QueueProps {
