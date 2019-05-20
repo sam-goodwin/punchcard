@@ -14,8 +14,8 @@ import {
 
   timestamp,
   toFacade,
-} from '../../';
-import { CompileContextImpl } from '../../lib/dynamodb/expression/compiler';
+} from '../../../lib';
+import { CompileContextImpl } from '../../../lib/storage/dynamodb/expression/compiler';
 
 /**
  * TODO: Tests for optional attributes

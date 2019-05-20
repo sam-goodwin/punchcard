@@ -1,6 +1,6 @@
 import api = require('@aws-cdk/aws-apigateway');
 
-import { Function } from '../lambda';
+import { Function } from '../compute';
 import { ClientContext } from '../runtime';
 import { Omit } from '../utils';
 import { Resource } from './resource';

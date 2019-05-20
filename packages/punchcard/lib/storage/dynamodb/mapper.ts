@@ -1,4 +1,4 @@
-import { RuntimeShape, Shape } from '../shape/shape';
+import { RuntimeShape, Shape } from '../../shape/shape';
 
 import {
   ArrayType,
@@ -10,13 +10,13 @@ import {
   StructType,
   Type,
   TypeSet
-} from '../shape/types';
+} from '../../shape/types';
 
 import {
   Mapper as IMapper,
   Reader as IReader,
   Writer as IWriter
-} from '../shape/mapper';
+} from '../../shape/mapper';
 
 // tslint:disable: no-shadowed-variable
 

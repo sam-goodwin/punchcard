@@ -1,4 +1,4 @@
-import { BinaryType, RuntimeType, Shape, StringType, Type } from '../shape';
+import { BinaryType, RuntimeType, Shape, StringType, Type } from '../../shape';
 import { Query } from './client';
 import { CompileContext } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';

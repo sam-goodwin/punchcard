@@ -3,11 +3,11 @@ import eventTargets = require('@aws-cdk/aws-events-targets');
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 
-import { Integration, LambdaIntegration, Resource } from '../api-gateway';
-import { ClientContext, Clients } from '../runtime';
-import { Mapper } from '../shape/mapper/mapper';
-import { Raw } from '../shape/mapper/raw';
-import { Omit } from '../utils';
+import { Integration, LambdaIntegration, Resource } from '../../api-gateway';
+import { ClientContext, Clients } from '../../runtime';
+import { Mapper } from '../../shape/mapper/mapper';
+import { Raw } from '../../shape/mapper/raw';
+import { Omit } from '../../utils';
 import { Function } from './function';
 
 export enum Unit {
@@ -58,7 +58,7 @@ export class LambdaExecutorService {
     handle: (event: CloudwatchEvent, run: Clients<C>, context: any) => Promise<any>;
   }): Function<CloudwatchEvent, any, C> {
     scope = new cdk.Construct(scope, id);
-    const f = new Function(scope, 'Function', {
+    const f = new Function<CloudwatchEvent, any, C>(scope, 'Function', {
       ...this.props,
       ...props
     });

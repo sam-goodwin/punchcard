@@ -1,5 +1,5 @@
-import { Writer } from "../../shape/mapper/mapper";
-import { Type } from "../../shape/types/type";
+import { Writer } from "../../../shape/mapper/mapper";
+import { Type } from "../../../shape/types/type";
 
 export interface CompileContext {
   readonly writer: Writer<AWS.DynamoDB.AttributeValue>;

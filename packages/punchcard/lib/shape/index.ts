@@ -1,7 +1,7 @@
 import { Shape } from './shape';
 import { StructFields, StructPath, StructType } from './types';
 
-export * from '../dynamodb/mapper';
+export * from '../storage/dynamodb/mapper';
 export * from './json';
 export * from './mapper';
 export * from './period';

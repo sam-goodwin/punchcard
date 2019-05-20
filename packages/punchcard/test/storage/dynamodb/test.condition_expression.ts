@@ -19,8 +19,8 @@ import {
   struct,
   timestamp,
   toFacade
-} from '../../';
-import { CompileContextImpl } from '../../lib/dynamodb';
+} from '../../../lib';
+import { CompileContextImpl } from '../../../lib/storage/dynamodb';
 
 /**
  * TODO: Tests for optional attributes

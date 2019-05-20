@@ -1,6 +1,5 @@
 import 'jest';
 
-import { BaseDynamoPath, DynamoPath } from '../../lib/dynamodb';
 import {
   array,
   boolean,
@@ -17,6 +16,7 @@ import {
   struct,
   timestamp
 } from '../../lib/shape';
+import { BaseDynamoPath, DynamoPath } from '../../lib/storage/dynamodb';
 import { TreeFields } from '../../lib/tree';
 
 export function custom(): Custom {

@@ -1,4 +1,4 @@
-import { DynamoPath } from '../../dynamodb';
+import { DynamoPath } from '../../storage/dynamodb';
 import { JsonPath } from '../json/path';
 import { Kind } from './kind';
 

@@ -1,4 +1,4 @@
-import { AddAction, BaseDynamoPath, ConditionValue, Contains, DeleteAction, DynamoPath } from '../../dynamodb/expression/path';
+import { AddAction, BaseDynamoPath, ConditionValue, Contains, DeleteAction, DynamoPath } from '../../storage/dynamodb/expression/path';
 import { InferJsonPathType, JsonPath } from '../json/path';
 import { Kind } from './kind';
 import { Type } from './type';

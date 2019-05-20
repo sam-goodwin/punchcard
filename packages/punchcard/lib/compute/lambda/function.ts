@@ -2,14 +2,14 @@ import AWS = require('aws-sdk');
 
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
-import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../constants';
-import { Client, ClientContext, Clients, Entrypoint, entrypoint, Runtime } from '../runtime';
-import { Mapper, Raw } from '../shape';
-import { Omit } from '../utils';
+import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../../constants';
+import { Client, ClientContext, Clients, Entrypoint, entrypoint, Runtime } from '../../runtime';
+import { Mapper, Raw } from '../../shape';
+import { Omit } from '../../utils';
 
 import fs = require('fs');
 import path = require('path');
-import { Cache, PropertyBag } from '../property-bag';
+import { Cache, PropertyBag } from '../../property-bag';
 
 export type FunctionProps<T, U, C extends ClientContext> = {
   requestMapper?: Mapper<T, any>;

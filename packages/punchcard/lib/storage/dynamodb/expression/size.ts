@@ -1,4 +1,4 @@
-import { integer, IntegerType } from "../../shape/types/number";
+import { integer, IntegerType } from "../../../shape/types/number";
 import { CompileContext } from "./compile-context";
 import { DynamoPath } from "./path";
 import { Between, condition, ConditionOperand, ConditionValue, Equals, Gt, Gte, In, Lt, Lte, NotEquals, Operand } from "./path";

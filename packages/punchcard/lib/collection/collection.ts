@@ -1,6 +1,6 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
-import { LambdaExecutorService } from '../lambda/executor';
+import { LambdaExecutorService } from '../compute';
 import { ClientContext, Clients } from '../runtime';
 
 export interface EnumerateProps {

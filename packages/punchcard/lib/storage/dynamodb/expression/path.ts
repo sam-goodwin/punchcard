@@ -1,10 +1,10 @@
-import { Shape } from '../../shape/shape';
-import { Type } from '../../shape/types/type';
+import { Shape } from '../../../shape/shape';
+import { Type } from '../../../shape/types/type';
 
 import { Compilable, CompileContext, CompiledExpression } from './compile-context';
 
-import { TypeSet } from '../../shape/types/typed-set';
-import { Tree, TreeFields } from '../../tree';
+import { TypeSet } from '../../../shape/types/typed-set';
+import { Tree, TreeFields } from '../../../tree';
 
 // tslint:disable: no-shadowed-variable
 // tslint:disable: max-line-length

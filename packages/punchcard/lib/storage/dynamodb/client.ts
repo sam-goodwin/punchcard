@@ -1,4 +1,4 @@
-import { RuntimeShape, Shape } from '../shape';
+import { RuntimeShape, Shape } from '../../shape';
 import { CompiledExpression } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';
 import { ActionType, Condition, Facade, UpdateAction } from './expression/path';

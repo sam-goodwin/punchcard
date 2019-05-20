@@ -5,7 +5,7 @@ import sqs = require('@aws-cdk/aws-sqs');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 
-import { LambdaExecutorService } from '../lambda/executor';
+import { LambdaExecutorService } from '../compute';
 import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { Mapper } from '../shape';

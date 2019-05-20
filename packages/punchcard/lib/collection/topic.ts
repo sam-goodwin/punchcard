@@ -5,7 +5,7 @@ import cdk = require('@aws-cdk/cdk');
 import lambda = require('@aws-cdk/aws-lambda');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import sns = require('@aws-cdk/aws-sns');
-import { LambdaExecutorService } from '../lambda';
+import { LambdaExecutorService } from '../compute';
 import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { Mapper } from '../shape';

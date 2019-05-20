@@ -4,10 +4,10 @@ import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import cdk = require('@aws-cdk/cdk');
 
-import { Cache, PropertyBag } from '../property-bag';
-import { Client, Runtime } from '../runtime';
-import { Dynamo, Mapper, RuntimeShape, Shape, struct } from "../shape";
-import { Omit } from '../utils';
+import { Cache, PropertyBag } from '../../property-bag';
+import { Client, Runtime } from '../../runtime';
+import { Dynamo, Mapper, RuntimeShape, Shape, struct } from "../../shape";
+import { Omit } from '../../utils';
 import { HashTableClient, HashTableClientImpl, SortedTableClient, SortedTableClientImpl, TableClient } from './client';
 import { Facade, toFacade } from './expression/path';
 import { CompositeKey, HashKey, keyType } from './key';
