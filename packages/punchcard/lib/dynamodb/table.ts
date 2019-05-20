@@ -8,7 +8,7 @@ import { Cache, PropertyBag } from '../property-bag';
 import { Client, Runtime } from '../runtime';
 import { Dynamo, Mapper, RuntimeShape, Shape, struct } from "../shape";
 import { Omit } from '../utils';
-import { HashTableClient, HashTableClientImpl, SortedTableClient, SortedTableClientImpl, TableClient } from "./client";
+import { HashTableClient, HashTableClientImpl, SortedTableClient, SortedTableClientImpl, TableClient } from './client';
 import { Facade, toFacade } from './expression/path';
 import { CompositeKey, HashKey, keyType } from './key';
 
@@ -92,11 +92,7 @@ export type HashTableProps<S extends Shape, P extends keyof S> = {
   shape: S;
 } & Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'>;
 
-export class HashTable<S extends Shape, P extends keyof S>
-    extends Table<HashTableClient<S, P>, S, HashKey<S, P>> {
-
-  public static readonly cacheKey = 'aws:dynamodb';
-
+export class HashTable<S extends Shape, P extends keyof S> extends Table<HashTableClient<S, P>, S, HashKey<S, P>> {
   public readonly partitionKey: P;
 
   constructor(scope: cdk.Construct, id: string, props: HashTableProps<S, P>) {

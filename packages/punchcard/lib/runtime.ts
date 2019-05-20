@@ -46,7 +46,8 @@ export interface Client<C> {
   install(target: Runtime): void;
   /**
    * Bootstrap the runtime interface of a construct.
-   * @param properties a bag of properties and cached values
+   * @param properties a bag of properties
+   * @param cache a cache of state shared by all clients at runtime
    */
   bootstrap(properties: PropertyBag, cache: Cache): C;
 }
@@ -63,8 +64,7 @@ export interface Entrypoint {
   /**
    * Create a handler.
    *
-   * This is where you create clients and any other state
-   * required by the entrypoint.
+   * This is where you create clients and any other state required by the entrypoint.
    */
   boot(): Promise<(event: any, context: any) => Promise<any>>;
 }

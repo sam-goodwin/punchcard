@@ -6,6 +6,7 @@ rules:
     no-console: false
     member-ordering: false
     ordered-imports: true
+    max-line-length: false
 
     # Due to VSCode syntax highlighting we're unlikely to do this wrong, and it gets annoying
     # when trying to construct literal Fn::Sub() arguments.
@@ -35,9 +36,6 @@ rules:
 
     # We're using namespaces.
     no-namespace: false
-
-    # The lines with CloudFormation doc links are quite long
-    max-line-length: [true, 150]
 
     # Super annoying
     object-literal-sort-keys: false

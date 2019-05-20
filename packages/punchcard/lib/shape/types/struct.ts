@@ -6,8 +6,6 @@ import { Kind } from './kind';
 import { OptionalType } from './optional';
 import { Type } from './type';
 
-// tslint:disable: forin
-
 export function struct<S extends Shape>(schema: S): StructType<S> {
   return new StructType(schema);
 }
@@ -68,7 +66,7 @@ export abstract class BaseStructType<S extends Shape> implements Type<RuntimeSha
     if (aKeys.length !== bKeys.length) {
       return false;
     }
-    for (const aKey in aKeys) {
+    for (const aKey of aKeys) {
       const aValue = (a as any)[aKey];
       const bValue = (b as any)[aKey];
       if (bValue === undefined) {
@@ -133,8 +131,8 @@ export class StructDynamoPath<S extends Shape> extends BaseDynamoPath<StructType
 
   constructor(parent: DynamoPath, name: string, type: StructType<S>) {
     super(parent, name, type);
-    for (const key in type.shape) {
-      this.fields[key] = type.shape[key].toDynamoPath(new MapKeyParent(this, key), key) as any;
+    for (const [key, schema] of Object.entries(type.shape)) {
+      this.fields[key] = schema.toDynamoPath(new MapKeyParent(this, key), key) as any;
     }
   }
 }

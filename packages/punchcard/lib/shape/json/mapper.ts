@@ -15,7 +15,8 @@ export namespace Json {
     return Json.forType(struct(shape), configuration);
   }
 
-  export function forType<T extends Type<V>, V>(type: T, configuration?: Configuration): IMapper<V, string> {
+  type InferType<T extends Type<any>> = T extends Type<infer V> ? V : never;
+  export function forType<T extends Type<any>>(type: T, configuration?: Configuration): IMapper<InferType<T>, string> {
     return new Mapper(type, configuration);
   }
 

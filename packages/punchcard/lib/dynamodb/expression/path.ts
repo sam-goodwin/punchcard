@@ -68,6 +68,14 @@ export class BaseDynamoPath<T extends Type<V>, V> extends DynamoPath implements 
     super(parent, name);
   }
 
+  public isSet() {
+    return attribute_exists(this);
+  }
+
+  public isNotSet() {
+    return attribute_not_exists(this);
+  }
+
   public eq(value: ConditionValue<T, V>): Equals<T, V> {
     return new Equals(this.type, this, value);
   }

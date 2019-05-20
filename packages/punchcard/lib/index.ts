@@ -1,4 +1,5 @@
 export * from './api-gateway';
+export * from './collection';
 export * from './dynamodb';
 export * from './property-bag';
 export * from './runtime';
