@@ -1,19 +1,19 @@
 import api = require('@aws-cdk/aws-apigateway');
 
 import { Function } from '../lambda';
-import { RuntimeContext } from '../runtime';
+import { ClientContext } from '../runtime';
 import { Omit } from '../utils';
 import { Resource } from './resource';
 
 type ResourceMappings = {[key: string]: Resource};
 
-export interface Integration<_R extends RuntimeContext> extends api.LambdaIntegration {
+export interface Integration<_R extends ClientContext> extends api.LambdaIntegration {
   mapResource(resource: Resource): void;
   findResource(resourceId: string): Resource;
 }
 
 const resourceIdPrefix = 'resource_id_';
-export class LambdaIntegration<R extends RuntimeContext> extends api.LambdaIntegration implements Integration<R> {
+export class LambdaIntegration<R extends ClientContext> extends api.LambdaIntegration implements Integration<R> {
   private readonly resourceMappings: {[key: string]: Resource} = {};
   private index: ResourceMappings;
 

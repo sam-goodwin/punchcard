@@ -7,6 +7,8 @@ import { $input, array, attribute_not_exists, double, response, StatusCode, stri
 const app = new cdk.App();
 export default app;
 
+// WARNING: this example will be changed - it does not properly descrive the Model and Velocity Templates yet.
+
 const stack = new cdk.Stack(app, 'pet-store');
 
 const petStore = new punchcard.HashTable(stack, 'pet-store', {

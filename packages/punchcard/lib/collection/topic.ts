@@ -7,7 +7,7 @@ import events = require('@aws-cdk/aws-lambda-event-sources');
 import sns = require('@aws-cdk/aws-sns');
 import { LambdaExecutorService } from '../lambda';
 import { Cache, PropertyBag } from '../property-bag';
-import { Client, Lifted, Runtime, RuntimeContext } from '../runtime';
+import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { Mapper } from '../shape';
 import { Omit } from '../utils';
 import { EnumerateProps, IEnumerable } from './collection';
@@ -30,15 +30,15 @@ export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, IEnu
     return super.subscribeQueue(queue, true);
   }
 
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Lifted<{}>) => Promise<any>, props?: EnumerateProps): lambda.Function {
+  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: EnumerateProps): lambda.Function {
     return new ContextualizedTopic(this, this.context).forBatch(scope, id, f, props);
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Lifted<{}>) => Promise<any>, props?: EnumerateProps): lambda.Function {
+  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: EnumerateProps): lambda.Function {
     return new ContextualizedTopic(this, this.context).forEach(scope, id, f, props);
   }
 
-  public lift<R2 extends RuntimeContext>(context: R2): IEnumerable<T, R2, EnumerateProps> {
+  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateProps> {
     return new ContextualizedTopic(this, context);
   }
 
@@ -52,10 +52,10 @@ export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, IEnu
   }
 }
 
-export class ContextualizedTopic<T, R extends RuntimeContext> implements IEnumerable<T, R, EnumerateProps> {
+export class ContextualizedTopic<T, R extends ClientContext> implements IEnumerable<T, R, EnumerateProps> {
   constructor(private readonly topic: Topic<T>, public readonly context: R) {}
 
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Lifted<R>) => Promise<any>, props?: EnumerateProps): lambda.Function {
+  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<R>) => Promise<any>, props?: EnumerateProps): lambda.Function {
     props = props || {};
     props.executorService = props.executorService || new LambdaExecutorService({
       memorySize: 128,
@@ -72,11 +72,11 @@ export class ContextualizedTopic<T, R extends RuntimeContext> implements IEnumer
     return lambdaFn;
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Lifted<R>) => Promise<any>, props?: EnumerateProps): lambda.Function {
+  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<R>) => Promise<any>, props?: EnumerateProps): lambda.Function {
     return this.forBatch(scope, id, (values, clients) => Promise.all(values.map(v => f(v, clients))), props);
   }
 
-  public lift<R2 extends RuntimeContext>(context: R2): IEnumerable<T, R & R2, EnumerateProps> {
+  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateProps> {
     return new ContextualizedTopic(this.topic, {
       ...this.context,
       ...context

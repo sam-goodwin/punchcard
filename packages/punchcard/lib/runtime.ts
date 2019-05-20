@@ -19,15 +19,15 @@ export interface Runtime {
 /**
  * A set of named clients to be made available in a `Runtime`.
  */
-export type RuntimeContext = {
+export type ClientContext = {
   [name: string]: Client<any>
 };
 
 /**
- * "Lifts" a `RuntimeContext` to its run-side representation, i.e. the result
+ * Maps a `ClientContext` to its runtime representation, i.e. the result
  * of boostrapping each `Client` at runtime.
  */
-export type Lifted<C extends RuntimeContext> = {
+export type Clients<C extends ClientContext> = {
   [name in keyof C]: C[name] extends Client<infer R> ? R : never;
 };
 
@@ -38,7 +38,7 @@ export type Lifted<C extends RuntimeContext> = {
  */
 export interface Client<C> {
   /**
-   * Install a Run instance into a target:
+   * Install a Client instance into a target:
    * * grant required permissions
    * * add properties required at runtime
    * @param target

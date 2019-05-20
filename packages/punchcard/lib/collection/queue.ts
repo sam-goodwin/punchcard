@@ -7,7 +7,7 @@ import AWS = require('aws-sdk');
 
 import { LambdaExecutorService } from '../lambda/executor';
 import { Cache, PropertyBag } from '../property-bag';
-import { Client, Lifted, Runtime, RuntimeContext } from '../runtime';
+import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { Mapper } from '../shape';
 import { Omit } from '../utils';
 import { EnumerateProps, IEnumerable } from './collection';
@@ -25,15 +25,15 @@ export class Queue<T> extends sqs.Queue implements Client<Queue.Client<T>>, IEnu
     this.mapper = props.mapper;
   }
 
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Lifted<{}>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
+  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
     return new ContextualizedQueue(this, this.context).forBatch(scope, id, f, props);
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Lifted<{}>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
+  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
     return new ContextualizedQueue(this, this.context).forEach(scope, id, f, props);
   }
 
-  public lift<R2 extends RuntimeContext>(context: R2): IEnumerable<T, R2, EnumerateQueueProps> {
+  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateQueueProps> {
     return new ContextualizedQueue(this, {
       ...this.context,
       ...context
@@ -77,17 +77,17 @@ export class Queue<T> extends sqs.Queue implements Client<Queue.Client<T>>, IEnu
   }
 }
 
-export class ContextualizedQueue<T, R extends RuntimeContext> implements IEnumerable<T, R, EnumerateQueueProps> {
+export class ContextualizedQueue<T, R extends ClientContext> implements IEnumerable<T, R, EnumerateQueueProps> {
   constructor(private readonly queue: Queue<T>, public readonly context: R) {}
 
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Lifted<R>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
+  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<R>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
     props = props || {};
     props.executorService = props.executorService || new LambdaExecutorService({
       memorySize: 128
     });
     const lambdaFn = props.executorService.run(scope, id, {
       context: this.context,
-      handle: async (event: SQSEvent, context: Lifted<R>) => {
+      handle: async (event: SQSEvent, context: Clients<R>) => {
         const records = event.Records.map(record => this.queue.mapper.read(record.body));
         await f(records, context);
       }
@@ -96,11 +96,11 @@ export class ContextualizedQueue<T, R extends RuntimeContext> implements IEnumer
     return lambdaFn;
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Lifted<R>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
+  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<R>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
     return this.forBatch(scope, id, (values, clients) => Promise.all(values.map(v => f(v, clients))), props);
   }
 
-  public lift<R2 extends RuntimeContext>(context: R2): IEnumerable<T, R & R2, EnumerateQueueProps> {
+  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateQueueProps> {
     return new ContextualizedQueue(this.queue, {
       ...this.context,
       ...context

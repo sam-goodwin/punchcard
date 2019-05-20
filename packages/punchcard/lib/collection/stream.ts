@@ -6,7 +6,7 @@ import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import { LambdaExecutorService } from '../lambda/executor';
 import { Cache, PropertyBag } from '../property-bag';
-import { Client, Lifted, Runtime, RuntimeContext } from '../runtime';
+import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { Mapper } from '../shape';
 import { Omit } from '../utils';
 import { EnumerateProps, IEnumerable } from './collection';
@@ -24,15 +24,15 @@ export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>
     this.mapper = props.mapper;
   }
 
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Lifted<{}>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
+  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
     return new ContextualizedStream(this, this.context).forBatch(scope, id, f, props);
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Lifted<{}>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
+  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
     return new ContextualizedStream(this, this.context).forEach(scope, id, f, props);
   }
 
-  public lift<R2 extends RuntimeContext>(context: R2): IEnumerable<T, R2, EnumerateStreamProps> {
+  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateStreamProps> {
     return new ContextualizedStream(this, {
       ...this.context,
       ...context
@@ -73,10 +73,10 @@ export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>
   }
 }
 
-export class ContextualizedStream<T, R extends RuntimeContext> implements IEnumerable<T, R, EnumerateStreamProps> {
+export class ContextualizedStream<T, R extends ClientContext> implements IEnumerable<T, R, EnumerateStreamProps> {
   constructor(private readonly stream: Stream<T>, public readonly context: R) {}
 
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Lifted<R>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
+  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<R>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
     props = props || {
       batchSize: 100,
       startingPosition: lambda.StartingPosition.TrimHorizon
@@ -96,11 +96,11 @@ export class ContextualizedStream<T, R extends RuntimeContext> implements IEnume
     return lambdaFn;
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Lifted<R>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
+  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<R>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
     return this.forBatch(scope, id, (values, clients) => Promise.all(values.map(v => f(v, clients))), props);
   }
 
-  public lift<R2 extends RuntimeContext>(context: R2): IEnumerable<T, R & R2, EnumerateStreamProps> {
+  public with<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateStreamProps> {
     return new ContextualizedStream(this.stream, {
       ...this.context,
       ...context
