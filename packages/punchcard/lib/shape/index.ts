@@ -4,7 +4,6 @@ import { StructFields, StructPath, StructType } from './types';
 export * from '../storage/dynamodb/mapper';
 export * from './json';
 export * from './mapper';
-export * from './period';
 export * from './shape';
 export * from './types';
 

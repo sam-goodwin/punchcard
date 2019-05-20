@@ -1,24 +1,12 @@
-import { Shape } from "./shape";
-import { smallint } from "./types/number";
+import { Shape, smallint } from '../../shape';
 
 export interface Period<P extends Shape> {
   id: string;
   schema: P;
   milliseconds: number;
 }
-// tslint:disable: no-shadowed-variable
 
 export namespace Period {
-  export function parse(str: string): Period<any> {
-    if (str === 'PT1H') {
-      return PT1H;
-    } else if (str === 'PT1M') {
-      return PT1M;
-    } else {
-      throw new Error(`unknown period '${str}'`);
-    }
-  }
-
   namespace schemas {
     export const PT1H = {
       year: smallint(),

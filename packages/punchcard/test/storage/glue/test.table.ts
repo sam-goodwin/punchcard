@@ -2,7 +2,7 @@ import glue = require('@aws-cdk/aws-glue');
 import cdk = require('@aws-cdk/cdk');
 
 import 'jest';
-import { array, bigint, binary, boolean, char, double, float, integer, map, smallint, string, struct, Table, timestamp, tinyint, Type, varchar } from '../../../lib';
+import { array, bigint, binary, boolean, char, DataFormat, double, float, integer, map, smallint, string, struct, Table, timestamp, tinyint, Type, varchar } from '../../../lib';
 
 it('should map columns and partition keys to their respective types', () => {
   const stack = new cdk.Stack(new cdk.App(), 'stack');
@@ -12,7 +12,7 @@ it('should map columns and partition keys to their respective types', () => {
 
   const table = new Table(stack, 'Table', {
     database,
-    dataFormat: glue.DataFormat.Json,
+    dataFormat: DataFormat.Json,
     tableName: 'table_name',
     columns: {
       boolean,
@@ -36,9 +36,14 @@ it('should map columns and partition keys to their respective types', () => {
     partitions: {
       year: smallint(),
       month: smallint()
-    }
+    },
+    partitioner: ({timestamp}) => ({
+      year: timestamp.getUTCFullYear(),
+      month: timestamp.getUTCMonth()
+    })
   });
 
+  expect(table.dataFormat).toEqual(glue.DataFormat.Json);
   expect(table.columns).toEqual([{
     name: 'boolean',
     type: {
@@ -145,6 +150,29 @@ it('should map columns and partition keys to their respective types', () => {
   }]);
 });
 
+it('should default to Json DataFormat', () => {
+  const stack = new cdk.Stack(new cdk.App(), 'stack');
+  const database = new glue.Database(stack, 'Database', {
+    databaseName: 'database'
+  });
+
+  const table = new Table(stack, 'Table', {
+    database,
+    tableName: 'table_name',
+    columns: {
+      str: string()
+    },
+    partitions: {
+      year: integer(),
+    },
+    partitioner: () => ({
+      year: 1989
+    })
+  });
+
+  expect(table.dataFormat).toEqual(glue.DataFormat.Json);
+});
+
 function partitionTest(type: Type<any>) {
   const stack = new cdk.Stack(new cdk.App(), 'stack');
   const database = new glue.Database(stack, 'Database', {
@@ -153,14 +181,17 @@ function partitionTest(type: Type<any>) {
 
   new Table(stack, 'Table', {
     database,
-    dataFormat: glue.DataFormat.Json,
+    dataFormat: DataFormat.Json,
     tableName: 'table_name',
     columns: {
       str: string()
     },
     partitions: {
       year: type,
-    }
+    },
+    partitioner: () => ({
+      year: 1989
+    })
   });
 }
 
