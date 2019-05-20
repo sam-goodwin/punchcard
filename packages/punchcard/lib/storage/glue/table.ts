@@ -174,7 +174,8 @@ export namespace Table {
         Partitions: (response.Partitions || []).map(partition => {
           const values: any = {};
           partition.Values!.forEach((value, i) => {
-            values[this.partitions[i]] = value;
+            const name = this.partitions[i];
+            values[name] = this.table.partitionMappers[name].read(value);
           });
           return {
             ...partition,

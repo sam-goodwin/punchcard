@@ -34,11 +34,17 @@ function makeClient(glue: AWS.Glue) {
 describe('getPartitions', () => {
   it('should getPartitions', async () => {
     const mock = {
-      getPartitions: sinon.fake.returns({promise: () => Promise.resolve('response') })
+      getPartitions: sinon.fake.returns({
+        promise: () => Promise.resolve({
+          Partitions: [{
+            Values: ['2019', '1']
+          }]
+        })
+      })
     };
     const client = makeClient(mock as any);
 
-    await client.getPartitions({
+    const response = await client.getPartitions({
       Expression: 'expression'
     });
 
@@ -48,15 +54,29 @@ describe('getPartitions', () => {
       DatabaseName: 'databaseName',
       TableName: 'tableName',
       Expression: 'expression'
+    });
+    expect(response).toEqual({
+      Partitions: [{
+        Values: {
+          year: 2019,
+          month: 1
+        }
+      }]
     });
   });
   it('should pass other properties', async () => {
     const mock = {
-      getPartitions: sinon.fake.returns({promise: () => Promise.resolve('response') })
+      getPartitions: sinon.fake.returns({
+        promise: () => Promise.resolve({
+          Partitions: [{
+            Values: ['2019', '1']
+          }]
+        })
+      })
     };
     const client = makeClient(mock as any);
 
-    await client.getPartitions({
+    const response = await client.getPartitions({
       Expression: 'expression',
       NextToken: 'token',
       MaxResults: 10,
@@ -78,6 +98,14 @@ describe('getPartitions', () => {
         SegmentNumber: 1,
         TotalSegments: 1
       }
+    });
+    expect(response).toEqual({
+      Partitions: [{
+        Values: {
+          year: 2019,
+          month: 1
+        }
+      }]
     });
   });
 });
