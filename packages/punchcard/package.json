@@ -5,7 +5,7 @@
   "types": "lib/index.ts",
   "scripts": {
     "build": "tsc && tslint --project .",
-    "test": "jest --verbose",
+    "test": "jest",
     "watch": "tsc -w",
     "cdk": "cdk"
   },
@@ -23,6 +23,7 @@
     "@aws-cdk/aws-apigateway": "^0.31.0",
     "@aws-cdk/aws-dynamodb": "^0.31.0",
     "@aws-cdk/aws-events-targets": "^0.31.0",
+    "@aws-cdk/aws-glue": "^0.31.0",
     "@aws-cdk/aws-iam": "^0.31.0",
     "@aws-cdk/aws-kinesis": "^0.31.0",
     "@aws-cdk/aws-lambda": "^0.31.0",

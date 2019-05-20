@@ -5,7 +5,7 @@ import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import 'jest';
 // tslint:disable-next-line: max-line-length
-import { array, bigint, binary, Cache, Client, double, float, HashTable, integer, map, optional, PropertyBag, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type } from '../../../lib';
+import { array, bigint, binary, Cache, Client, double, float, HashTable, integer, ITable, map, optional, PropertyBag, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type } from '../../../lib';
 
 function keyTypeTests(makeTable: (type: Type<any>) => void) {
   it('should accept string partition key type', () => {
@@ -55,8 +55,8 @@ function keyTypeTests(makeTable: (type: Type<any>) => void) {
 }
 
 // tests for installing the table into an RunTarget
-function installTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
-  function installTest(getRun: (t: Table<any, any, any>) => Client<any>, expectedGrant: keyof Table<any, any, any>) {
+function installTests(makeTable: (stack: cdk.Stack) => HashTable<any, any> | SortedTable<any, any, any>) {
+  function installTest(getRun: (t: HashTable<any, any> | SortedTable<any, any, any>) => Client<any>, expectedGrant: keyof (HashTable<any, any> | SortedTable<any, any, any>)) {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
     const table = makeTable(stack);
     const tableSpy = sinon.spy(table, expectedGrant);
@@ -89,7 +89,7 @@ function installTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
 }
 
 // tests for bootstrapping a runnable client from a property bag
-function bootstrapTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
+function bootstrapTests(makeTable: (stack: cdk.Stack) => HashTable<any, any> | SortedTable<any, any, any>) {
   it('should lookup tableName from properties', () => {
     const table = makeTable(new cdk.Stack(new cdk.App(), 'hello'));
     const bag = new PropertyBag('test', {});
@@ -104,7 +104,7 @@ function bootstrapTests(makeTable: (stack: cdk.Stack) => Table<any, any, any>) {
     const cache = new Cache();
     bag.set('tableName', 'table-name');
     table.bootstrap(bag, cache);
-    expect(cache.has(Table.cacheKey)).toBe(true);
+    expect(cache.has(ITable.cacheKey)).toBe(true);
   });
   it('should use cached dynamo client', () => {
     const ddbClientConstructor = sinon.spy(AWS, 'DynamoDB');

@@ -32,7 +32,7 @@ abstract class BaseNumberType extends PrimitiveType<number> {
   public toGlueType() {
     return {
       inputString: this.glueType,
-      isPrimitive: false
+      isPrimitive: true
     };
   }
 

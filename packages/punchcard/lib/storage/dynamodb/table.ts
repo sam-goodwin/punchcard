@@ -12,13 +12,16 @@ import { HashTableClient, HashTableClientImpl, SortedTableClient, SortedTableCli
 import { Facade, toFacade } from './expression/path';
 import { CompositeKey, HashKey, keyType } from './key';
 
-export interface ITable<S extends Shape, K extends Shape> {
+export interface ITable<S extends Shape, K extends Shape> extends dynamodb.Table {
   readonly shape: S;
   readonly key: K;
   readonly facade: Facade<S>;
   readonly keyFacade: Facade<K>;
   readonly mapper: Mapper<RuntimeShape<S>, AWS.DynamoDB.AttributeMap>;
   readonly keyMapper: Mapper<RuntimeShape<K>, AWS.DynamoDB.AttributeMap>;
+}
+export namespace ITable {
+  export const cacheKey = 'aws:dynamodb';
 }
 
 interface TableProps<S extends Shape, K extends Shape> {
@@ -27,10 +30,8 @@ interface TableProps<S extends Shape, K extends Shape> {
   props: dynamodb.TableProps
 }
 
-export abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Shape>
+abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Shape>
     extends dynamodb.Table implements Client<C>, ITable<S, K> {
-  public static readonly cacheKey = 'aws:dynamodb';
-
   public readonly shape: S;
   public readonly key: K;
   public readonly facade: Facade<S>;
@@ -51,7 +52,7 @@ export abstract class Table<C extends TableClient<S, K>, S extends Shape, K exte
   public bootstrap(properties: PropertyBag, cache: Cache): C {
     return this.makeClient(
       properties.get('tableName'),
-      cache.getOrCreate(Table.cacheKey, () => new AWS.DynamoDB()));
+      cache.getOrCreate(ITable.cacheKey, () => new AWS.DynamoDB()));
   }
 
   protected abstract makeClient(tableName: string, client: AWS.DynamoDB): C;
