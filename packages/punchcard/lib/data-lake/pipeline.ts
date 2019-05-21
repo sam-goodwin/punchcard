@@ -4,13 +4,13 @@ import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/cdk');
 import { Stream } from '../enumerable';
 import { BufferMapper, Json, RuntimeShape, Shape, TimestampType } from '../shape';
+import { Compression } from '../storage/glue/compression';
 import { Period } from '../storage/glue/period';
 import { Table } from '../storage/glue/table';
 import { CompressionType, DeliveryStream, DeliveryStreamDestination, DeliveryStreamType } from './delivery-stream';
 import { Partitioner } from './partitioner';
 import { Schema } from './schema';
 import { Validator } from './validator';
-import { Compression } from '../storage/glue/compression';
 
 export type TimeSeriesData = Shape & { timestamp: TimestampType; };
 

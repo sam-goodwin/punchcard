@@ -1,5 +1,5 @@
 import glue = require('@aws-cdk/aws-glue');
-import { Json as JsonMapper, Mapper, RuntimeShape, Shape, Raw, TimestampFormat } from '../../shape';
+import { Json as JsonMapper, Mapper, Raw, RuntimeShape, Shape, TimestampFormat } from '../../shape';
 
 /**
  * Maps a `glue.DataFormat` to a `Mapper` which can read and write its data.
