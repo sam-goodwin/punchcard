@@ -3,7 +3,7 @@ import cdk = require('@aws-cdk/cdk');
 
 import 'jest';
 import sinon = require('sinon');
-import { DataFormat, smallint, Table, timestamp } from '../../../lib';
+import { Codec, smallint, Table, timestamp } from '../../../lib';
 
 const stack = new cdk.Stack(new cdk.App(), 'stack');
 const database = new glue.Database(stack, 'Database', {
@@ -12,7 +12,7 @@ const database = new glue.Database(stack, 'Database', {
 
 const table = new Table(stack, 'Table', {
   database,
-  dataFormat: DataFormat.Json,
+  codec: Codec.Json,
   tableName: 'table_name',
   columns: {
     timestamp,
@@ -28,7 +28,7 @@ const table = new Table(stack, 'Table', {
 });
 
 function makeClient(glue: AWS.Glue) {
-  return new Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table);
+  return new Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, undefined as any /* TODO */);
 }
 
 describe('getPartitions', () => {
@@ -236,3 +236,9 @@ it('should updatePartition', async () => {
     }
   });
 });
+
+// describe('write', () => {
+//   it('should write object and partition', async () => {
+
+//   })
+// });

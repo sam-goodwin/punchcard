@@ -2,7 +2,7 @@ import glue = require('@aws-cdk/aws-glue');
 import cdk = require('@aws-cdk/cdk');
 
 import 'jest';
-import { array, bigint, binary, boolean, char, DataFormat, double, float, integer, map, smallint, string, struct, Table, timestamp, tinyint, Type, varchar } from '../../../lib';
+import { array, bigint, binary, boolean, char, Codec, double, float, integer, map, smallint, string, struct, Table, timestamp, tinyint, Type, varchar } from '../../../lib';
 
 it('should map columns and partition keys to their respective types', () => {
   const stack = new cdk.Stack(new cdk.App(), 'stack');
@@ -12,7 +12,7 @@ it('should map columns and partition keys to their respective types', () => {
 
   const table = new Table(stack, 'Table', {
     database,
-    dataFormat: DataFormat.Json,
+    codec: Codec.Json,
     tableName: 'table_name',
     columns: {
       boolean,
@@ -150,7 +150,7 @@ it('should map columns and partition keys to their respective types', () => {
   }]);
 });
 
-it('should default to Json DataFormat', () => {
+it('should default to Json Codec', () => {
   const stack = new cdk.Stack(new cdk.App(), 'stack');
   const database = new glue.Database(stack, 'Database', {
     databaseName: 'database'
@@ -170,6 +170,7 @@ it('should default to Json DataFormat', () => {
     })
   });
 
+  expect(table.codec).toEqual(Codec.Json);
   expect(table.dataFormat).toEqual(glue.DataFormat.Json);
 });
 
@@ -181,7 +182,7 @@ function partitionTest(type: Type<any>) {
 
   new Table(stack, 'Table', {
     database,
-    dataFormat: DataFormat.Json,
+    codec: Codec.Json,
     tableName: 'table_name',
     columns: {
       str: string()

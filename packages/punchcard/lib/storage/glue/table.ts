@@ -8,7 +8,11 @@ import { Cache, PropertyBag } from '../../property-bag';
 import { Client, Runtime } from '../../runtime';
 import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, Type } from '../../shape';
 import { Omit } from '../../utils';
-import { DataFormat } from './data-format';
+import { Bucket } from '../s3';
+import { Codec } from './codec';
+import { Compression } from './compression';
+
+import crypto = require('crypto');
 
 /**
  * Glue partition shape must be of only string, date or numeric types.
@@ -31,22 +35,33 @@ export type TableProps<T extends Shape, P extends Partition> = {
    */
   partitions: P;
   /**
-   * Data format of the table.
+   * Data codec of the table.
    *
    * @default Json
    */
-  dataFormat?: DataFormat;
+  codec?: Codec;
+
+  /**
+   * Type of compression.
+   *
+   * @default None
+   */
+  compression?: Compression;
+
   /**
    * Function which maps a record to its partition.
    */
   partitioner: (record: RuntimeShape<T>) => RuntimeShape<P>;
-} & Omit<glue.TableProps, 'columns' | 'partitionKeys' | 'dataFormat'>;
+} & Omit<glue.TableProps, 'columns' | 'partitionKeys' | 'dataFormat' | 'compressed'>;
 
 /**
  * Represents a partitioned Glue Table.
  */
-export class Table<T extends Shape, P extends Partition> extends glue.Table implements Client<Table.Client<T, P>> {
-  public readonly compressed: boolean;
+export class Table<T extends Shape, P extends Partition> extends glue.Table implements Client<Table.ReadWriteClient<T, P>> {
+  /**
+   * Type of compression.
+   */
+  public readonly compression: Compression;
   /**
    * Rich model of the columns and partitions of the table.
    */
@@ -54,15 +69,20 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
     columns: T;
     partitions: P;
   };
-  public readonly columnsMapper: Mapper<RuntimeShape<T>, string>;
+  public readonly mapper: Mapper<RuntimeShape<T>, Buffer>;
   public readonly partitionMappers: {
     [K in keyof P]: Mapper<RuntimeType<P[K]>, string>
   };
+  public readonly codec: Codec;
+  public readonly partitioner: (record: RuntimeShape<T>) => RuntimeShape<P>;
 
   constructor(scope: cdk.Construct, id: string, props: TableProps<T, P>) {
+    const compression = (props.compression || Compression.None);
+    const codec = (props.codec || Codec.Json);
     super(scope, id, {
       ...props,
-      dataFormat: (props.dataFormat || DataFormat.Json).format,
+      dataFormat: codec.format,
+      compressed: compression.isCompressed,
       columns: Object.entries(props.columns).map(([name, schema]) => ({
         name,
         type: schema.toGlueType()
@@ -85,37 +105,43 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
       }),
     });
 
-    this.compressed = props.compressed === undefined ? false : props.compressed;
-
     this.shape = {
       columns: props.columns,
       partitions: props.partitions
     };
-    this.columnsMapper = (props.dataFormat || DataFormat.Json).makeMapper(this.shape.columns);
+    this.partitioner = props.partitioner;
+
+    this.compression = compression;
+    this.codec = codec;
+    this.mapper = this.codec.mapper(this.shape.columns);
     this.partitionMappers = {} as any;
     Object.entries(this.shape.partitions).forEach(([name, type]) => this.partitionMappers[name] = Json.forType(type) as any);
   }
 
   public install(target: Runtime): void {
-    return this.readWrite().install(target);
+    return this.readWriteClient().install(target);
   }
 
-  public readWrite(): Client<Table.Client<T, P>> {
-    return this.client(this.grantReadWrite.bind(this));
+  public readWriteClient(): Client<Table.ReadWriteClient<T, P>> {
+    return this.client(this.grantReadWrite.bind(this), new Bucket(this.bucket).readWriteClient());
   }
 
-  public read(): Client<Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition'>> {
-    return this.client(this.grantRead.bind(this));
+  public readClient(): Client<Table.ReadClient<T, P>> {
+    return this.client(this.grantRead.bind(this), new Bucket(this.bucket).readClient());
   }
 
-  public write(): Client<Omit<Table.Client<T, P>, 'getPartitions'>> {
-    return this.client(this.grantWrite.bind(this));
+  public writeClient(): Client<Table.WriteClient<T, P>> {
+    return this.client(this.grantWrite.bind(this), new Bucket(this.bucket).writeClient());
   }
 
-  private client<C>(grant: (grantable: iam.IGrantable) => void): Client<C> {
+  private client<C>(grant: (grantable: iam.IGrantable) => void, bucket: Client<any>): Client<C> {
     return {
       install: (target) => {
         grant(target.grantable);
+        bucket.install({
+          grantable: target.grantable,
+          properties: target.properties.push('bucket')
+        });
         target.properties.set('catalogId', this.database.catalogId);
         target.properties.set('databaseName', this.database.databaseName);
         target.properties.set('tableName', this.tableName);
@@ -130,27 +156,37 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
       properties.get('catalogId'),
       properties.get('databaseName'),
       properties.get('tableName'),
-      this
+      this,
+      new Bucket(this.bucket).bootstrap(properties.push('bucket'), cache)
     );
   }
 }
 
 export namespace Table {
+  /**
+   * Client type aliaes.
+   */
+  export type ReadWriteClient<T extends Shape, P extends Partition> = Table.Client<T, P>;
+  export type ReadClient<T extends Shape, P extends Partition> = Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'write'>;
+  export type WriteClient<T extends Shape, P extends Partition> = Omit<Table.Client<T, P>, 'getPartitions'>;
+
+  /**
+   * Request and Response aliases.
+   */
   export type GetPartitionsRequest = Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'>;
   export type GetPartitionsResponse<P extends Partition> = {Partitions: Array<{
     Values: RuntimeShape<P>;
   } & Omit<AWS.Glue.Partition, 'Values'>>};
-
   export type CreatePartitionRequest<P extends Partition> = {Partition: RuntimeShape<P>, Location: string, LastAccessTime?: Date} &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
   export type CreatePartitionResponse = AWS.Glue.CreatePartitionResponse;
-
   export type BatchCreatePartitionRequestEntry<P extends Partition> = CreatePartitionRequest<P>;
   export type BatchCreatePartitionRequest<P extends Partition> = Array<BatchCreatePartitionRequestEntry<P>>;
-
   export type UpdatePartitionRequest<P extends Partition> = {Partition: RuntimeShape<P>, UpdatedPartition: CreatePartitionRequest<P>};
 
   /**
-   * Client for getting, creating and updating partitions in a Table.
+   * Client for interacting with a Glue Table:
+   * * create, update, delete and query partitions.
+   * * write objects to the table (properly partitioned S3 Objects and Glue Partitions).
    */
   export class Client<T extends Shape, P extends Partition> {
     private readonly partitions: string[];
@@ -160,9 +196,73 @@ export namespace Table {
       public readonly catalogId: string,
       public readonly databaseName: string,
       public readonly tableName: string,
-      public readonly table: Table<T, P>
+      public readonly table: Table<T, P>,
+      public readonly bucket: Bucket.Client
     ) {
       this.partitions = Object.keys(table.shape.partitions);
+    }
+
+    /**
+     * Semantically partitions a batch of records and writes them to S3 and the Table.
+     *
+     * The S3 Object path is determined by the partition values, and the Object Key is determined
+     * by as sha256 of the content.
+     *
+     * Warning: This method should not be used for rapid calls with small payloads, as it my
+     * result in many S3 objects being written to the table which could slow down consumers.
+     *
+     * @param records to write to the glue table
+     */
+    public async write(records: Iterable<RuntimeShape<T>>) {
+      const partitions: Map<string, {
+        partition: RuntimeShape<P>;
+        records: Array<RuntimeShape<T>>;
+      }> = new Map();
+
+      for (const record of records) {
+        const partition = this.table.partitioner(record);
+        const key = Object.values(partition).map(p => p.toString()).join('');
+        if (partitions.has(key) === undefined) {
+          partitions.set(key, {
+            partition,
+            records: []
+          });
+        }
+        partitions.get(key)!.records.push(record);
+      }
+
+      await Promise.all(Array.from(partitions.values()).map(async ({partition, records}) => {
+        // determine the partition location in S3
+        const partitionPath = Object.entries(partition).map(([name, value]) => {
+          return `${name}=${this.table.partitionMappers[name].write(value as any)}`;
+        }).join('/');
+        const location = `${this.table.s3Prefix ? `${this.table.s3Prefix}/` : ''}${partitionPath}/`;
+
+        // serialize the content and compute a sha256 hash of the content
+        // TODO: client-side encryption
+        const content = await this.table.compression.compress(
+          this.table.codec.join(records.map(record => this.table.mapper.write(record))));
+        const sha256 = crypto.createHash('sha256');
+        sha256.update(content);
+        const extension = this.table.compression.isCompressed ? `${this.table.codec.extension}.${this.table.compression.extension!}` : this.table.codec.extension;
+
+        await this.bucket.putObject({
+          // write objects based on sha256 to avoid duplicates during retries
+          Key: `${location}${sha256.digest().toString('hex')}.${extension}`,
+          Body: content
+        });
+        try {
+          await this.createPartition({
+            Partition: partition,
+            Location: `s3://${this.bucket.bucketName}/${location}`
+          });
+        } catch (err) {
+          const ex: AWS.AWSError = err;
+          if (ex.code !== 'AlreadyExistsException') {
+            throw err;
+          }
+        }
+      }));
     }
 
     public async getPartitions(request: GetPartitionsRequest): Promise<GetPartitionsResponse<P>> {
@@ -222,7 +322,7 @@ export namespace Table {
         Values: partitionValues,
         LastAccessTime: request.LastAccessTime || new Date(),
         StorageDescriptor: {
-          Compressed: this.table.compressed,
+          Compressed: this.table.compression.isCompressed,
           Location: request.Location,
           Columns: Object.entries(this.table.shape.columns).map(([name, type]) => {
             return {
