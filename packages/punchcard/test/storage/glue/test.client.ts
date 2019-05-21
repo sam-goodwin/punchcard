@@ -4,6 +4,7 @@ import cdk = require('@aws-cdk/cdk');
 import 'jest';
 import sinon = require('sinon');
 import { Codec, smallint, Table, timestamp } from '../../../lib';
+import { Bucket } from '../../../lib/storage/s3';
 
 const stack = new cdk.Stack(new cdk.App(), 'stack');
 const database = new glue.Database(stack, 'Database', {
@@ -27,8 +28,8 @@ const table = new Table(stack, 'Table', {
   })
 });
 
-function makeClient(glue: AWS.Glue) {
-  return new Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, undefined as any /* TODO */);
+function makeClient(glue: AWS.Glue, mockBucket?: Bucket.Client) {
+  return new Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, mockBucket as any);
 }
 
 describe('getPartitions', () => {
@@ -237,8 +238,38 @@ it('should updatePartition', async () => {
   });
 });
 
-// describe('write', () => {
-//   it('should write object and partition', async () => {
+describe('write', () => {
+  it('should write object and partition', async () => {
+    const mockTable = {
+      createPartition: sinon.fake.returns({
+        promise: () => Promise.resolve()
+      })
+    };
+    const mockBucket = {
+      bucketName: 'bucketName',
+      putObject: sinon.fake.returns(Promise.resolve())
+    };
+    const client = makeClient(mockTable as any, mockBucket as any);
+    const createPartitionSpy = sinon.spy(client, 'createPartition');
+    await client.write([{
+      timestamp: new Date(Date.parse('2019-01-01T00:00:00.000Z'))
+    }]);
 
-//   })
-// });
+    expect(mockBucket.putObject.calledOnce);
+    expect(mockBucket.putObject.args[0][0]).toEqual({
+      Body: Buffer.from(JSON.stringify({
+        timestamp: '2019-01-01 00:00:00.000'
+      }) + '\n', 'utf8'),
+      Key: 'data/year=2019/month=0/af89373106045921d3c17f182d5669a34660100fa47eabd24fd3cd25751933e8.json'
+    });
+
+    expect(createPartitionSpy.calledOnce).toBe(true);
+    expect(createPartitionSpy.args[0][0]).toEqual({
+      Location: 's3://bucketName/data/year=2019/month=0/',
+      Partition: {
+        year: 2019,
+        month: 0
+      }
+    });
+  });
+});

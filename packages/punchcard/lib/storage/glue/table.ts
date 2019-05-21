@@ -1,5 +1,7 @@
 import AWS = require('aws-sdk');
 
+import path = require('path');
+
 import glue = require('@aws-cdk/aws-glue');
 import iam = require('@aws-cdk/aws-iam');
 import cdk = require('@aws-cdk/cdk');
@@ -116,6 +118,21 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
     this.mapper = this.codec.mapper(this.shape.columns);
     this.partitionMappers = {} as any;
     Object.entries(this.shape.partitions).forEach(([name, type]) => this.partitionMappers[name] = Json.forType(type) as any);
+
+    // Hack: fix tableArn (fixed in 0.32.0)
+    (this as any).tableArn = this.node.stack.formatArn({
+      service: 'glue',
+      resource: 'table',
+      resourceName: `${this.database.databaseName}/${this.tableName}`
+    });
+    (this as any).grant = (grantee: iam.IGrantable, actions: string[]) => {
+      // Hack: override grant to also add catalog and database arns as resources
+      return iam.Grant.addToPrincipal({
+        grantee,
+        resourceArns: [this.tableArn, this.database.databaseArn, this.database.catalogArn],
+        actions,
+      });
+    };
   }
 
   public install(target: Runtime): void {
@@ -222,7 +239,7 @@ export namespace Table {
       for (const record of records) {
         const partition = this.table.partitioner(record);
         const key = Object.values(partition).map(p => p.toString()).join('');
-        if (partitions.has(key) === undefined) {
+        if (!partitions.has(key)) {
           partitions.set(key, {
             partition,
             records: []
@@ -230,18 +247,21 @@ export namespace Table {
         }
         partitions.get(key)!.records.push(record);
       }
-
       await Promise.all(Array.from(partitions.values()).map(async ({partition, records}) => {
         // determine the partition location in S3
         const partitionPath = Object.entries(partition).map(([name, value]) => {
           return `${name}=${this.table.partitionMappers[name].write(value as any)}`;
         }).join('/');
-        const location = `${this.table.s3Prefix ? `${this.table.s3Prefix}/` : ''}${partitionPath}/`;
+        let location = this.table.s3Prefix ? path.join(this.table.s3Prefix, partitionPath) : partitionPath;
+        if (!location.endsWith('/')) {
+          location += '/';
+        }
 
         // serialize the content and compute a sha256 hash of the content
         // TODO: client-side encryption
         const content = await this.table.compression.compress(
           this.table.codec.join(records.map(record => this.table.mapper.write(record))));
+        console.log(content.toString('utf8'));
         const sha256 = crypto.createHash('sha256');
         sha256.update(content);
         const extension = this.table.compression.isCompressed ? `${this.table.codec.extension}.${this.table.compression.extension!}` : this.table.codec.extension;
@@ -257,6 +277,7 @@ export namespace Table {
             Location: `s3://${this.bucket.bucketName}/${location}`
           });
         } catch (err) {
+          console.error(err);
           const ex: AWS.AWSError = err;
           if (ex.code !== 'AlreadyExistsException') {
             throw err;

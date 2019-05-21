@@ -1,10 +1,10 @@
-import events = require('@aws-cdk/aws-events-targets');
 import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/cdk');
 
 import { Function, LambdaExecutorService } from '../compute';
 import { Client } from '../runtime';
 import { RuntimeShape, Shape } from '../shape';
+import { Compression } from '../storage/glue/compression';
 import { Partition, Table } from '../storage/glue/table';
 import { Bucket } from '../storage/s3';
 
@@ -15,7 +15,12 @@ export interface PartitionerProps<T extends Shape, P extends Partition> {
   /**
    * Bucket from which data is being read.
    */
-  sourceBucket: s3.IBucket;
+  sourceBucket: s3.Bucket;
+
+  /**
+   * Compression of data in the `sourceBucket`.
+   */
+  sourceCompression: Compression;
 
   /**
    * Table that the flowing data belongs to.
@@ -43,6 +48,7 @@ export class Partitioner<T extends Shape, P extends Partition> extends cdk.Const
     table: Client<Table.WriteClient<T, P>>;
   }>;
   public readonly sourceBucket: s3.IBucket;
+  public readonly sourceCompression: Compression;
 
   constructor(scope: cdk.Construct, id: string, props: PartitionerProps<T, P>) {
     super(scope, id);
@@ -53,6 +59,7 @@ export class Partitioner<T extends Shape, P extends Partition> extends cdk.Const
     });
 
     this.sourceBucket = props.sourceBucket;
+    this.sourceCompression = props.sourceCompression;
     this.processor = executorService.run(this, 'Processor', {
       clients: {
         source: new Bucket(this.sourceBucket).readClient(),
@@ -72,13 +79,15 @@ export class Partitioner<T extends Shape, P extends Partition> extends cdk.Const
             if (Buffer.isBuffer(object.Body)) {
               buf = object.Body;
             } else if (typeof object.Body === 'string') {
-              buf = new Buffer(object.Body, 'utf8');
+              buf = Buffer.from(object.Body, 'utf8');
             } else {
               throw new Error(`could not read object body with typeof, ${typeof object.Body}`);
             }
-            const decompressed = await this.table.compression.decompress(buf);
+            const decompressed = await this.sourceCompression.decompress(buf);
             for (const buffer of this.table.codec.split(decompressed)) {
-              results.push(this.table.mapper.read(buffer));
+              if (buffer.length > 0) {
+                results.push(this.table.mapper.read(buffer));
+              }
             }
           }
           return results;
@@ -87,7 +96,7 @@ export class Partitioner<T extends Shape, P extends Partition> extends cdk.Const
         await table.write(records.reduce((a, b) => a.concat(b)));
       }
     });
-    props.sourceBucket.onPutObject('OnPutObject', new events.LambdaFunction(this.processor));
+    props.sourceBucket.onObjectCreated(this.processor);
   }
 }
 

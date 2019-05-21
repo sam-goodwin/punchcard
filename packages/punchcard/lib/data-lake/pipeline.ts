@@ -10,6 +10,7 @@ import { CompressionType, DeliveryStream, DeliveryStreamDestination, DeliveryStr
 import { Partitioner } from './partitioner';
 import { Schema } from './schema';
 import { Validator } from './validator';
+import { Compression } from '../storage/glue/compression';
 
 export type TimeSeriesData = Shape & { timestamp: TimestampType; };
 
@@ -69,7 +70,8 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends cdk.Constr
 
     this.partitioner = new Partitioner(this, 'Partitioner', {
       table: this.table,
-      sourceBucket: this.stagingBucket
+      sourceBucket: this.stagingBucket,
+      sourceCompression: Compression.Gzip
     });
   }
 }
