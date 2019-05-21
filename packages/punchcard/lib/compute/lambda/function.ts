@@ -14,7 +14,7 @@ import { Cache, PropertyBag } from '../../property-bag';
 export type FunctionProps<T, U, C extends ClientContext> = {
   requestMapper?: Mapper<T, any>;
   responseMapper?: Mapper<U, any>;
-  context?: C;
+  clients?: C;
   handle: (event: T, run: Clients<C>, context: any) => Promise<U>;
 } & Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>;
 
@@ -28,7 +28,7 @@ export class Function<T, U, C extends ClientContext>
 
   private readonly requestMapper: Mapper<T, any>;
   private readonly responseMapper: Mapper<U, any>;
-  private readonly context?: C;
+  private readonly clients?: C;
 
   constructor(scope: cdk.Construct, id: string, props: FunctionProps<T, U, C>) {
     super(scope, id, {
@@ -42,12 +42,12 @@ export class Function<T, U, C extends ClientContext>
 
     this.requestMapper = props.requestMapper || Raw.passthrough();
     this.responseMapper = props.responseMapper || Raw.passthrough();
-    this.context = props.context;
+    this.clients = props.clients;
 
     const properties = new PropertyBag(this.node.uniqueId, {});
-    if (this.context) {
-      for (const [name, r] of Object.entries(this.context)) {
-        r.install({
+    if (this.clients) {
+      for (const [name, client] of Object.entries(this.clients)) {
+        client.install({
           grantable: this,
           properties: properties.push(name)
         });
@@ -71,9 +71,9 @@ export class Function<T, U, C extends ClientContext>
 
     const run: Clients<C> = {} as any;
 
-    if (this.context) {
-      for (const [name, r] of Object.entries(this.context)) {
-        run[name] = r.bootstrap(runtimeProperties.push(name), cache);
+    if (this.clients) {
+      for (const [name, client] of Object.entries(this.clients)) {
+        run[name] = client.bootstrap(runtimeProperties.push(name), cache);
       }
     }
 

@@ -2,9 +2,9 @@ import 'jest';
 
 import { Database } from '@aws-cdk/aws-glue';
 import cdk = require('@aws-cdk/cdk');
-import { integer, string, Table } from '../../../lib';
-import { setRuntime } from '../../../lib/constants';
-import { Validator } from '../../../lib/storage/glue/validator';
+import { integer, string, Table } from '../../lib';
+import { setRuntime } from '../../lib/constants';
+import { Validator } from '../../lib/data-lake/validator';
 
 setRuntime();
 
@@ -56,7 +56,7 @@ it('should parse and re-serialize records', async () => {
       recordId: 'id1',
       data: new Buffer(JSON.stringify({
         key: 'key'
-      })).toString('base64'),
+      }) + '\n').toString('base64'),
       result: 'Ok'
     }]
   });

@@ -17,7 +17,7 @@ describe('Function', () => {
       bootstrap: () => null
     };
     const f = new Function(stack, 'function', {
-      context: {
+      clients: {
         client
       },
       handle: null as any
@@ -32,7 +32,7 @@ describe('Function', () => {
     };
     const fake = sinon.fake();
     const f = new Function(stack, 'function', {
-      context: {
+      clients: {
         client
       },
       handle: fake

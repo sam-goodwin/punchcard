@@ -2,16 +2,16 @@ import events = require('@aws-cdk/aws-events-targets');
 import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/cdk');
 
-import { Function, LambdaExecutorService } from '../../compute';
-import { Client } from '../../runtime';
-import { RuntimeShape, Shape } from '../../shape';
-import { Bucket } from '../s3';
-import { Partition, Table } from './table';
+import { Function, LambdaExecutorService } from '../compute';
+import { Client } from '../runtime';
+import { RuntimeShape, Shape } from '../shape';
+import { Partition, Table } from '../storage/glue/table';
+import { Bucket } from '../storage/s3';
 
 /**
  * Properties for creating a Validator.
  */
-export interface ValidatorProps<T extends Shape, P extends Partition> {
+export interface PartitionerProps<T extends Shape, P extends Partition> {
   /**
    * Bucket from which data is being read.
    */
@@ -44,7 +44,7 @@ export class Partitioner<T extends Shape, P extends Partition> extends cdk.Const
   }>;
   public readonly sourceBucket: s3.IBucket;
 
-  constructor(scope: cdk.Construct, id: string, props: ValidatorProps<T, P>) {
+  constructor(scope: cdk.Construct, id: string, props: PartitionerProps<T, P>) {
     super(scope, id);
     this.table = props.table;
     const executorService = props.executorService || new LambdaExecutorService({
@@ -87,7 +87,7 @@ export class Partitioner<T extends Shape, P extends Partition> extends cdk.Const
         await table.write(records.reduce((a, b) => a.concat(b)));
       }
     });
-    props.sourceBucket.onPutObject('OnPutObject', new events.LambdaFunction(this.processor), this.table.s3Prefix);
+    props.sourceBucket.onPutObject('OnPutObject', new events.LambdaFunction(this.processor));
   }
 }
 

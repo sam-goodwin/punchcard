@@ -59,11 +59,11 @@ export class Queue<T> extends sqs.Queue implements Client<Queue.Client<T>>, IEnu
   }
 
   public read(): Client<Omit<Queue.Client<T>, 'sendMessage' | 'sendMessageBatch'>> {
-    return this._client(this.grantConsumeMessages.bind(this.grantConsumeMessages));
+    return this._client(this.grantConsumeMessages.bind(this));
   }
 
   public write(): Client<Omit<Queue.Client<T>, 'receiveMessage'>> {
-    return this._client(this.grantSendMessages.bind(this.grantSendMessages));
+    return this._client(this.grantSendMessages.bind(this));
   }
 
   private _client(grant: (grantable: iam.IGrantable) => void): Client<Queue.Client<T>> {

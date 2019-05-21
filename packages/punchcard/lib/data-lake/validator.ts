@@ -1,8 +1,8 @@
 import cdk = require('@aws-cdk/cdk');
 
-import { Function, LambdaExecutorService } from '../../compute';
-import { Shape } from '../../shape';
-import { Table } from './table';
+import { Function, LambdaExecutorService } from '../compute';
+import { Shape } from '../shape';
+import { Table } from '../storage/glue/table';
 
 /**
  * Properties for creating a Validator.
@@ -66,14 +66,14 @@ export class Validator<T extends Shape> extends cdk.Construct {
   }
 }
 
-export interface FirehoseEvent {
+interface FirehoseEvent {
   records: Array<{
     recordId: string;
     data: string;
   }>
 }
 
-export interface FirehoseResponse {
+interface FirehoseResponse {
   records: Array<{
     recordId: string;
     result: 'Dropped' | 'Ok' | 'ProcessingFailed';

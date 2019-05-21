@@ -47,19 +47,19 @@ export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>
   }
 
   public install(target: Runtime): void {
-    this.readWriteData().install(target);
+    this.readWriteClient().install(target);
   }
 
-  public readWriteData(): Client<Stream.Client<T>> {
-    return this._client(this.grantReadWrite.bind(this.grantReadWrite));
+  public readWriteClient(): Client<Stream.Client<T>> {
+    return this._client(this.grantReadWrite.bind(this));
   }
 
-  public readData(): Client<Stream.Client<T>> {
-    return this._client(this.grantRead.bind(this.grantRead));
+  public readClient(): Client<Stream.Client<T>> {
+    return this._client(this.grantRead.bind(this));
   }
 
-  public writeData(): Client<Stream.Client<T>> {
-    return this._client(this.grantWrite.bind(this.writeData));
+  public writeClient(): Client<Stream.Client<T>> {
+    return this._client(this.grantWrite.bind(this));
   }
 
   private _client(grant: (grantable: iam.IGrantable) => void): Client<Stream.Client<T>> {

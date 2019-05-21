@@ -11,6 +11,14 @@ export namespace Json {
     validate?: boolean;
   }
 
+  export function jsonLine<S extends Shape>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, string> {
+    const m = forShape(shape, configuration);
+    return {
+      read: s => m.read(s),
+      write: s => `${m.write(s)}\n`
+    };
+  }
+
   export function forShape<S extends Shape>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, string> {
     return Json.forType(struct(shape), configuration);
   }

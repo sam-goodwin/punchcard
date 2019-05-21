@@ -4,12 +4,12 @@ import events = require('@aws-cdk/aws-events-targets');
 import { Database } from '@aws-cdk/aws-glue';
 import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/cdk');
-import { integer, string, Table } from '../../../lib';
-import { setRuntime } from '../../../lib/constants';
-import { Partitioner } from '../../../lib/storage/glue/partitioner';
+import { integer, string, Table } from '../../lib';
+import { setRuntime } from '../../lib/constants';
+import { Partitioner } from '../../lib/data-lake/partitioner';
 
 import sinon = require('sinon');
-import { Compression } from '../../../lib/storage/glue/compression';
+import { Compression } from '../../lib/storage/glue/compression';
 
 setRuntime();
 
@@ -200,7 +200,8 @@ it('should throw Error if table.write fails', async () => {
 it('should subscribe to sourceBucket onPutObject', () => {
   const sourceBucket = {
     bucketName: 'bucketName',
-    onPutObject: sinon.fake()
+    onPutObject: sinon.fake(),
+    grantRead: sinon.fake()
   };
   const partitioner = new Partitioner(stack, 'OnPutTest', {
     table,
@@ -212,4 +213,6 @@ it('should subscribe to sourceBucket onPutObject', () => {
     new events.LambdaFunction(partitioner.processor),
     table.s3Prefix
   ]);
+  expect(sourceBucket.grantRead.calledOnce).toBe(true);
+  expect(sourceBucket.grantRead.args[0][0]).toEqual(partitioner.processor);
 });

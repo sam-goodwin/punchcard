@@ -17,7 +17,7 @@ export namespace Codec {
     extension: 'json',
     format: glue.DataFormat.Json,
     mapper: shape => {
-      const json = JsonMapper.forShape(shape);
+      const json = JsonMapper.jsonLine(shape);
       return {
         read: (buffer) => json.read(buffer.toString('utf8')),
         write: (record) => new Buffer(json.write(record), 'utf8')
