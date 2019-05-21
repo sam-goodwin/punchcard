@@ -41,7 +41,7 @@ const table = new HashTable(stack, 'count-table', {
 
 // SNS -> SQS -> Lambda -> DynamODB
 queue
-  .clients({table: table.writeData()}) // use the table (with write permissions) at runtime
+  .clients({table: table.writeClient()}) // use the table (with write permissions) at runtime
   .forEach(stack, 'OnMessage', async (event, {table}) => {
     // do something for each message in the SQS Queue
     // (runs in an AWS Lambda Function)

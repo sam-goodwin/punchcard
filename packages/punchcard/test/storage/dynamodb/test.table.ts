@@ -75,16 +75,16 @@ function installTests(makeTable: (stack: cdk.Stack) => HashTable<any, any> | Sor
     installTest(t => t, 'grantReadWriteData');
   });
   it('readData', () => {
-    installTest(t => t.readData(), 'grantReadData');
+    installTest(t => t.readClient(), 'grantReadData');
   });
   it('readWriteData', () => {
-    installTest(t => t.readWriteData(), 'grantReadWriteData');
+    installTest(t => t.readWriteClient(), 'grantReadWriteData');
   });
   it('writeData', () => {
-    installTest(t => t.writeData(), 'grantWriteData');
+    installTest(t => t.writeClient(), 'grantWriteData');
   });
   it('fullAccess', () => {
-    installTest(t => t.fullAccess(), 'grantFullAccess');
+    installTest(t => t.fullAccessClient(), 'grantFullAccess');
   });
 }
 

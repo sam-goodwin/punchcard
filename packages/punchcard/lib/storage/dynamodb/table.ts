@@ -58,7 +58,7 @@ abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Sha
   protected abstract makeClient(tableName: string, client: AWS.DynamoDB): C;
 
   public install(target: Runtime): void {
-    this.readWriteData().install(target);
+    this.readWriteClient().install(target);
   }
 
   private _install(grant: (grantable: iam.IGrantable) => void): Client<C> {
@@ -71,19 +71,19 @@ abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Sha
     };
   }
 
-  public readData(): Client<C> {
+  public readClient(): Client<C> {
     return this._install(this.grantReadData.bind(this));
   }
 
-  public readWriteData(): Client<C> {
+  public readWriteClient(): Client<C> {
     return this._install(this.grantReadWriteData.bind(this));
   }
 
-  public writeData(): Client<C> {
+  public writeClient(): Client<C> {
     return this._install(this.grantWriteData.bind(this));
   }
 
-  public fullAccess(): Client<C> {
+  public fullAccessClient(): Client<C> {
     return this._install(this.grantFullAccess.bind(this));
   }
 }
