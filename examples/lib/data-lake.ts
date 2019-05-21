@@ -18,8 +18,10 @@ const dataPoints = new Schema({
   timestampField: 'timestamp'
 });
 
-// A data lake is a collection of schemas and infrastructure to collect data
-// with Kinesis and persist in S3, exposed as a minutely partitioned Glue Table
+// A data lake is a collection of schemas, where each schema has corresponding
+// infrastructure to collect data:
+// Kinesis -> Firehose -> S3 -> Lambda -> S3
+//                                     -> Glue Table
 const lake = new DataLake(stack, 'Lake', {
   lakeName: 'my_lake',
   schemas: {
@@ -27,13 +29,15 @@ const lake = new DataLake(stack, 'Lake', {
   }
 });
 
-// consume from the stream of data points in real-time and log out each property
+// we can consume from the stream of data points in real-time and log out each property
+// Kinesis -> Lambda
 // Note: the type-safety of the `record`
 lake.pipelines.dataPoints.stream.forEach(stack, 'ForEachDataPoint', async (record) => {
   console.log('key', record.key);
   console.log('value', record.value);
   console.log('data points', record.data_points);
   console.log('timestamp', record.timestamp);
+  // console.log('this does not compile', record.doesNotExist)
 });
 
 // send some dumy data to the dataPoints schema

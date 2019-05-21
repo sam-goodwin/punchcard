@@ -17,6 +17,7 @@ const Message = struct({
 const topic = new Topic(stack, 'Topic', {
   mapper: Json.forType(Message) // serialize notifications with JSON
 });
+// SNS -> Lambda
 topic.forEach(stack, 'OnNotification', async event => {
   // do something on each notification
   // (runs in an AWS Lambda Function)
@@ -26,6 +27,7 @@ topic.forEach(stack, 'OnNotification', async event => {
 const queue = new Queue(stack, 'Queue', {
   mapper: Json.forType(Message) // shape of data must match the Topic, i.e. that described by `Message`
 });
+// SNS -> SQS
 topic.subscribeQueue(queue); // forward data from the Topic to the Queue
 
 // create a talbe and accumulate counts of each key
@@ -37,6 +39,7 @@ const table = new HashTable(stack, 'count-table', {
   }
 });
 
+// SNS -> SQS -> Lambda -> DynamODB
 queue
   .clients({table: table.writeData()}) // use the table (with write permissions) at runtime
   .forEach(stack, 'OnMessage', async (event, {table}) => {
