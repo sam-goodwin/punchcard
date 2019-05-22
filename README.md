@@ -63,12 +63,12 @@ executorService.schedule(stack, 'Poller', {
 });
 ```
 
-See the more thorough [examples](examples/lib):
-* [SNS Topic and SQS Queue](examples/lib/topic-and-queue.ts) - respond to SNS notifications with a Lambda Function; subscribe notifications to a SQS Queue and process them with a Lambda Function.
-* [Invoke a Function from another Function](examples/lib/invoke-function.ts) - call a Function from another Function
-* [Real-Time Data Lake](examples/lib/data-lake.ts) - collects data with Kinesis and persists to S3, exposed as a Glue Table in a Glue Database.
-* [Scheduled Lambda Function](examples/lib/scheduled-function.ts) - runs a Lambda Function every minute and stores data in a DynamoDB Table.
-* [Pet Store API Gateway](examples/lib/pet-store-apigw.ts) - implementation of the [Pet Store API Gateway canonical example](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-from-example.html).
+See the more thorough [examples](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib):
+* [SNS Topic and SQS Queue](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/topic-and-queue.ts) - respond to SNS notifications with a Lambda Function; subscribe notifications to a SQS Queue and process them with a Lambda Function.
+* [Invoke a Function from another Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/invoke-function.ts) - call a Function from another Function
+* [Real-Time Data Lake](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/data-lake.ts) - collects data with Kinesis and persists to S3, exposed as a Glue Table in a Glue Database.
+* [Scheduled Lambda Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/scheduled-function.ts) - runs a Lambda Function every minute and stores data in a DynamoDB Table.
+* [Pet Store API Gateway](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/pet-store-apigw.ts) - implementation of the [Pet Store API Gateway canonical example](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-from-example.html).
 
 ## Getting Started 
 

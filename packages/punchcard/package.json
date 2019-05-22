@@ -1,6 +1,6 @@
 {
   "name": "punchcard",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "main": "lib/index.js",
   "types": "lib/index.ts",
   "scripts": {
@@ -14,6 +14,15 @@
     "name": "Sam Goodwin",
     "email": "sam.goodwin1989@gmail.com"
   },
+  "readme": "README.md",
+  "keywords": [
+    "punchcard",
+    "aws-cdk",
+    "infrastructure-as-code",
+    "serverless",
+    "aws",
+    "cloudformation"
+  ],
   "devDependencies": {
     "@types/jest": "^23.0.0",
     "@types/node": "^10.14.6",
