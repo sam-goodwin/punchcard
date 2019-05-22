@@ -3,7 +3,6 @@ import { Type } from '../../../shape/types/type';
 
 import { Compilable, CompileContext, CompiledExpression } from './compile-context';
 
-import { TypeSet } from '../../../shape/types/typed-set';
 import { Tree, TreeFields } from '../../../tree';
 
 // tslint:disable: no-shadowed-variable
@@ -520,7 +519,7 @@ export class AddAction<T extends Type<V>, V> extends UpdateAction {
  delete-action ::=
   path value
 */
-export class DeleteAction<T extends Type<V>, V> extends UpdateAction {
+export class DeleteAction<V> extends UpdateAction {
   constructor(private readonly path: BaseDynamoPath<Type<Set<V>>, Set<V>>, private readonly subset: Set<V>) {
     super(ActionType.DELETE);
   }

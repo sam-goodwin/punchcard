@@ -4,11 +4,6 @@
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib/index.ts",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/sam-goodwin/punchcard"
-  },
-  "description": "A declarative TypeScript framework for building cloud applications on AWS.",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
@@ -21,7 +16,7 @@
     "@aws-cdk/aws-s3": "^0.31.0",
     "@aws-cdk/cdk": "^0.31.0",
     "@types/uuid": "^3.4.4",
-    "punchcard": "^0.1.2",
+    "punchcard": "^0.1.4",
     "uuid": "^3.3.2"
   },
   "devDependencies": {

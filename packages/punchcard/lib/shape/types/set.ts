@@ -125,11 +125,11 @@ export class SetDynamoPath<T extends Type<V>, V> extends BaseDynamoPath<SetType<
   //   }
   // }
 
-  public remove(...values: V[]): DeleteAction<T, V> {
+  public remove(...values: V[]): DeleteAction<V> {
     return new DeleteAction(this, new Set(values));
   }
 
-  public removeAll(values: Set<V> | V[]): DeleteAction<T, V> {
+  public removeAll(values: Set<V> | V[]): DeleteAction<V> {
     if (Array.isArray(values)) {
       return new DeleteAction(this, new Set(values));
     } else {

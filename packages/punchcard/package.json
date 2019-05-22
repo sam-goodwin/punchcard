@@ -1,6 +1,7 @@
 {
   "name": "punchcard",
-  "version": "0.1.2",
+  "description": "A declarative TypeScript framework for building cloud applications on AWS.",
+  "version": "0.1.4",
   "main": "lib/index.js",
   "types": "lib/index.ts",
   "scripts": {
@@ -13,6 +14,10 @@
   "author": {
     "name": "Sam Goodwin",
     "email": "sam.goodwin1989@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sam-goodwin/punchcard"
   },
   "readme": "README.md",
   "keywords": [
@@ -27,6 +32,13 @@
     "@types/jest": "^23.0.0",
     "@types/node": "^10.14.6",
     "@types/sinon": "^7.0.11",
+    "aws-sdk": "^2.453.0",
+    "jest": "^23.0.0",
+    "sinon": "^7.3.2",
+    "tslint": "^5.16.0",
+    "typescript": "^3.4.5"
+  },
+  "dependencies": {
     "@aws-cdk/cdk": "^0.31.0",
     "@aws-cdk/assert": "^0.31.0",
     "@aws-cdk/aws-apigateway": "^0.31.0",
@@ -41,13 +53,6 @@
     "@aws-cdk/aws-sqs": "^0.31.0",
     "@aws-cdk/aws-sns": "^0.31.0",
     "@aws-cdk/aws-s3": "^0.31.0",
-    "aws-sdk": "^2.453.0",
-    "jest": "^23.0.0",
-    "sinon": "^7.3.2",
-    "tslint": "^5.16.0",
-    "typescript": "^3.4.5"
-  },
-  "dependencies": {
     "moment": "^2.24.0",
     "webpack": "^4.31.0"
   },
