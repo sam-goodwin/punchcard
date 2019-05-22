@@ -16,7 +16,7 @@
     "@aws-cdk/aws-s3": "^0.31.0",
     "@aws-cdk/cdk": "^0.31.0",
     "@types/uuid": "^3.4.4",
-    "punchcard": "^0.1.0",
+    "punchcard": "^0.1.1",
     "uuid": "^3.3.2"
   },
   "devDependencies": {

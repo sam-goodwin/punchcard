@@ -157,6 +157,10 @@ export namespace Function {
       private readonly requestMapper: Mapper<T, string>,
       private readonly responseMapper: Mapper<U, string>) {}
 
+    /**
+     * Invoke the function synchronously and return the result.
+     * @return Promise of the result
+     */
     public async invoke(request: T): Promise<U> {
       const response = await this.client.invoke({
         FunctionName: this.functionArn,
@@ -177,6 +181,17 @@ export namespace Function {
       } else {
         throw new Error(`Function returned non-200 status code, '${response.StatusCode}' with error, '${response.FunctionError}'`);
       }
+    }
+
+    /**
+     * Invoke the function asynchronously.
+     */
+    public async invokeAsync(request: T): Promise<void> {
+      await this.client.invoke({
+        FunctionName: this.functionArn,
+        InvocationType: 'Event',
+        Payload: this.requestMapper.write(request)
+      }).promise();
     }
   }
 }

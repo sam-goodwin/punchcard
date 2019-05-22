@@ -2,9 +2,10 @@ import cdk = require('@aws-cdk/cdk');
 import 'jest';
 import sinon = require('sinon');
 
+import { strict } from 'assert';
+
 import { Client, Function, string } from '../../../lib';
 import { setRuntime } from '../../../lib/constants';
-import { strict } from 'assert';
 
 // stop web-pack from running
 // TODO: gross as fuck - every user will have to do this
