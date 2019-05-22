@@ -23,6 +23,13 @@ export namespace Json {
     return Json.forType(struct(shape), configuration);
   }
 
+  export function forAny(): IMapper<any, string> {
+    return {
+      read: JSON.parse,
+      write: JSON.stringify
+    };
+  }
+
   type InferType<T extends Type<any>> = T extends Type<infer V> ? V : never;
   export function forType<T extends Type<any>>(type: T, configuration?: Configuration): IMapper<InferType<T>, string> {
     return new Mapper(type, configuration);

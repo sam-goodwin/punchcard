@@ -38,7 +38,7 @@ export class Validator<T extends Shape> extends cdk.Construct {
       timeout: 60
     });
 
-    this.processor = executorService.run(this, 'Processor', {
+    this.processor = executorService.spawn(this, 'Processor', {
       clients: {},
       handle: async (event: FirehoseEvent) => {
         const response: FirehoseResponse = {records: []};

@@ -15,11 +15,11 @@ export interface SetTypeConstraints {
   maxItems?: number;
 }
 
-export class SetType<T extends Type<V>, V> implements Type<TypeSet<T, V>> {
+export class SetType<T extends Type<V>, V> implements Type<Set<V>> {
   public readonly kind = Kind.Set;
   constructor(public readonly itemType: T, private readonly constraints?: SetTypeConstraints) {}
 
-  public validate(value: TypeSet<T, V>): void {
+  public validate(value: Set<V>): void {
     value.forEach(v => this.itemType.validate(v));
     if (!this.constraints) {
       return;
@@ -64,7 +64,7 @@ export class SetType<T extends Type<V>, V> implements Type<TypeSet<T, V>> {
     };
   }
 
-  public hashCode(value: TypeSet<T, V>): number {
+  public hashCode(value: Set<V>): number {
     const prime = 31;
     let result = 1;
     for (const item of value.values()) {
@@ -73,7 +73,7 @@ export class SetType<T extends Type<V>, V> implements Type<TypeSet<T, V>> {
     return result;
   }
 
-  public equals(a: TypeSet<T, V>, b: TypeSet<T, V>): boolean {
+  public equals(a: Set<V>, b: Set<V>): boolean {
     if (a.size !== b.size) {
       return false;
     }
@@ -86,7 +86,7 @@ export class SetType<T extends Type<V>, V> implements Type<TypeSet<T, V>> {
   }
 }
 
-export class SetPath<T extends Type<V>, V> extends JsonPath<TypeSet<T, V>> {
+export class SetPath<T extends Type<V>, V> extends JsonPath<Set<V>> {
   public readonly items: InferJsonPathType<T>;
 
   constructor(parent: JsonPath<any>, name: string, public readonly type: SetType<T, V>) {
@@ -110,14 +110,14 @@ export class SetPath<T extends Type<V>, V> extends JsonPath<TypeSet<T, V>> {
 /**
  * Represents a path to a Set attribute (NumberSet, StringSet, BinarySet).
  */
-export class SetDynamoPath<T extends Type<V>, V> extends BaseDynamoPath<SetType<T, V>, TypeSet<T, V>> {
-  public add(...values: V[]): AddAction<SetType<T, V>, TypeSet<T, V>> {
-    const s: TypeSet<T, V> = TypeSet.forType(this.type.itemType);
+export class SetDynamoPath<T extends Type<V>, V> extends BaseDynamoPath<SetType<T, V>, Set<V>> {
+  public add(...values: V[]): AddAction<SetType<T, V>, Set<V>> {
+    const s: Set<V> = TypeSet.forType(this.type.itemType);
     values.forEach(v => s.add(v));
     return new AddAction(this, s);
   }
 
-  // public addAll(values: TypeSet<T, V> | V[]): AddAction<T, Set<V>> {
+  // public addAll(values: Set<V> | V[]): AddAction<T, Set<V>> {
   //   if (Array.isArray(values)) {
   //     return new AddAction(this, new Set(values));
   //   } else {

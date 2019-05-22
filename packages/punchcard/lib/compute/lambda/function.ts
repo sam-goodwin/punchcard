@@ -4,7 +4,7 @@ import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../../constants';
 import { Client, ClientContext, Clients, Entrypoint, entrypoint, Runtime } from '../../runtime';
-import { Mapper, Raw } from '../../shape';
+import { Json, Mapper, Raw, Type } from '../../shape';
 import { Omit } from '../../utils';
 
 import fs = require('fs');
@@ -12,22 +12,54 @@ import path = require('path');
 import { Cache, PropertyBag } from '../../property-bag';
 
 export type FunctionProps<T, U, C extends ClientContext> = {
-  requestMapper?: Mapper<T, any>;
-  responseMapper?: Mapper<U, any>;
+  /**
+   * Type of the request
+   *
+   * @default any
+   */
+  request?: Type<T>;
+
+  /**
+   * Type of the response
+   *
+   * @default any
+   */
+  response?: Type<U>;
+
+  /**
+   * Dependency resources which this Function needs clients for.
+   *
+   * Each client will have a chance to grant permissions to the function and environment variables.
+   */
   clients?: C;
+
+  /**
+   * Function to handle the event of type `T`, given initialized client instances `Clients<C>`.
+   */
   handle: (event: T, run: Clients<C>, context: any) => Promise<U>;
 } & Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>;
 
+/**
+ * Runs a Function `T => U` in AWS Lambda.
+ *
+ * Requires Clients (permissions and environment variables), `C`.
+ */
 export class Function<T, U, C extends ClientContext>
     extends lambda.Function
     implements Entrypoint, Client<Function.Client<T, U>> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
-  public readonly handle: (event: T, run: Clients<C>, context: any) => Promise<U>;
+  /**
+   * Function to handle the event of type `T`, given initialized client instances `Clients<C>`.
+   *
+   * @param event the parsed request
+   * @param clients initialized clients to dependency resources
+   */
+  public readonly handle: (event: T, clients: Clients<C>, context: any) => Promise<U>;
 
-  private readonly requestMapper: Mapper<T, any>;
-  private readonly responseMapper: Mapper<U, any>;
+  private readonly request?: Type<T>;
+  private readonly response?: Type<U>;
   private readonly clients?: C;
 
   constructor(scope: cdk.Construct, id: string, props: FunctionProps<T, U, C>) {
@@ -40,8 +72,8 @@ export class Function<T, U, C extends ClientContext>
 
     this.handle = props.handle;
 
-    this.requestMapper = props.requestMapper || Raw.passthrough();
-    this.responseMapper = props.responseMapper || Raw.passthrough();
+    this.request = props.request;
+    this.response = props.response;
     this.clients = props.clients;
 
     const properties = new PropertyBag(this.node.uniqueId, {});
@@ -77,29 +109,47 @@ export class Function<T, U, C extends ClientContext>
       }
     }
 
+    const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forType(this.request);
+    const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forType(this.response);
     return (async (event: any, context) => {
-      const parsed = this.requestMapper.read(event);
+      const parsed = requestMapper.read(event);
       const result = await this.handle(parsed, run, context);
-      return this.responseMapper.write(result);
+      return responseMapper.write(result);
     });
   }
 
+  /**
+   * Install this Function in another `Runtime`, creating a client to invoke this Function.
+   *
+   * @param target runtime
+   */
   public install(target: Runtime): void {
     this.grantInvoke(target.grantable);
     target.properties.set('functionArn', this.functionArn);
   }
 
+  /**
+   * Create a client to invoke this function.
+   *
+   * @param properties property bag containing variables set during the `install` phase
+   * @param cache global cache shared by the runtime
+   */
   public bootstrap(properties: PropertyBag, cache: Cache): Function.Client<T, U> {
+    const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forType(this.request);
+    const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forType(this.response);
     return new Function.Client(
       cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
       properties.get('functionArn'),
-      this.requestMapper,
-      this.responseMapper
+      requestMapper,
+      responseMapper
     );
   }
 }
 
 export namespace Function {
+  /**
+   * Client for invoking a Lambda Function
+   */
   export class Client<T, U> {
     constructor(
       private readonly client: AWS.Lambda,

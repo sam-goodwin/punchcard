@@ -521,7 +521,7 @@ export class AddAction<T extends Type<V>, V> extends UpdateAction {
   path value
 */
 export class DeleteAction<T extends Type<V>, V> extends UpdateAction {
-  constructor(private readonly path: BaseDynamoPath<Type<TypeSet<T, V>>, TypeSet<T, V>>, private readonly subset: Set<V>) {
+  constructor(private readonly path: BaseDynamoPath<Type<Set<V>>, Set<V>>, private readonly subset: Set<V>) {
     super(ActionType.DELETE);
   }
 

@@ -61,7 +61,7 @@ export class ContextualizedTopic<T, R extends ClientContext> implements IEnumera
       memorySize: 128,
       timeout: 10
     });
-    const lambdaFn = props.executorService.run(scope, id, {
+    const lambdaFn = props.executorService.spawn(scope, id, {
       clients: this.context,
       handle: async (event: SNSEvent, context) => {
         const records = event.Records.map(record => this.topic.mapper.read(record.Sns.Message));

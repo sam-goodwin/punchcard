@@ -24,8 +24,8 @@ export namespace Raw {
     return Raw.forType(struct(shape), configuration);
   }
 
-  export function forType<T extends Type<V>, V>(type: T, configuration?: Configuration): IMapper<V, any> {
-    return new Mapper(type, configuration);
+  export function forType<T extends Type<any>>(type: T, configuration?: Configuration): T extends Type<infer V> ? IMapper<V, any> : never {
+    return new Mapper(type, configuration) as any;
   }
 
   export class Mapper<T extends Type<V>, V> implements IMapper<V, string> {

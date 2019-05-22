@@ -60,7 +60,7 @@ export class Partitioner<T extends Shape, P extends Partition> extends cdk.Const
 
     this.sourceBucket = props.sourceBucket;
     this.sourceCompression = props.sourceCompression;
-    this.processor = executorService.run(this, 'Processor', {
+    this.processor = executorService.spawn(this, 'Processor', {
       clients: {
         source: new Bucket(this.sourceBucket).readClient(),
         table: this.table.writeClient()

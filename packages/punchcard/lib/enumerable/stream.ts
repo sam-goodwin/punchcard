@@ -85,7 +85,7 @@ export class ContextualizedStream<T, R extends ClientContext> implements IEnumer
       memorySize: 128,
       timeout: 10
     });
-    const lambdaFn = props.executorService.run(scope, id, {
+    const lambdaFn = props.executorService.spawn(scope, id, {
       clients: this.context,
       handle: async (event: KinesisEvent, context) => {
         const records = event.Records.map(record => this.stream.mapper.read(new Buffer(record.kinesis.data, 'base64')));

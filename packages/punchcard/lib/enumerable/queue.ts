@@ -85,7 +85,7 @@ export class ContextualizedQueue<T, R extends ClientContext> implements IEnumera
     props.executorService = props.executorService || new LambdaExecutorService({
       memorySize: 128
     });
-    const lambdaFn = props.executorService.run(scope, id, {
+    const lambdaFn = props.executorService.spawn(scope, id, {
       clients: this.context,
       handle: async (event: SQSEvent, context: Clients<R>) => {
         const records = event.Records.map(record => this.queue.mapper.read(record.body));

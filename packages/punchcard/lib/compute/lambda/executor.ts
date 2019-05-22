@@ -5,8 +5,7 @@ import cdk = require('@aws-cdk/cdk');
 
 import { Integration, LambdaIntegration, Resource } from '../../api-gateway';
 import { ClientContext, Clients } from '../../runtime';
-import { Mapper } from '../../shape/mapper/mapper';
-import { Raw } from '../../shape/mapper/raw';
+import { Type } from '../../shape/types/type';
 import { Omit } from '../../utils';
 import { Function } from './function';
 
@@ -40,9 +39,9 @@ export class LambdaExecutorService {
     memorySize: 128
   }) {}
 
-  public run<T, U, C extends ClientContext>(scope: cdk.Construct, id: string, props: {
-    requestMapper?: Mapper<T, any>,
-    responseMapper?: Mapper<U, any>,
+  public spawn<T, U, C extends ClientContext>(scope: cdk.Construct, id: string, props: {
+    request?: Type<T>,
+    response?: Type<U>,
     clients: C,
     handle: (event: T, run: Clients<C>, context: any) => Promise<U>;
   }): Function<T, U, C> {
@@ -74,12 +73,9 @@ export class LambdaExecutorService {
   public apiIntegration<C extends ClientContext>(parent: cdk.Construct, id: string, props: {
     clients: C;
   }): Integration<C> {
-    const handler = this.run(parent, id, {
-      requestMapper: Raw.passthrough(),
-      responseMapper: Raw.passthrough(),
+    const handler = this.spawn(parent, id, {
       clients: props.clients,
       handle: async (event: any, runtimeContext: Clients<C>) => {
-        console.log(JSON.stringify(event, null, 2));
         const resourceId = event.__resourceId; // TODO: we implicitly know this field exists - magic field. see ../api-gateway/resource.ts
         const resource: Resource = integration.findResource(resourceId);
         if (!resource) {

@@ -2,8 +2,9 @@ import cdk = require('@aws-cdk/cdk');
 import 'jest';
 import sinon = require('sinon');
 
-import { Client, Function } from '../../../lib';
+import { Client, Function, string } from '../../../lib';
 import { setRuntime } from '../../../lib/constants';
+import { strict } from 'assert';
 
 // stop web-pack from running
 // TODO: gross as fuck - every user will have to do this
@@ -40,25 +41,6 @@ describe('Function', () => {
     const handler = await f.boot();
     await handler(null, null);
     expect(fake.calledOnceWithExactly(null, {client: 'client'}, null)).toBe(true);
-  });
-  it('should use requestMapper to read input and responseMapper to write output', async () => {
-    const stack = new cdk.Stack(new cdk.App(), 'stack');
-    const mapper = {
-      read: sinon.fake.returns('deserialized'),
-      write: sinon.fake.returns('serialized')
-    };
-    const handle = sinon.fake.returns('response');
-    const f = new Function(stack, 'function', {
-      requestMapper: mapper,
-      responseMapper: mapper,
-      handle
-    });
-    const handler = await f.boot();
-    const response = await handler('request', null);
-    expect(response).toEqual('serialized');
-    expect(mapper.read.calledOnceWithExactly('request')).toBe(true);
-    expect(handle.calledOnceWith('deserialized')).toBe(true);
-    expect(mapper.write.calledOnceWithExactly('response')).toBe(true);
   });
 });
 describe('Function.Client', () => {
