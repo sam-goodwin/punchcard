@@ -12,26 +12,29 @@ const executorService = new LambdaExecutorService({
   timeout: 10
 });
 
-// create a function that increments counts in a dynamodb table
-const incrementer = executorService.spawn(stack, 'Callable', {
-  clients: {
-    table: new HashTable(stack, 'my-table', {
-      partitionKey: 'id',
-      shape: {
-        id: string(),
-        count: integer({
-          minimum: 0
-        })
-      },
-      billingMode: BillingMode.PayPerRequest
+const table = new HashTable(stack, 'my-table', {
+  partitionKey: 'id',
+  shape: {
+    id: string(),
+    count: integer({
+      minimum: 0
     })
   },
-  // request contains the id to increment
+  billingMode: BillingMode.PayPerRequest
+});
+
+// create a function that increments counts in a dynamodb table
+// Function<request, response>
+const incrementer = executorService.spawn(stack, 'Callable', {
+  // request is a structure with a single property, 'id'
   request: struct({
     id: string()
   }),
-  // returns the new count (just an integer, no `struct` envelope this time)
+  // response is just an integer
   response: integer(),
+  clients: {
+    table
+  },
   handle: async (request, {table}) => {
     console.log(request);
     const item = await table.get({
@@ -63,7 +66,7 @@ const incrementer = executorService.spawn(stack, 'Callable', {
   }
 });
 
-// call the incrementer function from another Lambda Function every minute
+// call the incrementer function from another Lambda Function
 executorService.schedule(stack, 'Caller', {
   clients: {
     incrementer
