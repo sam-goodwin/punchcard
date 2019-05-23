@@ -6,6 +6,7 @@
       "es6",
       "esnext.asynciterable"
     ],
+    "downlevelIteration": true,
     "module": "commonjs",
     "strict": true,
     "strictPropertyInitialization": false,

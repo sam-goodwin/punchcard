@@ -2,9 +2,7 @@ import cdk = require('@aws-cdk/cdk');
 import 'jest';
 import sinon = require('sinon');
 
-import { strict } from 'assert';
-
-import { Client, Function, string } from '../../../lib';
+import { Client, Function } from '../../../lib';
 import { setRuntime } from '../../../lib/constants';
 
 // stop web-pack from running

@@ -8,11 +8,16 @@ import AWS = require('aws-sdk');
 import { LambdaExecutorService } from '../compute';
 import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
-import { Mapper } from '../shape';
+import { BufferMapper, Mapper } from '../shape';
 import { Omit } from '../utils';
 import { EnumerateProps, IEnumerable } from './enumerable';
+import { Stream } from './stream';
 
 export type EnumerateQueueProps = EnumerateProps & events.SqsEventSourceProps;
+export interface IQueue<T, C extends ClientContext> extends IEnumerable<T, C, EnumerateQueueProps> {
+  run(event: SQSEvent, clients: Clients<C>): AsyncIterableIterator<T[]>;
+}
+
 export interface QueueProps<T> extends sqs.QueueProps {
   mapper: Mapper<T, string>;
 }
@@ -25,19 +30,39 @@ export class Queue<T> extends sqs.Queue implements Client<Queue.Client<T>>, IEnu
     this.mapper = props.mapper;
   }
 
+  public async *run(event: SQSEvent): AsyncIterableIterator<T[]> {
+    console.log('run event', JSON.stringify(event));
+    return event.Records.map(record => this.mapper.read(record.body));
+  }
+
+  public toStream(scope: cdk.Construct, id: string, props?: EnumerateQueueProps): Stream<T> {
+    scope = new cdk.Construct(scope, id);
+    const mapper = BufferMapper.wrap(this.mapper);
+    const stream = new Stream(scope, 'Stream', {
+      mapper
+    });
+    this.clients({
+      stream
+    }).forBatch(scope, 'ForwardToStream', async (values, {stream}) => {
+      console.log('forwarding values to stream', values);
+      await stream.putAll(values);
+    }, props);
+    return stream;
+  }
+
   public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
-    return new ContextualizedQueue(this, this.context).forBatch(scope, id, f, props);
+    return new ContextualizedQueue(this, this as any, this.context, Promise.resolve).forBatch(scope, id, f as any, props);
   }
 
   public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
-    return new ContextualizedQueue(this, this.context).forEach(scope, id, f, props);
+    return new ContextualizedQueue(this, this as any, this.context, Promise.resolve).forEach(scope, id, f as any, props);
   }
 
-  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateQueueProps> {
-    return new ContextualizedQueue(this, {
+  public clients<R2 extends ClientContext>(context: R2): IQueue<T, R2> {
+    return new ContextualizedQueue(this, this as any, {
       ...this.context,
       ...context
-    });
+    }, Promise.resolve);
   }
 
   public bootstrap(properties: PropertyBag, cache: Cache): Queue.Client<T> {
@@ -77,34 +102,49 @@ export class Queue<T> extends sqs.Queue implements Client<Queue.Client<T>>, IEnu
   }
 }
 
-export class ContextualizedQueue<T, R extends ClientContext> implements IEnumerable<T, R, EnumerateQueueProps> {
-  constructor(private readonly queue: Queue<T>, public readonly context: R) {}
+export class ContextualizedQueue<T, U, C extends ClientContext> implements IEnumerable<U, C, EnumerateQueueProps> {
+  constructor(
+    private readonly queue: Queue<T>,
+    private readonly parent: IQueue<T, C>,
+    public readonly context: C,
+    private readonly f: (values: T[], clients: Clients<C>) => Promise<U[]>) {}
 
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<R>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
+  public async *run(event: SQSEvent, clients: Clients<C>): AsyncIterableIterator<U[]> {
+    console.log('contextualized run', JSON.stringify(event));
+    for await (const batch of await this.parent.run(event, clients)) {
+      console.log('prev', batch);
+      await this.f(batch, clients);
+    }
+  }
+
+  public forBatch(scope: cdk.Construct, id: string, f: (values: U[], clients: Clients<C>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
     props = props || {};
     props.executorService = props.executorService || new LambdaExecutorService({
       memorySize: 128
     });
     const lambdaFn = props.executorService.spawn(scope, id, {
       clients: this.context,
-      handle: async (event: SQSEvent, context: Clients<R>) => {
-        const records = event.Records.map(record => this.queue.mapper.read(record.body));
-        await f(records, context);
+      handle: async (event: SQSEvent, clients: Clients<C>) => {
+        console.log('handle', JSON.stringify(event));
+        for await (const batch of this.run(event, clients)) {
+          console.log('batch', batch);
+          await f(batch, clients);
+        }
       }
     });
     lambdaFn.addEventSource(new events.SqsEventSource(this.queue, props));
     return lambdaFn;
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<R>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
+  public forEach(scope: cdk.Construct, id: string, f: (value: U, clients: Clients<C>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
     return this.forBatch(scope, id, (values, clients) => Promise.all(values.map(v => f(v, clients))), props);
   }
 
-  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateQueueProps> {
-    return new ContextualizedQueue(this.queue, {
+  public clients<C2 extends ClientContext>(context: C2): IQueue<U, C & C2> {
+    return new ContextualizedQueue(this.queue, this.parent as any, {
       ...this.context,
       ...context
-    });
+    }, this.f);
   }
 }
 

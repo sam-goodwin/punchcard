@@ -70,6 +70,7 @@ function installTests(makeTable: (stack: cdk.Stack) => HashTable<any, any> | Sor
     });
     expect(properties.get('tableName')).toEqual(table.tableName);
     expect(tableSpy.calledWith(role)).toEqual(true);
+    tableSpy.restore();
   }
   it('default client grants readWriteData', () => {
     installTest(t => t, 'grantReadWriteData');

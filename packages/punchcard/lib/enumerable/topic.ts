@@ -2,28 +2,56 @@ import AWS = require('aws-sdk');
 
 import cdk = require('@aws-cdk/cdk');
 
+import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import lambda = require('@aws-cdk/aws-lambda');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import sns = require('@aws-cdk/aws-sns');
+import { QueueEncryption } from '@aws-cdk/aws-sqs';
 import { LambdaExecutorService } from '../compute';
 import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
-import { Mapper } from '../shape';
+import { BufferMapper, Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
 import { EnumerateProps, IEnumerable } from './enumerable';
 import { Queue } from './queue';
+import { EnumerateStreamProps, Stream } from './stream';
 
 export type TopicProps<T> = {
-  mapper: Mapper<T, string>;
+  type: Type<T>;
 } & sns.TopicProps;
 
 export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, IEnumerable<T, {}, EnumerateProps> {
   public readonly context = {};
+  public readonly type: Type<T>;
   public readonly mapper: Mapper<T, string>;
 
   constructor(scope: cdk.Construct, id: string, props: TopicProps<T>) {
     super(scope, id, props);
-    this.mapper = props.mapper;
+    this.type = props.type;
+    this.mapper = Json.forType(props.type);
+  }
+
+  public toQueue(scope: cdk.Construct, id: string): Queue<T> {
+    const q = new Queue(scope, id, {
+      mapper: this.mapper
+    });
+    this.subscribeQueue(q);
+    return q;
+  }
+
+  public toStream(scope: cdk.Construct, id: string, props?: EnumerateStreamProps): Stream<T> {
+    scope = new cdk.Construct(scope, id);
+    const mapper = BufferMapper.wrap(this.mapper);
+    const stream = new Stream(scope, 'Stream', {
+      mapper,
+      encryption: StreamEncryption.Kms
+    });
+    this.clients({
+      stream
+    }).forBatch(scope, 'Forward', async (values, {stream}) => {
+      return await stream.putAll(values);
+    }, props);
+    return stream;
   }
 
   public subscribeQueue(queue: Queue<T>): sns.Subscription {

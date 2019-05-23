@@ -34,6 +34,15 @@ export class Rate {
   }
 }
 
+/**
+ * Alias for creating a LambdaExecutorService
+ * @param props
+ */
+export function λ(props?: Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>) {
+  return new LambdaExecutorService(props);
+}
+export const L = λ;
+
 export class LambdaExecutorService {
   constructor(private readonly props: Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'> = {
     memorySize: 128

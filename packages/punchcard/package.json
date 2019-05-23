@@ -29,11 +29,15 @@
     "cloudformation"
   ],
   "devDependencies": {
-    "@types/jest": "^23.0.0",
+    "@babel/core": "^7.4.5",
+    "@babel/preset-env": "^7.4.5",
+    "@types/jest": "^23.3.13",
     "@types/node": "^10.14.6",
     "@types/sinon": "^7.0.11",
+    "@types/uuid": "^3.4.4",
     "aws-sdk": "^2.453.0",
-    "jest": "^23.0.0",
+    "babel-core": "^7.0.0-bridge.0",
+    "jest": "^23.6.0",
     "sinon": "^7.3.2",
     "tslint": "^5.16.0",
     "typescript": "^3.4.5"
@@ -53,6 +57,7 @@
     "@aws-cdk/aws-sqs": "^0.31.0",
     "@aws-cdk/aws-sns": "^0.31.0",
     "@aws-cdk/aws-s3": "^0.31.0",
+    "uuid": "^3.3.2",
     "moment": "^2.24.0",
     "webpack": "^4.31.0"
   },
