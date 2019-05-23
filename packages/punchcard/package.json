@@ -1,7 +1,7 @@
 {
   "name": "punchcard",
   "description": "A declarative TypeScript framework for building cloud applications on AWS.",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "main": "lib/index.js",
   "types": "lib/index.ts",
   "scripts": {

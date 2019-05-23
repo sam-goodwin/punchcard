@@ -126,10 +126,10 @@ export class ContextualizedQueue<T, U, C extends ClientContext> implements IEnum
 
   public forBatch(scope: cdk.Construct, id: string, f: (values: U[], clients: Clients<C>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
     props = props || {};
-    props.executorService = props.executorService || new LambdaExecutorService({
+    const executorService = props.executorService || new LambdaExecutorService({
       memorySize: 128
     });
-    const lambdaFn = props.executorService.spawn(scope, id, {
+    const lambdaFn = executorService.spawn(scope, id, {
       clients: this.context,
       handle: async (event: SQSEvent, clients: Clients<C>) => {
         for await (const batch of this.run(event, clients)) {
