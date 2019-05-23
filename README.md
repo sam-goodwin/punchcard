@@ -2,70 +2,10 @@
 
 Punchcard is an opinionated, high-level framework for building cloud-native applications on AWS with the [AWS Cloud Development Kit (CDK)](https://github.com/awslabs/aws-cdk). You create and use ordinary data structures that are backed by CDK `Constructs` and deployed to AWS CloudFormation. It creates a type-safe development experience that feels like local in-memory programming, but runs in the AWS cloud!
 
-## Examples
+## [Examples](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib)
 
-The below snippet should give you a feel for the `punchcard` developer experience - it simply schedules an AWS Lambda Function to run every minute and update data stored in an AWS DynamoDB Table.
-
-```ts
-// Create a DynamoDB Table with a partitionKey (like a HashMap/HashTable)
-const table = new HashTable(stack, 'my-table', {
-  partitionKey: 'id',
-  shape: { // shape of attributes stored in the table
-    id: string(),
-    count: integer({
-      minimum: 0 // you can define constraints
-    })
-  }
-});
-
-// like a java ExecutorService, except it spawns Lambda Functions instead of Threads
-const executorService = new LambdaExecutorService({
-  memorySize: 256
-});
-
-executorService.schedule(stack, 'Poller', {
-  clients: {
-    // get a client for the DynamoDB Table at runtime
-    // (grants permissions and adds the tableName as an environment variable)
-    table
-  },
-  rate: Rate.minutes(1),
-  handle: async (_, {table}) => {
-    // implementation of the Lambda Function
-
-    // you can now use the DynamoDB Table
-    // Note: how the high-level interface for the Table corresponds to its definition
-    const item = await table.get({
-      id: 'state'
-    });
-
-    if (item) {
-      await table.update({
-        key: {
-          id: 'state'
-        },
-        actions: item => [
-          // translates to an UpdateExpression
-          item.count.increment(1)
-        ]
-      });
-    } else {
-      await table.put({
-        item: {
-          id: 'state',
-          count: 1
-        },
-        // translates to a ConditionExpression
-        if: item => attribute_not_exists(item.id)
-      });
-    }
-  }
-});
-```
-
-See the more thorough [examples](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib):
 * [SNS Topic and SQS Queue](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/topic-and-queue.ts) - respond to SNS notifications with a Lambda Function; subscribe notifications to a SQS Queue and process them with a Lambda Function.
-* [Invoke a Function from another Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/invoke-function.ts) - call a Function from another Function
+* [Invoke a Function from another Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/invoke-function.ts)
 * [Real-Time Data Lake](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/data-lake.ts) - collects data with Kinesis and persists to S3, exposed as a Glue Table in a Glue Database.
 * [Scheduled Lambda Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/scheduled-function.ts) - runs a Lambda Function every minute and stores data in a DynamoDB Table.
 * [Pet Store API Gateway](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/pet-store-apigw.ts) - implementation of the [Pet Store API Gateway canonical example](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-from-example.html).
@@ -85,25 +25,39 @@ Install `punchcard`:
 npm install --save punchcard
 ```
 
-Replace the stack contents:
+Export the `app` as `default` from the bin/app.ts
 
 ```ts
+// ./bin/app.ts
+const app = new cdk.App();
+new TestStack(app, 'TestStack');
+
+export default app;
+```
+
+And, simply use `punchcard` constucts in your stacks:
+
+```ts
+// ./lib/app-stack.ts
 import cdk = require('@aws-cdk/cdk');
 import punchcard = require('punchcard');
 
-const app = new cdk.App();
-const stack = new cdk.Stack(app, 'CronStack');
+export class TestStack extends cdk.Stack {
+  constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
 
-// make sure you export the app as default, or else your code won't run at runtime
-export default app;
-
-// create and use punchcard constructs
-const table = new punchcard.HashTable(stack, 'MyTable', {
-  // ...
-});
+    // print "Hello, World" every minute from Lambda
+    new punchcard.LambdaExecutorService().schedule(this, 'Test', {
+      rate: punchcard.Rate.minutes(1),
+      handle: async () => {
+        console.log('Hello, World');
+      }
+    });
+  }
+}
 ```
 
-Compile your code and deploy the app with the `cdk`:
+Compile your code and deploy the app to AWS via CloudFormation with the `cdk`:
 
 ```shell
 npm run build
