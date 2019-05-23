@@ -39,28 +39,30 @@ export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>
   }
 
   public async *run(event: KinesisEvent): AsyncIterableIterator<T[]> {
-    return event.Records.map(record => {
+    return yield event.Records.map(record => {
       return this.mapper.read(Buffer.from(record.kinesis.data, 'base64'));
     });
   }
 
   public map<U>(f: (value: T, clients: Clients<{}>) => Promise<U>): IStream<U, {}> {
-    return new ContextualizedStream(this, this, this.context, f as any);
+    return new ContextualizedStream(this, this, this.context, async (values, clients) => {
+      return await Promise.all(values.map(v => f(v, clients)));
+    });
   }
 
   public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
-    return new ContextualizedStream(this, this, this.context, Promise.resolve).forBatch(scope, id, f as any, props);
+    return new ContextualizedStream<T, T, {}>(this, this, this.context, v => Promise.resolve(v)).forBatch(scope, id, f as any, props);
   }
 
   public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
-    return new ContextualizedStream(this, this, this.context, Promise.resolve).forEach(scope, id, f as any, props);
+    return new ContextualizedStream<T, T, {}>(this, this, this.context, v => Promise.resolve(v)).forEach(scope, id, f as any, props);
   }
 
-  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateStreamProps> {
-    return new ContextualizedStream(this, this as any, {
+  public clients<C extends ClientContext>(context: C): IEnumerable<T, C, EnumerateStreamProps> {
+    return new ContextualizedStream<T, T, C>(this, this as any, {
       ...this.context,
       ...context
-    }, Promise.resolve);
+    }, v => Promise.resolve(v));
   }
 
   public bootstrap(properties: PropertyBag, cache: Cache): Stream.Client<T> {
@@ -105,7 +107,7 @@ export class ContextualizedStream<T, U, C extends ClientContext> implements IStr
 
   public async *run(event: KinesisEvent, clients: Clients<C>): AsyncIterableIterator<U[]> {
     for await (const prev of this.parent.run(event, clients)) {
-      await this.f(prev, clients);
+      yield await this.f(prev, clients);
     }
   }
 
@@ -202,7 +204,7 @@ export namespace Stream {
             }
 
             const redrive = result.Records.map((r, i) => {
-              if (r.SequenceNumber === undefined) {
+              if (r.SequenceNumber) {
                 return [i];
               } else {
                 return [];
@@ -226,9 +228,8 @@ export namespace Stream {
             maxBackoffMs: retry.maxBackoffMs
           };
         }
-
-        await send(records, retry);
       });
+      await send(records, retry);
     }
   }
 }

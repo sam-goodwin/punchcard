@@ -113,8 +113,13 @@ export class Function<T, U, C extends ClientContext>
     const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forType(this.response);
     return (async (event: any, context) => {
       const parsed = requestMapper.read(event);
-      const result = await this.handle(parsed, run, context);
-      return responseMapper.write(result);
+      try {
+        const result = await this.handle(parsed, run, context);
+        return responseMapper.write(result);
+      } catch (err) {
+        console.error(err);
+        throw err;
+      }
     });
   }
 

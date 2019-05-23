@@ -1,5 +1,5 @@
 import cdk = require('@aws-cdk/cdk');
-import { integer, string, struct, Topic, Rate, λ, LambdaExecutorService } from 'punchcard';
+import { integer, string, struct, Topic, Rate, λ } from 'punchcard';
 
 const app = new cdk.App();
 export default app;
