@@ -10,28 +10,12 @@ import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { BufferMapper, Mapper } from '../shape';
 import { Omit } from '../utils';
-import { EnumerateProps, IEnumerable } from './enumerable';
+import { FunctorProps, Functor } from './functor';
+import { ISource } from './source';
 import { Stream } from './stream';
 
-export type EnumerateQueueProps = EnumerateProps & events.SqsEventSourceProps;
-export interface IQueue<T, C extends ClientContext> extends IEnumerable<T, C, EnumerateQueueProps> {
-  /**
-   * Asynchronously processes a `SQSEvent` and yields values.
-   *
-   * @param event sqs event payload
-   * @param clients bootstrapped clients
-   */
-  run(event: SQSEvent, clients: Clients<C>): AsyncIterableIterator<T[]>;
-  /**
-   * Describe a transformation of a queue's messages.
-   *
-   * **Warning**: the transformation in a map only runs when terminated, i.e. it is
-   * lazily evaluated, so you must call `forEach` or `forBatch`.
-   *
-   * @param f transformation function
-   */
-  map<U>(f: (value: T, clients: Clients<C>) => Promise<U>): IQueue<U, C>;
-}
+export type QueueFunctorProps = FunctorProps & events.SqsEventSourceProps;
+export interface IQueue<T, C extends ClientContext> extends ISource<SQSEvent, T, C, QueueFunctorProps> {}
 
 /**
  * Props for constructing a Queue.
@@ -53,6 +37,10 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
     this.mapper = props.mapper;
   }
 
+  public eventSource(props: QueueFunctorProps) {
+    return new events.SqsEventSource(this, props);
+  }
+
   /**
    * Bottom of the recursive async generator - returns the records
    * parsed and validated out of the SQSEvent.
@@ -69,8 +57,7 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
    * @param f which transforms a record
    */
   public map<U>(f: (value: T, clients: Clients<{}>) => Promise<U>): IQueue<U, {}> {
-    return new QueueMap(this, this, this.context,
-      (values, clients) => Promise.all(values.map(v => f(v, clients))));
+    return this.lift().map(f);
   }
 
   /**
@@ -80,7 +67,7 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
    * @param id of the construct
    * @param props optional enumerate queue props
    */
-  public toStream(scope: cdk.Construct, id: string, props?: EnumerateQueueProps): Stream<T> {
+  public toStream(scope: cdk.Construct, id: string, props?: QueueFunctorProps): Stream<T> {
     scope = new cdk.Construct(scope, id);
     const mapper = BufferMapper.wrap(this.mapper);
     const stream = new Stream(scope, 'Stream', {
@@ -104,12 +91,23 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
    * @param f next transformation of a batch of records
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
-    return new QueueMap<T, T, {}>(this, this, this.context, v => Promise.resolve(v)).forBatch(scope, id, f, props);
+  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: QueueFunctorProps): lambda.Function {
+    return this.lift().forBatch(scope, id, f, props);
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
-    return new QueueMap<T, T, {}>(this, this, this.context, v => Promise.resolve(v)).forEach(scope, id, f, props);
+  /**
+   * Enumerate each value.
+   *
+   * If you want to use batch APIs, e.g. for optimally calling `PutRecords` on
+   * a kinesis stream, then use `forBatch` instead.
+   *
+   * @param scope under which this construct should be created
+   * @param id of the construct
+   * @param f next transformation of a record
+   * @param props optional props for configuring the function consuming from SQS
+   */
+  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: QueueFunctorProps): lambda.Function {
+    return this.lift().forEach(scope, id, f, props);
   }
 
   /**
@@ -117,10 +115,11 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
    * @param context new client context
    */
   public clients<C2 extends ClientContext>(context: C2): IQueue<T, C2> {
-    return new QueueMap<T, T, C2>(this, this as any, {
-      ...this.context,
-      ...context
-    }, v => Promise.resolve(v));
+    return this.lift().clients(context);
+  }
+
+  public lift(): QueueFunctor<T, {}> {
+    return new QueueFunctor(this, {});
   }
 
   /**
@@ -184,88 +183,22 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
  * **Warning**: A transformation will only be evaluated if a terminal, such
  * as `forEach` or `forBatch`, is called.
  */
-class QueueMap<T, U, C extends ClientContext> implements IQueue<U, C> {
-  constructor(
-    private readonly queue: Queue<any>,
-    private readonly parent: IQueue<T, C>,
-    public readonly context: C,
-    private readonly f: (values: T[], clients: Clients<C>) => Promise<U[]>) {}
-
-  /**
-   * Proceses each batch from the parent queue and applies this stage's transformation.
-   * @param event SQS event
-   * @param clients bootstrapped clients
-   */
-  public async *run(event: SQSEvent, clients: Clients<C>): AsyncIterableIterator<U[]> {
-    for await (const batch of this.parent.run(event, clients)) {
-      yield await this.f(batch, clients);
-    }
+class QueueFunctor<T, C extends ClientContext> extends Functor<SQSEvent, T, C, QueueFunctorProps> {
+  constructor(private readonly queue: Queue<T>, context: C) {
+    super(context);
   }
 
-  /**
-   * Transform each value.
-   *
-   * @param f which transforms a record
-   */
-  public map<V>(f: (value: U, clients: Clients<C>) => Promise<V>): IQueue<V, C> {
-    return new QueueMap(this.queue, this, this.context,
-      (values, clients) => Promise.all(values.map(v => f(v, clients))));
+  public async *run(event: SQSEvent, clients: Clients<C>): AsyncIterableIterator<T[]> {
+    return yield event.Records.map(record => this.queue.mapper.read(record.body));
   }
 
-  /**
-   * Enumerate bathches of messages yielded by this transformation.
-   *
-   * `forBatch` will subscribe a Lambda Function to the SQS Queue.
-   *
-   * @param scope under which this construct should be created
-   * @param id of the construct
-   * @param f next transformation of a batch of records
-   * @param props optional props for configuring the function consuming from SQS
-   */
-  public forBatch(scope: cdk.Construct, id: string, f: (values: U[], clients: Clients<C>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
-    props = props || {};
-    const executorService = props.executorService || new LambdaExecutorService({
-      memorySize: 128
-    });
-    const lambdaFn = executorService.spawn(scope, id, {
-      clients: this.context,
-      handle: async (event: SQSEvent, clients: Clients<C>) => {
-        for await (const batch of this.run(event, clients)) {
-          await f(batch, clients);
-        }
-      }
-    });
-    lambdaFn.addEventSource(new events.SqsEventSource(this.queue, props));
-    return lambdaFn;
+  public eventSource(props: QueueFunctorProps) {
+    return new events.SqsEventSource(this.queue, props);
   }
-
-  /**
-   * Enumearte each record yielded by a transformation of messages in this queue.
-   *
-   * `forEach` will subscribe a Lambda Function to the SQS Queue.
-   *
-   * If you want to use batch APIs, e.g. for putting to a kinesis stream, then use
-   * `forBatch` instead.
-   *
-   * @param scope under which this construct should be created
-   * @param id of the construct
-   * @param f next transformation of a record
-   * @param props optional props for configuring the function consuming from SQS
-   */
-  public forEach(scope: cdk.Construct, id: string, f: (value: U, clients: Clients<C>) => Promise<any>, props?: EnumerateQueueProps): lambda.Function {
-    return this.forBatch(scope, id, (values, clients) => Promise.all(values.map(v => f(v, clients))), props);
-  }
-
-  /**
-   * Add more clients to the client context.
-   * @param context new client context
-   */
-  public clients<C2 extends ClientContext>(context: C2): IQueue<U, C & C2> {
-    return new QueueMap(this.queue, this.parent as any, {
-      ...this.context,
-      ...context
-    }, this.f);
-  }
+}
+interface QueueFunctor<T, C extends ClientContext> {
+  map<U>(f: (value: T, clients: Clients<C>) => Promise<U>): QueueFunctor<U, C>;
+  clients<C2 extends ClientContext>(clients: C2): QueueFunctor<T, C & C2>;
 }
 
 /**

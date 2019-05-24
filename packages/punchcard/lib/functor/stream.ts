@@ -10,20 +10,17 @@ import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { Mapper } from '../shape';
 import { Omit } from '../utils';
-import { EnumerateProps, IEnumerable } from './enumerable';
+import { Functor, FunctorProps, IFunctor } from './functor';
+import { ISource } from './source';
 
-export type EnumerateStreamProps = EnumerateProps & events.KinesisEventSourceProps;
+export type StreamFunctorProps = FunctorProps & events.KinesisEventSourceProps;
 
-export interface IStream<T, C extends ClientContext> extends IEnumerable<T, C, EnumerateStreamProps> {
-  run(event: KinesisEvent, clients: Clients<C>): AsyncIterableIterator<T[]>;
+export interface IStream<T, C extends ClientContext> extends ISource<KinesisEvent, T, C, StreamFunctorProps> {}
 
-  map<U>(f: (value: T, clients: Clients<C>) => Promise<U>): IStream<U, C>;
-  // collect<C>(scope: cdk.Construct, id: string, collector: ICollector<T, C>): C;
-}
 export interface StreamProps<T> extends kinesis.StreamProps {
   mapper: Mapper<T, Buffer>;
   /**
-   * @default uuid
+   * @default - uuid
    */
   partitionBy?: (record: T) => string;
 }
@@ -38,6 +35,10 @@ export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>
     this.partitionBy = props.partitionBy || (_ => uuid());
   }
 
+  public eventSource(props: StreamFunctorProps) {
+    return this.lift().eventSource(props);
+  }
+
   public async *run(event: KinesisEvent): AsyncIterableIterator<T[]> {
     return yield event.Records.map(record => {
       return this.mapper.read(Buffer.from(record.kinesis.data, 'base64'));
@@ -45,24 +46,23 @@ export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>
   }
 
   public map<U>(f: (value: T, clients: Clients<{}>) => Promise<U>): IStream<U, {}> {
-    return new ContextualizedStream(this, this, this.context, async (values, clients) => {
-      return await Promise.all(values.map(v => f(v, clients)));
-    });
+    return this.lift().map(f);
   }
 
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
-    return new ContextualizedStream<T, T, {}>(this, this, this.context, v => Promise.resolve(v)).forBatch(scope, id, f as any, props);
+  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: StreamFunctorProps): lambda.Function {
+    return this.lift().forBatch(scope, id, f, props);
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
-    return new ContextualizedStream<T, T, {}>(this, this, this.context, v => Promise.resolve(v)).forEach(scope, id, f as any, props);
+  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: StreamFunctorProps): lambda.Function {
+    return this.lift().forEach(scope, id, f, props);
   }
 
-  public clients<C extends ClientContext>(context: C): IEnumerable<T, C, EnumerateStreamProps> {
-    return new ContextualizedStream<T, T, C>(this, this as any, {
-      ...this.context,
-      ...context
-    }, v => Promise.resolve(v));
+  public clients<C extends ClientContext>(context: C): StreamFunctor<T, C> {
+    return this.lift().clients(context);
+  }
+
+  public lift(): StreamFunctor<T, {}> {
+    return new StreamFunctor(this, {});
   }
 
   public bootstrap(properties: PropertyBag, cache: Cache): Stream.Client<T> {
@@ -98,55 +98,28 @@ export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>
   }
 }
 
-export class ContextualizedStream<T, U, C extends ClientContext> implements IStream<U, C> {
-  constructor(
-    private readonly stream: Stream<any>,
-    private readonly parent: IStream<T, C>,
-    public readonly context: C,
-    private readonly f: (values: T[], clients: Clients<C>) => Promise<U[]>) {}
-
-  public async *run(event: KinesisEvent, clients: Clients<C>): AsyncIterableIterator<U[]> {
-    for await (const prev of this.parent.run(event, clients)) {
-      yield await this.f(prev, clients);
-    }
+/**
+ * Describes a transformation of messages in a Queue.
+ *
+ * **Warning**: A transformation will only be evaluated if a terminal, such
+ * as `forEach` or `forBatch`, is called.
+ */
+class StreamFunctor<T, C extends ClientContext> extends Functor<KinesisEvent, T, C, StreamFunctorProps> {
+  constructor(private readonly stream: Stream<T>, context: C) {
+    super(context);
   }
 
-  public map<V>(f: (value: U, clients: Clients<C>) => Promise<V>): IStream<V, C> {
-    return new ContextualizedStream(this.stream, this, this.context,
-      (values, clients) => Promise.all(values.map(v => f(v, clients))));
+  public async *run(event: KinesisEvent, clients: Clients<C>): AsyncIterableIterator<T[]> {
+    return yield event.Records.map(record => this.stream.mapper.read(Buffer.from(record.kinesis.data, 'base64')));
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: U, clients: Clients<C>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
-    return this.forBatch(scope, id, (values, clients) => Promise.all(values.map(v => f(v, clients))), props);
+  public eventSource(props: StreamFunctorProps) {
+    return new events.KinesisEventSource(this.stream, props);
   }
-
-  public forBatch(scope: cdk.Construct, id: string, f: (values: U[], clients: Clients<C>) => Promise<any>, props?: EnumerateStreamProps): lambda.Function {
-    props = props || {
-      batchSize: 100,
-      startingPosition: lambda.StartingPosition.TrimHorizon
-    };
-    props.executorService = props.executorService || new LambdaExecutorService({
-      memorySize: 128,
-      timeout: 10
-    });
-    const lambdaFn = props.executorService.spawn(scope, id, {
-      clients: this.context,
-      handle: async (event: KinesisEvent, clients) => {
-        for await (const batch of this.run(event, clients)) {
-          await f(batch, clients);
-        }
-      }
-    });
-    lambdaFn.addEventSource(new events.KinesisEventSource(this.stream, props));
-    return lambdaFn;
-  }
-
-  public clients<R2 extends ClientContext>(context: R2): IEnumerable<U, C & R2, EnumerateStreamProps> {
-    return new ContextualizedStream(this.stream, this.parent as any, {
-      ...this.context,
-      ...context
-    }, this.f);
-  }
+}
+interface StreamFunctor<T, C extends ClientContext> {
+  map<U>(f: (value: T, clients: Clients<C>) => Promise<U>): StreamFunctor<U, C>;
+  clients<C2 extends ClientContext>(clients: C2): StreamFunctor<T, C & C2>;
 }
 
 export namespace Stream {

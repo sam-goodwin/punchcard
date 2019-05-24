@@ -6,21 +6,22 @@ import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import lambda = require('@aws-cdk/aws-lambda');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import sns = require('@aws-cdk/aws-sns');
-import { QueueEncryption } from '@aws-cdk/aws-sqs';
-import { LambdaExecutorService } from '../compute';
 import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { BufferMapper, Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { EnumerateProps, IEnumerable } from './enumerable';
+import { Functor, FunctorProps } from './functor';
 import { Queue } from './queue';
-import { EnumerateStreamProps, Stream } from './stream';
+import { ISource } from './source';
+import { Stream } from './stream';
+
+export interface ITopic<T, C extends ClientContext> extends ISource<SNSEvent, T, C, FunctorProps> {}
 
 export type TopicProps<T> = {
   type: Type<T>;
 } & sns.TopicProps;
 
-export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, IEnumerable<T, {}, EnumerateProps> {
+export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, ITopic<T, {}> {
   public readonly context = {};
   public readonly type: Type<T>;
   public readonly mapper: Mapper<T, string>;
@@ -31,6 +32,10 @@ export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, IEnu
     this.mapper = Json.forType(props.type);
   }
 
+  public eventSource() {
+    return new events.SnsEventSource(this);
+  }
+
   public toQueue(scope: cdk.Construct, id: string): Queue<T> {
     const q = new Queue(scope, id, {
       mapper: this.mapper
@@ -39,7 +44,7 @@ export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, IEnu
     return q;
   }
 
-  public toStream(scope: cdk.Construct, id: string, props?: EnumerateStreamProps): Stream<T> {
+  public toStream(scope: cdk.Construct, id: string, props?: FunctorProps): Stream<T> {
     scope = new cdk.Construct(scope, id);
     const mapper = BufferMapper.wrap(this.mapper);
     const stream = new Stream(scope, 'Stream', {
@@ -58,16 +63,30 @@ export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, IEnu
     return super.subscribeQueue(queue, true);
   }
 
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: EnumerateProps): lambda.Function {
-    return new ContextualizedTopic(this, this.context).forBatch(scope, id, f, props);
+  public async *run(event: SNSEvent): AsyncIterableIterator<T[]> {
+    return yield event.Records.map(record => {
+      return this.mapper.read(record.Sns.Message);
+    });
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: EnumerateProps): lambda.Function {
-    return new ContextualizedTopic(this, this.context).forEach(scope, id, f, props);
+  public map<U>(f: (value: T, clients: Clients<{}>) => Promise<U>): TopicFunctor<U, {}> {
+    return this.lift().map(f);
   }
 
-  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R2, EnumerateProps> {
-    return new ContextualizedTopic(this, context);
+  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: FunctorProps): lambda.Function {
+    return this.lift().forBatch(scope, id, f, props);
+  }
+
+  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: FunctorProps): lambda.Function {
+    return this.lift().forEach(scope, id, f, props);
+  }
+
+  public clients<C extends ClientContext>(context: C): TopicFunctor<T, C> {
+    return this.lift().clients(context);
+  }
+
+  public lift(): TopicFunctor<T, {}> {
+    return new TopicFunctor(this, {});
   }
 
   public install(target: Runtime): void {
@@ -80,36 +99,22 @@ export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, IEnu
   }
 }
 
-export class ContextualizedTopic<T, R extends ClientContext> implements IEnumerable<T, R, EnumerateProps> {
-  constructor(private readonly topic: Topic<T>, public readonly context: R) {}
-
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<R>) => Promise<any>, props?: EnumerateProps): lambda.Function {
-    props = props || {};
-    props.executorService = props.executorService || new LambdaExecutorService({
-      memorySize: 128,
-      timeout: 10
-    });
-    const lambdaFn = props.executorService.spawn(scope, id, {
-      clients: this.context,
-      handle: async (event: SNSEvent, context) => {
-        const records = event.Records.map(record => this.topic.mapper.read(record.Sns.Message));
-        await f(records, context);
-      }
-    });
-    lambdaFn.addEventSource(new events.SnsEventSource(this.topic));
-    return lambdaFn;
+class TopicFunctor<T, C extends ClientContext> extends Functor<SNSEvent, T, C, FunctorProps> {
+  constructor(private readonly topic: Topic<T>, context: C) {
+    super(context);
   }
 
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<R>) => Promise<any>, props?: EnumerateProps): lambda.Function {
-    return this.forBatch(scope, id, (values, clients) => Promise.all(values.map(v => f(v, clients))), props);
+  public async *run(event: SNSEvent): AsyncIterableIterator<T[]> {
+    return yield event.Records.map(record => this.topic.mapper.read(record.Sns.Message));
   }
 
-  public clients<R2 extends ClientContext>(context: R2): IEnumerable<T, R & R2, EnumerateProps> {
-    return new ContextualizedTopic(this.topic, {
-      ...this.context,
-      ...context
-    });
+  public eventSource() {
+    return new events.SnsEventSource(this.topic);
   }
+}
+interface TopicFunctor<T, C extends ClientContext> {
+  map<U>(f: (value: T, clients: Clients<C>) => Promise<U>): TopicFunctor<U, C>;
+  clients<C2 extends ClientContext>(clients: C2): TopicFunctor<T, C & C2>;
 }
 
 export namespace Topic {
