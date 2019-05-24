@@ -14,7 +14,7 @@ describe('run', () => {
       mapper: Json.forType(string())
     });
 
-    const results: string[] = [];
+    const results: string[][] = [];
     await (queue.forEach(stack, 'od', v => {
       results.push(v);
       return Promise.resolve(v);
@@ -23,7 +23,7 @@ describe('run', () => {
       body: JSON.stringify('string')
     } as any]});
 
-    expect(results).toEqual(['string']);
+    expect(results).toEqual([['string']]);
   });
   it('should transform records with a map', async () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
@@ -33,7 +33,7 @@ describe('run', () => {
     });
 
     const results: number[] = [];
-    await (queue.map(async v => v.length).forEach(stack, 'od', v => {
+    await (queue.flatMap(async v => v).map(async (v) => v.length).forEach(stack, 'od', v => {
       results.push(v);
       return Promise.resolve(v);
     }) as any).handle({

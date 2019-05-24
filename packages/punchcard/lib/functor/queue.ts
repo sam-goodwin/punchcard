@@ -1,21 +1,21 @@
 import iam = require('@aws-cdk/aws-iam');
-import lambda = require('@aws-cdk/aws-lambda');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import sqs = require('@aws-cdk/aws-sqs');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 
-import { LambdaExecutorService } from '../compute';
 import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { BufferMapper, Mapper } from '../shape';
 import { Omit } from '../utils';
-import { FunctorProps, Functor } from './functor';
-import { ISource } from './source';
+import { Chain, FunctorProps, Monad } from './functor';
+import { Resource } from './resource';
 import { Stream } from './stream';
 
 export type QueueFunctorProps = FunctorProps & events.SqsEventSourceProps;
-export interface IQueue<T, C extends ClientContext> extends ISource<SQSEvent, T, C, QueueFunctorProps> {}
+
+export interface IQueue<T, C extends ClientContext> extends Monad<SQSEvent, T, C, QueueFunctorProps> {
+}
 
 /**
  * Props for constructing a Queue.
@@ -28,17 +28,23 @@ export interface QueueProps<T> extends sqs.QueueProps {
 /**
  * Represents a SQS Queue containtining messages of type, `T`, serialized with some `Codec`.
  */
-export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.ConsumeAndSendClient<T>> {
+export class Queue<T> extends Monad<SQSEvent, T[], {}, QueueFunctorProps> implements IQueue<T[], {}>, Client<Queue.ConsumeAndSendClient<T>>, Resource<sqs.Queue> {
   public readonly context = {};
   public readonly mapper: Mapper<T, string>;
+  public readonly resource: sqs.Queue;
 
   constructor(scope: cdk.Construct, id: string, props: QueueProps<T>) {
-    super(scope, id, props);
+    super({});
+    this.resource = new sqs.Queue(scope, id, props);
     this.mapper = props.mapper;
   }
 
-  public eventSource(props: QueueFunctorProps) {
-    return new events.SqsEventSource(this, props);
+  public eventSource(props?: QueueFunctorProps) {
+    return new events.SqsEventSource(this.resource, props);
+  }
+
+  public chain<U, C2 extends ClientContext>(context: C2, f: (value: T[], clients: Clients<{}>) => Promise<U[]>): IQueue<U, C2> {
+    return new QueueChain<T[], U, C2>(context, this as any, f);
   }
 
   /**
@@ -49,15 +55,6 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
    */
   public async *run(event: SQSEvent): AsyncIterableIterator<T[]> {
     return yield event.Records.map(record => this.mapper.read(record.body));
-  }
-
-  /**
-   * Transform each value.
-   *
-   * @param f which transforms a record
-   */
-  public map<U>(f: (value: T, clients: Clients<{}>) => Promise<U>): IQueue<U, {}> {
-    return this.lift().map(f);
   }
 
   /**
@@ -75,51 +72,10 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
     });
     this.clients({
       stream
-    }).forBatch(scope, 'ForwardToStream', async (values, {stream}) => {
+    }).forEach(scope, 'ForwardToStream', async (values, {stream}) => {
       await stream.putAll(values);
     }, props);
     return stream;
-  }
-
-  /**
-   * Enumerate queue messages by processing batches (of up to 10) messges.
-   *
-   * `forBatch` will subscribe a Lambda Function to the SQS Queue.
-   *
-   * @param scope under which this construct should be created
-   * @param id of the construct
-   * @param f next transformation of a batch of records
-   * @param props optional props for configuring the function consuming from SQS
-   */
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: QueueFunctorProps): lambda.Function {
-    return this.lift().forBatch(scope, id, f, props);
-  }
-
-  /**
-   * Enumerate each value.
-   *
-   * If you want to use batch APIs, e.g. for optimally calling `PutRecords` on
-   * a kinesis stream, then use `forBatch` instead.
-   *
-   * @param scope under which this construct should be created
-   * @param id of the construct
-   * @param f next transformation of a record
-   * @param props optional props for configuring the function consuming from SQS
-   */
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: QueueFunctorProps): lambda.Function {
-    return this.lift().forEach(scope, id, f, props);
-  }
-
-  /**
-   * Add another client to the client context.
-   * @param context new client context
-   */
-  public clients<C2 extends ClientContext>(context: C2): IQueue<T, C2> {
-    return this.lift().clients(context);
-  }
-
-  public lift(): QueueFunctor<T, {}> {
-    return new QueueFunctor(this, {});
   }
 
   /**
@@ -147,8 +103,8 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
    */
   public consumeAndSendClient(): Client<Queue.ConsumeAndSendClient<T>> {
     return this._client(g => {
-      this.grantConsumeMessages(g);
-      this.grantSendMessages(g);
+      this.resource.grantConsumeMessages(g);
+      this.resource.grantSendMessages(g);
     });
   }
 
@@ -156,20 +112,20 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
    * A client with only permission to consume messages from this Queue.
    */
   public consumeClient(): Client<Queue.ConsumeClient<T>> {
-    return this._client(this.grantConsumeMessages.bind(this));
+    return this._client(g => this.resource.grantConsumeMessages(g));
   }
 
   /**
    * A client with only permission to send messages to this Queue.
    */
   public sendClient(): Client<Queue.SendClient<T>> {
-    return this._client(this.grantSendMessages.bind(this));
+    return this._client(g => this.resource.grantSendMessages(g));
   }
 
   private _client(grant: (grantable: iam.IGrantable) => void): Client<Queue.Client<T>> {
     return {
       install: target => {
-        target.properties.set('queueUrl', this.queueUrl);
+        target.properties.set('queueUrl', this.resource.queueUrl);
         grant(target.grantable);
       },
       bootstrap: this.bootstrap.bind(this),
@@ -177,28 +133,10 @@ export class Queue<T> extends sqs.Queue implements IQueue<T, {}>, Client<Queue.C
   }
 }
 
-/**
- * Describes a transformation of messages in a Queue.
- *
- * **Warning**: A transformation will only be evaluated if a terminal, such
- * as `forEach` or `forBatch`, is called.
- */
-class QueueFunctor<T, C extends ClientContext> extends Functor<SQSEvent, T, C, QueueFunctorProps> {
-  constructor(private readonly queue: Queue<T>, context: C) {
-    super(context);
+class QueueChain<T, U, C extends ClientContext> extends Chain<SQSEvent, T, U, C, QueueFunctorProps> {
+  public chain<V, C2 extends ClientContext>(context: C2, f: (value: U, clients: Clients<C>) => Promise<V[]>): QueueChain<U, V, C & C2> {
+    return new QueueChain({...context, ...this.context}, this as any, f);
   }
-
-  public async *run(event: SQSEvent, clients: Clients<C>): AsyncIterableIterator<T[]> {
-    return yield event.Records.map(record => this.queue.mapper.read(record.body));
-  }
-
-  public eventSource(props: QueueFunctorProps) {
-    return new events.SqsEventSource(this.queue, props);
-  }
-}
-interface QueueFunctor<T, C extends ClientContext> {
-  map<U>(f: (value: T, clients: Clients<C>) => Promise<U>): QueueFunctor<U, C>;
-  clients<C2 extends ClientContext>(clients: C2): QueueFunctor<T, C & C2>;
 }
 
 /**

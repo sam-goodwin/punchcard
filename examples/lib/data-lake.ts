@@ -32,7 +32,7 @@ const lake = new DataLake(stack, 'Lake', {
 // we can consume from the stream of data points in real-time and log out each property
 // Kinesis -> Lambda
 // Note: the type-safety of the `record`
-lake.pipelines.dataPoints.stream.forEach(stack, 'ForEachDataPoint', async (record) => {
+lake.pipelines.dataPoints.stream.forEach(stack, 'ForEachDataPoint', async ([record]) => {
   console.log('key', record.key);
   console.log('value', record.value);
   console.log('data points', record.data_points);

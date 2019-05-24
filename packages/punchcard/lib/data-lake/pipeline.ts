@@ -61,7 +61,7 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends cdk.Constr
     this.deliveryStream = new DeliveryStream(this, 'DeliveryStream', {
       compression: CompressionType.GZIP,
       transformFunction: this.validator.processor,
-      kinesisStream: this.stream,
+      kinesisStream: this.stream.resource,
       destination: DeliveryStreamDestination.S3,
       type: DeliveryStreamType.KinesisStreamAsSource,
       s3Bucket: this.stagingBucket,

@@ -17,7 +17,7 @@ const topic = new Topic(stack, 'Topic', {
 topic.forEach(stack, 'ForEachNotification', async event => {
   // do something in a Lambda Function for each notification
   console.log('got notification');
-})
+});
 
 // forward notifications to a SQS queue
 const queue = topic.toQueue(stack, 'Queue');
@@ -27,6 +27,7 @@ const stream = queue.toStream(stack, 'Stream');
 
 // process data in stream, using familiar map and forEach operations
 stream
+  .flatMap(async vs => vs)
   .map(async v => v.count)
   .forEach(stack, 'ParseNumbers', async number => console.log(number));
 

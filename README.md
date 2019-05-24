@@ -34,6 +34,7 @@ const stream = queue.toStream(stack, 'Stream');
 
 // process data in stream, using familiar map and forEach operations
 stream
+  .flatMap(async vs => vs)
   .map(async v => v.count)
   .forEach(stack, 'ParseNumbers', async number => console.log(number));
 

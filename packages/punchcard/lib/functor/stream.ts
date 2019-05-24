@@ -1,21 +1,21 @@
 import iam = require('@aws-cdk/aws-iam');
 import kinesis = require('@aws-cdk/aws-kinesis');
-import lambda = require('@aws-cdk/aws-lambda');
+import { StartingPosition } from '@aws-cdk/aws-lambda';
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
-import { LambdaExecutorService } from '../compute';
 import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { Mapper } from '../shape';
 import { Omit } from '../utils';
-import { Functor, FunctorProps, IFunctor } from './functor';
-import { ISource } from './source';
+import { Chain, FunctorProps, Monad } from './functor';
+import { Resource } from './resource';
 
 export type StreamFunctorProps = FunctorProps & events.KinesisEventSourceProps;
 
-export interface IStream<T, C extends ClientContext> extends ISource<KinesisEvent, T, C, StreamFunctorProps> {}
+export interface IStream<T, C extends ClientContext> extends Monad<KinesisEvent, T, C, StreamFunctorProps> {
+}
 
 export interface StreamProps<T> extends kinesis.StreamProps {
   mapper: Mapper<T, Buffer>;
@@ -24,45 +24,33 @@ export interface StreamProps<T> extends kinesis.StreamProps {
    */
   partitionBy?: (record: T) => string;
 }
-export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>>, IStream<T, {}> {
+export class Stream<T> extends Monad<KinesisEvent, T[], {}, StreamFunctorProps>
+    implements IStream<T[], {}>, Client<Stream.Client<T>>, Resource<kinesis.Stream> {
   public readonly context = {};
   public readonly mapper: Mapper<T, Buffer>;
   public readonly partitionBy: (record: T) => string;
+  public readonly resource: kinesis.Stream;
 
   constructor(scope: cdk.Construct, id: string, props: StreamProps<T>) {
-    super(scope, id, props);
+    super({});
+    this.resource = new kinesis.Stream(scope, id, props);
     this.mapper = props.mapper;
     this.partitionBy = props.partitionBy || (_ => uuid());
   }
 
-  public eventSource(props: StreamFunctorProps) {
-    return this.lift().eventSource(props);
-  }
-
-  public async *run(event: KinesisEvent): AsyncIterableIterator<T[]> {
-    return yield event.Records.map(record => {
-      return this.mapper.read(Buffer.from(record.kinesis.data, 'base64'));
+  public eventSource(props?: StreamFunctorProps) {
+    return new events.KinesisEventSource(this.resource, props || {
+      batchSize: 100,
+      startingPosition: StartingPosition.TrimHorizon
     });
   }
 
-  public map<U>(f: (value: T, clients: Clients<{}>) => Promise<U>): IStream<U, {}> {
-    return this.lift().map(f);
+  public chain<U, C2 extends ClientContext>(context: C2, f: (value: T[], clients: Clients<{}>) => Promise<U[]>): IStream<U, C2> {
+    return new StreamChain(context, this as any, f);
   }
 
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: StreamFunctorProps): lambda.Function {
-    return this.lift().forBatch(scope, id, f, props);
-  }
-
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: StreamFunctorProps): lambda.Function {
-    return this.lift().forEach(scope, id, f, props);
-  }
-
-  public clients<C extends ClientContext>(context: C): StreamFunctor<T, C> {
-    return this.lift().clients(context);
-  }
-
-  public lift(): StreamFunctor<T, {}> {
-    return new StreamFunctor(this, {});
+  public async *run(event: KinesisEvent, clients: Clients<{}>): AsyncIterableIterator<T[]> {
+    return yield event.Records.map(record => this.mapper.read(Buffer.from(record.kinesis.data, 'base64')));
   }
 
   public bootstrap(properties: PropertyBag, cache: Cache): Stream.Client<T> {
@@ -76,21 +64,21 @@ export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>
   }
 
   public readWriteClient(): Client<Stream.Client<T>> {
-    return this._client(this.grantReadWrite.bind(this));
+    return this._client(g => this.resource.grantReadWrite(g));
   }
 
   public readClient(): Client<Stream.Client<T>> {
-    return this._client(this.grantRead.bind(this));
+    return this._client(g => this.resource.grantRead(g));
   }
 
   public writeClient(): Client<Stream.Client<T>> {
-    return this._client(this.grantWrite.bind(this));
+    return this._client(g => this.resource.grantWrite(g));
   }
 
   private _client(grant: (grantable: iam.IGrantable) => void): Client<Stream.Client<T>> {
     return {
       install: target => {
-        target.properties.set('streamName', this.streamName);
+        target.properties.set('streamName', this.resource.streamName);
         grant(target.grantable);
       },
       bootstrap: this.bootstrap.bind(this),
@@ -98,28 +86,10 @@ export class Stream<T> extends kinesis.Stream implements Client<Stream.Client<T>
   }
 }
 
-/**
- * Describes a transformation of messages in a Queue.
- *
- * **Warning**: A transformation will only be evaluated if a terminal, such
- * as `forEach` or `forBatch`, is called.
- */
-class StreamFunctor<T, C extends ClientContext> extends Functor<KinesisEvent, T, C, StreamFunctorProps> {
-  constructor(private readonly stream: Stream<T>, context: C) {
-    super(context);
+class StreamChain<T, U, C extends ClientContext> extends Chain<KinesisEvent, T, U, C, StreamFunctorProps> {
+  public chain<V, C2 extends ClientContext>(context: C2, f: (value: U, clients: Clients<C>) => Promise<V[]>): StreamChain<U, V, C & C2> {
+    return new StreamChain({...context, ...this.context}, this as any, f);
   }
-
-  public async *run(event: KinesisEvent, clients: Clients<C>): AsyncIterableIterator<T[]> {
-    return yield event.Records.map(record => this.stream.mapper.read(Buffer.from(record.kinesis.data, 'base64')));
-  }
-
-  public eventSource(props: StreamFunctorProps) {
-    return new events.KinesisEventSource(this.stream, props);
-  }
-}
-interface StreamFunctor<T, C extends ClientContext> {
-  map<U>(f: (value: T, clients: Clients<C>) => Promise<U>): StreamFunctor<U, C>;
-  clients<C2 extends ClientContext>(clients: C2): StreamFunctor<T, C & C2>;
 }
 
 export namespace Stream {

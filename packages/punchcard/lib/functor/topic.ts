@@ -3,37 +3,42 @@ import AWS = require('aws-sdk');
 import cdk = require('@aws-cdk/cdk');
 
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
-import lambda = require('@aws-cdk/aws-lambda');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import sns = require('@aws-cdk/aws-sns');
 import { Cache, PropertyBag } from '../property-bag';
 import { Client, ClientContext, Clients, Runtime } from '../runtime';
 import { BufferMapper, Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Functor, FunctorProps } from './functor';
+import { Chain, FunctorProps, Monad } from './functor';
 import { Queue } from './queue';
-import { ISource } from './source';
+import { Resource } from './resource';
 import { Stream } from './stream';
 
-export interface ITopic<T, C extends ClientContext> extends ISource<SNSEvent, T, C, FunctorProps> {}
+export interface ITopic<T, C extends ClientContext> extends Monad<SNSEvent, T, C, FunctorProps> {}
 
 export type TopicProps<T> = {
   type: Type<T>;
 } & sns.TopicProps;
 
-export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, ITopic<T, {}> {
+export class Topic<T> extends Monad<SNSEvent, T, {}, FunctorProps> implements Client<Topic.Client<T>>, ITopic<T, {}>, Resource<sns.Topic> {
   public readonly context = {};
   public readonly type: Type<T>;
   public readonly mapper: Mapper<T, string>;
+  public readonly resource: sns.Topic;
 
   constructor(scope: cdk.Construct, id: string, props: TopicProps<T>) {
-    super(scope, id, props);
+    super({});
+    this.resource = new sns.Topic(scope, id);
     this.type = props.type;
     this.mapper = Json.forType(props.type);
   }
 
   public eventSource() {
-    return new events.SnsEventSource(this);
+    return new events.SnsEventSource(this.resource);
+  }
+
+  public chain<U, C2 extends ClientContext>(context: C2, f: (value: T, clients: Clients<{}>) => Promise<U[]>): ITopic<U, C2> {
+    return new TopicChain(context, this as any, f);
   }
 
   public toQueue(scope: cdk.Construct, id: string): Queue<T> {
@@ -53,45 +58,25 @@ export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, ITop
     });
     this.clients({
       stream
-    }).forBatch(scope, 'Forward', async (values, {stream}) => {
-      return await stream.putAll(values);
+    }).forEach(scope, 'Forward', async (value, {stream}) => {
+      return await stream.putAll([value]);
     }, props);
     return stream;
   }
 
   public subscribeQueue(queue: Queue<T>): sns.Subscription {
-    return super.subscribeQueue(queue, true);
+    return this.resource.subscribeQueue(queue.resource, true);
   }
 
-  public async *run(event: SNSEvent): AsyncIterableIterator<T[]> {
-    return yield event.Records.map(record => {
-      return this.mapper.read(record.Sns.Message);
-    });
-  }
-
-  public map<U>(f: (value: T, clients: Clients<{}>) => Promise<U>): TopicFunctor<U, {}> {
-    return this.lift().map(f);
-  }
-
-  public forBatch(scope: cdk.Construct, id: string, f: (values: T[], clients: Clients<{}>) => Promise<any>, props?: FunctorProps): lambda.Function {
-    return this.lift().forBatch(scope, id, f, props);
-  }
-
-  public forEach(scope: cdk.Construct, id: string, f: (value: T, clients: Clients<{}>) => Promise<any>, props?: FunctorProps): lambda.Function {
-    return this.lift().forEach(scope, id, f, props);
-  }
-
-  public clients<C extends ClientContext>(context: C): TopicFunctor<T, C> {
-    return this.lift().clients(context);
-  }
-
-  public lift(): TopicFunctor<T, {}> {
-    return new TopicFunctor(this, {});
+  public async *run(event: SNSEvent): AsyncIterableIterator<T> {
+    for (const record of event.Records) {
+      yield this.mapper.read(record.Sns.Message);
+    }
   }
 
   public install(target: Runtime): void {
-    this.grantPublish(target.grantable);
-    target.properties.set('topicArn', this.topicArn);
+    this.resource.grantPublish(target.grantable);
+    target.properties.set('topicArn', this.resource.topicArn);
   }
 
   public bootstrap(properties: PropertyBag, cache: Cache): Topic.Client<T> {
@@ -99,22 +84,10 @@ export class Topic<T> extends sns.Topic implements Client<Topic.Client<T>>, ITop
   }
 }
 
-class TopicFunctor<T, C extends ClientContext> extends Functor<SNSEvent, T, C, FunctorProps> {
-  constructor(private readonly topic: Topic<T>, context: C) {
-    super(context);
+class TopicChain<T, U, C extends ClientContext> extends Chain<SNSEvent, T, U, C, FunctorProps> implements ITopic<U, C> {
+  public chain<V, C2 extends ClientContext>(context: C2, f: (value: U, clients: Clients<C>) => Promise<V[]>): TopicChain<U, V, C & C2> {
+    return new TopicChain({...context, ...this.context}, this as any, f);
   }
-
-  public async *run(event: SNSEvent): AsyncIterableIterator<T[]> {
-    return yield event.Records.map(record => this.topic.mapper.read(record.Sns.Message));
-  }
-
-  public eventSource() {
-    return new events.SnsEventSource(this.topic);
-  }
-}
-interface TopicFunctor<T, C extends ClientContext> {
-  map<U>(f: (value: T, clients: Clients<C>) => Promise<U>): TopicFunctor<U, C>;
-  clients<C2 extends ClientContext>(clients: C2): TopicFunctor<T, C & C2>;
 }
 
 export namespace Topic {
