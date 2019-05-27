@@ -4,7 +4,7 @@ import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 
 import { Integration, LambdaIntegration, Resource } from '../../api-gateway';
-import { ClientContext, Clients } from '../../runtime';
+import { Dependencies, Clients } from '../../runtime';
 import { Type } from '../../shape/types/type';
 import { Omit } from '../../utils';
 import { Function } from './function';
@@ -48,7 +48,7 @@ export class LambdaExecutorService {
     memorySize: 128
   }) {}
 
-  public spawn<T, U, C extends ClientContext>(scope: cdk.Construct, id: string, props: {
+  public spawn<T, U, C extends Dependencies>(scope: cdk.Construct, id: string, props: {
     request?: Type<T>,
     response?: Type<U>,
     clients: C,
@@ -60,7 +60,7 @@ export class LambdaExecutorService {
     });
   }
 
-  public schedule<C extends ClientContext>(scope: cdk.Construct, id: string, props: {
+  public schedule<C extends Dependencies>(scope: cdk.Construct, id: string, props: {
     rate: Rate;
     clients: C;
     handle: (event: CloudwatchEvent, run: Clients<C>, context: any) => Promise<any>;
@@ -79,7 +79,7 @@ export class LambdaExecutorService {
     return f;
   }
 
-  public apiIntegration<C extends ClientContext>(parent: cdk.Construct, id: string, props: {
+  public apiIntegration<C extends Dependencies>(parent: cdk.Construct, id: string, props: {
     clients: C;
   }): Integration<C> {
     const handler = this.spawn(parent, id, {

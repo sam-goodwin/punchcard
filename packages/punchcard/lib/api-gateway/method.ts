@@ -1,14 +1,14 @@
 import { RuntimeShape, Shape } from '../shape/shape';
 import { StructType, Type } from '../shape/types';
 
-import { ClientContext, Clients } from '../runtime';
+import { Dependencies, Clients } from '../runtime';
 import { Integration } from './integration';
 import { StatusCode, } from './request-response';
 import { TypedMapping } from './variable';
 
 export type MethodName = 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT';
 
-export interface Method<R extends ClientContext, T extends Shape, U extends Responses, M extends MethodName> {
+export interface Method<R extends Dependencies, T extends Shape, U extends Responses, M extends MethodName> {
   integration: Integration<R>;
   request: {
     shape: T;

@@ -17,26 +17,26 @@ export interface Runtime {
 }
 
 /**
- * A set of named clients to be made available in a `Runtime`.
+ * A set of named runtime dependencies.
  */
-export type ClientContext = {
-  [name: string]: Client<any>
+export type Dependencies = {
+  [name: string]: Dependency<any>
 };
 
 /**
- * Maps a `ClientContext` to its runtime representation, i.e. the result
+ * Maps a set of `Dependencies` to its runtime representation, i.e. the result
  * of boostrapping each `Client` at runtime.
  */
-export type Clients<C extends ClientContext> = {
-  [name in keyof C]: C[name] extends Client<infer R> ? R : never;
+export type Clients<C extends Dependencies> = {
+  [name in keyof C]: C[name] extends Dependency<infer R> ? R : never;
 };
 
 /**
- * A client that may be installed into a `Runtime`.
+ * A dependency that may be installed into a `Runtime`.
  *
  * @typeparam C type of the client created at runtime.
  */
-export interface Client<C> {
+export interface Dependency<C> {
   /**
    * Install a Client instance into a target:
    * * grant required permissions

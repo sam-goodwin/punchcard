@@ -2,7 +2,7 @@ import cdk = require('@aws-cdk/cdk');
 import 'jest';
 import sinon = require('sinon');
 
-import { Client, Function } from '../../../lib';
+import { Dependency, Function } from '../../../lib';
 import { setRuntime } from '../../../lib/constants';
 
 // stop web-pack from running
@@ -12,7 +12,7 @@ setRuntime();
 describe('Function', () => {
   it('should install clients in context', () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
-    const client: Client<any> = {
+    const client: Dependency<any> = {
       install: target => target.properties.set('test', 'value'),
       bootstrap: () => null
     };
@@ -26,7 +26,7 @@ describe('Function', () => {
   });
   it('should bootstrap all clients on boot and pass to handler', async () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
-    const client: Client<any> = {
+    const client: Dependency<any> = {
       install: target => target.properties.set('test', 'value'),
       bootstrap: () => 'client'
     };

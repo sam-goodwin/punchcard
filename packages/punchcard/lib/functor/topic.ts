@@ -2,70 +2,71 @@ import AWS = require('aws-sdk');
 
 import cdk = require('@aws-cdk/cdk');
 
-import { StreamEncryption } from '@aws-cdk/aws-kinesis';
+import { IEventSource } from '@aws-cdk/aws-lambda';
 import events = require('@aws-cdk/aws-lambda-event-sources');
+import { SnsEventSource } from '@aws-cdk/aws-lambda-event-sources';
 import sns = require('@aws-cdk/aws-sns');
 import { Cache, PropertyBag } from '../property-bag';
-import { Client, ClientContext, Clients, Runtime } from '../runtime';
-import { BufferMapper, Json, Mapper, Type } from '../shape';
+import { Clients, Dependencies, Dependency, Runtime } from '../runtime';
+import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Chain, FunctorProps, Monad } from './functor';
+import { Functor, FunctorProps } from './functor';
 import { Queue } from './queue';
 import { Resource } from './resource';
-import { Stream } from './stream';
+import { Sink, sink, SinkProps } from './sink';
 
-export interface ITopic<T, C extends ClientContext> extends Monad<SNSEvent, T, C, FunctorProps> {}
+declare module './functor' {
+  interface IFunctor<E, T, D extends Dependencies, P extends FunctorProps> {
+    toTopic(scope: cdk.Construct, id: string, streamProps: TopicProps<T>, props?: P): Topic<T>;
+  }
+  interface Functor<E, T, D extends Dependencies, P extends FunctorProps> extends IFunctor<E, T, D, P> {}
+}
+Functor.prototype.toTopic = function(scope: cdk.Construct, id: string, queueProps: TopicProps<any>, props: FunctorProps): Topic<any> {
+  scope = new cdk.Construct(scope, id);
+  const topic = new Topic(scope, 'Stream', queueProps);
+  this.depends({topic}).forEach(scope, 'ForEach', async (value, {topic}) => {
+    await topic.sink(value);
+  });
+  return topic;
+};
+
+// export interface ITopic<T, C extends Dependencies> extends Monad<SNSEvent, T, C, FunctorProps> {}
 
 export type TopicProps<T> = {
   type: Type<T>;
 } & sns.TopicProps;
 
-export class Topic<T> extends Monad<SNSEvent, T, {}, FunctorProps> implements Client<Topic.Client<T>>, ITopic<T, {}>, Resource<sns.Topic> {
+export class Topic<T> extends sns.Topic implements Dependency<Topic.Client<T>> {
   public readonly context = {};
   public readonly type: Type<T>;
   public readonly mapper: Mapper<T, string>;
-  public readonly resource: sns.Topic;
 
   constructor(scope: cdk.Construct, id: string, props: TopicProps<T>) {
-    super({});
-    this.resource = new sns.Topic(scope, id);
+    super(scope, id, props);
     this.type = props.type;
     this.mapper = Json.forType(props.type);
   }
 
   public eventSource() {
-    return new events.SnsEventSource(this.resource);
+    return new events.SnsEventSource(this);
   }
 
-  public chain<U, C2 extends ClientContext>(context: C2, f: (value: T, clients: Clients<{}>) => Promise<U[]>): ITopic<U, C2> {
-    return new TopicChain(context, this as any, f);
+  public stream<D extends Dependencies>(dependencies: D): ITopicStream<T[], D>;
+  public stream(): ITopicStream<T, {}>;
+  public stream(dependencies?: any) {
+    return new TopicF(this as any, f => Promise.resolve(f), dependencies || {}, this);
   }
 
   public toQueue(scope: cdk.Construct, id: string): Queue<T> {
     const q = new Queue(scope, id, {
-      mapper: this.mapper
+      type: this.type
     });
     this.subscribeQueue(q);
     return q;
   }
 
-  public toStream(scope: cdk.Construct, id: string, props?: FunctorProps): Stream<T> {
-    scope = new cdk.Construct(scope, id);
-    const mapper = BufferMapper.wrap(this.mapper);
-    const stream = new Stream(scope, 'Stream', {
-      mapper,
-      encryption: StreamEncryption.Kms
-    });
-    this.clients({
-      stream
-    }).forEach(scope, 'Forward', async (value, {stream}) => {
-      return await stream.putAll([value]);
-    }, props);
-    return stream;
-  }
-
   public subscribeQueue(queue: Queue<T>): sns.Subscription {
-    return this.resource.subscribeQueue(queue.resource, true);
+    return super.subscribeQueue(queue, true);
   }
 
   public async *run(event: SNSEvent): AsyncIterableIterator<T> {
@@ -75,8 +76,8 @@ export class Topic<T> extends Monad<SNSEvent, T, {}, FunctorProps> implements Cl
   }
 
   public install(target: Runtime): void {
-    this.resource.grantPublish(target.grantable);
-    target.properties.set('topicArn', this.resource.topicArn);
+    this.grantPublish(target.grantable);
+    target.properties.set('topicArn', this.topicArn);
   }
 
   public bootstrap(properties: PropertyBag, cache: Cache): Topic.Client<T> {
@@ -84,16 +85,25 @@ export class Topic<T> extends Monad<SNSEvent, T, {}, FunctorProps> implements Cl
   }
 }
 
-class TopicChain<T, U, C extends ClientContext> extends Chain<SNSEvent, T, U, C, FunctorProps> implements ITopic<U, C> {
-  public chain<V, C2 extends ClientContext>(context: C2, f: (value: U, clients: Clients<C>) => Promise<V[]>): TopicChain<U, V, C & C2> {
-    return new TopicChain({...context, ...this.context}, this as any, f);
+export interface ITopicStream<T, D extends Dependencies> extends TopicF<T, D> {
+  map<U>(f: (value: T, clients: Clients<D>) => Promise<U>): ITopicStream<U, D>;
+}
+
+
+class TopicF<T, D extends Dependencies> extends Functor<SNSEvent, T, D, FunctorProps>  {
+  constructor(previous: TopicF<any, D>, f: (a: any, clients: Clients<D>) => Promise<T>, dependencies: D, private readonly topic: Topic<any>) {
+    super(previous, f, dependencies);
+  }
+
+  public map<U>(f: (value: T, clients: Clients<D>) => Promise<U>): TopicF<U, D> {
+    return new TopicF(this, f, this.dependencies, this.topic);
   }
 }
 
 export namespace Topic {
   export type PublishInput<T> = {Message: T} & Omit<AWS.SNS.PublishInput, 'Message' | 'TopicArn' | 'TargetArn' | 'PhoneNumber'>;
   export type PublishResponse = AWS.SNS.PublishResponse;
-  export class Client<T> {
+  export class Client<T> implements Sink<T> {
     constructor(
       public readonly mapper: Mapper<T, string>,
       public readonly topicArn: string,
@@ -105,6 +115,20 @@ export namespace Topic {
         Message: this.mapper.write(request.Message),
         TopicArn: this.topicArn
       }).promise();
+    }
+
+    public async sink(values: T[], props?: SinkProps): Promise<void> {
+      await sink(values, async ([value]) => {
+        try {
+          await this.publish({
+            Message: value
+          });
+          return [];
+        } catch (err) {
+          console.error(err);
+          return [value];
+        }
+      }, props, 1);
     }
   }
 }

@@ -5,7 +5,7 @@ import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import 'jest';
 // tslint:disable-next-line: max-line-length
-import { array, bigint, binary, Cache, Client, double, float, HashTable, integer, ITable, map, optional, PropertyBag, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type } from '../../../lib';
+import { array, bigint, binary, Cache, Dependency, double, float, HashTable, integer, ITable, map, optional, PropertyBag, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type } from '../../../lib';
 
 function keyTypeTests(makeTable: (type: Type<any>) => void) {
   it('should accept string partition key type', () => {
@@ -56,7 +56,7 @@ function keyTypeTests(makeTable: (type: Type<any>) => void) {
 
 // tests for installing the table into an RunTarget
 function installTests(makeTable: (stack: cdk.Stack) => HashTable<any, any> | SortedTable<any, any, any>) {
-  function installTest(getRun: (t: HashTable<any, any> | SortedTable<any, any, any>) => Client<any>, expectedGrant: keyof (HashTable<any, any> | SortedTable<any, any, any>)) {
+  function installTest(getRun: (t: HashTable<any, any> | SortedTable<any, any, any>) => Dependency<any>, expectedGrant: keyof (HashTable<any, any> | SortedTable<any, any, any>)) {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
     const table = makeTable(stack);
     const tableSpy = sinon.spy(table, expectedGrant);
@@ -76,16 +76,16 @@ function installTests(makeTable: (stack: cdk.Stack) => HashTable<any, any> | Sor
     installTest(t => t, 'grantReadWriteData');
   });
   it('readData', () => {
-    installTest(t => t.readClient(), 'grantReadData');
+    installTest(t => t.readAccess(), 'grantReadData');
   });
   it('readWriteData', () => {
-    installTest(t => t.readWriteClient(), 'grantReadWriteData');
+    installTest(t => t.readWriteAccess(), 'grantReadWriteData');
   });
   it('writeData', () => {
-    installTest(t => t.writeClient(), 'grantWriteData');
+    installTest(t => t.writeAccess(), 'grantWriteData');
   });
   it('fullAccess', () => {
-    installTest(t => t.fullAccessClient(), 'grantFullAccess');
+    installTest(t => t.fullAccess(), 'grantFullAccess');
   });
 }
 

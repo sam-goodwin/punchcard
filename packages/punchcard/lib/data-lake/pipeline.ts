@@ -3,7 +3,7 @@ import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/cdk');
 import { Stream } from '../functor';
-import { BufferMapper, Json, RuntimeShape, Shape, TimestampType } from '../shape';
+import { BufferMapper, Json, RuntimeShape, Shape, TimestampType, struct } from '../shape';
 import { Compression } from '../storage/glue/compression';
 import { Period } from '../storage/glue/period';
 import { Table } from '../storage/glue/table';
@@ -47,7 +47,7 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends cdk.Constr
     });
 
     this.stream = new Stream(this, 'Stream', {
-      mapper: BufferMapper.wrap(Json.forShape(props.schema.shape)),
+      type: struct(props.schema.shape),
       encryption: StreamEncryption.Kms
     });
 

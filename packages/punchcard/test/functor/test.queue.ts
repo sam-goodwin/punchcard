@@ -11,7 +11,7 @@ describe('run', () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
 
     const queue = new Queue(stack, 'Queue', {
-      mapper: Json.forType(string())
+      type: string()
     });
 
     const results: string[][] = [];
@@ -29,7 +29,7 @@ describe('run', () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
 
     const queue = new Queue(stack, 'Queue', {
-      mapper: Json.forType(string())
+      type: string()
     });
 
     const results: number[] = [];

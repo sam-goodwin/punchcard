@@ -6,26 +6,38 @@ import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 import { Cache, PropertyBag } from '../property-bag';
-import { Client, ClientContext, Clients, Runtime } from '../runtime';
-import { Mapper } from '../shape';
+import { Dependency, Dependencies, Clients, Runtime } from '../runtime';
+import { BufferMapper, Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Chain, FunctorProps, Monad } from './functor';
+import { Chain, Functor, FunctorProps, Monad } from './functor';
 import { Resource } from './resource';
+import { sink, Sink, SinkProps } from './sink';
+
+declare module './functor' {
+  interface IFunctor<E, T, D extends Dependencies, P extends FunctorProps> {
+    toStream(scope: cdk.Construct, id: string, streamProps: StreamProps<T>, props?: P): Stream<T>;
+  }
+  interface Functor<E, T, D extends Dependencies, P extends FunctorProps> extends IFunctor<E, T, D, P> {}
+}
+Functor.prototype.toStream = function(scope: cdk.Construct, id: string, streamProps: StreamProps<any>, props: FunctorProps) {
+  scope = new cdk.Construct(scope, id);
+  const stream = new Stream(scope, 'Stream', streamProps);
+  this.toSink(scope, 'Sink', stream, props);
+  return stream;
+};
 
 export type StreamFunctorProps = FunctorProps & events.KinesisEventSourceProps;
-
-export interface IStream<T, C extends ClientContext> extends Monad<KinesisEvent, T, C, StreamFunctorProps> {
-}
+export interface IStream<T, C extends Dependencies> extends Monad<KinesisEvent, T, C, StreamFunctorProps> {}
 
 export interface StreamProps<T> extends kinesis.StreamProps {
-  mapper: Mapper<T, Buffer>;
+  type: Type<T>;
   /**
    * @default - uuid
    */
   partitionBy?: (record: T) => string;
 }
 export class Stream<T> extends Monad<KinesisEvent, T[], {}, StreamFunctorProps>
-    implements IStream<T[], {}>, Client<Stream.Client<T>>, Resource<kinesis.Stream> {
+    implements IStream<T[], {}>, Dependency<Stream.Client<T>>, Resource<kinesis.Stream> {
   public readonly context = {};
   public readonly mapper: Mapper<T, Buffer>;
   public readonly partitionBy: (record: T) => string;
@@ -34,7 +46,7 @@ export class Stream<T> extends Monad<KinesisEvent, T[], {}, StreamFunctorProps>
   constructor(scope: cdk.Construct, id: string, props: StreamProps<T>) {
     super({});
     this.resource = new kinesis.Stream(scope, id, props);
-    this.mapper = props.mapper;
+    this.mapper = BufferMapper.wrap(Json.forType(props.type));
     this.partitionBy = props.partitionBy || (_ => uuid());
   }
 
@@ -45,7 +57,7 @@ export class Stream<T> extends Monad<KinesisEvent, T[], {}, StreamFunctorProps>
     });
   }
 
-  public chain<U, C2 extends ClientContext>(context: C2, f: (value: T[], clients: Clients<{}>) => Promise<U[]>): IStream<U, C2> {
+  public chain<U, C2 extends Dependencies>(context: C2, f: (value: T[], clients: Clients<{}>) => Promise<U[]>): IStream<U, C2> {
     return new StreamChain(context, this as any, f);
   }
 
@@ -63,19 +75,19 @@ export class Stream<T> extends Monad<KinesisEvent, T[], {}, StreamFunctorProps>
     this.readWriteClient().install(target);
   }
 
-  public readWriteClient(): Client<Stream.Client<T>> {
+  public readWriteClient(): Dependency<Stream.Client<T>> {
     return this._client(g => this.resource.grantReadWrite(g));
   }
 
-  public readClient(): Client<Stream.Client<T>> {
+  public readClient(): Dependency<Stream.Client<T>> {
     return this._client(g => this.resource.grantRead(g));
   }
 
-  public writeClient(): Client<Stream.Client<T>> {
+  public writeClient(): Dependency<Stream.Client<T>> {
     return this._client(g => this.resource.grantWrite(g));
   }
 
-  private _client(grant: (grantable: iam.IGrantable) => void): Client<Stream.Client<T>> {
+  private _client(grant: (grantable: iam.IGrantable) => void): Dependency<Stream.Client<T>> {
     return {
       install: target => {
         target.properties.set('streamName', this.resource.streamName);
@@ -86,8 +98,8 @@ export class Stream<T> extends Monad<KinesisEvent, T[], {}, StreamFunctorProps>
   }
 }
 
-class StreamChain<T, U, C extends ClientContext> extends Chain<KinesisEvent, T, U, C, StreamFunctorProps> {
-  public chain<V, C2 extends ClientContext>(context: C2, f: (value: U, clients: Clients<C>) => Promise<V[]>): StreamChain<U, V, C & C2> {
+class StreamChain<T, U, C extends Dependencies> extends Chain<KinesisEvent, T, U, C, StreamFunctorProps> {
+  public chain<V, C2 extends Dependencies>(context: C2, f: (value: U, clients: Clients<C>) => Promise<V[]>): StreamChain<U, V, C & C2> {
     return new StreamChain({...context, ...this.context}, this as any, f);
   }
 }
@@ -98,13 +110,7 @@ export namespace Stream {
   export type PutRecordsInput<T> = Array<{Data: T} & Omit<AWS.Kinesis.PutRecordsRequestEntry, 'Data'>>;
   export type PutRecordsOutput = AWS.Kinesis.PutRecordsOutput;
 
-  export interface Retry {
-    attemptsLeft: number;
-    backoffMs: number;
-    maxBackoffMs: number;
-  }
-
-  export class Client<T> {
+  export class Client<T> implements Sink<T> {
     constructor(
       public readonly stream: Stream<T>,
       public readonly streamName: string,
@@ -129,50 +135,24 @@ export namespace Stream {
       }).promise();
     }
 
-    public async putAll(records: T[], retry: Retry = {
-      attemptsLeft: 3,
-      backoffMs: 100,
-      maxBackoffMs: 10000
-    }): Promise<void> {
-      const send = (async (values: T[], retry: Retry): Promise<void> => {
-        if (values.length <= 500) {
-          const result = await this.putRecords(values.map(value => ({
-            Data: value,
-            PartitionKey: this.stream.partitionBy(value)
-          })));
+    public async sink(records: T[], props?: SinkProps): Promise<void> {
+      await sink(records, async values => {
+        const result = await this.putRecords(values.map(value => ({
+          Data: value,
+          PartitionKey: this.stream.partitionBy(value)
+        })));
 
-          if (result.FailedRecordCount) {
-            if (retry.attemptsLeft === 0) {
-              throw new Error(`failed to send records to Kinesis after 3 attempts`);
+        if (result.FailedRecordCount) {
+          return result.Records.map((r, i) => {
+            if (r.SequenceNumber) {
+              return [i];
+            } else {
+              return [];
             }
-
-            const redrive = result.Records.map((r, i) => {
-              if (r.SequenceNumber) {
-                return [i];
-              } else {
-                return [];
-              }
-            }).reduce((a, b) => a.concat(b)).map(i => values[i]);
-
-            return send(redrive, increment(retry));
-          }
-        } else {
-          await Promise.all([
-            await send(records.slice(0, Math.floor(records.length / 2)), increment(retry)),
-            await send(records.slice(Math.floor(records.length / 2), records.length), increment(retry))
-          ]);
+          }).reduce((a, b) => a.concat(b)).map(i => values[i]);
         }
-
-        function increment(retry: Retry) {
-          const backoffMs = Math.min(2 * retry.backoffMs,  retry.maxBackoffMs);
-          return {
-            attemptsLeft: retry.attemptsLeft - 1,
-            backoffMs,
-            maxBackoffMs: retry.maxBackoffMs
-          };
-        }
-      });
-      await send(records, retry);
+        return [];
+      }, props, 500);
     }
   }
 }

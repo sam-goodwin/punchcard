@@ -3,7 +3,7 @@ import AWS = require('aws-sdk');
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../../constants';
-import { Client, ClientContext, Clients, Entrypoint, entrypoint, Runtime } from '../../runtime';
+import { Dependency, Dependencies, Clients, Entrypoint, entrypoint, Runtime } from '../../runtime';
 import { Json, Mapper, Raw, Type } from '../../shape';
 import { Omit } from '../../utils';
 
@@ -11,7 +11,7 @@ import fs = require('fs');
 import path = require('path');
 import { Cache, PropertyBag } from '../../property-bag';
 
-export type FunctionProps<T, U, C extends ClientContext> = {
+export type FunctionProps<T, U, C extends Dependencies> = {
   /**
    * Type of the request
    *
@@ -44,9 +44,9 @@ export type FunctionProps<T, U, C extends ClientContext> = {
  *
  * Requires Clients (permissions and environment variables), `C`.
  */
-export class Function<T, U, C extends ClientContext>
+export class Function<T, U, C extends Dependencies>
     extends lambda.Function
-    implements Entrypoint, Client<Function.Client<T, U>> {
+    implements Entrypoint, Dependency<Function.Client<T, U>> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 

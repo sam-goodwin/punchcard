@@ -5,7 +5,7 @@ import iam = require('@aws-cdk/aws-iam');
 import cdk = require('@aws-cdk/cdk');
 
 import { Cache, PropertyBag } from '../../property-bag';
-import { Client, Runtime } from '../../runtime';
+import { Dependency, Runtime } from '../../runtime';
 import { Dynamo, Mapper, RuntimeShape, Shape, struct } from "../../shape";
 import { Omit } from '../../utils';
 import { HashTableClient, HashTableClientImpl, SortedTableClient, SortedTableClientImpl, TableClient } from './client';
@@ -31,7 +31,7 @@ interface TableProps<S extends Shape, K extends Shape> {
 }
 
 abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Shape>
-    extends dynamodb.Table implements Client<C>, ITable<S, K> {
+    extends dynamodb.Table implements Dependency<C>, ITable<S, K> {
   public readonly shape: S;
   public readonly key: K;
   public readonly facade: Facade<S>;
@@ -58,10 +58,10 @@ abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Sha
   protected abstract makeClient(tableName: string, client: AWS.DynamoDB): C;
 
   public install(target: Runtime): void {
-    this.readWriteClient().install(target);
+    this.readWriteAccess().install(target);
   }
 
-  private _install(grant: (grantable: iam.IGrantable) => void): Client<C> {
+  private _install(grant: (grantable: iam.IGrantable) => void): Dependency<C> {
     return {
       install: (target) => {
         target.properties.set('tableName', this.tableName);
@@ -71,19 +71,19 @@ abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Sha
     };
   }
 
-  public readClient(): Client<C> {
+  public readAccess(): Dependency<C> {
     return this._install(this.grantReadData.bind(this));
   }
 
-  public readWriteClient(): Client<C> {
+  public readWriteAccess(): Dependency<C> {
     return this._install(this.grantReadWriteData.bind(this));
   }
 
-  public writeClient(): Client<C> {
+  public writeAccess(): Dependency<C> {
     return this._install(this.grantWriteData.bind(this));
   }
 
-  public fullAccessClient(): Client<C> {
+  public fullAccess(): Dependency<C> {
     return this._install(this.grantFullAccess.bind(this));
   }
 }

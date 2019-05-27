@@ -2,7 +2,7 @@ import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/cdk');
 
 import { Function, LambdaExecutorService } from '../compute';
-import { Client } from '../runtime';
+import { Dependency } from '../runtime';
 import { RuntimeShape, Shape } from '../shape';
 import { Compression } from '../storage/glue/compression';
 import { Partition, Table } from '../storage/glue/table';
@@ -44,8 +44,8 @@ export interface PartitionerProps<T extends Shape, P extends Partition> {
 export class Partitioner<T extends Shape, P extends Partition> extends cdk.Construct {
   public readonly table: Table<T, any>;
   public readonly processor: Function<S3Event, void, {
-    source: Client<Bucket.ReadClient>;
-    table: Client<Table.WriteClient<T, P>>;
+    source: Dependency<Bucket.ReadClient>;
+    table: Dependency<Table.WriteClient<T, P>>;
   }>;
   public readonly sourceBucket: s3.IBucket;
   public readonly sourceCompression: Compression;
