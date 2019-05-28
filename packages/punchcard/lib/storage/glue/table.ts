@@ -6,8 +6,8 @@ import glue = require('@aws-cdk/aws-glue');
 import iam = require('@aws-cdk/aws-iam');
 import cdk = require('@aws-cdk/cdk');
 
-import { Cache, PropertyBag } from '../../property-bag';
-import { Dependency, Runtime } from '../../runtime';
+import { Cache, PropertyBag } from '../../compute/property-bag';
+import { Runtime } from '../../compute/runtime';
 import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, Type } from '../../shape';
 import { Omit } from '../../utils';
 import { Bucket } from '../s3';
@@ -15,6 +15,7 @@ import { Codec } from './codec';
 import { Compression } from './compression';
 
 import crypto = require('crypto');
+import { Dependency } from '../../compute';
 
 /**
  * Glue partition shape must be of only string, date or numeric types.
@@ -155,10 +156,7 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
     return {
       install: (target) => {
         grant(target.grantable);
-        bucket.install({
-          grantable: target.grantable,
-          properties: target.properties.push('bucket')
-        });
+        bucket.install(target.namespace('bucket'));
         target.properties.set('catalogId', this.database.catalogId);
         target.properties.set('databaseName', this.database.databaseName);
         target.properties.set('tableName', this.tableName);
@@ -174,7 +172,7 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
       properties.get('databaseName'),
       properties.get('tableName'),
       this,
-      new Bucket(this.bucket).bootstrap(properties.push('bucket'), cache)
+      new Bucket(this.bucket).bootstrap(properties.namespace('bucket'), cache)
     );
   }
 }

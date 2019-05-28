@@ -4,29 +4,27 @@ import sqs = require('@aws-cdk/aws-sqs');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 
-import { Cache, PropertyBag } from '../property-bag';
-import { Dependency, Dependencies, Clients, Runtime } from '../runtime';
+import { Cache, PropertyBag } from '../compute/property-bag';
 import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Chain, Functor, FunctorProps, Monad } from './functor';
+import { MonadProps, Monad, FunctorInput } from './functor';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
+import { Dependency, Runtime, Depends } from '../compute';
 
-declare module './functor' {
-  interface Functor<E, T, D extends Dependencies, P extends FunctorProps> {
-    toQueue(scope: cdk.Construct, id: string, queueProps: QueueProps<T>, props?: P): Queue<T>;
-  }
-}
-Functor.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>, props: FunctorProps): Queue<any> {
-  scope = new cdk.Construct(scope, id);
-  const queue = new Queue(scope, 'Stream', queueProps);
-  this.toSink(scope, 'Sink', queue, props);
-  return queue;
-};
+// declare module './functor' {
+//   interface Monad<E, T, D extends Dependencies, P extends MonadProps> {
+//     toQueue(scope: cdk.Construct, id: string, queueProps: QueueProps<T>, props?: P): Queue<T>;
+//   }
+// }
+// Monad.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>, props: MonadProps): Queue<any> {
+//   scope = new cdk.Construct(scope, id);
+//   const queue = new Queue(scope, 'Stream', queueProps);
+//   this.toSink(scope, 'Sink', queue, props);
+//   return queue;
+// };
 
-export type QueueFunctorProps = FunctorProps & events.SqsEventSourceProps;
-
-export interface IQueue<T, C extends Dependencies> extends Monad<SQSEvent, T, C, QueueFunctorProps> {}
+export type QueueMonadProps = MonadProps & events.SqsEventSourceProps;
 
 /**
  * Props for constructing a Queue.
@@ -39,21 +37,21 @@ export interface QueueProps<T> extends sqs.QueueProps {
 /**
  * Represents a SQS Queue containtining messages of type, `T`, serialized with some `Codec`.
  */
-export class Queue<T> extends sqs.Queue implements Dependency<Queue.ConsumeAndSendClient<T>> {
+export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAndSendClient<T>> {
   public readonly context = {};
   public readonly mapper: Mapper<T, string>;
+  public readonly resource: sqs.Queue;
 
   constructor(scope: cdk.Construct, id: string, props: QueueProps<T>) {
-    super(scope, id, props);
+    this.resource = new sqs.Queue(scope, id, props);
     this.mapper = Json.forType(props.type);
   }
 
-  public eventSource(props?: QueueFunctorProps) {
-    return new events.SqsEventSource(this, props);
-  }
-
-  public chain<U, C2 extends Dependencies>(context: C2, f: (value: T[], clients: Clients<{}>) => Promise<U[]>): IQueue<U, C2> {
-    return new QueueChain<T[], U, C2>(context, this as any, f);
+  public stream(): QueueMonad<T, Depends.None> {
+    return new QueueMonad(this, this as any, {
+      depends: Depends.none,
+      handle: i => i
+    });
   }
 
   /**
@@ -62,8 +60,11 @@ export class Queue<T> extends sqs.Queue implements Dependency<Queue.ConsumeAndSe
    *
    * @param event payload of SQS event
    */
-  public async *run(event: SQSEvent): AsyncIterableIterator<T[]> {
-    return yield event.Records.map(record => this.mapper.read(record.body));
+  public async *run(event: SQSEvent): AsyncIterableIterator<T> {
+    console.log('queue.run');
+    for (const record of event.Records.map(record => this.mapper.read(record.body))) {
+      yield record;
+    }
   }
 
   /**
@@ -91,8 +92,8 @@ export class Queue<T> extends sqs.Queue implements Dependency<Queue.ConsumeAndSe
    */
   public consumeAndSendClient(): Dependency<Queue.ConsumeAndSendClient<T>> {
     return this._client(g => {
-      this.grantConsumeMessages(g);
-      this.grantSendMessages(g);
+      this.resource.grantConsumeMessages(g);
+      this.resource.grantSendMessages(g);
     });
   }
 
@@ -100,20 +101,20 @@ export class Queue<T> extends sqs.Queue implements Dependency<Queue.ConsumeAndSe
    * A client with only permission to consume messages from this Queue.
    */
   public consumeClient(): Dependency<Queue.ConsumeClient<T>> {
-    return this._client(g => this.grantConsumeMessages(g));
+    return this._client(g => this.resource.grantConsumeMessages(g));
   }
 
   /**
    * A client with only permission to send messages to this Queue.
    */
   public sendClient(): Dependency<Queue.SendClient<T>> {
-    return this._client(g => this.grantSendMessages(g));
+    return this._client(g => this.resource.grantSendMessages(g));
   }
 
   private _client(grant: (grantable: iam.IGrantable) => void): Dependency<Queue.Client<T>> {
     return {
-      install: target => {
-        target.properties.set('queueUrl', this.queueUrl);
+      install: (target: Runtime) => {
+        target.properties.set('queueUrl', this.resource.queueUrl);
         grant(target.grantable);
       },
       bootstrap: this.bootstrap.bind(this),
@@ -121,9 +122,17 @@ export class Queue<T> extends sqs.Queue implements Dependency<Queue.ConsumeAndSe
   }
 }
 
-class QueueChain<T, U, C extends Dependencies> extends Chain<SQSEvent, T, U, C, QueueFunctorProps> implements IQueue<U, C> {
-  public chain<V, C2 extends Dependencies>(context: C2, f: (value: U, clients: Clients<C>) => Promise<V[]>): QueueChain<U, V, C & C2> {
-    return new QueueChain({...context, ...this.context}, this as any, f);
+class QueueMonad<T, D extends Dependency<any>> extends Monad<SQSEvent, T, D, MonadProps>  {
+  constructor(public readonly queue: Queue<any>, previous: QueueMonad<any, any>, input: FunctorInput<AsyncIterableIterator<any>, AsyncIterableIterator<T>, D>) {
+    super(previous, input.handle, input.depends);
+  }
+
+  public eventSource(props?: QueueMonadProps) {
+    return new events.SqsEventSource(this.queue.resource, props);
+  }
+
+  public chain<U, D2 extends Dependency<any>>(input: FunctorInput<AsyncIterableIterator<T>, AsyncIterableIterator<U>, Depends.Union<D2, D>>): QueueMonad<U, Depends.Union<D2, D>> {
+    return new QueueMonad(this.queue, this, input);
   }
 }
 

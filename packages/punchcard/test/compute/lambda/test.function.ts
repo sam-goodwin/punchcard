@@ -17,12 +17,10 @@ describe('Function', () => {
       bootstrap: () => null
     };
     const f = new Function(stack, 'function', {
-      clients: {
-        client
-      },
+      dependencies: client,
       handle: null as any
     });
-    expect((f as any).environment[`${f.node.uniqueId}_client_test`]).toEqual('value');
+    expect((f as any).environment[`${f.node.uniqueId}_test`]).toEqual('value');
   });
   it('should bootstrap all clients on boot and pass to handler', async () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
@@ -32,14 +30,13 @@ describe('Function', () => {
     };
     const fake = sinon.fake();
     const f = new Function(stack, 'function', {
-      clients: {
-        client
-      },
+      dependencies: client,
       handle: fake
     });
     const handler = await f.boot();
     await handler(null, null);
-    expect(fake.calledOnceWithExactly(null, {client: 'client'}, null)).toBe(true);
+    expect(fake.args[0][1]).toEqual('client');
+    expect(fake.calledOnceWithExactly(null, 'client', null)).toBe(true);
   });
 });
 describe('Function.Client', () => {

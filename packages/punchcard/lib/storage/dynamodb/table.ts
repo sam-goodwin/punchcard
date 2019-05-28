@@ -4,8 +4,9 @@ import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import cdk = require('@aws-cdk/cdk');
 
-import { Cache, PropertyBag } from '../../property-bag';
-import { Dependency, Runtime } from '../../runtime';
+import { Dependency } from '../../compute';
+import { Cache, PropertyBag } from '../../compute/property-bag';
+import { Runtime } from '../../compute/runtime';
 import { Dynamo, Mapper, RuntimeShape, Shape, struct } from "../../shape";
 import { Omit } from '../../utils';
 import { HashTableClient, HashTableClientImpl, SortedTableClient, SortedTableClientImpl, TableClient } from './client';
@@ -63,7 +64,7 @@ abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Sha
 
   private _install(grant: (grantable: iam.IGrantable) => void): Dependency<C> {
     return {
-      install: (target) => {
+      install: (target: Runtime) => {
         target.properties.set('tableName', this.tableName);
         grant(target.grantable);
       },

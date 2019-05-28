@@ -2,8 +2,9 @@ import AWS = require('aws-sdk');
 
 import iam = require('@aws-cdk/aws-iam');
 import s3 = require('@aws-cdk/aws-s3');
-import { Cache, PropertyBag } from '../property-bag';
-import { Dependency, Runtime } from '../runtime';
+import { Dependency } from '../compute';
+import { Cache, PropertyBag } from '../compute/property-bag';
+import { Runtime } from '../compute/runtime';
 import { Omit } from '../utils';
 
 export class Bucket implements Dependency<Bucket.ReadWriteClient> {

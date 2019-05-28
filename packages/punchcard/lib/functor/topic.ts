@@ -2,59 +2,54 @@ import AWS = require('aws-sdk');
 
 import cdk = require('@aws-cdk/cdk');
 
-import { IEventSource } from '@aws-cdk/aws-lambda';
 import events = require('@aws-cdk/aws-lambda-event-sources');
-import { SnsEventSource } from '@aws-cdk/aws-lambda-event-sources';
 import sns = require('@aws-cdk/aws-sns');
-import { Cache, PropertyBag } from '../property-bag';
-import { Clients, Dependencies, Dependency, Runtime } from '../runtime';
+import { Cache, Dependency, Depends, PropertyBag, Runtime } from '../compute';
 import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Functor, FunctorProps } from './functor';
+import { FunctorInput, Monad, MonadProps } from './functor';
 import { Queue } from './queue';
 import { Resource } from './resource';
 import { Sink, sink, SinkProps } from './sink';
 
 declare module './functor' {
-  interface IFunctor<E, T, D extends Dependencies, P extends FunctorProps> {
+  interface Monad<E, T, D extends Dependency<any>, P extends MonadProps> {
     toTopic(scope: cdk.Construct, id: string, streamProps: TopicProps<T>, props?: P): Topic<T>;
   }
-  interface Functor<E, T, D extends Dependencies, P extends FunctorProps> extends IFunctor<E, T, D, P> {}
 }
-Functor.prototype.toTopic = function(scope: cdk.Construct, id: string, queueProps: TopicProps<any>, props: FunctorProps): Topic<any> {
+Monad.prototype.toTopic = function(scope: cdk.Construct, id: string, queueProps: TopicProps<any>): Topic<any> {
   scope = new cdk.Construct(scope, id);
   const topic = new Topic(scope, 'Stream', queueProps);
-  this.depends({topic}).forEach(scope, 'ForEach', async (value, {topic}) => {
-    await topic.sink(value);
+  this.forBatch(scope, 'ForEach', {
+    depends: topic,
+    async handle(values, topic) {
+      await topic.sink(values);
+    }
   });
   return topic;
 };
-
-// export interface ITopic<T, C extends Dependencies> extends Monad<SNSEvent, T, C, FunctorProps> {}
 
 export type TopicProps<T> = {
   type: Type<T>;
 } & sns.TopicProps;
 
-export class Topic<T> extends sns.Topic implements Dependency<Topic.Client<T>> {
+export class Topic<T> implements Resource<sns.Topic>, Dependency<Topic.Client<T>> {
   public readonly context = {};
   public readonly type: Type<T>;
   public readonly mapper: Mapper<T, string>;
+  public readonly resource: sns.Topic;
 
   constructor(scope: cdk.Construct, id: string, props: TopicProps<T>) {
-    super(scope, id, props);
+    this.resource = new sns.Topic(scope, id, props);
     this.type = props.type;
     this.mapper = Json.forType(props.type);
   }
 
-  public eventSource() {
-    return new events.SnsEventSource(this);
-  }
-
-  public stream<D extends Dependencies>(dependencies: D): ITopicStream<T[], D>;
-  public stream(): ITopicStream<T, {}>;
-  public stream(dependencies?: any) {
-    return new TopicF(this as any, f => Promise.resolve(f), dependencies || {}, this);
+  public stream(): TopicStream<T, Depends.None> {
+    return new TopicStream(this, this as any, {
+      depends: Depends.none,
+      handle: i => i
+    });
   }
 
   public toQueue(scope: cdk.Construct, id: string): Queue<T> {
@@ -66,7 +61,7 @@ export class Topic<T> extends sns.Topic implements Dependency<Topic.Client<T>> {
   }
 
   public subscribeQueue(queue: Queue<T>): sns.Subscription {
-    return super.subscribeQueue(queue, true);
+    return this.resource.subscribeQueue(queue.resource, true);
   }
 
   public async *run(event: SNSEvent): AsyncIterableIterator<T> {
@@ -76,8 +71,8 @@ export class Topic<T> extends sns.Topic implements Dependency<Topic.Client<T>> {
   }
 
   public install(target: Runtime): void {
-    this.grantPublish(target.grantable);
-    target.properties.set('topicArn', this.topicArn);
+    this.resource.grantPublish(target.grantable);
+    target.properties.set('topicArn', this.resource.topicArn);
   }
 
   public bootstrap(properties: PropertyBag, cache: Cache): Topic.Client<T> {
@@ -85,18 +80,17 @@ export class Topic<T> extends sns.Topic implements Dependency<Topic.Client<T>> {
   }
 }
 
-export interface ITopicStream<T, D extends Dependencies> extends TopicF<T, D> {
-  map<U>(f: (value: T, clients: Clients<D>) => Promise<U>): ITopicStream<U, D>;
-}
-
-
-class TopicF<T, D extends Dependencies> extends Functor<SNSEvent, T, D, FunctorProps>  {
-  constructor(previous: TopicF<any, D>, f: (a: any, clients: Clients<D>) => Promise<T>, dependencies: D, private readonly topic: Topic<any>) {
-    super(previous, f, dependencies);
+export class TopicStream<T, D extends Dependency<any>> extends Monad<SNSEvent, T, D, MonadProps>  {
+  constructor(public readonly topic: Topic<any>, previous: TopicStream<any, any>, input: FunctorInput<AsyncIterableIterator<any>, AsyncIterableIterator<T>, D>) {
+    super(previous, input.handle, input.depends);
   }
 
-  public map<U>(f: (value: T, clients: Clients<D>) => Promise<U>): TopicF<U, D> {
-    return new TopicF(this, f, this.dependencies, this.topic);
+  public eventSource() {
+    return new events.SnsEventSource(this.topic.resource);
+  }
+
+  public chain<U, D2 extends Dependency<any>>(input: FunctorInput<AsyncIterableIterator<T>, AsyncIterableIterator<U>, Depends.Union<D2, D>>): TopicStream<U, Depends.Union<D2, D>> {
+    return new TopicStream(this.topic, this, input);
   }
 }
 

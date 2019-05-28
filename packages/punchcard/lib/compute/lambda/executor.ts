@@ -4,9 +4,9 @@ import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 
 import { Integration, LambdaIntegration, Resource } from '../../api-gateway';
-import { Dependencies, Clients } from '../../runtime';
 import { Type } from '../../shape/types/type';
 import { Omit } from '../../utils';
+import { Client, Dependency } from '../dependency';
 import { Function } from './function';
 
 export enum Unit {
@@ -48,25 +48,25 @@ export class LambdaExecutorService {
     memorySize: 128
   }) {}
 
-  public spawn<T, U, C extends Dependencies>(scope: cdk.Construct, id: string, props: {
+  public spawn<T, U, D extends Dependency<any>>(scope: cdk.Construct, id: string, props: {
     request?: Type<T>,
     response?: Type<U>,
-    clients: C,
-    handle: (event: T, run: Clients<C>, context: any) => Promise<U>;
-  }): Function<T, U, C> {
-    return new Function<T, U, C>(scope, id, {
+    depends: D,
+    handle: (event: T, run: Client<D>, context: any) => Promise<U>;
+  }): Function<T, U, D> {
+    return new Function<T, U, D>(scope, id, {
       ...this.props,
       ...props
     });
   }
 
-  public schedule<C extends Dependencies>(scope: cdk.Construct, id: string, props: {
+  public schedule<D extends Dependency<any>>(scope: cdk.Construct, id: string, props: {
     rate: Rate;
-    clients: C;
-    handle: (event: CloudwatchEvent, run: Clients<C>, context: any) => Promise<any>;
-  }): Function<CloudwatchEvent, any, C> {
+    depends: D;
+    handle: (event: CloudwatchEvent, run: Client<D>, context: any) => Promise<any>;
+  }): Function<CloudwatchEvent, any, D> {
     scope = new cdk.Construct(scope, id);
-    const f = new Function<CloudwatchEvent, any, C>(scope, 'Function', {
+    const f = new Function<CloudwatchEvent, any, D>(scope, 'Function', {
       ...this.props,
       ...props
     });
@@ -79,12 +79,12 @@ export class LambdaExecutorService {
     return f;
   }
 
-  public apiIntegration<C extends Dependencies>(parent: cdk.Construct, id: string, props: {
-    clients: C;
-  }): Integration<C> {
+  public apiIntegration<D extends Dependency<any>>(parent: cdk.Construct, id: string, props: {
+    clients: D;
+  }): Integration<D> {
     const handler = this.spawn(parent, id, {
-      clients: props.clients,
-      handle: async (event: any, runtimeContext: Clients<C>) => {
+      depends: props.clients,
+      handle: async (event: any, runtimeContext: Client<D>) => {
         const resourceId = event.__resourceId; // TODO: we implicitly know this field exists - magic field. see ../api-gateway/resource.ts
         const resource: Resource = integration.findResource(resourceId);
         if (!resource) {

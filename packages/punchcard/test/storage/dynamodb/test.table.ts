@@ -5,7 +5,7 @@ import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import 'jest';
 // tslint:disable-next-line: max-line-length
-import { array, bigint, binary, Cache, Dependency, double, float, HashTable, integer, ITable, map, optional, PropertyBag, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type } from '../../../lib';
+import { array, bigint, binary, Cache, Dependency, double, float, HashTable, integer, ITable, map, optional, PropertyBag, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type, Runtime } from '../../../lib';
 
 function keyTypeTests(makeTable: (type: Type<any>) => void) {
   it('should accept string partition key type', () => {
@@ -64,10 +64,7 @@ function installTests(makeTable: (stack: cdk.Stack) => HashTable<any, any> | Sor
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com')
     });
     const properties = new PropertyBag('test', {});
-    getRun(table).install({
-      grantable: role,
-      properties
-    });
+    getRun(table).install(new Runtime(properties, role));
     expect(properties.get('tableName')).toEqual(table.tableName);
     expect(tableSpy.calledWith(role)).toEqual(true);
     tableSpy.restore();

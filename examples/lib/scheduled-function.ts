@@ -22,11 +22,9 @@ const table = new HashTable(stack, 'my-table', {
 const executorService = new LambdaExecutorService();
 
 executorService.schedule(stack, 'Poller', {
-  clients: {
-    table
-  },
+  depends: table,
   rate: Rate.minutes(1),
-  handle: async (_, {table}) => {
+  handle: async (_, table) => {
     const item = await table.get({
       id: 'state'
     });

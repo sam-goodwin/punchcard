@@ -5,7 +5,7 @@
  */
 export class PropertyBag {
   constructor(
-    protected readonly namespace: string,
+    protected readonly _namespace: string,
     protected readonly bag: {[key: string]: string}) {}
 
   /**
@@ -21,8 +21,8 @@ export class PropertyBag {
    * Create a sub-bag of properties prefixed by a namespace.
    * @param namespace to prefix properties with.
    */
-  public push(namespace: string) {
-    return new PropertyBag(`${this.namespace}_${namespace}`, this.bag);
+  public namespace(namespace: string) {
+    return new PropertyBag(`${this._namespace}_${namespace}`, this.bag);
   }
 
   /**
@@ -57,7 +57,7 @@ export class PropertyBag {
   }
 
   private makeKey(name: string): string {
-    return `${this.namespace}_${name}`;
+    return `${this._namespace}_${name}`;
   }
 }
 

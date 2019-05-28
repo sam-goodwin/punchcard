@@ -1,6 +1,6 @@
 import cdk = require('@aws-cdk/cdk');
 
-import { Function, LambdaExecutorService } from '../compute';
+import { Depends, Function, LambdaExecutorService } from '../compute';
 import { Shape } from '../shape';
 import { Table } from '../storage/glue/table';
 
@@ -28,7 +28,7 @@ export interface ValidatorProps<T extends Shape> {
  */
 export class Validator<T extends Shape> extends cdk.Construct {
   public readonly table: Table<T, any>;
-  public readonly processor: Function<FirehoseEvent, FirehoseResponse, {}>;
+  public readonly processor: Function<FirehoseEvent, FirehoseResponse, Depends.None>;
 
   constructor(scope: cdk.Construct, id: string, props: ValidatorProps<T>) {
     super(scope, id);
@@ -39,7 +39,7 @@ export class Validator<T extends Shape> extends cdk.Construct {
     });
 
     this.processor = executorService.spawn(this, 'Processor', {
-      clients: {},
+      depends: Depends.none,
       handle: async (event: FirehoseEvent) => {
         const response: FirehoseResponse = {records: []};
         event.records.forEach(record => {

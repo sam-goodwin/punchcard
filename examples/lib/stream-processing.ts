@@ -1,5 +1,5 @@
 import cdk = require('@aws-cdk/cdk');
-import { integer, string, struct, Topic, Rate, λ, L, not, HashTable, Json, array, timestamp, Queue, RuntimeShape, RuntimeType } from 'punchcard';
+import { integer, string, struct, Topic, Rate, λ, L, not, HashTable, Json, array, timestamp, Queue, RuntimeShape, RuntimeType, Depends } from 'punchcard';
 
 import uuid = require('uuid');
 
@@ -16,17 +16,28 @@ const topic = new Topic(stack, 'Topic', {
   })
 });
 
-// process each SNS notification in Lambda
-topic.stream().forEach(stack, 'ForEachNotification', async message => {
-  console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`);
+const table = new HashTable(stack, 't', {partitionKey: 'id', shape: { id: string() }});
+
+topic.stream().forEach(stack, 'ForEachNotification', {
+  depends: table,
+  async handle(value, table) {
+    await table.put({
+      item: {
+        id: 'id'
+      }
+    });
+    console.log(value)
+  }
 });
 
-// you can also perform pre-processing on notifications before collecting in a SQS Queue
-const timestampQueue: Queue<Date> = topic.stream()
-  .map(async message => message.timestamp)
-  .toQueue(stack, 'TimestampQueue', {
-    type: timestamp
-  });
+
+// process each SNS notification in Lambda
+topic.stream().forEach(stack, 'ForEachNotification', {
+  depends: Depends.none,
+  async handle(message) {
+    console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`);
+  }
+});
 
 // subscribe topic to a new SQS Queue
 const queue = topic.toQueue(stack, 'Queue');
@@ -40,32 +51,25 @@ const enrichments = new HashTable(stack, 'Enrichments', {
   }
 });
 
-const enrichedStream = queue
-  .clients({
-    // name and define your dependencies - in this case, we need read access to the enrichments table
-    enrichments: enrichments.readAccess()
-  })
-  .flatMap(async (values, {enrichments}) => {
+queue.stream().flatMap({
+  // define your dependencies - in this case, we need read access to the enrichments table
+  depends: enrichments.readAccess(),
+  async handle(message, e) {
     // implement the enrichment procedure - runs in Lambda triggered by SQS
-    return await Promise.all(values.map(async value => {
-      const enrichment = await enrichments.get(value);
-      return {
-        ...value,
-        tags: enrichment ? enrichment.tags : []
-      };
-    }))
-  }) // collect in a Kinesis Stream
-  .toStream(stack, 'Stream', {
-    type: topic.type
-  });
+    const enrichment = await e.get(message);
+
+    return [{
+      ...message,
+      tags: enrichment ? enrichment.tags : []
+    }];
+  }
+});
 
 // Lastly, we'll kick off the whole system with a dummy notification sent once per minute
 λ().schedule(stack, 'DummyData', {
-  clients: {
-    topic
-  },
+  depends: topic,
   rate: Rate.minutes(1),
-  handle: async (_, {topic}) => {
+  handle: async (_, topic) => {
     await topic.publish({
       Message: {
         count: 1,
