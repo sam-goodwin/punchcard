@@ -2,6 +2,7 @@ import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 import { Client, Clients, Dependency, Function, LambdaExecutorService } from '../compute';
 import { Cons } from '../compute/hlist';
+import { Sink } from './sink';
 
 /**
  * Props to configure an `Enumerable's` evaluation runtime properties.
@@ -184,5 +185,22 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
         return;
       }
     });
+  }
+
+  /**
+   * Collect data in this enumerable to a generic `Sink`, returning a tuple containing
+   * the `Sink` (i.e. a `Stream`, `Topic` or `Queue`) and the `Function` which sends the data.
+   *
+   * @param scope to create resources under
+   * @param id of construct under which forwarding resources will be created
+   * @param sink recipient of data
+   */
+  public toSink<S extends Dependency<Sink<T>>>(scope: cdk.Construct, id: string, sink: S): [S, Function<E, any, Dependency.List<Cons<D, S>>>] {
+    return [sink, this.forBatch(scope, id, {
+      depends: sink,
+      async handle(values, sink) {
+        await sink.sink(values);
+      }
+    }) as any];
   }
 }

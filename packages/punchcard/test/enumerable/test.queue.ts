@@ -2,7 +2,7 @@ import 'jest';
 import sinon = require('sinon');
 
 import cdk = require('@aws-cdk/cdk');
-import { Dependency, Function, integer, Queue, string } from '../../lib';
+import { Dependency, Function, integer, Queue, string, Stream } from '../../lib';
 import { setRuntime } from '../../lib/constants';
 
 setRuntime();
@@ -88,6 +88,42 @@ describe('run', () => {
 
     expect(results).toEqual(['string'.length]);
     expect.assertions(3);
+  });
+  it('should transform records with a map and `toSink`', async () => {
+    const stack = new cdk.Stack(new cdk.App(), 'stack');
+
+    const queue = new Queue(stack, 'Queue', {
+      type: string()
+    });
+
+    const d1: Dependency<string> = {
+      bootstrap: () => 'd1',
+      install: () => undefined
+    };
+
+    const [, l] = queue.stream()
+      .map({
+        depends: d1,
+        handle: async (v, d1) => {
+          expect(d1).toEqual('d1');
+          return v.length;
+        }
+      })
+      .toSink(stack, 'ToSink', new Stream(stack, 'Stream', {
+        type: integer()
+      }));
+
+    const sink = {
+      sink: sinon.fake()
+    };
+
+    await l.handle({
+      Records: [{
+      body: JSON.stringify('string')
+    } as any]}, [sink as any, 'd1'], {});
+
+    expect(sink.sink.calledOnceWith(['string'.length])).toBe(true);
+    expect.assertions(2);
   });
   it('should transform records with a map and toStream', async () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');

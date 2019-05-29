@@ -4,7 +4,7 @@ import sqs = require('@aws-cdk/aws-sqs');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 
-import { Clients, Dependency, Runtime } from '../compute';
+import { Clients, Dependency, Function, Runtime } from '../compute';
 import { Cache, PropertyBag } from '../compute/property-bag';
 import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
@@ -14,19 +14,12 @@ import { sink, Sink, SinkProps } from './sink';
 
 declare module './enumerable' {
   interface Enumerable<E, T, D extends any[], P extends EnumerableProps> {
-    toQueue(scope: cdk.Construct, id: string, streamProps: QueueProps<T>, props?: P): Queue<T>;
+    toQueue(scope: cdk.Construct, id: string, streamProps: QueueProps<T>, props?: P): [Queue<T>, Function<SQSEvent, void, Dependency.List<D>>];
   }
 }
-Enumerable.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>): Queue<any> {
+Enumerable.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>): [Queue<any>, Function<any, any, any>] {
   scope = new cdk.Construct(scope, id);
-  const queue = new Queue(scope, 'Stream', queueProps);
-  this.forBatch(scope, 'Sink', {
-    depends: queue,
-    async handle(values, queue) {
-      await queue.sink(values);
-    }
-  });
-  return queue;
+  return this.toSink(scope, 'ToQueue', new Queue(scope, 'Queue', queueProps));
 };
 
 export type EnumerableQueueProps = EnumerableProps & events.SqsEventSourceProps;

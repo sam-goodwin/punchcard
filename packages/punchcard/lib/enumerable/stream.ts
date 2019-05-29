@@ -21,14 +21,7 @@ declare module './enumerable' {
 }
 Enumerable.prototype.toStream = function(scope: cdk.Construct, id: string, queueProps: StreamProps<any>): any {
   scope = new cdk.Construct(scope, id);
-  const stream = new Stream(scope, 'Stream', queueProps);
-  const l = this.forBatch(scope, 'Sink', {
-    depends: stream,
-    async handle(values, stream) {
-      await stream.sink(values);
-    }
-  });
-  return [stream, l];
+  return this.toSink(scope, 'ToStream', new Stream(scope, 'Stream', queueProps));
 };
 
 export type EnumerableStreamProps = EnumerableProps & events.KinesisEventSourceProps;

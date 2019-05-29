@@ -4,7 +4,7 @@ import cdk = require('@aws-cdk/cdk');
 
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import sns = require('@aws-cdk/aws-sns');
-import { Cache, Clients, Dependency, PropertyBag, Runtime } from '../compute';
+import { Cache, Clients, Dependency, Function, PropertyBag, Runtime } from '../compute';
 import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
 import { Enumerable, EnumerableProps } from './enumerable';
@@ -14,19 +14,12 @@ import { Sink, sink, SinkProps } from './sink';
 
 declare module './enumerable' {
   interface Enumerable<E, T, D extends any[], P extends EnumerableProps> {
-    toTopic(scope: cdk.Construct, id: string, streamProps: TopicProps<T>, props?: P): Topic<T>;
+    toTopic(scope: cdk.Construct, id: string, streamProps: TopicProps<T>, props?: P): [Topic<T>, Function<SNSEvent, void, Dependency.List<D>>];
   }
 }
-Enumerable.prototype.toTopic = function(scope: cdk.Construct, id: string, queueProps: TopicProps<any>): Topic<any> {
+Enumerable.prototype.toTopic = function(scope: cdk.Construct, id: string, queueProps: TopicProps<any>): [Topic<any>, Function<any, any, any>] {
   scope = new cdk.Construct(scope, id);
-  const topic = new Topic(scope, 'Stream', queueProps);
-  this.forBatch(scope, 'ForEach', {
-    depends: topic,
-    async handle(values, topic) {
-      await topic.sink(values);
-    }
-  });
-  return topic;
+  return this.toSink(scope, 'ToTopic', new Topic(scope, 'Topic', queueProps));
 };
 
 export type TopicProps<T> = {
