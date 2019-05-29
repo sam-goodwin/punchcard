@@ -1,5 +1,5 @@
 import cdk = require('@aws-cdk/cdk');
-import { integer, string, struct, Topic, Rate, λ, L, not, HashTable, Json, array, timestamp, Queue, RuntimeShape, RuntimeType, Dependency } from 'punchcard';
+import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency } from 'punchcard';
 
 import uuid = require('uuid');
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
@@ -39,7 +39,7 @@ const enrichments = new HashTable(stack, 'Enrichments', {
 });
 
 // process each message in SQS, attach some data from a DynamoDB lookup, and persist results in a Kinesis Stream.
-const [stream, processor] = queue
+const [] = queue
   .stream()
   .map({
     // define your dependencies - in this case, we need read access to the enrichments table
