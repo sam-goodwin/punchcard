@@ -80,10 +80,10 @@ export class LambdaExecutorService {
   }
 
   public apiIntegration<D extends Dependency<any>>(parent: cdk.Construct, id: string, props: {
-    clients: D;
+    depends: D;
   }): Integration<D> {
     const handler = this.spawn(parent, id, {
-      depends: props.clients,
+      depends: props.depends,
       handle: async (event: any, runtimeContext: Client<D>) => {
         const resourceId = event.__resourceId; // TODO: we implicitly know this field exists - magic field. see ../api-gateway/resource.ts
         const resource: Resource = integration.findResource(resourceId);

@@ -32,7 +32,7 @@ export type FunctionProps<T, U, D extends Dependency<any>> = {
    *
    * Each client will have a chance to grant permissions to the function and environment variables.
    */
-  dependencies?: D;
+  depends?: D;
 
   /**
    * Function to handle the event of type `T`, given initialized client instances `Clients<C>`.
@@ -77,7 +77,7 @@ export class Function<T, U, D extends Dependency<any>>
 
     this.request = props.request;
     this.response = props.response;
-    this.dependencies = props.dependencies;
+    this.dependencies = props.depends;
 
     const properties = new PropertyBag(this.node.uniqueId, {});
     if (this.dependencies) {

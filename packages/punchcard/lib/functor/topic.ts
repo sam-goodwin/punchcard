@@ -4,16 +4,16 @@ import cdk = require('@aws-cdk/cdk');
 
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import sns = require('@aws-cdk/aws-sns');
-import { Cache, Dependency, Depends, PropertyBag, Runtime } from '../compute';
+import { Cache, Clients, Dependency, PropertyBag, Runtime } from '../compute';
 import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { FunctorInput, Monad, MonadProps } from './functor';
+import { Monad, MonadProps } from './functor';
 import { Queue } from './queue';
 import { Resource } from './resource';
 import { Sink, sink, SinkProps } from './sink';
 
 declare module './functor' {
-  interface Monad<E, T, D extends Dependency<any>, P extends MonadProps> {
+  interface Monad<E, T, D extends any[], P extends MonadProps> {
     toTopic(scope: cdk.Construct, id: string, streamProps: TopicProps<T>, props?: P): Topic<T>;
   }
 }
@@ -45,9 +45,9 @@ export class Topic<T> implements Resource<sns.Topic>, Dependency<Topic.Client<T>
     this.mapper = Json.forType(props.type);
   }
 
-  public stream(): TopicStream<T, Depends.None> {
+  public stream(): TopicStream<T, []> {
     return new TopicStream(this, this as any, {
-      depends: Depends.none,
+      depends: [],
       handle: i => i
     });
   }
@@ -80,8 +80,11 @@ export class Topic<T> implements Resource<sns.Topic>, Dependency<Topic.Client<T>
   }
 }
 
-export class TopicStream<T, D extends Dependency<any>> extends Monad<SNSEvent, T, D, MonadProps>  {
-  constructor(public readonly topic: Topic<any>, previous: TopicStream<any, any>, input: FunctorInput<AsyncIterableIterator<any>, AsyncIterableIterator<T>, D>) {
+export class TopicStream<T, D extends any[]> extends Monad<SNSEvent, T, D, MonadProps>  {
+  constructor(public readonly topic: Topic<any>, previous: TopicStream<any, any>, input: {
+    depends: D;
+    handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
+  }) {
     super(previous, input.handle, input.depends);
   }
 
@@ -89,8 +92,11 @@ export class TopicStream<T, D extends Dependency<any>> extends Monad<SNSEvent, T
     return new events.SnsEventSource(this.topic.resource);
   }
 
-  public chain<U, D2 extends Dependency<any>>(input: FunctorInput<AsyncIterableIterator<T>, AsyncIterableIterator<U>, Depends.Union<D2, D>>): TopicStream<U, Depends.Union<D2, D>> {
-    return new TopicStream(this.topic, this, input);
+  public chain<U, D2 extends any[]>(input: {
+    depends: D2;
+    handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
+  }): TopicStream<U, D2> {
+    return new TopicStream<U, D2>(this.topic, this, input);
   }
 }
 

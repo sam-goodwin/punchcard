@@ -5,24 +5,23 @@ import events = require('@aws-cdk/aws-lambda-event-sources');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
-import { Dependency, Runtime, Depends } from '../compute';
+import { Clients, Dependency, Runtime } from '../compute';
 import { Cache, PropertyBag } from '../compute/property-bag';
 import { BufferMapper, Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
+import { Monad, MonadProps } from './functor';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
 
-import { Monad, MonadProps, FunctorInput } from './functor';
-
 declare module './functor' {
-  interface Monad<E, T, D extends Dependency<any>, P extends MonadProps> {
+  interface Monad<E, T, D extends any[], P extends MonadProps> {
     toStream(scope: cdk.Construct, id: string, streamProps: StreamProps<T>, props?: P): Stream<T>;
   }
 }
-Monad.prototype.toStream = function(scope: cdk.Construct, id: string, streamProps: StreamProps<any>, props: MonadProps) {
+Monad.prototype.toStream = function(scope: cdk.Construct, id: string, queueProps: StreamProps<any>): Stream<any> {
   scope = new cdk.Construct(scope, id);
-  const stream = new Stream(scope, 'Stream', streamProps);
-  this.forBatch(scope, 'ForEach', {
+  const stream = new Stream(scope, 'Stream', queueProps);
+  this.forBatch(scope, 'Sink', {
     depends: stream,
     async handle(values, stream) {
       await stream.sink(values);
@@ -32,7 +31,6 @@ Monad.prototype.toStream = function(scope: cdk.Construct, id: string, streamProp
 };
 
 export type StreamMonadProps = MonadProps & events.KinesisEventSourceProps;
-export interface IStream<T, D extends Dependency<any>> extends Monad<KinesisEvent, T, D, StreamMonadProps> {}
 
 export interface StreamProps<T> extends kinesis.StreamProps {
   type: Type<T>;
@@ -53,9 +51,9 @@ export class Stream<T> implements Resource<kinesis.Stream>, Dependency<Stream.Cl
     this.partitionBy = props.partitionBy || (_ => uuid());
   }
 
-  public stream() {
+  public stream(): StreamMonad<T, []> {
     return new StreamMonad(this, this as any, {
-      depends: Depends.none,
+      depends: [],
       handle: i => i
     });
   }
@@ -97,8 +95,11 @@ export class Stream<T> implements Resource<kinesis.Stream>, Dependency<Stream.Cl
   }
 }
 
-export class StreamMonad<T, D extends Dependency<any>> extends Monad<KinesisEvent, T, D, StreamMonadProps>  {
-  constructor(public readonly stream: Stream<any>, previous: StreamMonad<any, any>, input: FunctorInput<AsyncIterableIterator<any>, AsyncIterableIterator<T>, D>) {
+export class StreamMonad<T, D extends any[]> extends Monad<KinesisEvent, T, D, StreamMonadProps>  {
+  constructor(public readonly stream: Stream<any>, previous: StreamMonad<any, any>, input: {
+    depends: D;
+    handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
+  }) {
     super(previous, input.handle, input.depends);
   }
 
@@ -109,8 +110,11 @@ export class StreamMonad<T, D extends Dependency<any>> extends Monad<KinesisEven
     });
   }
 
-  public chain<U, D2 extends Dependency<any>>(input: FunctorInput<AsyncIterableIterator<T>, AsyncIterableIterator<U>, Depends.Union<D2, D>>): StreamMonad<U, Depends.Union<D2, D>> {
-    return new StreamMonad<U, Depends.Union<D2, D>>(this.stream, this, input);
+  public chain<U, D2 extends any[]>(input: {
+    depends: D2;
+    handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
+  }): StreamMonad<U, D2> {
+    return new StreamMonad<U, D2>(this.stream, this, input);
   }
 }
 

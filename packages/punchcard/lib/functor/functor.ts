@@ -1,6 +1,7 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
-import { Client, Dependency, Depends, Function, LambdaExecutorService } from '../compute';
+import { Client, Clients, Dependency, Function, LambdaExecutorService } from '../compute';
+import { Cons, cons } from '../compute/hlist';
 
 /**
  * Props to configure a Monad's evaluation runtime properties.
@@ -12,11 +13,6 @@ export interface MonadProps {
   executorService?: LambdaExecutorService;
 }
 
-export type FunctorInput<T, U, D extends Dependency<any>> = {
-  depends: D,
-  handle: (value: T, deps: Client<D>) => U
-};
-
 /**
  * Represents chainable async operations on a cloud data structure.
  *
@@ -25,10 +21,10 @@ export type FunctorInput<T, U, D extends Dependency<any>> = {
  * @typeparam C clients required at runtime
  * @typeparam P type of props for configuring computation infrastructure
  */
-export abstract class Monad<E, T, D extends Dependency<any>, P extends MonadProps> {
+export abstract class Monad<E, T, D extends any[], P extends MonadProps> {
   constructor(
       protected readonly previous: Monad<E, any, any, P>,
-      protected readonly f: (value: AsyncIterableIterator<any>, clients: Client<D>) => AsyncIterableIterator<T>,
+      protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,
       public readonly dependencies: D) {
     // do nothing
   }
@@ -41,26 +37,6 @@ export abstract class Monad<E, T, D extends Dependency<any>, P extends MonadProp
   public abstract eventSource(props?: P): lambda.IEventSource;
 
   /**
-   * Chain another async generator, flattening results into a single stream.
-   *
-   * Also, add to the dependencies.
-   *
-   * @param f chain function which iterates values and yields results.
-   * @param dependencies
-   */
-  public abstract chain<U, D2 extends Dependency<any>>(input: FunctorInput<AsyncIterableIterator<T>, AsyncIterableIterator<U>, Depends.Union<D2, D>>): Monad<E, U, Depends.Union<D2, D>, P>;
-
-  /**
-   * Asynchronously process an event and yield values.
-   *
-   * @param event payload
-   * @param clients bootstrapped clients
-   */
-  public run(event: E, deps: [Client<D>, any]): AsyncIterableIterator<T> {
-    return this.f(this.previous.run(event, deps[1]), deps[0]);
-  }
-
-  /**
    * Describe a transformation of values.
    *
    * **Warning**: the transformation in a map only runs when terminated, i.e. it is
@@ -68,7 +44,10 @@ export abstract class Monad<E, T, D extends Dependency<any>, P extends MonadProp
    *
    * @param f transformation function
    */
-  public map<U, D2 extends Dependency<any>>(input: FunctorInput<T, Promise<U>, D2>): Monad<E, U, Depends.Union<D2, D>, P> {
+  public map<U, D2 extends Dependency<any>>(input: {
+    depends: D2;
+    handle: (value: T, deps: Client<D2>) => Promise<U>
+  }): Monad<E, U, Cons<D, D2>, P> {
     return this.flatMap({
       depends: input.depends,
       handle: async (v, c) => [await input.handle(v, c)]
@@ -83,17 +62,43 @@ export abstract class Monad<E, T, D extends Dependency<any>, P extends MonadProp
    *
    * @param f transformation function
    */
-  public flatMap<U, D2 extends Dependency<any>>(input: FunctorInput<T, Promise<Iterable<U>>, D2>): Monad<E, U, Depends.Union<D2, D>, P> {
+  public flatMap<U, D2 extends Dependency<any>>(input: {
+    depends: D2;
+    handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>
+  }): Monad<E, U, Cons<D, D2>, P> {
     return this.chain({
-      depends: input.depends,
-      handle: (async function*(values: AsyncIterableIterator<T>, clients: [Client<D2>, Client<D>]) {
+      depends: [input.depends].concat(this.dependencies) as Cons<D, D2>,
+      handle: (async function*(values: AsyncIterableIterator<T>, clients: any) {
         for await (const value of values) {
-          for (const mapped of await input.handle(value, clients[0])) {
+          for (const mapped of await input.handle(value, clients)) {
             yield mapped;
           }
         }
       })
     });
+  }
+
+  /**
+   * Chain another async generator, flattening results into a single stream.
+   *
+   * Also, add to the dependencies.
+   *
+   * @param f chain function which iterates values and yields results.
+   * @param dependencies
+   */
+  public abstract chain<U, D2 extends any[]>(input: {
+    depends: D2;
+    handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>
+  }): Monad<E, U, D2, P>;
+
+  /**
+   * Asynchronously process an event and yield values.
+   *
+   * @param event payload
+   * @param clients bootstrapped clients
+   */
+  public run(event: E, deps: Clients<D>): AsyncIterableIterator<T> {
+    return this.f(this.previous.run(event, deps.slice(1) as any), (deps as any[])[0]);
   }
 
   /**
@@ -104,19 +109,21 @@ export abstract class Monad<E, T, D extends Dependency<any>, P extends MonadProp
    * @param f next transformation of a record
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forEach<D2 extends Dependency<any>>(scope: cdk.Construct, id: string, input: FunctorInput<T, Promise<any>, D2> & {props?: P}): Function<E, any, Depends.Union<D2, D>> {
+  public forEach<D2 extends Dependency<any>>(scope: cdk.Construct, id: string, input: {
+    depends: D2;
+    handle: (value: T, deps: Client<D2>) => Promise<any>;
+    props?: P;
+  }): Function<E, any, Dependency.List<Cons<D, D2>>> {
     const executorService = (input.props && input.props.executorService) || new LambdaExecutorService({
       memorySize: 128,
       timeout: 10
     });
     const l = executorService.spawn(scope, id, {
-      depends: Depends.on(this.dependencies, input.depends),
-      handle: async (event: E, deps) => {
-        for await (const value of this.run(event, deps)) {
-          console.log('value', value);
-          await input.handle(value, deps[1]);
+      depends: Dependency.list(input.depends, ...this.dependencies),
+      handle: async (event: E, [left, ...right]) => {
+        for await (const value of this.run(event, right as Clients<D>)) {
+          await input.handle(value, left);
         }
-        console.log('done');
       }
     });
     l.addEventSource(this.eventSource(input.props));
@@ -131,9 +138,13 @@ export abstract class Monad<E, T, D extends Dependency<any>, P extends MonadProp
    * @param f function to process batch of results
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forBatch<D2 extends Dependency<any>>(scope: cdk.Construct, id: string, input: FunctorInput<T[], Promise<any>, D2> & {props?: P}): Function<E, Depends.Union<D2, Depends.Union<Depends.None, D>>, any> {
+  public forBatch<D2 extends Dependency<any>>(scope: cdk.Construct, id: string, input: {
+    depends: D2;
+    handle: (value: T, deps: Client<D2>) => Promise<any>;
+    props?: P;
+  }): Function<E, any, Dependency.List<Cons<D, D2>>> {
     return this.chain({
-      depends: Depends.none as any,
+      depends: this.dependencies,
       async *handle(it) {
         const batch = [];
         for await (const value of it) {

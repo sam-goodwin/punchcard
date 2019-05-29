@@ -4,25 +4,30 @@ import sqs = require('@aws-cdk/aws-sqs');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 
+import { Clients, Dependency, Runtime } from '../compute';
 import { Cache, PropertyBag } from '../compute/property-bag';
 import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { MonadProps, Monad, FunctorInput } from './functor';
+import { Monad, MonadProps } from './functor';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
-import { Dependency, Runtime, Depends } from '../compute';
 
-// declare module './functor' {
-//   interface Monad<E, T, D extends Dependencies, P extends MonadProps> {
-//     toQueue(scope: cdk.Construct, id: string, queueProps: QueueProps<T>, props?: P): Queue<T>;
-//   }
-// }
-// Monad.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>, props: MonadProps): Queue<any> {
-//   scope = new cdk.Construct(scope, id);
-//   const queue = new Queue(scope, 'Stream', queueProps);
-//   this.toSink(scope, 'Sink', queue, props);
-//   return queue;
-// };
+declare module './functor' {
+  interface Monad<E, T, D extends any[], P extends MonadProps> {
+    toQueue(scope: cdk.Construct, id: string, streamProps: QueueProps<T>, props?: P): Queue<T>;
+  }
+}
+Monad.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>): Queue<any> {
+  scope = new cdk.Construct(scope, id);
+  const queue = new Queue(scope, 'Stream', queueProps);
+  this.forBatch(scope, 'Sink', {
+    depends: queue,
+    async handle(values, queue) {
+      await queue.sink(values);
+    }
+  });
+  return queue;
+};
 
 export type QueueMonadProps = MonadProps & events.SqsEventSourceProps;
 
@@ -47,9 +52,9 @@ export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAn
     this.mapper = Json.forType(props.type);
   }
 
-  public stream(): QueueMonad<T, Depends.None> {
+  public stream(): QueueMonad<T, []> {
     return new QueueMonad(this, this as any, {
-      depends: Depends.none,
+      depends: [],
       handle: i => i
     });
   }
@@ -61,7 +66,6 @@ export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAn
    * @param event payload of SQS event
    */
   public async *run(event: SQSEvent): AsyncIterableIterator<T> {
-    console.log('queue.run');
     for (const record of event.Records.map(record => this.mapper.read(record.body))) {
       yield record;
     }
@@ -122,8 +126,11 @@ export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAn
   }
 }
 
-class QueueMonad<T, D extends Dependency<any>> extends Monad<SQSEvent, T, D, MonadProps>  {
-  constructor(public readonly queue: Queue<any>, previous: QueueMonad<any, any>, input: FunctorInput<AsyncIterableIterator<any>, AsyncIterableIterator<T>, D>) {
+export class QueueMonad<T, D extends any[]> extends Monad<SQSEvent, T, D, QueueMonadProps>  {
+  constructor(public readonly queue: Queue<any>, previous: QueueMonad<any, any>, input: {
+    depends: D;
+    handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
+  }) {
     super(previous, input.handle, input.depends);
   }
 
@@ -131,8 +138,11 @@ class QueueMonad<T, D extends Dependency<any>> extends Monad<SQSEvent, T, D, Mon
     return new events.SqsEventSource(this.queue.resource, props);
   }
 
-  public chain<U, D2 extends Dependency<any>>(input: FunctorInput<AsyncIterableIterator<T>, AsyncIterableIterator<U>, Depends.Union<D2, D>>): QueueMonad<U, Depends.Union<D2, D>> {
-    return new QueueMonad(this.queue, this, input);
+  public chain<U, D2 extends any[]>(input: {
+    depends: D2;
+    handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
+  }): QueueMonad<U, D2> {
+    return new QueueMonad<U, D2>(this.queue, this, input);
   }
 }
 

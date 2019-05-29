@@ -25,9 +25,7 @@ const executorService = new punchcard.LambdaExecutorService({
 });
 
 const endpoint = executorService.apiIntegration(stack, 'MyEndpoint', {
-  clients: {
-    petStore
-  }
+  depends: petStore
 });
 
 const api = new punchcard.Api(stack, 'PetApi');
@@ -46,7 +44,7 @@ pets.setGetMethod({
       errorMessage: string()
     })
   },
-  handle: async (_, {petStore}) => {
+  handle: async (_, petStore) => {
     return response(StatusCode.Ok, await petStore.scan());
   }
 });
@@ -69,7 +67,7 @@ pet.setGetMethod({
       errorMessage: string()
     })
   },
-  handle: async ({id}, {petStore}) => {
+  handle: async ({id}, petStore) => {
     const item = await petStore.get({
       id
     });
@@ -98,7 +96,7 @@ pets.setPostMethod({
       errorMessage: string()
     })
   },
-  handle: async (request, {petStore}) => {
+  handle: async (request, petStore) => {
     const id = uuid();
     try {
       await petStore.put({

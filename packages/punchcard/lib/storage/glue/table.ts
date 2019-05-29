@@ -259,7 +259,6 @@ export namespace Table {
         // TODO: client-side encryption
         const content = await this.table.compression.compress(
           this.table.codec.join(records.map(record => this.table.mapper.write(record))));
-        console.log(content.toString('utf8'));
         const sha256 = crypto.createHash('sha256');
         sha256.update(content);
         const extension = this.table.compression.isCompressed ? `${this.table.codec.extension}.${this.table.compression.extension!}` : this.table.codec.extension;
