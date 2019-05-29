@@ -144,18 +144,34 @@ export abstract class Monad<E, T, D extends any[], P extends MonadProps> {
    */
   public forBatch<D2 extends Dependency<any>>(scope: cdk.Construct, id: string, input: {
     depends: D2;
-    handle: (value: T, deps: Client<D2>) => Promise<any>;
+    handle: (value: T[], deps: Client<D2>) => Promise<any>;
     props?: P;
   }): Function<E, any, Dependency.List<Cons<D, D2>>> {
+    return this.batched().forEach(scope, id, input);
+  }
+
+  /**
+   * Buffer flowing records into batches.
+   *
+   * @param size maximum number of records in the batch (defaults to all)
+   */
+  public batched(size?: number): Monad<E, T[], D, P> {
     return this.chain({
       depends: this.dependencies,
       async *handle(it) {
-        const batch = [];
+        let batch = [];
         for await (const value of it) {
           batch.push(value);
+          if (size && batch.length === size) {
+            yield batch;
+            batch = [];
+          }
         }
-        return yield batch;
+        if (batch.length > 0) {
+          yield batch;
+        }
+        return;
       }
-    }).forEach(scope, id, input);
+    });
   }
 }

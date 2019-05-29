@@ -56,7 +56,7 @@ const [stream, processor] = queue
         tags: enrichment ? enrichment.tags : []
       };
     }
-  })
+  }) // #toStream returns a tuple, containing the stream and the lambda function responsible for sending it data
   .toStream(stack, 'Stream', {
     // encrypt values in the stream with a customer-managed KMS key.
     encryption: StreamEncryption.Kms,
