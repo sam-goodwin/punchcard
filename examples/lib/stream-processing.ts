@@ -20,7 +20,6 @@ const topic = new Topic(stack, 'Topic', {
 
 // process each SNS notification in Lambda
 topic.stream().forEach(stack, 'ForEachNotification', {
-  depends: Dependency.none,
   async handle(message) {
     console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`);
   }

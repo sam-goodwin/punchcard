@@ -29,6 +29,26 @@ describe('run', () => {
 
     expect(results).toEqual(['string']);
   });
+  it('should not require a depends property', async () => {
+    const stack = new cdk.Stack(new cdk.App(), 'stack');
+
+    const queue = new Queue(stack, 'Queue', {
+      type: string()
+    });
+
+    const results: string[] = [];
+    await (queue.stream().forEach(stack, 'od', {
+      async handle(v) {
+        results.push(v);
+        return Promise.resolve(v);
+      }
+    }).handle({
+      Records: [{
+      body: JSON.stringify('string')
+    } as any]}, [{}], {}));
+
+    expect(results).toEqual(['string']);
+  });
   it('should transform records with a map', async () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
 

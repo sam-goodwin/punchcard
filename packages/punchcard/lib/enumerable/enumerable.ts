@@ -4,11 +4,11 @@ import { Client, Clients, Dependency, Function, LambdaExecutorService } from '..
 import { Cons } from '../compute/hlist';
 
 /**
- * Props to configure a Monad's evaluation runtime properties.
+ * Props to configure an `Enumerable's` evaluation runtime properties.
  */
 export interface EnumerableProps {
   /**
-   * By default, the executor service of a Monad can be customized.
+   * The executor service of a `Enumerable` can always be customized.
    */
   executorService?: LambdaExecutorService;
 }
@@ -44,10 +44,10 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    *
    * @param f transformation function
    */
-  public map<U, D2 extends Dependency<any>>(input: {
-    depends: D2;
+  public map<U, D2 extends Dependency<any> | undefined>(input: {
+    depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<U>
-  }): Enumerable<E, U, Cons<D, D2>, P> {
+  }): Enumerable<E, U, D2 extends undefined ? D : Cons<D, D2>, P> {
     return this.flatMap({
       depends: input.depends,
       handle: async (v, c) => [await input.handle(v, c)]
@@ -63,11 +63,11 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    * @param f transformation function
    */
   public flatMap<U, D2 extends Dependency<any> | undefined>(input: {
-    depends: D2;
+    depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>
-  }): Enumerable<E, U, Cons<D, D2>, P> {
+  }): Enumerable<E, U, D2 extends undefined ? D : Cons<D, D2>, P> {
     return this.chain({
-      depends: [input.depends].concat(this.dependencies) as Cons<D, D2>,
+      depends: (input.depends === undefined ? this.dependencies : [input.depends].concat(this.dependencies)) as any,
       handle: (async function*(values: AsyncIterableIterator<T>, clients: any) {
         for await (const value of values) {
           for (const mapped of await input.handle(value, clients)) {
@@ -101,6 +101,9 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
     if (this.dependencies === this.previous.dependencies) {
       return this.f(this.previous.run(event, deps), deps ? (deps as any[])[0] : undefined);
     } else {
+      // pass the tail of dependencies to the previous if its dependencies are different
+      // note: we are assuming that 'different' means the tail, otherwise it's a call
+      // which which doesn't add dependencies, like batch
       return this.f(this.previous.run(event, deps ? deps.slice(1) : [] as any), deps ? (deps as any[])[0] : undefined);
     }
   }
@@ -113,20 +116,28 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    * @param f next transformation of a record
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forEach<D2 extends Dependency<any>>(scope: cdk.Construct, id: string, input: {
-    depends: D2;
+  public forEach<D2 extends Dependency<any> | undefined>(scope: cdk.Construct, id: string, input: {
+    depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<any>;
     props?: P;
-  }): Function<E, any, Dependency.List<Cons<D, D2>>> {
+  }): Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
     const executorService = (input.props && input.props.executorService) || new LambdaExecutorService({
       memorySize: 128,
       timeout: 10
     });
     const l = executorService.spawn(scope, id, {
-      depends: Dependency.list(input.depends, ...this.dependencies),
-      handle: async (event: E, [head, ...tail]) => {
-        for await (const value of this.run(event, tail as Clients<D>)) {
-          await input.handle(value, head);
+      depends: input.depends === undefined
+        ? Dependency.list(...this.dependencies)
+        : Dependency.list(input.depends, ...this.dependencies),
+      handle: async (event: E, deps) => {
+        if (input.depends === undefined) {
+          for await (const value of this.run(event, deps as any)) {
+            await input.handle(value, undefined as any);
+          }
+        } else {
+          for await (const value of this.run(event, (deps as any[]).slice(1) as Clients<D>)) {
+            await input.handle(value, deps[0] as Client<D2>);
+          }
         }
       }
     });
@@ -142,11 +153,11 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    * @param f function to process batch of results
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forBatch<D2 extends Dependency<any>>(scope: cdk.Construct, id: string, input: {
-    depends: D2;
+  public forBatch<D2 extends Dependency<any> | undefined>(scope: cdk.Construct, id: string, input: {
+    depends?: D2;
     handle: (value: T[], deps: Client<D2>) => Promise<any>;
     props?: P;
-  }): Function<E, any, Dependency.List<Cons<D, D2>>> {
+  }): Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
     return this.batched().forEach(scope, id, input);
   }
 
