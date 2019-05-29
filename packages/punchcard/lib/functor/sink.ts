@@ -15,6 +15,9 @@ export interface Sink<T> {
 }
 
 export async function sink<T>(values: T[], tryPutBatch: (values: T[]) => Promise<T[]>, props: SinkProps = {}, batchSize: number): Promise<void> {
+  if (values === undefined || values.length === 0) {
+    return;
+  }
   const retry = props.retry || {
     attemptsLeft: 3,
     backoffMs: 100,
@@ -23,7 +26,7 @@ export async function sink<T>(values: T[], tryPutBatch: (values: T[]) => Promise
   const strictOrdering = props.strictOrdering === undefined ? false : props.strictOrdering;
   if (values.length <= batchSize) {
     const redrive = await tryPutBatch(values);
-    if (redrive) {
+    if (redrive && redrive.length > 0) {
       if (retry.attemptsLeft === 0) {
         throw new Error(`failed to send records to Kinesis`);
       }

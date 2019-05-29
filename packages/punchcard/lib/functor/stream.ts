@@ -25,7 +25,6 @@ Monad.prototype.toStream = function(scope: cdk.Construct, id: string, queueProps
   const l = this.forBatch(scope, 'Sink', {
     depends: stream,
     async handle(values, stream) {
-      console.log('sink', values);
       await stream.sink(values);
     }
   });
@@ -153,21 +152,19 @@ export namespace Stream {
 
     public async sink(records: T[], props?: SinkProps): Promise<void> {
       await sink(records, async values => {
-        if (values) {
-          const result = await this.putRecords(values.map(value => ({
-            Data: value,
-            PartitionKey: this.stream.partitionBy(value)
-          })));
+        const result = await this.putRecords(values.map(value => ({
+          Data: value,
+          PartitionKey: this.stream.partitionBy(value)
+        })));
 
-          if (result.FailedRecordCount) {
-            return result.Records.map((r, i) => {
-              if (r.SequenceNumber) {
-                return [i];
-              } else {
-                return [];
-              }
-            }).reduce((a, b) => a.concat(b)).map(i => values[i]);
-          }
+        if (result.FailedRecordCount) {
+          return result.Records.map((r, i) => {
+            if (r.SequenceNumber) {
+              return [i];
+            } else {
+              return [];
+            }
+          }).reduce((a, b) => a.concat(b)).map(i => values[i]);
         }
         return [];
       }, props, 500);
