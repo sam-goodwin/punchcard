@@ -32,21 +32,23 @@ const lake = new DataLake(stack, 'Lake', {
 // we can consume from the stream of data points in real-time and log out each property
 // Kinesis -> Lambda
 // Note: the type-safety of the `record`
-lake.pipelines.dataPoints.stream.forEach(stack, 'ForEachDataPoint', async ([record]) => {
-  console.log('key', record.key);
-  console.log('value', record.value);
-  console.log('data points', record.data_points);
-  console.log('timestamp', record.timestamp);
-  // console.log('this does not compile', record.doesNotExist)
-});
+lake.pipelines.dataPoints.stream
+  .stream()
+  .forEach(stack, 'ForEachDataPoint', {
+    async handle(record) {
+      console.log('key', record.key);
+      console.log('value', record.value);
+      console.log('data points', record.data_points);
+      console.log('timestamp', record.timestamp);
+      // console.log('this does not compile', record.doesNotExist)
+    }
+  });
 
 // send some dumy data to the dataPoints schema
 new LambdaExecutorService().schedule(stack, 'DummyDataPoints', {
-  clients: {
-    stream: lake.pipelines.dataPoints.stream.writeClient()
-  },
+  depends: lake.pipelines.dataPoints.stream.writeClient(),
   rate: Rate.minutes(1),
-  handle: async (_, {stream}) => {
+  handle: async (_, stream) => {
     await stream.putRecord({
       PartitionKey: 'partition-key',
       Data: {

@@ -1,3 +1,4 @@
 .punchcard
 node_modules
 *.js
+.vscode

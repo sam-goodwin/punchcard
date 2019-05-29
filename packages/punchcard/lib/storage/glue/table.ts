@@ -6,8 +6,8 @@ import glue = require('@aws-cdk/aws-glue');
 import iam = require('@aws-cdk/aws-iam');
 import cdk = require('@aws-cdk/cdk');
 
-import { Cache, PropertyBag } from '../../property-bag';
-import { Client, Runtime } from '../../runtime';
+import { Cache, PropertyBag } from '../../compute/property-bag';
+import { Runtime } from '../../compute/runtime';
 import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, Type } from '../../shape';
 import { Omit } from '../../utils';
 import { Bucket } from '../s3';
@@ -15,6 +15,7 @@ import { Codec } from './codec';
 import { Compression } from './compression';
 
 import crypto = require('crypto');
+import { Dependency } from '../../compute';
 
 /**
  * Glue partition shape must be of only string, date or numeric types.
@@ -59,7 +60,7 @@ export type TableProps<T extends Shape, P extends Partition> = {
 /**
  * Represents a partitioned Glue Table.
  */
-export class Table<T extends Shape, P extends Partition> extends glue.Table implements Client<Table.ReadWriteClient<T, P>> {
+export class Table<T extends Shape, P extends Partition> extends glue.Table implements Dependency<Table.ReadWriteClient<T, P>> {
   /**
    * Type of compression.
    */
@@ -139,26 +140,23 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
     return this.readWriteClient().install(target);
   }
 
-  public readWriteClient(): Client<Table.ReadWriteClient<T, P>> {
+  public readWriteClient(): Dependency<Table.ReadWriteClient<T, P>> {
     return this.client(this.grantReadWrite.bind(this), new Bucket(this.bucket).readWriteClient());
   }
 
-  public readClient(): Client<Table.ReadClient<T, P>> {
+  public readClient(): Dependency<Table.ReadClient<T, P>> {
     return this.client(this.grantRead.bind(this), new Bucket(this.bucket).readClient());
   }
 
-  public writeClient(): Client<Table.WriteClient<T, P>> {
+  public writeClient(): Dependency<Table.WriteClient<T, P>> {
     return this.client(this.grantWrite.bind(this), new Bucket(this.bucket).writeClient());
   }
 
-  private client<C>(grant: (grantable: iam.IGrantable) => void, bucket: Client<any>): Client<C> {
+  private client<C>(grant: (grantable: iam.IGrantable) => void, bucket: Dependency<any>): Dependency<C> {
     return {
       install: (target) => {
         grant(target.grantable);
-        bucket.install({
-          grantable: target.grantable,
-          properties: target.properties.push('bucket')
-        });
+        bucket.install(target.namespace('bucket'));
         target.properties.set('catalogId', this.database.catalogId);
         target.properties.set('databaseName', this.database.databaseName);
         target.properties.set('tableName', this.tableName);
@@ -174,7 +172,7 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
       properties.get('databaseName'),
       properties.get('tableName'),
       this,
-      new Bucket(this.bucket).bootstrap(properties.push('bucket'), cache)
+      new Bucket(this.bucket).bootstrap(properties.namespace('bucket'), cache)
     );
   }
 }
@@ -261,7 +259,6 @@ export namespace Table {
         // TODO: client-side encryption
         const content = await this.table.compression.compress(
           this.table.codec.join(records.map(record => this.table.mapper.write(record))));
-        console.log(content.toString('utf8'));
         const sha256 = crypto.createHash('sha256');
         sha256.update(content);
         const extension = this.table.compression.isCompressed ? `${this.table.codec.extension}.${this.table.compression.extension!}` : this.table.codec.extension;

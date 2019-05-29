@@ -57,6 +57,7 @@
     "@aws-cdk/aws-sqs": "^0.31.0",
     "@aws-cdk/aws-sns": "^0.31.0",
     "@aws-cdk/aws-s3": "^0.31.0",
+    "fp-ts": "^1.18.2",
     "uuid": "^3.3.2",
     "moment": "^2.24.0",
     "webpack": "^4.31.0"

@@ -13,7 +13,7 @@ describe('PropertyBag', () => {
   });
   it('push should add another namespace prefix', () => {
     const bag = new PropertyBag('test', {});
-    const subBag = bag.push('2');
+    const subBag = bag.namespace('2');
     subBag.set('key', 'value');
     expect(bag.properties).toEqual({
       test_2_key: 'value'

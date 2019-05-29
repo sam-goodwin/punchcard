@@ -74,10 +74,7 @@ async function compressionTest(compression: Compression) {
         },
       }
     } as any]
-  }, {
-    source: sourceMock as any,
-    table: tableMock as any
-  }, {});
+  }, [sourceMock as any, tableMock as any], {});
 
   expect(sourceMock.getObject.args[0][0]).toEqual({
     Key: 'key',
@@ -155,10 +152,7 @@ it('should throw Error if s3.getObject fails', async () => {
           },
         }
       } as any]
-    }, {
-      source: sourceMock as any,
-      table: tableMock as any
-    }, {});
+    }, [sourceMock as any, tableMock as any], {});
   } catch (err) {
     expect(err).toEqual(new Error('error'));
   }
@@ -190,10 +184,7 @@ it('should throw Error if table.write fails', async () => {
           },
         }
       } as any]
-    }, {
-      source: sourceMock as any,
-      table: tableMock as any
-    }, {});
+    }, [sourceMock as any, tableMock as any], {});
   } catch (err) {
     expect(err).toEqual(new Error('error'));
   }

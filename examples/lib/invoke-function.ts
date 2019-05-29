@@ -32,10 +32,8 @@ const incrementer = executorService.spawn(stack, 'Callable', {
   }),
   // response is just an integer
   response: integer(),
-  clients: {
-    table
-  },
-  handle: async (request, {table}) => {
+  depends: table,
+  handle: async (request, table) => {
     console.log(request);
     const item = await table.get({
       id: request.id
@@ -68,11 +66,9 @@ const incrementer = executorService.spawn(stack, 'Callable', {
 
 // call the incrementer function from another Lambda Function
 executorService.schedule(stack, 'Caller', {
-  clients: {
-    incrementer
-  },
+  depends: incrementer,
   rate: Rate.minutes(1),
-  handle: async (_, {incrementer}) => {
+  handle: async (_, incrementer) => {
     const newCount = await incrementer.invoke({
       id: 'id'
     });

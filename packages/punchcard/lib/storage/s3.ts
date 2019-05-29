@@ -2,34 +2,35 @@ import AWS = require('aws-sdk');
 
 import iam = require('@aws-cdk/aws-iam');
 import s3 = require('@aws-cdk/aws-s3');
-import { Cache, PropertyBag } from '../property-bag';
-import { Client, Runtime } from '../runtime';
+import { Dependency } from '../compute';
+import { Cache, PropertyBag } from '../compute/property-bag';
+import { Runtime } from '../compute/runtime';
 import { Omit } from '../utils';
 
-export class Bucket implements Client<Bucket.ReadWriteClient> {
+export class Bucket implements Dependency<Bucket.ReadWriteClient> {
   constructor(public readonly bucket: s3.IBucket) {}
 
   public install(target: Runtime): void {
     this.readWriteClient().install(target);
   }
 
-  public deleteClient(): Client<Bucket.DeleteClient> {
+  public deleteClient(): Dependency<Bucket.DeleteClient> {
     return this.client(this.bucket.grantDelete.bind(this.bucket));
   }
-  public putClient(): Client<Bucket.PutClient> {
+  public putClient(): Dependency<Bucket.PutClient> {
     return this.client(g => this.bucket.grantPut(g));
   }
-  public readWriteClient(): Client<Bucket.ReadWriteClient> {
+  public readWriteClient(): Dependency<Bucket.ReadWriteClient> {
     return this.client(g => this.bucket.grantReadWrite(g));
   }
-  public readClient(): Client<Bucket.ReadClient> {
+  public readClient(): Dependency<Bucket.ReadClient> {
     return this.client(g => this.bucket.grantRead(g));
   }
-  public writeClient(): Client<Bucket.WriteClient> {
+  public writeClient(): Dependency<Bucket.WriteClient> {
     return this.client(g => this.bucket.grantWrite(g));
   }
 
-  private client(grant: (grantable: iam.IGrantable) => void): Client<Bucket.Client> {
+  private client(grant: (grantable: iam.IGrantable) => void): Dependency<Bucket.Client> {
     return {
       install: (target) => {
         grant(target.grantable);

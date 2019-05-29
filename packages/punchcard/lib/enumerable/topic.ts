@@ -2,66 +2,62 @@ import AWS = require('aws-sdk');
 
 import cdk = require('@aws-cdk/cdk');
 
-import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import sns = require('@aws-cdk/aws-sns');
-import { Cache, PropertyBag } from '../property-bag';
-import { Client, ClientContext, Clients, Runtime } from '../runtime';
-import { BufferMapper, Json, Mapper, Type } from '../shape';
+import { Cache, Clients, Dependency, PropertyBag, Runtime } from '../compute';
+import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Chain, FunctorProps, Monad } from './functor';
+import { Enumerable, EnumerableProps } from './enumerable';
 import { Queue } from './queue';
 import { Resource } from './resource';
-import { Stream } from './stream';
+import { Sink, sink, SinkProps } from './sink';
 
-export interface ITopic<T, C extends ClientContext> extends Monad<SNSEvent, T, C, FunctorProps> {}
+declare module './enumerable' {
+  interface Enumerable<E, T, D extends any[], P extends EnumerableProps> {
+    toTopic(scope: cdk.Construct, id: string, streamProps: TopicProps<T>, props?: P): Topic<T>;
+  }
+}
+Enumerable.prototype.toTopic = function(scope: cdk.Construct, id: string, queueProps: TopicProps<any>): Topic<any> {
+  scope = new cdk.Construct(scope, id);
+  const topic = new Topic(scope, 'Stream', queueProps);
+  this.forBatch(scope, 'ForEach', {
+    depends: topic,
+    async handle(values, topic) {
+      await topic.sink(values);
+    }
+  });
+  return topic;
+};
 
 export type TopicProps<T> = {
   type: Type<T>;
 } & sns.TopicProps;
 
-export class Topic<T> extends Monad<SNSEvent, T, {}, FunctorProps> implements Client<Topic.Client<T>>, ITopic<T, {}>, Resource<sns.Topic> {
+export class Topic<T> implements Resource<sns.Topic>, Dependency<Topic.Client<T>> {
   public readonly context = {};
   public readonly type: Type<T>;
   public readonly mapper: Mapper<T, string>;
   public readonly resource: sns.Topic;
 
   constructor(scope: cdk.Construct, id: string, props: TopicProps<T>) {
-    super({});
-    this.resource = new sns.Topic(scope, id);
+    this.resource = new sns.Topic(scope, id, props);
     this.type = props.type;
     this.mapper = Json.forType(props.type);
   }
 
-  public eventSource() {
-    return new events.SnsEventSource(this.resource);
-  }
-
-  public chain<U, C2 extends ClientContext>(context: C2, f: (value: T, clients: Clients<{}>) => Promise<U[]>): ITopic<U, C2> {
-    return new TopicChain(context, this as any, f);
+  public stream(): EnumerableTopic<T, []> {
+    return new EnumerableTopic(this, this as any, {
+      depends: [],
+      handle: i => i
+    });
   }
 
   public toQueue(scope: cdk.Construct, id: string): Queue<T> {
     const q = new Queue(scope, id, {
-      mapper: this.mapper
+      type: this.type
     });
     this.subscribeQueue(q);
     return q;
-  }
-
-  public toStream(scope: cdk.Construct, id: string, props?: FunctorProps): Stream<T> {
-    scope = new cdk.Construct(scope, id);
-    const mapper = BufferMapper.wrap(this.mapper);
-    const stream = new Stream(scope, 'Stream', {
-      mapper,
-      encryption: StreamEncryption.Kms
-    });
-    this.clients({
-      stream
-    }).forEach(scope, 'Forward', async (value, {stream}) => {
-      return await stream.putAll([value]);
-    }, props);
-    return stream;
   }
 
   public subscribeQueue(queue: Queue<T>): sns.Subscription {
@@ -84,16 +80,30 @@ export class Topic<T> extends Monad<SNSEvent, T, {}, FunctorProps> implements Cl
   }
 }
 
-class TopicChain<T, U, C extends ClientContext> extends Chain<SNSEvent, T, U, C, FunctorProps> implements ITopic<U, C> {
-  public chain<V, C2 extends ClientContext>(context: C2, f: (value: U, clients: Clients<C>) => Promise<V[]>): TopicChain<U, V, C & C2> {
-    return new TopicChain({...context, ...this.context}, this as any, f);
+export class EnumerableTopic<T, D extends any[]> extends Enumerable<SNSEvent, T, D, EnumerableProps>  {
+  constructor(public readonly topic: Topic<any>, previous: EnumerableTopic<any, any>, input: {
+    depends: D;
+    handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
+  }) {
+    super(previous, input.handle, input.depends);
+  }
+
+  public eventSource() {
+    return new events.SnsEventSource(this.topic.resource);
+  }
+
+  public chain<U, D2 extends any[]>(input: {
+    depends: D2;
+    handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
+  }): EnumerableTopic<U, D2> {
+    return new EnumerableTopic<U, D2>(this.topic, this, input);
   }
 }
 
 export namespace Topic {
   export type PublishInput<T> = {Message: T} & Omit<AWS.SNS.PublishInput, 'Message' | 'TopicArn' | 'TargetArn' | 'PhoneNumber'>;
   export type PublishResponse = AWS.SNS.PublishResponse;
-  export class Client<T> {
+  export class Client<T> implements Sink<T> {
     constructor(
       public readonly mapper: Mapper<T, string>,
       public readonly topicArn: string,
@@ -105,6 +115,20 @@ export namespace Topic {
         Message: this.mapper.write(request.Message),
         TopicArn: this.topicArn
       }).promise();
+    }
+
+    public async sink(values: T[], props?: SinkProps): Promise<void> {
+      await sink(values, async ([value]) => {
+        try {
+          await this.publish({
+            Message: value
+          });
+          return [];
+        } catch (err) {
+          console.error(err);
+          return [value];
+        }
+      }, props, 1);
     }
   }
 }

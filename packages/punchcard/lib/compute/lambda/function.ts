@@ -3,15 +3,16 @@ import AWS = require('aws-sdk');
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../../constants';
-import { Client, ClientContext, Clients, Entrypoint, entrypoint, Runtime } from '../../runtime';
 import { Json, Mapper, Raw, Type } from '../../shape';
 import { Omit } from '../../utils';
 
 import fs = require('fs');
 import path = require('path');
-import { Cache, PropertyBag } from '../../property-bag';
+import { Client, Dependency } from '../dependency';
+import { Cache, PropertyBag } from '../property-bag';
+import { Entrypoint, entrypoint, Runtime } from '../runtime';
 
-export type FunctionProps<T, U, C extends ClientContext> = {
+export type FunctionProps<T, U, D extends Dependency<any>> = {
   /**
    * Type of the request
    *
@@ -31,22 +32,24 @@ export type FunctionProps<T, U, C extends ClientContext> = {
    *
    * Each client will have a chance to grant permissions to the function and environment variables.
    */
-  clients?: C;
+  depends?: D;
 
   /**
    * Function to handle the event of type `T`, given initialized client instances `Clients<C>`.
    */
-  handle: (event: T, run: Clients<C>, context: any) => Promise<U>;
+  handle: (event: T, run: Client<D>, context: any) => Promise<U>;
 } & Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>;
 
 /**
- * Runs a Function `T => U` in AWS Lambda.
+ * Runs a function `T => U` in AWS Lambda with some runtime dependencies, `D`.
  *
- * Requires Clients (permissions and environment variables), `C`.
+ * @typeparam T input type
+ * @typeparam U return type
+ * @typeparam D runtime dependencies
  */
-export class Function<T, U, C extends ClientContext>
+export class Function<T, U, D extends Dependency<any>>
     extends lambda.Function
-    implements Entrypoint, Client<Function.Client<T, U>> {
+    implements Entrypoint, Dependency<Function.Client<T, U>> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
@@ -56,13 +59,13 @@ export class Function<T, U, C extends ClientContext>
    * @param event the parsed request
    * @param clients initialized clients to dependency resources
    */
-  public readonly handle: (event: T, clients: Clients<C>, context: any) => Promise<U>;
+  public readonly handle: (event: T, clients: Client<D>, context: any) => Promise<U>;
 
   private readonly request?: Type<T>;
   private readonly response?: Type<U>;
-  private readonly clients?: C;
+  private readonly dependencies?: D;
 
-  constructor(scope: cdk.Construct, id: string, props: FunctionProps<T, U, C>) {
+  constructor(scope: cdk.Construct, id: string, props: FunctionProps<T, U, D>) {
     super(scope, id, {
       ...props,
       code: code(scope),
@@ -74,16 +77,11 @@ export class Function<T, U, C extends ClientContext>
 
     this.request = props.request;
     this.response = props.response;
-    this.clients = props.clients;
+    this.dependencies = props.depends;
 
     const properties = new PropertyBag(this.node.uniqueId, {});
-    if (this.clients) {
-      for (const [name, client] of Object.entries(this.clients)) {
-        client.install({
-          grantable: this,
-          properties: properties.push(name)
-        });
-      }
+    if (this.dependencies) {
+      this.dependencies.install(new Runtime(properties, this));
     }
     for (const [name, p] of Object.entries(properties.properties)) {
       this.addEnvironment(name, p);
@@ -98,23 +96,19 @@ export class Function<T, U, C extends ClientContext>
         bag[env] = value;
       }
     }
-    const cache = new Cache();
-    const runtimeProperties = new PropertyBag(this.node.uniqueId, bag);
+    let client: Client<D> = undefined as any;
 
-    const run: Clients<C> = {} as any;
-
-    if (this.clients) {
-      for (const [name, client] of Object.entries(this.clients)) {
-        run[name] = client.bootstrap(runtimeProperties.push(name), cache);
-      }
+    if (this.dependencies) {
+      const cache = new Cache();
+      const runtimeProperties = new PropertyBag(this.node.uniqueId, bag);
+      client = this.dependencies.bootstrap(runtimeProperties, cache);
     }
-
     const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forType(this.request);
     const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forType(this.response);
     return (async (event: any, context) => {
       const parsed = requestMapper.read(event);
       try {
-        const result = await this.handle(parsed, run, context);
+        const result = await this.handle(parsed, client, context);
         return responseMapper.write(result);
       } catch (err) {
         console.error(err);

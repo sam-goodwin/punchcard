@@ -4,18 +4,32 @@ import sqs = require('@aws-cdk/aws-sqs');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 
-import { Cache, PropertyBag } from '../property-bag';
-import { Client, ClientContext, Clients, Runtime } from '../runtime';
-import { BufferMapper, Mapper } from '../shape';
+import { Clients, Dependency, Runtime } from '../compute';
+import { Cache, PropertyBag } from '../compute/property-bag';
+import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Chain, FunctorProps, Monad } from './functor';
+import { Enumerable, EnumerableProps } from './enumerable';
 import { Resource } from './resource';
-import { Stream } from './stream';
+import { sink, Sink, SinkProps } from './sink';
 
-export type QueueFunctorProps = FunctorProps & events.SqsEventSourceProps;
-
-export interface IQueue<T, C extends ClientContext> extends Monad<SQSEvent, T, C, QueueFunctorProps> {
+declare module './enumerable' {
+  interface Enumerable<E, T, D extends any[], P extends EnumerableProps> {
+    toQueue(scope: cdk.Construct, id: string, streamProps: QueueProps<T>, props?: P): Queue<T>;
+  }
 }
+Enumerable.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>): Queue<any> {
+  scope = new cdk.Construct(scope, id);
+  const queue = new Queue(scope, 'Stream', queueProps);
+  this.forBatch(scope, 'Sink', {
+    depends: queue,
+    async handle(values, queue) {
+      await queue.sink(values);
+    }
+  });
+  return queue;
+};
+
+export type EnumerableQueueProps = EnumerableProps & events.SqsEventSourceProps;
 
 /**
  * Props for constructing a Queue.
@@ -23,28 +37,26 @@ export interface IQueue<T, C extends ClientContext> extends Monad<SQSEvent, T, C
  * It extends the standard `sqs.QueueProps` with a `mapper` instance.
  */
 export interface QueueProps<T> extends sqs.QueueProps {
-  mapper: Mapper<T, string>;
+  type: Type<T>;
 }
 /**
  * Represents a SQS Queue containtining messages of type, `T`, serialized with some `Codec`.
  */
-export class Queue<T> extends Monad<SQSEvent, T[], {}, QueueFunctorProps> implements IQueue<T[], {}>, Client<Queue.ConsumeAndSendClient<T>>, Resource<sqs.Queue> {
+export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAndSendClient<T>> {
   public readonly context = {};
   public readonly mapper: Mapper<T, string>;
   public readonly resource: sqs.Queue;
 
   constructor(scope: cdk.Construct, id: string, props: QueueProps<T>) {
-    super({});
     this.resource = new sqs.Queue(scope, id, props);
-    this.mapper = props.mapper;
+    this.mapper = Json.forType(props.type);
   }
 
-  public eventSource(props?: QueueFunctorProps) {
-    return new events.SqsEventSource(this.resource, props);
-  }
-
-  public chain<U, C2 extends ClientContext>(context: C2, f: (value: T[], clients: Clients<{}>) => Promise<U[]>): IQueue<U, C2> {
-    return new QueueChain<T[], U, C2>(context, this as any, f);
+  public stream(): EnumerableQueue<T, []> {
+    return new EnumerableQueue(this, this as any, {
+      depends: [],
+      handle: i => i
+    });
   }
 
   /**
@@ -53,29 +65,10 @@ export class Queue<T> extends Monad<SQSEvent, T[], {}, QueueFunctorProps> implem
    *
    * @param event payload of SQS event
    */
-  public async *run(event: SQSEvent): AsyncIterableIterator<T[]> {
-    return yield event.Records.map(record => this.mapper.read(record.body));
-  }
-
-  /**
-   * Create and send this queue's data to a Kinesis Stream.
-   *
-   * @param scope under which this construct should be created
-   * @param id of the construct
-   * @param props optional enumerate queue props
-   */
-  public toStream(scope: cdk.Construct, id: string, props?: QueueFunctorProps): Stream<T> {
-    scope = new cdk.Construct(scope, id);
-    const mapper = BufferMapper.wrap(this.mapper);
-    const stream = new Stream(scope, 'Stream', {
-      mapper
-    });
-    this.clients({
-      stream
-    }).forEach(scope, 'ForwardToStream', async (values, {stream}) => {
-      await stream.putAll(values);
-    }, props);
-    return stream;
+  public async *run(event: SQSEvent): AsyncIterableIterator<T> {
+    for (const record of event.Records.map(record => this.mapper.read(record.body))) {
+      yield record;
+    }
   }
 
   /**
@@ -101,7 +94,7 @@ export class Queue<T> extends Monad<SQSEvent, T[], {}, QueueFunctorProps> implem
   /**
    * A client with permission to consume and send messages.
    */
-  public consumeAndSendClient(): Client<Queue.ConsumeAndSendClient<T>> {
+  public consumeAndSendClient(): Dependency<Queue.ConsumeAndSendClient<T>> {
     return this._client(g => {
       this.resource.grantConsumeMessages(g);
       this.resource.grantSendMessages(g);
@@ -111,20 +104,20 @@ export class Queue<T> extends Monad<SQSEvent, T[], {}, QueueFunctorProps> implem
   /**
    * A client with only permission to consume messages from this Queue.
    */
-  public consumeClient(): Client<Queue.ConsumeClient<T>> {
+  public consumeClient(): Dependency<Queue.ConsumeClient<T>> {
     return this._client(g => this.resource.grantConsumeMessages(g));
   }
 
   /**
    * A client with only permission to send messages to this Queue.
    */
-  public sendClient(): Client<Queue.SendClient<T>> {
+  public sendClient(): Dependency<Queue.SendClient<T>> {
     return this._client(g => this.resource.grantSendMessages(g));
   }
 
-  private _client(grant: (grantable: iam.IGrantable) => void): Client<Queue.Client<T>> {
+  private _client(grant: (grantable: iam.IGrantable) => void): Dependency<Queue.Client<T>> {
     return {
-      install: target => {
+      install: (target: Runtime) => {
         target.properties.set('queueUrl', this.resource.queueUrl);
         grant(target.grantable);
       },
@@ -133,9 +126,23 @@ export class Queue<T> extends Monad<SQSEvent, T[], {}, QueueFunctorProps> implem
   }
 }
 
-class QueueChain<T, U, C extends ClientContext> extends Chain<SQSEvent, T, U, C, QueueFunctorProps> {
-  public chain<V, C2 extends ClientContext>(context: C2, f: (value: U, clients: Clients<C>) => Promise<V[]>): QueueChain<U, V, C & C2> {
-    return new QueueChain({...context, ...this.context}, this as any, f);
+export class EnumerableQueue<T, D extends any[]> extends Enumerable<SQSEvent, T, D, EnumerableQueueProps>  {
+  constructor(public readonly queue: Queue<any>, previous: EnumerableQueue<any, any>, input: {
+    depends: D;
+    handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
+  }) {
+    super(previous, input.handle, input.depends);
+  }
+
+  public eventSource(props?: EnumerableQueueProps) {
+    return new events.SqsEventSource(this.queue.resource, props);
+  }
+
+  public chain<U, D2 extends any[]>(input: {
+    depends: D2;
+    handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
+  }): EnumerableQueue<U, D2> {
+    return new EnumerableQueue<U, D2>(this.queue, this, input);
   }
 }
 
@@ -157,7 +164,7 @@ export namespace Queue {
   /**
    * Runtime representation of a SQS Queue.
    */
-  export class Client<T> {
+  export class Client<T> implements Sink<T> {
     constructor(
       public readonly queueUrl: string,
       public readonly client: AWS.SQS,
@@ -200,6 +207,23 @@ export namespace Queue {
           MessageBody: this.mapper.write(record.MessageBody)
         }))
       }).promise();
+    }
+
+    public async sink(records: T[], props?: SinkProps): Promise<void> {
+      return sink(records, async values => {
+        const batch = values.map((value, i) => ({
+          Id: i.toString(10),
+          MessageBody: value,
+        }));
+        const result = await this.sendMessageBatch(batch);
+
+        if (result.Failed) {
+          return result.Failed
+            .map(r => parseInt(r.Id, 10))
+            .map(i => values[i]);
+        }
+        return [];
+      }, props, 10);
     }
   }
 }

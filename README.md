@@ -7,45 +7,60 @@ Punchcard is an opinionated, high-level framework for building cloud-native appl
 The below snippet should give you a feel for the `punchcard` developer experience:
 
 ```ts
-// create a standard aws-cdk App and Stack
 const app = new cdk.App();
 export default app;
-const stack = new cdk.Stack(app, 'topic-and-queue');
+const stack = new cdk.Stack(app, 'stream-processing');
 
-// create a SNS Topic
+// create a strongly-typed SNS Topic
 const topic = new Topic(stack, 'Topic', {
-  // all data structures have well-defined types
   type: struct({
     key: string(),
-    count: integer()
+    count: integer(),
+    timestamp
   })
 });
 
-topic.forEach(stack, 'ForEachNotification', async event => {
-  // do something in a Lambda Function for each notification
-  console.log('got notification');
-})
+// process each SNS notification in Lambda
+topic.stream().forEach(stack, 'ForEachNotification', {
+  async handle(message) {
+    console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`);
+  }
+});
 
-// forward notifications to a SQS queue
+// subscribe topic to a new SQS Queue
 const queue = topic.toQueue(stack, 'Queue');
 
-// forward data from the Queue to a Kinesis stream, because why not?
-const stream = queue.toStream(stack, 'Stream');
-
-// process data in stream, using familiar map and forEach operations
-stream
-  .flatMap(async vs => vs)
-  .map(async v => v.count)
-  .forEach(stack, 'ParseNumbers', async number => console.log(number));
+// process messages from the queue and collect in a Kinesis stream
+queue
+  .stream() // like java streams - a lazily evaluated chainable api for messages in the SQS Queue.
+  .map({
+    // some transformation logic
+    async handle(event) {
+      return {
+        ...event,
+        extra: 'data'
+      }
+    }
+  })
+  .toStream(stack, 'MyStream', {
+    encryption: StreamEncryption.Kms,
+    // partition by the key field
+    partitionBy: message => message.key,
+    // type of data in Kinesis
+    type: struct({
+      key: string(),
+      count: integer(),
+      timestamp,
+      extra: string()
+    })
+  });
 
 // publish a dummy SNS message every minute
 λ().schedule(stack, 'DummyData', {
-  clients: {
-    // we need a client to the `topic` resource to publish SNS messages
-    topic
-  },
+  // we need a client to the `topic` resource to publish SNS messages
+  depends: topic,
   rate: Rate.minutes(1),
-  handle: async (_, {topic}) => {
+  handle: async (_, topic) => {
     // a client instance for the topic will then be passed to your handler
     await topic.publish({
       Message: {
@@ -58,7 +73,7 @@ stream
 ```
 
 ## [Examples]([examples](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib))
-* [SNS Topic and SQS Queue](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/topic-and-queue.ts) - respond to SNS notifications with a Lambda Function; subscribe notifications to a SQS Queue and process them with a Lambda Function.
+* [Stream Processing](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/stream-processing.ts) - respond to SNS notifications with a Lambda Function; subscribe notifications to a SQS Queue and process them with a Lambda Function; process and forward data from a SQS Queue to a Kinesis Stream.
 * [Invoke a Function from another Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/invoke-function.ts) - call a Function from another Function
 * [Real-Time Data Lake](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/data-lake.ts) - collects data with Kinesis and persists to S3, exposed as a Glue Table in a Glue Database.
 * [Scheduled Lambda Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/scheduled-function.ts) - runs a Lambda Function every minute and stores data in a DynamoDB Table.

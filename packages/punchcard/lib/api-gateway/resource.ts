@@ -1,8 +1,8 @@
 import apigateway = require('@aws-cdk/aws-apigateway');
 import cdk = require('@aws-cdk/cdk');
 
+import { Dependency } from '../compute/dependency';
 import { isRuntime } from '../constants';
-import { ClientContext } from '../runtime';
 import { jsonSchema, Kind, Mapper, Raw, Shape, StructType, Type } from '../shape';
 import { Tree } from '../tree';
 import { Method, MethodName, RequestMappings, Response, Responses } from './method';
@@ -77,31 +77,31 @@ export class Resource extends Tree<Resource> {
     }
   }
 
-  public setDeleteMethod<R extends ClientContext, T extends Shape, U extends Responses>(method: Method<R, T, U, 'DELETE'>) {
+  public setDeleteMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'DELETE'>) {
     this.addMethod('DELETE', method);
   }
 
-  public setGetMethod<R extends ClientContext, T extends Shape, U extends Responses>(method: Method<R, T, U, 'GET'>) {
+  public setGetMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'GET'>) {
     this.addMethod('GET', method);
   }
 
-  public setHeadMethod<R extends ClientContext, T extends Shape, U extends Responses>(method: Method<R, T, U, 'HEAD'>) {
+  public setHeadMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'HEAD'>) {
     this.addMethod('HEAD', method);
   }
 
-  public setOptionsMethod<R extends ClientContext, T extends Shape, U extends Responses>(method: Method<R, T, U, 'OPTIONS'>) {
+  public setOptionsMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'OPTIONS'>) {
     this.addMethod('OPTIONS', method);
   }
 
-  public setPatchMethod<R extends ClientContext, T extends Shape, U extends Responses>(method: Method<R, T, U, 'PATCH'>) {
+  public setPatchMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'PATCH'>) {
     this.addMethod('PATCH', method);
   }
 
-  public setPostMethod<R extends ClientContext, T extends Shape, U extends Responses>(method: Method<R, T, U, 'POST'>) {
+  public setPostMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'POST'>) {
     this.addMethod('POST', method);
   }
 
-  public setPutMethod<R extends ClientContext, T extends Shape, U extends Responses>(method: Method<R, T, U, 'PUT'>) {
+  public setPutMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'PUT'>) {
     this.addMethod('PUT', method);
   }
 
@@ -109,7 +109,7 @@ export class Resource extends Tree<Resource> {
     return new Resource(this, pathPart, options);
   }
 
-  private addMethod<R extends ClientContext, T extends Shape, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
+  private addMethod<R extends Dependency<any>, T extends Shape, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
     this.makeHandler(methodName, method);
     if (isRuntime()) {
       // don't do expensive work at runtime

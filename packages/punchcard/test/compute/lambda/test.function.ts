@@ -2,7 +2,7 @@ import cdk = require('@aws-cdk/cdk');
 import 'jest';
 import sinon = require('sinon');
 
-import { Client, Function } from '../../../lib';
+import { Dependency, Function, L } from '../../../lib';
 import { setRuntime } from '../../../lib/constants';
 
 // stop web-pack from running
@@ -12,34 +12,31 @@ setRuntime();
 describe('Function', () => {
   it('should install clients in context', () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
-    const client: Client<any> = {
+    const client: Dependency<any> = {
       install: target => target.properties.set('test', 'value'),
       bootstrap: () => null
     };
-    const f = new Function(stack, 'function', {
-      clients: {
-        client
-      },
+    const f = L().spawn(stack, 'function', {
+      depends: client,
       handle: null as any
     });
-    expect((f as any).environment[`${f.node.uniqueId}_client_test`]).toEqual('value');
+    expect((f as any).environment[`${f.node.uniqueId}_test`]).toEqual('value');
   });
   it('should bootstrap all clients on boot and pass to handler', async () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
-    const client: Client<any> = {
+    const client: Dependency<any> = {
       install: target => target.properties.set('test', 'value'),
       bootstrap: () => 'client'
     };
     const fake = sinon.fake();
     const f = new Function(stack, 'function', {
-      clients: {
-        client
-      },
+      depends: client,
       handle: fake
     });
     const handler = await f.boot();
     await handler(null, null);
-    expect(fake.calledOnceWithExactly(null, {client: 'client'}, null)).toBe(true);
+    expect(fake.args[0][1]).toEqual('client');
+    expect(fake.calledOnceWithExactly(null, 'client', null)).toBe(true);
   });
 });
 describe('Function.Client', () => {
@@ -134,3 +131,57 @@ describe('Function.Client', () => {
     }
   });
 });
+
+it('should install and bootstrap dependencies', async () => {
+  const dependency = {
+    bootstrap: sinon.fake.returns(1),
+    install: sinon.fake()
+  };
+
+  const f = L().spawn(new cdk.Stack(new cdk.App(), 'stack'), 'f', {
+    depends: dependency,
+    async handle(_, dep) {
+      return dep.toString(); // expect '1' as result
+    }
+  });
+
+  expect(await (await f.boot())('event', {})).toEqual('1');
+  expect(dependency.install.calledOnce).toBe(true);
+});
+
+it('should install and bootstrap nested dependencies', async () => {
+  const dependency = {
+    bootstrap: sinon.fake.returns(1),
+    install: sinon.fake()
+  };
+
+  const f = L().spawn(new cdk.Stack(new cdk.App(), 'stack'), 'f', {
+    depends: Dependency.list(dependency, dependency),
+    async handle(_, [d1, d2]) {
+      return d1.toString() + d2.toString(); // expect '11' as result
+    }
+  });
+
+  expect(await (await f.boot())('event', {})).toEqual('11');
+  expect(dependency.install.calledTwice).toBe(true);
+});
+
+// it('should install and bootstrap named dependencies', async () => {
+//   const dependency = {
+//     bootstrap: sinon.fake.returns(1),
+//     install: sinon.fake()
+//   };
+
+//   const f = L().spawn(new cdk.Stack(new cdk.App(), 'stack'), 'f', {
+//     depends: Dependency.list({
+//       d1: dependency,
+//       d2: dependency
+//     }),
+//     async handle(_, {d1, d2}) {
+//       return d1.toString() + d2.toString(); // expect '11' as result
+//     }
+//   });
+
+//   expect(await (await f.boot())('event', {})).toEqual('11');
+//   expect(dependency.install.calledTwice).toBe(true);
+// });
