@@ -62,7 +62,7 @@ export abstract class Monad<E, T, D extends any[], P extends MonadProps> {
    *
    * @param f transformation function
    */
-  public flatMap<U, D2 extends Dependency<any>>(input: {
+  public flatMap<U, D2 extends Dependency<any> | undefined>(input: {
     depends: D2;
     handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>
   }): Monad<E, U, Cons<D, D2>, P> {
@@ -98,7 +98,11 @@ export abstract class Monad<E, T, D extends any[], P extends MonadProps> {
    * @param clients bootstrapped clients
    */
   public run(event: E, deps: Clients<D>): AsyncIterableIterator<T> {
-    return this.f(this.previous.run(event, deps.slice(1) as any), (deps as any[])[0]);
+    if (this.dependencies === this.previous.dependencies) {
+      return this.f(this.previous.run(event, deps), deps ? (deps as any[])[0] : undefined);
+    } else {
+      return this.f(this.previous.run(event, deps ? deps.slice(1) : [] as any), deps ? (deps as any[])[0] : undefined);
+    }
   }
 
   /**
@@ -120,9 +124,9 @@ export abstract class Monad<E, T, D extends any[], P extends MonadProps> {
     });
     const l = executorService.spawn(scope, id, {
       depends: Dependency.list(input.depends, ...this.dependencies),
-      handle: async (event: E, [left, ...right]) => {
-        for await (const value of this.run(event, right as Clients<D>)) {
-          await input.handle(value, left);
+      handle: async (event: E, [head, ...tail]) => {
+        for await (const value of this.run(event, tail as Clients<D>)) {
+          await input.handle(value, head);
         }
       }
     });

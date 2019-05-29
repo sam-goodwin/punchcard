@@ -5,7 +5,8 @@ import events = require('@aws-cdk/aws-lambda-event-sources');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
-import { Clients, Dependency, Runtime } from '../compute';
+import { Clients, Dependency, Function, Runtime } from '../compute';
+import { Cons } from '../compute/hlist';
 import { Cache, PropertyBag } from '../compute/property-bag';
 import { BufferMapper, Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
@@ -15,19 +16,20 @@ import { sink, Sink, SinkProps } from './sink';
 
 declare module './functor' {
   interface Monad<E, T, D extends any[], P extends MonadProps> {
-    toStream(scope: cdk.Construct, id: string, streamProps: StreamProps<T>, props?: P): Stream<T>;
+    toStream(scope: cdk.Construct, id: string, streamProps: StreamProps<T>, props?: P): [Stream<T>, Function<E, void, Dependency.List<Cons<D, Stream<T>>>>];
   }
 }
-Monad.prototype.toStream = function(scope: cdk.Construct, id: string, queueProps: StreamProps<any>): Stream<any> {
+Monad.prototype.toStream = function(scope: cdk.Construct, id: string, queueProps: StreamProps<any>): any {
   scope = new cdk.Construct(scope, id);
   const stream = new Stream(scope, 'Stream', queueProps);
-  this.forBatch(scope, 'Sink', {
+  const l = this.forBatch(scope, 'Sink', {
     depends: stream,
     async handle(values, stream) {
+      console.log('sink', values);
       await stream.sink(values);
     }
   });
-  return stream;
+  return [stream, l];
 };
 
 export type StreamMonadProps = MonadProps & events.KinesisEventSourceProps;
@@ -151,19 +153,21 @@ export namespace Stream {
 
     public async sink(records: T[], props?: SinkProps): Promise<void> {
       await sink(records, async values => {
-        const result = await this.putRecords(values.map(value => ({
-          Data: value,
-          PartitionKey: this.stream.partitionBy(value)
-        })));
+        if (values) {
+          const result = await this.putRecords(values.map(value => ({
+            Data: value,
+            PartitionKey: this.stream.partitionBy(value)
+          })));
 
-        if (result.FailedRecordCount) {
-          return result.Records.map((r, i) => {
-            if (r.SequenceNumber) {
-              return [i];
-            } else {
-              return [];
-            }
-          }).reduce((a, b) => a.concat(b)).map(i => values[i]);
+          if (result.FailedRecordCount) {
+            return result.Records.map((r, i) => {
+              if (r.SequenceNumber) {
+                return [i];
+              } else {
+                return [];
+              }
+            }).reduce((a, b) => a.concat(b)).map(i => values[i]);
+          }
         }
         return [];
       }, props, 500);

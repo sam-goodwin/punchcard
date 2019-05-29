@@ -40,7 +40,7 @@ const enrichments = new HashTable(stack, 'Enrichments', {
 });
 
 // process each message in SQS, attach some data from a DynamoDB lookup, and persist results in a Kinesis Stream.
-queue
+const [stream, processor] = queue
   .stream()
   .map({
     // define your dependencies - in this case, we need read access to the enrichments table

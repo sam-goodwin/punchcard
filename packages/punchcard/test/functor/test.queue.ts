@@ -1,4 +1,5 @@
 import 'jest';
+import sinon = require('sinon');
 
 import cdk = require('@aws-cdk/cdk');
 import { Dependency, Function, integer, Queue, string } from '../../lib';
@@ -35,41 +36,73 @@ describe('run', () => {
       type: string()
     });
 
+    const d1: Dependency<string> = {
+      bootstrap: () => 'd1',
+      install: () => undefined
+    };
+    const d2: Dependency<string> = {
+      bootstrap: () => 'd2',
+      install: () => undefined
+    };
+
     const results: number[] = [];
-    await (queue.stream().map({
-      depends: Dependency.none,
-      handle: async (v) => v.length
+    const f = await (queue.stream().map({
+      depends: d1,
+      handle: async (v, d1) => {
+        expect(d1).toEqual('d1');
+        return v.length;
+      }
     }).forEach(stack, 'od', {
-      depends: Dependency.none,
-        handle: async v => {
+      depends: d2,
+      handle: async (v, d2) => {
+        expect(d2).toEqual('d2');
         results.push(v);
         return Promise.resolve(v);
       }
-    }) as any).handle({
+    }).boot());
+
+    await f({
       Records: [{
       body: JSON.stringify('string')
-    } as any]}, [Dependency.none, Dependency.none]);
+    } as any]}, {});
 
     expect(results).toEqual(['string'.length]);
+    expect.assertions(3);
   });
-  // it('should send to Kinesis Stream', async () => {
-  //   const stack = new cdk.Stack(new cdk.App(), 'stack');
+  it('should transform records with a map and toStream', async () => {
+    const stack = new cdk.Stack(new cdk.App(), 'stack');
 
-  //   const queue = new Queue(stack, 'Queue', {
-  //     type: string()
-  //   });
+    const queue = new Queue(stack, 'Queue', {
+      type: string()
+    });
 
-  //   queue.stream().map({
-  //     depends: Dependency.none,
-  //     handle: async (v) => v.length
-  //   }).toStream(stack, 'ToStream', {
-  //     partitionBy: n => n.toString(),
-  //     type: integer(),
-  //   });
+    const d1: Dependency<string> = {
+      bootstrap: () => 'd1',
+      install: () => undefined
+    };
 
-  //   await f.handle({
-  //     Records: [{
-  //     body: JSON.stringify('string')
-  //   } as any]}, [])
-  // })
+    const [, l] = queue.stream()
+      .map({
+        depends: d1,
+        handle: async (v, d1) => {
+          expect(d1).toEqual('d1');
+          return v.length;
+        }
+      })
+      .toStream(stack, 'Stream', {
+        type: integer()
+      });
+
+    const sink = {
+      sink: sinon.fake()
+    };
+
+    await l.handle({
+      Records: [{
+      body: JSON.stringify('string')
+    } as any]}, [sink as any, 'd1'], {});
+
+    expect(sink.sink.calledOnceWith(['string'.length])).toBe(true);
+    expect.assertions(2);
+  });
 });

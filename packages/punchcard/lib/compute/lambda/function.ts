@@ -103,7 +103,6 @@ export class Function<T, U, D extends Dependency<any>>
       const runtimeProperties = new PropertyBag(this.node.uniqueId, bag);
       client = this.dependencies.bootstrap(runtimeProperties, cache);
     }
-
     const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forType(this.request);
     const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forType(this.response);
     return (async (event: any, context) => {
