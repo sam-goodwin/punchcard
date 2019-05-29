@@ -8,16 +8,16 @@ import { Clients, Dependency, Runtime } from '../compute';
 import { Cache, PropertyBag } from '../compute/property-bag';
 import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Monad, MonadProps } from './functor';
+import { Enumerable, EnumerableProps } from './enumerable';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
 
-declare module './functor' {
-  interface Monad<E, T, D extends any[], P extends MonadProps> {
+declare module './enumerable' {
+  interface Enumerable<E, T, D extends any[], P extends EnumerableProps> {
     toQueue(scope: cdk.Construct, id: string, streamProps: QueueProps<T>, props?: P): Queue<T>;
   }
 }
-Monad.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>): Queue<any> {
+Enumerable.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>): Queue<any> {
   scope = new cdk.Construct(scope, id);
   const queue = new Queue(scope, 'Stream', queueProps);
   this.forBatch(scope, 'Sink', {
@@ -29,7 +29,7 @@ Monad.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps:
   return queue;
 };
 
-export type QueueMonadProps = MonadProps & events.SqsEventSourceProps;
+export type EnumerableQueueProps = EnumerableProps & events.SqsEventSourceProps;
 
 /**
  * Props for constructing a Queue.
@@ -52,8 +52,8 @@ export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAn
     this.mapper = Json.forType(props.type);
   }
 
-  public stream(): QueueMonad<T, []> {
-    return new QueueMonad(this, this as any, {
+  public stream(): EnumerableQueue<T, []> {
+    return new EnumerableQueue(this, this as any, {
       depends: [],
       handle: i => i
     });
@@ -126,23 +126,23 @@ export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAn
   }
 }
 
-export class QueueMonad<T, D extends any[]> extends Monad<SQSEvent, T, D, QueueMonadProps>  {
-  constructor(public readonly queue: Queue<any>, previous: QueueMonad<any, any>, input: {
+export class EnumerableQueue<T, D extends any[]> extends Enumerable<SQSEvent, T, D, EnumerableQueueProps>  {
+  constructor(public readonly queue: Queue<any>, previous: EnumerableQueue<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
   }) {
     super(previous, input.handle, input.depends);
   }
 
-  public eventSource(props?: QueueMonadProps) {
+  public eventSource(props?: EnumerableQueueProps) {
     return new events.SqsEventSource(this.queue.resource, props);
   }
 
   public chain<U, D2 extends any[]>(input: {
     depends: D2;
     handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
-  }): QueueMonad<U, D2> {
-    return new QueueMonad<U, D2>(this.queue, this, input);
+  }): EnumerableQueue<U, D2> {
+    return new EnumerableQueue<U, D2>(this.queue, this, input);
   }
 }
 

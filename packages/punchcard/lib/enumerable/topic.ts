@@ -7,17 +7,17 @@ import sns = require('@aws-cdk/aws-sns');
 import { Cache, Clients, Dependency, PropertyBag, Runtime } from '../compute';
 import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Monad, MonadProps } from './functor';
+import { Enumerable, EnumerableProps } from './enumerable';
 import { Queue } from './queue';
 import { Resource } from './resource';
 import { Sink, sink, SinkProps } from './sink';
 
-declare module './functor' {
-  interface Monad<E, T, D extends any[], P extends MonadProps> {
+declare module './enumerable' {
+  interface Enumerable<E, T, D extends any[], P extends EnumerableProps> {
     toTopic(scope: cdk.Construct, id: string, streamProps: TopicProps<T>, props?: P): Topic<T>;
   }
 }
-Monad.prototype.toTopic = function(scope: cdk.Construct, id: string, queueProps: TopicProps<any>): Topic<any> {
+Enumerable.prototype.toTopic = function(scope: cdk.Construct, id: string, queueProps: TopicProps<any>): Topic<any> {
   scope = new cdk.Construct(scope, id);
   const topic = new Topic(scope, 'Stream', queueProps);
   this.forBatch(scope, 'ForEach', {
@@ -45,8 +45,8 @@ export class Topic<T> implements Resource<sns.Topic>, Dependency<Topic.Client<T>
     this.mapper = Json.forType(props.type);
   }
 
-  public stream(): TopicStream<T, []> {
-    return new TopicStream(this, this as any, {
+  public stream(): EnumerableTopic<T, []> {
+    return new EnumerableTopic(this, this as any, {
       depends: [],
       handle: i => i
     });
@@ -80,8 +80,8 @@ export class Topic<T> implements Resource<sns.Topic>, Dependency<Topic.Client<T>
   }
 }
 
-export class TopicStream<T, D extends any[]> extends Monad<SNSEvent, T, D, MonadProps>  {
-  constructor(public readonly topic: Topic<any>, previous: TopicStream<any, any>, input: {
+export class EnumerableTopic<T, D extends any[]> extends Enumerable<SNSEvent, T, D, EnumerableProps>  {
+  constructor(public readonly topic: Topic<any>, previous: EnumerableTopic<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
   }) {
@@ -95,8 +95,8 @@ export class TopicStream<T, D extends any[]> extends Monad<SNSEvent, T, D, Monad
   public chain<U, D2 extends any[]>(input: {
     depends: D2;
     handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
-  }): TopicStream<U, D2> {
-    return new TopicStream<U, D2>(this.topic, this, input);
+  }): EnumerableTopic<U, D2> {
+    return new EnumerableTopic<U, D2>(this.topic, this, input);
   }
 }
 

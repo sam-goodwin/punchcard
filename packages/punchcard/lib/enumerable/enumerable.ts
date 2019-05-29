@@ -1,12 +1,12 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 import { Client, Clients, Dependency, Function, LambdaExecutorService } from '../compute';
-import { Cons, cons } from '../compute/hlist';
+import { Cons } from '../compute/hlist';
 
 /**
  * Props to configure a Monad's evaluation runtime properties.
  */
-export interface MonadProps {
+export interface EnumerableProps {
   /**
    * By default, the executor service of a Monad can be customized.
    */
@@ -21,9 +21,9 @@ export interface MonadProps {
  * @typeparam C clients required at runtime
  * @typeparam P type of props for configuring computation infrastructure
  */
-export abstract class Monad<E, T, D extends any[], P extends MonadProps> {
+export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProps> {
   constructor(
-      protected readonly previous: Monad<E, any, any, P>,
+      protected readonly previous: Enumerable<E, any, any, P>,
       protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,
       public readonly dependencies: D) {
     // do nothing
@@ -47,7 +47,7 @@ export abstract class Monad<E, T, D extends any[], P extends MonadProps> {
   public map<U, D2 extends Dependency<any>>(input: {
     depends: D2;
     handle: (value: T, deps: Client<D2>) => Promise<U>
-  }): Monad<E, U, Cons<D, D2>, P> {
+  }): Enumerable<E, U, Cons<D, D2>, P> {
     return this.flatMap({
       depends: input.depends,
       handle: async (v, c) => [await input.handle(v, c)]
@@ -65,7 +65,7 @@ export abstract class Monad<E, T, D extends any[], P extends MonadProps> {
   public flatMap<U, D2 extends Dependency<any> | undefined>(input: {
     depends: D2;
     handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>
-  }): Monad<E, U, Cons<D, D2>, P> {
+  }): Enumerable<E, U, Cons<D, D2>, P> {
     return this.chain({
       depends: [input.depends].concat(this.dependencies) as Cons<D, D2>,
       handle: (async function*(values: AsyncIterableIterator<T>, clients: any) {
@@ -89,7 +89,7 @@ export abstract class Monad<E, T, D extends any[], P extends MonadProps> {
   public abstract chain<U, D2 extends any[]>(input: {
     depends: D2;
     handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>
-  }): Monad<E, U, D2, P>;
+  }): Enumerable<E, U, D2, P>;
 
   /**
    * Asynchronously process an event and yield values.
@@ -155,7 +155,7 @@ export abstract class Monad<E, T, D extends any[], P extends MonadProps> {
    *
    * @param size maximum number of records in the batch (defaults to all)
    */
-  public batched(size?: number): Monad<E, T[], D, P> {
+  public batched(size?: number): Enumerable<E, T[], D, P> {
     return this.chain({
       depends: this.dependencies,
       async *handle(it) {

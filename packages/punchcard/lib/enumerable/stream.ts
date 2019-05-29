@@ -10,16 +10,16 @@ import { Cons } from '../compute/hlist';
 import { Cache, PropertyBag } from '../compute/property-bag';
 import { BufferMapper, Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Monad, MonadProps } from './functor';
+import { Enumerable, EnumerableProps } from './enumerable';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
 
-declare module './functor' {
-  interface Monad<E, T, D extends any[], P extends MonadProps> {
+declare module './enumerable' {
+  interface Enumerable<E, T, D extends any[], P extends EnumerableProps> {
     toStream(scope: cdk.Construct, id: string, streamProps: StreamProps<T>, props?: P): [Stream<T>, Function<E, void, Dependency.List<Cons<D, Stream<T>>>>];
   }
 }
-Monad.prototype.toStream = function(scope: cdk.Construct, id: string, queueProps: StreamProps<any>): any {
+Enumerable.prototype.toStream = function(scope: cdk.Construct, id: string, queueProps: StreamProps<any>): any {
   scope = new cdk.Construct(scope, id);
   const stream = new Stream(scope, 'Stream', queueProps);
   const l = this.forBatch(scope, 'Sink', {
@@ -31,7 +31,7 @@ Monad.prototype.toStream = function(scope: cdk.Construct, id: string, queueProps
   return [stream, l];
 };
 
-export type StreamMonadProps = MonadProps & events.KinesisEventSourceProps;
+export type EnumerableStreamProps = EnumerableProps & events.KinesisEventSourceProps;
 
 export interface StreamProps<T> extends kinesis.StreamProps {
   type: Type<T>;
@@ -52,8 +52,8 @@ export class Stream<T> implements Resource<kinesis.Stream>, Dependency<Stream.Cl
     this.partitionBy = props.partitionBy || (_ => uuid());
   }
 
-  public stream(): StreamMonad<T, []> {
-    return new StreamMonad(this, this as any, {
+  public stream(): EnumerableStream<T, []> {
+    return new EnumerableStream(this, this as any, {
       depends: [],
       handle: i => i
     });
@@ -96,15 +96,15 @@ export class Stream<T> implements Resource<kinesis.Stream>, Dependency<Stream.Cl
   }
 }
 
-export class StreamMonad<T, D extends any[]> extends Monad<KinesisEvent, T, D, StreamMonadProps>  {
-  constructor(public readonly stream: Stream<any>, previous: StreamMonad<any, any>, input: {
+export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEvent, T, D, EnumerableStreamProps>  {
+  constructor(public readonly stream: Stream<any>, previous: EnumerableStream<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
   }) {
     super(previous, input.handle, input.depends);
   }
 
-  public eventSource(props?: StreamMonadProps) {
+  public eventSource(props?: EnumerableStreamProps) {
     return new events.KinesisEventSource(this.stream.resource, props || {
       batchSize: 100,
       startingPosition: StartingPosition.TrimHorizon
@@ -114,8 +114,8 @@ export class StreamMonad<T, D extends any[]> extends Monad<KinesisEvent, T, D, S
   public chain<U, D2 extends any[]>(input: {
     depends: D2;
     handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
-  }): StreamMonad<U, D2> {
-    return new StreamMonad<U, D2>(this.stream, this, input);
+  }): EnumerableStream<U, D2> {
+    return new EnumerableStream<U, D2>(this.stream, this, input);
   }
 }
 
