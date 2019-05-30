@@ -2,7 +2,7 @@ import 'jest';
 import sinon = require('sinon');
 
 import cdk = require('@aws-cdk/cdk');
-import { Dependency, Function, integer, Queue, string, Stream } from '../../lib';
+import { Dependency, Function, integer, Queue, Stream, string } from '../../lib';
 import { setRuntime } from '../../lib/constants';
 
 setRuntime();
