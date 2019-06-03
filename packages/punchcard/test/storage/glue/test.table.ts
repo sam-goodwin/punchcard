@@ -33,18 +33,20 @@ it('should map columns and partition keys to their respective types', () => {
         a: integer()
       })
     },
-    partitions: {
-      year: smallint(),
-      month: smallint()
+    partition: {
+      keys: {
+        year: smallint(),
+        month: smallint()
+      },
+      get: ({timestamp}) => ({
+        year: timestamp.getUTCFullYear(),
+        month: timestamp.getUTCMonth()
+      })
     },
-    partitioner: ({timestamp}) => ({
-      year: timestamp.getUTCFullYear(),
-      month: timestamp.getUTCMonth()
-    })
   });
 
-  expect(table.dataFormat).toEqual(glue.DataFormat.Json);
-  expect(table.columns).toEqual([{
+  expect(table.resource.dataFormat).toEqual(glue.DataFormat.Json);
+  expect(table.resource.columns).toEqual([{
     name: 'boolean',
     type: {
       inputString: 'boolean',
@@ -135,7 +137,7 @@ it('should map columns and partition keys to their respective types', () => {
       isPrimitive: false
     }
   }]);
-  expect(table.partitionKeys).toEqual([{
+  expect(table.resource.partitionKeys).toEqual([{
     name: 'year',
     type: {
       inputString: 'smallint',
@@ -162,16 +164,18 @@ it('should default to Json Codec', () => {
     columns: {
       str: string()
     },
-    partitions: {
-      year: integer(),
-    },
-    partitioner: () => ({
-      year: 1989
-    })
+    partition: {
+      keys: {
+        year: integer()
+      },
+      get: () => ({
+        year: 1989
+      })
+    }
   });
 
   expect(table.codec).toEqual(Codec.Json);
-  expect(table.dataFormat).toEqual(glue.DataFormat.Json);
+  expect(table.resource.dataFormat).toEqual(glue.DataFormat.Json);
 });
 
 function partitionTest(type: Type<any>) {
@@ -187,12 +191,14 @@ function partitionTest(type: Type<any>) {
     columns: {
       str: string()
     },
-    partitions: {
-      year: type,
-    },
-    partitioner: () => ({
-      year: 1989
-    })
+    partition: {
+      keys: {
+        year: type
+      },
+      get: () => ({
+        year: 1989
+      })
+    }
   });
 }
 

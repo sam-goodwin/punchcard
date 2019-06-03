@@ -3,6 +3,7 @@ import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, 
 
 import uuid = require('uuid');
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
+import glue = require('@aws-cdk/aws-glue');
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 
 const app = new cdk.App();
@@ -67,6 +68,23 @@ const [stream, processor] = queue
       tags: array(string())
     })
   });
+
+const database = new glue.Database(stack, 'GlueDatabase', {
+  databaseName: 'my_database'
+});
+stream.toGlue(stack, 'ToGlue', {
+  database,
+  tableName: 'enriched_events',
+  columns: stream.type.shape,
+  partition: {
+    keys: {
+      p: integer()
+    },
+    get: record => ({
+      p: record.count
+    })
+  }
+});
 
 // Lastly, we'll kick off the whole system with a dummy notification sent once per minute
 λ().schedule(stack, 'DummyData', {

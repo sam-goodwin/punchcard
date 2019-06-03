@@ -8,21 +8,21 @@ import { Clients, Dependency, Function, Runtime } from '../compute';
 import { Cache, PropertyBag } from '../compute/property-bag';
 import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Enumerable, EnumerableProps } from './enumerable';
+import { Enumerable, EnumerableRuntime } from './enumerable';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
 
 declare module './enumerable' {
-  interface Enumerable<E, T, D extends any[], P extends EnumerableProps> {
-    toQueue(scope: cdk.Construct, id: string, streamProps: QueueProps<T>, props?: P): [Queue<T>, Function<SQSEvent, void, Dependency.List<D>>];
+  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
+    toQueue(scope: cdk.Construct, id: string, streamProps: QueueProps<I>, props?: R): [Queue<I>, Function<SQSEvent, void, Dependency.List<D>>];
   }
 }
 Enumerable.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>): [Queue<any>, Function<any, any, any>] {
   scope = new cdk.Construct(scope, id);
-  return this.toSink(scope, 'ToQueue', new Queue(scope, 'Queue', queueProps));
+  return this.collect(scope, 'ToQueue', new Queue(scope, 'Queue', queueProps));
 };
 
-export type EnumerableQueueProps = EnumerableProps & events.SqsEventSourceProps;
+export type EnumerableQueueRuntime = EnumerableRuntime & events.SqsEventSourceProps;
 
 /**
  * Props for constructing a Queue.
@@ -119,7 +119,7 @@ export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAn
   }
 }
 
-export class EnumerableQueue<T, D extends any[]> extends Enumerable<SQSEvent, T, D, EnumerableQueueProps>  {
+export class EnumerableQueue<T, D extends any[]> extends Enumerable<SQSEvent, T, D, EnumerableQueueRuntime>  {
   constructor(public readonly queue: Queue<any>, previous: EnumerableQueue<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
@@ -127,7 +127,7 @@ export class EnumerableQueue<T, D extends any[]> extends Enumerable<SQSEvent, T,
     super(previous, input.handle, input.depends);
   }
 
-  public eventSource(props?: EnumerableQueueProps) {
+  public eventSource(props?: EnumerableQueueRuntime) {
     return new events.SqsEventSource(this.queue.resource, props);
   }
 

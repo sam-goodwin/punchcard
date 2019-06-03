@@ -7,19 +7,19 @@ import sns = require('@aws-cdk/aws-sns');
 import { Cache, Clients, Dependency, Function, PropertyBag, Runtime } from '../compute';
 import { Json, Mapper, Type } from '../shape';
 import { Omit } from '../utils';
-import { Enumerable, EnumerableProps } from './enumerable';
+import { Enumerable, EnumerableRuntime } from './enumerable';
 import { Queue } from './queue';
 import { Resource } from './resource';
 import { Sink, sink, SinkProps } from './sink';
 
 declare module './enumerable' {
-  interface Enumerable<E, T, D extends any[], P extends EnumerableProps> {
-    toTopic(scope: cdk.Construct, id: string, streamProps: TopicProps<T>, props?: P): [Topic<T>, Function<SNSEvent, void, Dependency.List<D>>];
+  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
+    toTopic(scope: cdk.Construct, id: string, streamProps: TopicProps<I>, props?: R): [Topic<I>, Function<SNSEvent, void, Dependency.List<D>>];
   }
 }
 Enumerable.prototype.toTopic = function(scope: cdk.Construct, id: string, queueProps: TopicProps<any>): [Topic<any>, Function<any, any, any>] {
   scope = new cdk.Construct(scope, id);
-  return this.toSink(scope, 'ToTopic', new Topic(scope, 'Topic', queueProps));
+  return this.collect(scope, 'ToTopic', new Topic(scope, 'Topic', queueProps));
 };
 
 export type TopicProps<T> = {
@@ -73,7 +73,7 @@ export class Topic<T> implements Resource<sns.Topic>, Dependency<Topic.Client<T>
   }
 }
 
-export class EnumerableTopic<T, D extends any[]> extends Enumerable<SNSEvent, T, D, EnumerableProps>  {
+export class EnumerableTopic<T, D extends any[]> extends Enumerable<SNSEvent, T, D, EnumerableRuntime>  {
   constructor(public readonly topic: Topic<any>, previous: EnumerableTopic<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;

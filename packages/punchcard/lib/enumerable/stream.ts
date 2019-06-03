@@ -8,52 +8,81 @@ import uuid = require('uuid');
 import { Clients, Dependency, Function, Runtime } from '../compute';
 import { Cons } from '../compute/hlist';
 import { Cache, PropertyBag } from '../compute/property-bag';
-import { BufferMapper, Json, Mapper, Type } from '../shape';
+import { BufferMapper, Json, Mapper, RuntimeShape, RuntimeType, Shape, StructType, Type } from '../shape';
+import { Codec, Partition, TableProps } from '../storage';
+import { Compression } from '../storage/glue/compression';
 import { Omit } from '../utils';
-import { Enumerable, EnumerableProps } from './enumerable';
+import { Enumerable, EnumerableRuntime } from './enumerable';
 import { Resource } from './resource';
+import { S3ObjectStream } from './s3';
 import { sink, Sink, SinkProps } from './sink';
 
 declare module './enumerable' {
-  interface Enumerable<E, T, D extends any[], P extends EnumerableProps> {
-    toStream(scope: cdk.Construct, id: string, streamProps: StreamProps<T>, props?: P): [Stream<T>, Function<E, void, Dependency.List<Cons<D, Stream<T>>>>];
+  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
+    toStream<T extends Type<I>>(scope: cdk.Construct, id: string, streamProps: StreamProps<T>, props?: R): [Stream<T>, Function<E, void, Dependency.List<Cons<D, Stream<T>>>>];
   }
 }
-Enumerable.prototype.toStream = function(scope: cdk.Construct, id: string, queueProps: StreamProps<any>): any {
+Enumerable.prototype.toStream = function(scope: cdk.Construct, id: string, props: StreamProps<any>): any {
   scope = new cdk.Construct(scope, id);
-  return this.toSink(scope, 'ToStream', new Stream(scope, 'Stream', queueProps));
+  return this.collect(scope, 'ToStream', new Stream(scope, 'Stream', props));
 };
 
-export type EnumerableStreamProps = EnumerableProps & events.KinesisEventSourceProps;
+export type EnumerableStreamRuntime = EnumerableRuntime & events.KinesisEventSourceProps;
 
-export interface StreamProps<T> extends kinesis.StreamProps {
-  type: Type<T>;
+export interface StreamProps<T extends Type<any>> extends kinesis.StreamProps {
+  /**
+   * Type of data in the stream.
+   */
+  type: T;
   /**
    * @default - uuid
    */
-  partitionBy?: (record: T) => string;
+  partitionBy?: (record: RuntimeType<T>) => string;
 }
-export class Stream<T> implements Resource<kinesis.Stream>, Dependency<Stream.Client<T>> {
-  public readonly context = {};
-  public readonly mapper: Mapper<T, Buffer>;
-  public readonly partitionBy: (record: T) => string;
+export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, Dependency<Stream.Client<T>> {
+  public readonly type: T;
+  public readonly mapper: Mapper<RuntimeType<T>, Buffer>;
+  public readonly partitionBy: (record: RuntimeType<T>) => string;
   public readonly resource: kinesis.Stream;
 
   constructor(scope: cdk.Construct, id: string, props: StreamProps<T>) {
+    this.type = props.type;
     this.resource = new kinesis.Stream(scope, id, props);
     this.mapper = BufferMapper.wrap(Json.forType(props.type));
     this.partitionBy = props.partitionBy || (_ => uuid());
   }
 
-  public stream(): EnumerableStream<T, []> {
+  public stream(): EnumerableStream<RuntimeType<T>, []> {
     return new EnumerableStream(this, this as any, {
       depends: [],
       handle: i => i
     });
   }
 
-  public async *run(event: KinesisEvent): AsyncIterableIterator<T[]> {
-    return yield event.Records.map(record => this.mapper.read(Buffer.from(record.kinesis.data, 'base64')));
+  public toS3(scope: cdk.Construct, id: string, props: {
+    codec: Codec;
+    comression: Compression;
+  } = {
+    codec: Codec.Json,
+    comression: Compression.Gzip
+  }): S3ObjectStream<RuntimeType<T>> {
+    return new S3ObjectStream(scope, id, {
+      stream: this as any,
+      codec: props.codec,
+      compression: props.comression
+    });
+  }
+
+  public toGlue<P extends Partition>(scope: cdk.Construct, id: string, props: TableProps<T extends StructType<infer S> ? S : never, P>) {
+    scope = new cdk.Construct(scope, id);
+    const delivery = this.toS3(scope, 'ToS3');
+    return delivery.stream().toGlue(scope, 'ToGlue', props);
+  }
+
+  public async *run(event: KinesisEvent): AsyncIterableIterator<RuntimeType<T>> {
+    for (const record of event.Records.map(record => this.mapper.read(Buffer.from(record.kinesis.data, 'base64')))) {
+      yield record;
+    }
   }
 
   public bootstrap(properties: PropertyBag, cache: Cache): Stream.Client<T> {
@@ -89,7 +118,7 @@ export class Stream<T> implements Resource<kinesis.Stream>, Dependency<Stream.Cl
   }
 }
 
-export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEvent, T, D, EnumerableStreamProps>  {
+export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEvent, T, D, EnumerableStreamRuntime>  {
   constructor(public readonly stream: Stream<any>, previous: EnumerableStream<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
@@ -97,7 +126,7 @@ export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEven
     super(previous, input.handle, input.depends);
   }
 
-  public eventSource(props?: EnumerableStreamProps) {
+  public eventSource(props?: EnumerableStreamRuntime) {
     return new events.KinesisEventSource(this.stream.resource, props || {
       batchSize: 100,
       startingPosition: StartingPosition.TrimHorizon
@@ -118,14 +147,14 @@ export namespace Stream {
   export type PutRecordsInput<T> = Array<{Data: T} & Omit<AWS.Kinesis.PutRecordsRequestEntry, 'Data'>>;
   export type PutRecordsOutput = AWS.Kinesis.PutRecordsOutput;
 
-  export class Client<T> implements Sink<T> {
+  export class Client<T extends Type<any>> implements Sink<RuntimeType<T>> {
     constructor(
       public readonly stream: Stream<T>,
       public readonly streamName: string,
       public readonly client: AWS.Kinesis
     ) {}
 
-    public putRecord(request: PutRecordInput<T>): Promise<PutRecordOutput> {
+    public putRecord(request: PutRecordInput<RuntimeType<T>>): Promise<PutRecordOutput> {
       return this.client.putRecord({
         ...request,
         StreamName: this.streamName,
@@ -133,7 +162,7 @@ export namespace Stream {
       }).promise();
     }
 
-    public putRecords(request: PutRecordsInput<T>): Promise<PutRecordsOutput> {
+    public putRecords(request: PutRecordsInput<RuntimeType<T>>): Promise<PutRecordsOutput> {
       return this.client.putRecords({
         StreamName: this.streamName,
         Records: request.map(record => ({
@@ -143,7 +172,7 @@ export namespace Stream {
       }).promise();
     }
 
-    public async sink(records: T[], props?: SinkProps): Promise<void> {
+    public async sink(records: Array<RuntimeType<T>>, props?: SinkProps): Promise<void> {
       await sink(records, async values => {
         const result = await this.putRecords(values.map(value => ({
           Data: value,

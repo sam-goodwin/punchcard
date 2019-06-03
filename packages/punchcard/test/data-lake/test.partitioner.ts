@@ -27,12 +27,14 @@ async function compressionTest(compression: Compression) {
     columns: {
       key: string()
     },
-    partitions: {
-      year: integer()
-    },
-    partitioner: () => ({
-      year: 2019
-    }),
+    partition: {
+      keys: {
+        year: integer()
+      },
+      get: () => ({
+        year: 2019
+      }),
+    }
   });
 
   const sourceBucket = new s3.Bucket(stack, 'SourceBucket');
@@ -51,7 +53,7 @@ async function compressionTest(compression: Compression) {
     }))
   };
   const tableMock = {
-    write: sinon.fake.returns(Promise.resolve())
+    sink: sinon.fake.returns(Promise.resolve())
   };
 
   await partitioner.processor.handle({
@@ -84,20 +86,20 @@ async function compressionTest(compression: Compression) {
     Key: 'key2',
     IfMatch: 'etag'
   });
-  expect(tableMock.write.args[0][0]).toEqual([{
+  expect(tableMock.sink.args[0][0]).toEqual([{
     key: 'key'
   }, {
     key: 'key'
   }]);
 }
 
-it('Compression(None): parse records from objects and write to table', async () => {
+it('Compression(None): parse records from objects and sink to table', async () => {
   compressionTest(Compression.None);
 });
-it('Compression(Gzip): parse records from objects and write to table', async () => {
+it('Compression(Gzip): parse records from objects and sink to table', async () => {
   compressionTest(Compression.Gzip);
 });
-it('Compression(Zip): parse records from objects and write to table', async () => {
+it('Compression(Zip): parse records from objects and sink to table', async () => {
   compressionTest(Compression.Zip);
 });
 
@@ -114,12 +116,14 @@ const table = new Table(stack, 'table', {
   columns: {
     key: string()
   },
-  partitions: {
-    year: integer()
-  },
-  partitioner: () => ({
-    year: 2019
-  }),
+  partition: {
+    keys: {
+      year: integer()
+    },
+    get: () => ({
+      year: 2019
+    })
+  }
 });
 
 const sourceBucket = new s3.Bucket(stack, 'SourceBucket');
@@ -135,7 +139,7 @@ it('should throw Error if s3.getObject fails', async () => {
     getObject: sinon.fake.throws(new Error('error'))
   };
   const tableMock = {
-    write: sinon.fake.returns(Promise.resolve())
+    sink: sinon.fake.returns(Promise.resolve())
   };
 
   expect.assertions(1);
@@ -158,7 +162,7 @@ it('should throw Error if s3.getObject fails', async () => {
   }
 });
 
-it('should throw Error if table.write fails', async () => {
+it('should throw Error if table.sink fails', async () => {
   const sourceMock = {
     getObject: sinon.fake.returns({
       Body: new Buffer(JSON.stringify({
@@ -167,7 +171,7 @@ it('should throw Error if table.write fails', async () => {
     })
   };
   const tableMock = {
-    write: sinon.fake.returns(Promise.reject(new Error('error')))
+    sink: sinon.fake.returns(Promise.reject(new Error('error')))
   };
 
   expect.assertions(1);

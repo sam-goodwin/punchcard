@@ -2,7 +2,7 @@ import cdk = require('@aws-cdk/cdk');
 import 'jest';
 import sinon = require('sinon');
 
-import { Stream, string } from '../../lib';
+import { Stream, string, StringType } from '../../lib';
 
 describe('client', () => {
   describe('sink', () => {

@@ -2,7 +2,7 @@ import 'jest';
 import sinon = require('sinon');
 
 import cdk = require('@aws-cdk/cdk');
-import { Dependency, Function, integer, Queue, string, Stream } from '../../lib';
+import { Dependency, integer, Queue, Stream, string } from '../../lib';
 import { setRuntime } from '../../lib/constants';
 
 setRuntime();
@@ -89,7 +89,7 @@ describe('run', () => {
     expect(results).toEqual(['string'.length]);
     expect.assertions(3);
   });
-  it('should transform records with a map and `toSink`', async () => {
+  it('should transform records with a map and `collect`', async () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
 
     const queue = new Queue(stack, 'Queue', {
@@ -109,8 +109,8 @@ describe('run', () => {
           return v.length;
         }
       })
-      .toSink(stack, 'ToSink', new Stream(stack, 'Stream', {
-        type: integer()
+      .collect(stack, 'ToSink', new Stream(stack, 'Stream', {
+        type: integer(),
       }));
 
     const sink = {

@@ -6,6 +6,7 @@ import { RuntimeShape, Shape } from '../shape';
 import { Compression } from '../storage/glue/compression';
 import { Partition, Table } from '../storage/glue/table';
 import { Bucket } from '../storage/s3';
+import { S3Event } from '../enumerable/s3';
 
 /**
  * Properties for creating a Validator.
@@ -89,56 +90,9 @@ export class Partitioner<T extends Shape, P extends Partition> extends cdk.Const
           return results;
         }));
 
-        await table.write(records.reduce((a, b) => a.concat(b)));
+        await table.sink(records.reduce((a, b) => a.concat(b)));
       }
     });
     props.sourceBucket.onObjectCreated(this.processor);
   }
-}
-
-export interface S3Event {
-  Records: S3Record[];
-}
-
-export interface S3Record {
-  eventVersion: string,
-  eventSource: string,
-  awsRegion: string,
-  eventTime: string,
-  eventName: string,
-  requestParameters: RequestParameters,
-  responseElements: ResponseElements,
-  s3: S3
-}
-
-export interface S3 {
-  s3SchemaVersion: string,
-  configurationId: string,
-  bucket: S3Bucket,
-  object: S3Object
-}
-
-export interface S3Object {
-  key: string,
-  size: number,
-  eTag: string,
-  sequencer: string
-}
-
-export interface S3Bucket {
-  name: string,
-  ownerIdentity: UserIdentity,
-  arn: string,
-}
-
-export interface UserIdentity {
-  principalId: string
-}
-
-export interface ResponseElements {
-  'x-amz-request-id': string,
-  'x-amz-id-2': string,
-}
-export interface RequestParameters {
-  sourceIPAddress: string
 }

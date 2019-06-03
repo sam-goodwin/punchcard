@@ -18,14 +18,16 @@ const table = new Table(stack, 'Table', {
   columns: {
     timestamp,
   },
-  partitions: {
-    year: smallint(),
-    month: smallint()
-  },
-  partitioner: ({timestamp}) => ({
-    year: timestamp.getUTCFullYear(),
-    month: timestamp.getUTCMonth()
-  })
+  partition: {
+    keys: {
+      year: smallint(),
+      month: smallint()
+    },
+    get: ({timestamp}) => ({
+      year: timestamp.getUTCFullYear(),
+      month: timestamp.getUTCMonth()
+    })
+  }
 });
 
 function makeClient(glue: AWS.Glue, mockBucket?: Bucket.Client) {
@@ -251,7 +253,7 @@ describe('write', () => {
     };
     const client = makeClient(mockTable as any, mockBucket as any);
     const createPartitionSpy = sinon.spy(client, 'createPartition');
-    await client.write([{
+    await client.sink([{
       timestamp: new Date(Date.parse('2019-01-01T00:00:00.000Z'))
     }]);
 

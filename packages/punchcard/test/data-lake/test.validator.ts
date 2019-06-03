@@ -20,12 +20,14 @@ const table = new Table(stack, 'table', {
   columns: {
     key: string()
   },
-  partitions: {
-    year: integer()
-  },
-  partitioner: () => ({
-    year: 2019
-  }),
+  partition: {
+    keys: {
+      year: integer()
+    },
+    get: () => ({
+      year: 2019
+    }),
+  }
 });
 
 const validator = new Validator(stack, 'Validator', {

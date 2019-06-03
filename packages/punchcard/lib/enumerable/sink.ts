@@ -11,7 +11,7 @@ export interface SinkProps {
 }
 
 export interface Sink<T> {
-  sink(values: T[], prop?: SinkProps): Promise<void>;
+  sink(values: Iterable<T>, prop?: SinkProps): Promise<void>;
 }
 
 export async function sink<T>(values: T[], tryPutBatch: (values: T[]) => Promise<T[]>, props: SinkProps = {}, batchSize: number): Promise<void> {
