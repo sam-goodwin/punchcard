@@ -27,17 +27,17 @@ declare module './enumerable' {
      * @param streamProps properties for the delivery stream
      * @param props properties for the enumeration infrastructure (lambda functionse etc.)
      */
-    toS3<IT extends Type<I>>(scope: cdk.Construct, id: string, streamProps: S3ObjectStreamForType<IT>, props?: R): [S3ObjectStream<IT>, Function<E, void, Dependency.List<Cons<D, S3ObjectStream<IT>>>>];
+    toS3<IT extends Type<I>>(scope: cdk.Construct, id: string, streamProps: S3DeliveryStreamForType<IT>, props?: R): [S3DeliveryStream<IT>, Function<E, void, Dependency.List<Cons<D, S3DeliveryStream<IT>>>>];
   }
 }
-Enumerable.prototype.toS3 = function(scope: cdk.Construct, id: string, streamProps: S3ObjectStreamForType<any>): any {
+Enumerable.prototype.toS3 = function(scope: cdk.Construct, id: string, streamProps: S3DeliveryStreamForType<any>): any {
   scope = new cdk.Construct(scope, id);
-  return this.collect(scope, 'ToStream', new S3ObjectStream(scope, 'Stream', streamProps));
+  return this.collect(scope, 'ToStream', new S3DeliveryStream(scope, 'Stream', streamProps));
 };
 
-export type S3StreamProps<T extends Type<any>> = S3ObjectStreamForType<T> | S3ObjectStreamFromKinesis<T>;
+export type S3DeliveryStreamProps<T extends Type<any>> = S3DeliveryStreamForType<T> | S3DeliveryStreamFromKinesis<T>;
 
-export interface S3ObjectStreamForType<T extends Type<any>> {
+export interface S3DeliveryStreamForType<T extends Type<any>> {
   /**
    * Type of data in the stream.
    */
@@ -52,7 +52,7 @@ export interface S3ObjectStreamForType<T extends Type<any>> {
   compression: Compression;
 }
 
-export interface S3ObjectStreamFromKinesis<T extends Type<any>> {
+export interface S3DeliveryStreamFromKinesis<T extends Type<any>> {
   /**
    * Kinesis stream to persist in S3.
    */
@@ -67,7 +67,7 @@ export interface S3ObjectStreamFromKinesis<T extends Type<any>> {
   compression: Compression;
 }
 
-export class S3ObjectStream<T extends Type<any>> implements Resource<DeliveryStream>, Dependency<S3ObjectStream.Client<RuntimeType<T>>> {
+export class S3DeliveryStream<T extends Type<any>> implements Resource<DeliveryStream>, Dependency<S3DeliveryStream.Client<RuntimeType<T>>> {
   public readonly resource: DeliveryStream;
   public readonly type: T;
 
@@ -75,9 +75,9 @@ export class S3ObjectStream<T extends Type<any>> implements Resource<DeliveryStr
   private readonly codec: Codec;
   private readonly compression: Compression;
 
-  constructor(scope: cdk.Construct, id: string, props: S3StreamProps<T>) {
-    const fromStream = props as S3ObjectStreamFromKinesis<T>;
-    const fromType = props as S3ObjectStreamForType<T>;
+  constructor(scope: cdk.Construct, id: string, props: S3DeliveryStreamProps<T>) {
+    const fromStream = props as S3DeliveryStreamFromKinesis<T>;
+    const fromType = props as S3DeliveryStreamForType<T>;
 
     if (fromStream.stream) {
       this.resource = new DeliveryStream(scope, id, {
@@ -102,8 +102,8 @@ export class S3ObjectStream<T extends Type<any>> implements Resource<DeliveryStr
     this.compression = props.compression;
   }
 
-  public stream(): EnumerableS3ObjectStream<T, [Dependency<Bucket.ReadClient>]> {
-    return new EnumerableS3ObjectStream(this, this as any, {
+  public stream(): EnumerableS3DeliveryStream<T, [Dependency<Bucket.ReadClient>]> {
+    return new EnumerableS3DeliveryStream(this, this as any, {
       depends: [new Bucket(this.resource.s3Bucket!).readClient()],
       handle: i => i
     });
@@ -129,15 +129,15 @@ export class S3ObjectStream<T extends Type<any>> implements Resource<DeliveryStr
     this.resource.grantWrite(target.grantable);
   }
 
-  public bootstrap(properties: PropertyBag, cache: Cache): S3ObjectStream.Client<RuntimeType<T>> {
-    return new S3ObjectStream.Client(this,
+  public bootstrap(properties: PropertyBag, cache: Cache): S3DeliveryStream.Client<RuntimeType<T>> {
+    return new S3DeliveryStream.Client(this,
       properties.get('deliveryStreamName'),
       cache.getOrCreate('aws:firehose', () => new AWS.Firehose()));
   }
 }
 
-export class EnumerableS3ObjectStream<T, D extends any[]> extends Enumerable<S3Event, T, D, EnumerableRuntime> {
-  constructor(public readonly s3Stream: S3ObjectStream<any>, previous: EnumerableS3ObjectStream<any, any>, input: {
+export class EnumerableS3DeliveryStream<T, D extends any[]> extends Enumerable<S3Event, T, D, EnumerableRuntime> {
+  constructor(public readonly s3Stream: S3DeliveryStream<any>, previous: EnumerableS3DeliveryStream<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>
   }) {
@@ -145,23 +145,22 @@ export class EnumerableS3ObjectStream<T, D extends any[]> extends Enumerable<S3E
   }
   public eventSource(): lambda.IEventSource {
     return new events.S3EventSource(this.s3Stream.resource.s3Bucket!, {
-      events: [s3.EventType.ObjectCreated],
-      // filters: [] // TODO: filter by prefix
+      events: [s3.EventType.ObjectCreated]
     });
   }
-  public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): EnumerableS3ObjectStream<U, D2> {
-    return new EnumerableS3ObjectStream(this.s3Stream, this, input);
+  public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): EnumerableS3DeliveryStream<U, D2> {
+    return new EnumerableS3DeliveryStream(this.s3Stream, this, input);
   }
 }
 
-export namespace S3ObjectStream {
+export namespace S3DeliveryStream {
   export type PutRecordInput<T> = { Record: T; };
 
   export class Client<T> implements Sink<T> {
     public readonly mapper: Mapper<T, string>;
 
     constructor(
-        public readonly stream: S3ObjectStream<Type<T>>,
+        public readonly stream: S3DeliveryStream<Type<T>>,
         public readonly deliveryStreamName: string,
         public readonly client: AWS.Firehose) {
       this.mapper = Json.forType(this.stream.type);
@@ -208,44 +207,44 @@ export interface S3Event {
 }
 
 export interface S3Record {
-  eventVersion: string,
-  eventSource: string,
-  awsRegion: string,
-  eventTime: string,
-  eventName: string,
-  requestParameters: RequestParameters,
-  responseElements: ResponseElements,
-  s3: S3
+  eventVersion: string;
+  eventSource: string;
+  awsRegion: string;
+  eventTime: string;
+  eventName: string;
+  requestParameters: RequestParameters;
+  responseElements: ResponseElements;
+  s3: S3;
 }
 
 export interface S3 {
-  s3SchemaVersion: string,
-  configurationId: string,
-  bucket: S3Bucket,
-  object: S3Object
+  s3SchemaVersion: string;
+  configurationId: string;
+  bucket: S3Bucket;
+  object: S3Object;
 }
 
 export interface S3Object {
-  key: string,
-  size: number,
-  eTag: string,
-  sequencer: string
+  key: string;
+  size: number;
+  eTag: string;
+  sequencer: string;
 }
 
 export interface S3Bucket {
-  name: string,
-  ownerIdentity: UserIdentity,
-  arn: string,
+  name: string;
+  ownerIdentity: UserIdentity;
+  arn: string;
 }
 
 export interface UserIdentity {
-  principalId: string
+  principalId: string;
 }
 
 export interface ResponseElements {
-  'x-amz-request-id': string,
-  'x-amz-id-2': string,
+  'x-amz-request-id': string;
+  'x-amz-id-2': string;
 }
 export interface RequestParameters {
-  sourceIPAddress: string
+  sourceIPAddress: string;
 }

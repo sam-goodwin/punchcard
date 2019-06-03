@@ -40,8 +40,7 @@ const enrichments = new HashTable(stack, 'Enrichments', {
 });
 
 // process each message in SQS, attach some data from a DynamoDB lookup, and persist results in a Kinesis Stream.
-const [stream, processor] = queue
-  .stream()
+const [stream, processor] = queue.stream()
   .map({
     // define your dependencies - in this case, we need read access to the enrichments table
     depends: enrichments.readAccess(),
@@ -68,23 +67,6 @@ const [stream, processor] = queue
       tags: array(string())
     })
   });
-
-const database = new glue.Database(stack, 'GlueDatabase', {
-  databaseName: 'my_database'
-});
-stream.toGlue(stack, 'ToGlue', {
-  database,
-  tableName: 'enriched_events',
-  columns: stream.type.shape,
-  partition: {
-    keys: {
-      p: integer()
-    },
-    get: record => ({
-      p: record.count
-    })
-  }
-});
 
 // Lastly, we'll kick off the whole system with a dummy notification sent once per minute
 λ().schedule(stack, 'DummyData', {

@@ -14,7 +14,7 @@ import { Compression } from '../storage/glue/compression';
 import { Omit } from '../utils';
 import { Enumerable, EnumerableRuntime } from './enumerable';
 import { Resource } from './resource';
-import { S3ObjectStream } from './s3';
+import { S3DeliveryStream } from './s3';
 import { sink, Sink, SinkProps } from './sink';
 
 declare module './enumerable' {
@@ -34,11 +34,13 @@ export interface StreamProps<T extends Type<any>> extends kinesis.StreamProps {
    * Type of data in the stream.
    */
   type: T;
+
   /**
    * @default - uuid
    */
   partitionBy?: (record: RuntimeType<T>) => string;
 }
+
 export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, Dependency<Stream.Client<T>> {
   public readonly type: T;
   public readonly mapper: Mapper<RuntimeType<T>, Buffer>;
@@ -65,8 +67,8 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
   } = {
     codec: Codec.Json,
     comression: Compression.Gzip
-  }): S3ObjectStream<RuntimeType<T>> {
-    return new S3ObjectStream(scope, id, {
+  }): S3DeliveryStream<RuntimeType<T>> {
+    return new S3DeliveryStream(scope, id, {
       stream: this as any,
       codec: props.codec,
       compression: props.comression
@@ -75,8 +77,9 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
 
   public toGlue<P extends Partition>(scope: cdk.Construct, id: string, props: TableProps<T extends StructType<infer S> ? S : never, P>) {
     scope = new cdk.Construct(scope, id);
-    const delivery = this.toS3(scope, 'ToS3');
-    return delivery.stream().toGlue(scope, 'ToGlue', props);
+    return this
+      .toS3(scope, 'ToS3').stream()
+      .toGlue(scope, 'ToGlue', props);
   }
 
   public async *run(event: KinesisEvent): AsyncIterableIterator<RuntimeType<T>> {
