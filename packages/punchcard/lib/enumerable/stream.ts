@@ -5,10 +5,9 @@ import events = require('@aws-cdk/aws-lambda-event-sources');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
-import { Clients, Dependency, Function, Runtime } from '../compute';
-import { Cons } from '../compute/hlist';
+import { Clients, Dependency, Runtime } from '../compute';
 import { Cache, PropertyBag } from '../compute/property-bag';
-import { BufferMapper, Json, Mapper, RuntimeShape, RuntimeType, Shape, StructType, Type } from '../shape';
+import { BufferMapper, Json, Mapper, RuntimeType, StructType, Type } from '../shape';
 import { Codec, Partition, TableProps } from '../storage';
 import { Compression } from '../storage/glue/compression';
 import { Omit } from '../utils';
@@ -16,16 +15,6 @@ import { Enumerable, EnumerableRuntime } from './enumerable';
 import { Resource } from './resource';
 import { S3DeliveryStream } from './s3';
 import { sink, Sink, SinkProps } from './sink';
-
-declare module './enumerable' {
-  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
-    toStream<T extends Type<I>>(scope: cdk.Construct, id: string, streamProps: StreamProps<T>, props?: R): [Stream<T>, Function<E, void, Dependency.List<Cons<D, Stream<T>>>>];
-  }
-}
-Enumerable.prototype.toStream = function(scope: cdk.Construct, id: string, props: StreamProps<any>): any {
-  scope = new cdk.Construct(scope, id);
-  return this.collect(scope, 'ToStream', new Stream(scope, 'Stream', props));
-};
 
 export type EnumerableStreamRuntime = EnumerableRuntime & events.KinesisEventSourceProps;
 

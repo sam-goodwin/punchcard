@@ -1,8 +1,12 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
+import { Collector } from '../collector/collector';
 import { Client, Clients, Dependency, Function, LambdaExecutorService } from '../compute';
 import { Cons } from '../compute/hlist';
-import { Sink } from './sink';
+
+export type EventType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<infer E, any, any, any> ? E : never;
+export type InformationType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<any, infer I, any, any> ? I : never;
+export type DependencyType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<any, any, infer D, any> ? D : never;
 
 /**
  * Props to configure an `Enumerable's` evaluation runtime properties.
@@ -188,19 +192,19 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
   }
 
   /**
-   * Collect data in this enumerable to a generic `Sink`, returning a tuple containing
-   * the `Sink` (i.e. a `Stream`, `Topic` or `Queue`) and the `Function` which sends the data.
+   * Collect data with a `Collector`.
    *
    * @param scope to create resources under
    * @param id of construct under which forwarding resources will be created
-   * @param sink recipient of data
+   * @param collector destination collector
    */
-  public collect<S extends Dependency<Sink<I>>>(scope: cdk.Construct, id: string, sink: S): [S, Function<E, any, Dependency.List<Cons<D, S>>>] {
-    return [sink, this.forBatch(scope, id, {
-      depends: sink,
-      async handle(values, sink) {
-        await sink.sink(values);
-      }
-    }) as any];
+  public collect<T>(scope: cdk.Construct, id: string, collector: Collector<T, this>): T {
+    return collector.collect(scope, id, this);
+    // return [sink, this.forBatch(scope, id, {
+    //   depends: sink,
+    //   async handle(values, sink) {
+    //     await sink.sink(values);
+    //   }
+    // }) as any];
   }
 }
