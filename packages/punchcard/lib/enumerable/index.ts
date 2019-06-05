@@ -1,3 +1,4 @@
+export * from './collector';
 export * from './enumerable';
 export * from './glue';
 export * from './queue';

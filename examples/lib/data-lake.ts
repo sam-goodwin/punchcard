@@ -33,7 +33,7 @@ const lake = new DataLake(stack, 'Lake', {
 // Kinesis -> Lambda
 // Note: the type-safety of the `record`
 lake.pipelines.dataPoints.stream
-  .stream()
+  .enumerable()
   .forEach(stack, 'ForEachDataPoint', {
     async handle(record) {
       console.log('key', record.key);
@@ -50,7 +50,6 @@ new LambdaExecutorService().schedule(stack, 'DummyDataPoints', {
   rate: Rate.minutes(1),
   handle: async (_, stream) => {
     await stream.putRecord({
-      PartitionKey: 'partition-key',
       Data: {
         key: 'key',
         data_points: [0, 1, 2],

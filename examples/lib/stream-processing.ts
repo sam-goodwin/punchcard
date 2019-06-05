@@ -1,3 +1,4 @@
+import glue = require('@aws-cdk/aws-glue')
 import cdk = require('@aws-cdk/cdk');
 import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency, Collectors } from 'punchcard';
 
@@ -9,7 +10,9 @@ const app = new cdk.App();
 export default app;
 const stack = new cdk.Stack(app, 'stream-processing');
 
-// create a strongly-typed SNS Topic
+/**
+ * Create a strongly-typed SNS Topic.
+ */
 const topic = new Topic(stack, 'Topic', {
   type: struct({
     key: string(),
@@ -18,60 +21,25 @@ const topic = new Topic(stack, 'Topic', {
   })
 });
 
-// process each SNS notification in Lambda
-topic.stream().forEach(stack, 'ForEachNotification', {
-  async handle(message) {
-    console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`);
-  }
-});
-
-// subscribe topic to a new SQS Queue
-const queue = topic.toQueue(stack, 'Queue');
-
-// create a table to store some data to enrich SQS messages with
+/**
+ * Create a DynamoDB Table to store some data.
+ */
 const enrichments = new HashTable(stack, 'Enrichments', {
   partitionKey: 'key',
   shape: {
+    // define the shape of data in the dynamodb table
     key: string(),
     tags: array(string())
   },
   billingMode: BillingMode.PayPerRequest
 });
 
-// process each message in SQS, attach some data from a DynamoDB lookup, and persist results in a Kinesis Stream.
-const stream = queue.stream()
-  .map({
-    // define your dependencies - in this case, we need read access to the enrichments table
-    depends: enrichments.readAccess(),
-    handle: async(message, e) => {
-      // implement the enrichment procedure - runs in Lambda triggered by SQS
-      const enrichment = await e.get({
-        key: message.key
-      });
-
-      return {
-        ...message,
-        tags: enrichment ? enrichment.tags : []
-      };
-    }
-  }) // #toStream returns a tuple, containing the stream and the lambda function responsible for sending it data
-  .toStream(stack, 'Stream', {
-    // encrypt values in the stream with a customer-managed KMS key.
-    encryption: StreamEncryption.Kms,
-    // partition values across shards by the 'key' field
-    partitionBy: value => value.key,
-    type: struct({
-      key: string(),
-      count: integer(),
-      tags: array(string())
-    })
-  });
-
-stream.stream().collect(stack, 'ToStream', Collectors.toStream({
-  type: stream.type
-}));
-
-// Lastly, we'll kick off the whole system with a dummy notification sent once per minute
+/**
+ * Schedule a Lambda Function to send a (dummy) message to the SNS topic:
+ * 
+ * CloudWatch Event --(minutely)--> Lambda --(send)-> SNS Topic
+ *                                         --(put)--> Dynamo Table
+ **/ 
 λ().schedule(stack, 'DummyData', {
   rate: Rate.minutes(1),
   depends: Dependency.list(topic, enrichments),
@@ -88,11 +56,96 @@ stream.stream().collect(stack, 'ToStream', Collectors.toStream({
     // trigger the example pipeline by emitting a SNS notification
     await topic.publish({
       // message is structured and statically typed
-      Message: {
-        key,
-        count: 1,
-        timestamp: new Date()
-      }
+      key,
+      count: 1,
+      timestamp: new Date()
     });
+  }
+});
+
+/**
+ * Process each SNS notification in Lambda:
+ *
+ * SNS -> Lambda
+ */
+topic.enumerable().forEach(stack, 'ForEachNotification', {
+  async handle(message) {
+    console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`);
+  }
+});
+
+/**
+ * Subscribe SNS Topic to a SQS Queue:
+ *
+ * SQS --(subscription)--> SNS
+ */
+const queue = topic.toQueue(stack, 'Queue');
+
+/**
+ * Process each message in SQS with Lambda, look up some data in DynamoDB, and persist results in a Kinesis Stream:
+ * 
+ *              Dynamo
+ *                | (get)
+ *                v  
+ * SQS Queue -> Lambda -> Kinesis Stream
+ */
+const stream = queue.enumerable()
+  .map({
+    // define your dependencies - in this case, we need read access to the enrichments table
+    depends: enrichments.readAccess(),
+    
+    // implement the enrichment procedure (runs in Lambda triggered by SQS)
+    handle: async(message, e) => {
+      const enrichment = await e.get({
+        key: message.key
+      });
+
+      return {
+        ...message,
+        tags: enrichment ? enrichment.tags : [],
+        timestamp: new Date()
+      };
+    }
+  })
+  .toStream(stack, 'Stream', {
+    // encrypt values in the stream with a customer-managed KMS key.
+    encryption: StreamEncryption.Kms,
+    // partition values across shards by the 'key' field
+    partitionBy: value => value.key,
+    // structure of the data in the stream
+    type: struct({
+      key: string(),
+      count: integer(),
+      tags: array(string()),
+      timestamp
+    })
+  });
+
+/**
+ * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioend by `year`, `month`, `day`, `hour` and `minute`)
+ *                                                                      -> Glue Table
+ */
+stream.toGlueTable(stack, 'ToGlueDirectly', {
+  database: new glue.Database(stack, 'Database', {
+    databaseName: 'my_database'
+  }),
+  tableName: 'my_table',
+  columns: stream.type.shape,
+  partition: {
+    // partition data minutely using the timestamp field
+    keys: {
+      year: integer(),
+      month: integer(),
+      day: integer(),
+      hour: integer(),
+      minute: integer()
+    },
+    get: record => ({
+      year: record.timestamp.getUTCFullYear(),
+      month: record.timestamp.getUTCMonth(),
+      day: record.timestamp.getUTCDate(),
+      hour: record.timestamp.getUTCHours(),
+      minute: record.timestamp.getUTCMinutes(),
+    })
   }
 });

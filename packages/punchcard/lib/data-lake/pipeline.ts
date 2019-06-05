@@ -35,7 +35,7 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends cdk.Constr
     });
     this.stream.toS3(this, 'ToS3');
 
-    const [table, sink] = this.stream.toGlue(this, 'ToGlue', {
+    this.table = this.stream.toGlueTable(this, 'ToGlue', {
       database: props.database,
       tableName: props.schema.schemaName,
       columns: props.schema.shape,
@@ -53,7 +53,6 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends cdk.Constr
         }
       }
     });
-    this.table = table;
 
     // this.stagingBucket = new s3.Bucket(this, 'StagingBucket', {
     //   encryption: s3.BucketEncryption.Kms

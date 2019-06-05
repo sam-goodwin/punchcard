@@ -2,7 +2,7 @@ import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 import { Client, Clients, Dependency, Function, LambdaExecutorService } from '../compute';
 import { Cons } from '../compute/hlist';
-import { Collector } from './collector/collector';
+import { Collector } from './collector';
 
 export type EventType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<infer E, any, any, any> ? E : never;
 export type InformationType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<any, infer I, any, any> ? I : never;

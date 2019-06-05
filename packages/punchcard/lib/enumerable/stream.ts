@@ -1,16 +1,20 @@
 import iam = require('@aws-cdk/aws-iam');
 import kinesis = require('@aws-cdk/aws-kinesis');
-import { StartingPosition } from '@aws-cdk/aws-lambda';
+import lambda = require('@aws-cdk/aws-lambda');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
+
+import { Function } from '../compute';
 import { Clients, Dependency, Runtime } from '../compute';
+import { Cons } from '../compute/hlist';
 import { Cache, PropertyBag } from '../compute/property-bag';
 import { BufferMapper, Json, Mapper, RuntimeType, StructType, Type } from '../shape';
 import { Codec, Partition, TableProps } from '../storage';
 import { Compression } from '../storage/glue/compression';
-import { Enumerable, EnumerableRuntime } from './enumerable';
+import { Collector } from './collector';
+import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';
 import { Resource } from './resource';
 import { S3DeliveryStream } from './s3';
 import { sink, Sink, SinkProps } from './sink';
@@ -48,7 +52,7 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
   /**
    * Create an enumerable for this stream to perform chainable computations (map, flatMap, filter, etc.)
    */
-  public stream(): EnumerableStream<RuntimeType<T>, []> {
+  public enumerable(): EnumerableStream<RuntimeType<T>, []> {
     return new EnumerableStream(this, this as any, {
       depends: [],
       handle: i => i
@@ -76,15 +80,15 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
 
   /**
    * Forward data in this stream to S3 via a Delivery Stream, and then partition and catalog data in a Glue Table.
-   * 
+   *
    * Stream -> Firehose -> S3 (time-based staging) -> Lambda -> S3 (partitioned data)
    *                                                         -> Glue Table (catalog)
    */
-  public toGlue<P extends Partition>(scope: cdk.Construct, id: string, props: TableProps<T extends StructType<infer S> ? S : never, P>) {
+  public toGlueTable<P extends Partition>(scope: cdk.Construct, id: string, props: TableProps<T extends StructType<infer S> ? S : never, P>) {
     scope = new cdk.Construct(scope, id);
     return this
-      .toS3(scope, 'ToS3').stream()
-      .toGlue(scope, 'ToGlue', props);
+      .toS3(scope, 'ToS3').enumerable()
+      .toGlueTable(scope, 'ToGlue', props);
   }
 
   /**
@@ -98,10 +102,9 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
   }
 
   /**
-   * Create a client for this stream from within a runtime environment (e.g. lambda function).
-   *
-   * @param properties environment properties
-   * @param cache global cache shared by all clients
+   * Create a client for this `Stream` from within a `Runtime` environment (e.g. a Lambda Function.).
+   * @param properties runtime properties local to this `stream`.
+   * @param cache global `Cache` shared by all clients.
    */
   public bootstrap(properties: PropertyBag, cache: Cache): Stream.Client<T> {
     return new Stream.Client(this,
@@ -110,7 +113,7 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
   }
 
   /**
-   * Set streamName and grant permissions to a `Runtime` so it may `bootstrap` a client for this `Stream`.
+   * Set `streamName` and grant permissions to a `Runtime` so it may `bootstrap` a client for this `Stream`.
    * @param target runtime to install this stream into
    */
   public install(target: Runtime): void {
@@ -167,7 +170,7 @@ export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEven
   public eventSource(props?: EnumerableStreamRuntime) {
     return new events.KinesisEventSource(this.stream.resource, props || {
       batchSize: 100,
-      startingPosition: StartingPosition.TrimHorizon
+      startingPosition: lambda.StartingPosition.TrimHorizon
     });
   }
 
@@ -291,3 +294,65 @@ export interface KinesisEvent {
     eventSourceARN: string;
   }>;
 }
+
+/**
+ * Creates a new Kineis stream and sends data from an enumerable to it.
+ */
+export class StreamCollector<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> implements Collector<CollectedStream<T, E>, E> {
+  constructor(private readonly props: StreamProps<T>) { }
+
+  public collect(scope: cdk.Construct, id: string, enumerable: E): CollectedStream<T, E> {
+    return new CollectedStream(scope, id, {
+      ...this.props,
+      enumerable
+    });
+  }
+}
+
+/**
+ * Properties for creating a collected stream.
+ */
+export interface CollectedStreamProps<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> extends StreamProps<T> {
+  /**
+   * Source of the data; an enumerable.
+   */
+  readonly enumerable: E;
+}
+/**
+ * A Kinesis `Stream` produced by collecting data from an `Enumerable`.
+ * @typeparam
+ */
+export class CollectedStream<T extends Type<any>, E extends Enumerable<any, any, any, any>> extends Stream<T> {
+  public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Stream.Client<T>>>>>;
+
+  constructor(scope: cdk.Construct, id: string, props: CollectedStreamProps<T, E>) {
+    super(scope, id, props);
+    this.sender = props.enumerable.forBatch(this.resource, 'ToStream', {
+      depends: this.writeClient(),
+      handle: async (events, self) => {
+        self.sink(events);
+      }
+    }) as any;
+  }
+}
+
+/**
+ * Add a utility method `toStream` for `Enumerable` which uses the `StreamCollector` to produce Kinesis `Streams`.
+ */
+declare module './enumerable' {
+  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
+    /**
+     * Collect data to a Kinesis Stream.
+     *
+     * @param scope
+     * @param id
+     * @param streamProps properties of the created stream
+     * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
+     * @typeparam T concrete type of data flowing to stream
+     */
+    toStream<T extends Type<I>>(scope: cdk.Construct, id: string, streamProps: StreamProps<T>, runtimeProps?: R): CollectedStream<T, this>;
+  }
+}
+Enumerable.prototype.toStream = function(scope: cdk.Construct, id: string, props: StreamProps<any>): any {
+  return this.collect(scope, id, new StreamCollector(props));
+};

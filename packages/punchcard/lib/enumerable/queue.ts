@@ -5,22 +5,14 @@ import cdk = require('@aws-cdk/cdk');
 import AWS = require('aws-sdk');
 
 import { Clients, Dependency, Function, Runtime } from '../compute';
+import { Cons } from '../compute/hlist';
 import { Cache, PropertyBag } from '../compute/property-bag';
-import { Json, Mapper, Type } from '../shape';
+import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Omit } from '../utils';
-import { Enumerable, EnumerableRuntime } from './enumerable';
+import { Collector } from './collector';
+import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
-
-declare module './enumerable' {
-  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
-    toQueue(scope: cdk.Construct, id: string, streamProps: QueueProps<I>, props?: R): [Queue<I>, Function<SQSEvent, void, Dependency.List<D>>];
-  }
-}
-Enumerable.prototype.toQueue = function(scope: cdk.Construct, id: string, queueProps: QueueProps<any>): [Queue<any>, Function<any, any, any>] {
-  scope = new cdk.Construct(scope, id);
-  return this.collect(scope, 'ToQueue', new Queue(scope, 'Queue', queueProps));
-};
 
 export type EnumerableQueueRuntime = EnumerableRuntime & events.SqsEventSourceProps;
 
@@ -45,7 +37,7 @@ export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAn
     this.mapper = Json.forType(props.type);
   }
 
-  public stream(): EnumerableQueue<T, []> {
+  public enumerable(): EnumerableQueue<T, []> {
     return new EnumerableQueue(this, this as any, {
       depends: [],
       handle: i => i
@@ -239,3 +231,68 @@ export interface SQSEvent {
     awsRegion: string;
   }>;
 }
+
+/**
+ * Creates a new SQS `Queue` and sends data from an enumerable to it (as messages).
+ *
+ * @typeparam T type of messages in the SQS Queue.
+ */
+export class QueueCollector<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> implements Collector<CollectedQueue<T, E>, E> {
+  constructor(private readonly props: QueueProps<T>) { }
+
+  public collect(scope: cdk.Construct, id: string, enumerable: E): CollectedQueue<T, E> {
+    return new CollectedQueue(scope, id, {
+      ...this.props,
+      enumerable
+    });
+  }
+}
+
+/**
+ * Properties for creating a collected `Queue`.
+ */
+export interface CollectedQueueProps<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> extends QueueProps<T> {
+  /**
+   * Source of the data; an enumerable.
+   */
+  readonly enumerable: E;
+}
+
+/**
+ * A SQS `Queue` produced by collecting data from an `Enumerable`.
+ * @typeparam T type of notififcations sent to, and emitted from, the SQS Queue.
+ */
+export class CollectedQueue<T extends Type<any>, E extends Enumerable<any, any, any, any>> extends Queue<T> {
+  public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Queue.Client<T>>>>>;
+
+  constructor(scope: cdk.Construct, id: string, props: CollectedQueueProps<T, E>) {
+    super(scope, id, props);
+    this.sender = props.enumerable.forBatch(this.resource, 'ToQueue', {
+      depends: this,
+      handle: async (events, self) => {
+        self.sink(events);
+      }
+    }) as any;
+  }
+}
+
+/**
+ * Add a utility method `toQueue` for `Enumerable` which uses the `QueueCollector` to produce SQS `Queues`.
+ */
+declare module './enumerable' {
+  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
+    /**
+     * Collect data to a SQS Queue (as messages).
+     *
+     * @param scope
+     * @param id
+     * @param queueProps properties of the created queue
+     * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
+     * @typeparam T concrete type of data flowing to queue
+     */
+    toQueue<T extends Type<I>>(scope: cdk.Construct, id: string, queueProps: QueueProps<T>, runtimeProps?: R): CollectedQueue<T, this>;
+  }
+}
+Enumerable.prototype.toQueue = function(scope: cdk.Construct, id: string, props: QueueProps<any>): any {
+  return this.collect(scope, id, new QueueCollector(props));
+};
