@@ -16,7 +16,8 @@
     "alwaysStrict": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "inlineSourceMap": true
+    "inlineSourceMap": true,
+    "declaration": true
   },
   "exclude": [
     "node_modules"
