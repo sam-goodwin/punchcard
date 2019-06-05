@@ -16,6 +16,8 @@ export type InferDynamoPathType<T extends Type<any>> = ReturnType<T['toDynamoPat
 
 /**
  * Maps each attribute in a schema to a 'facade' attribute representing its path.
+ * 
+ * TODO: better name
  */
 export type Facade<S extends Shape> = {
   [K in keyof S]: InferDynamoPathType<S[K]>;

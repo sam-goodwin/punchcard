@@ -50,6 +50,11 @@ export interface S3DeliveryStreamFromKinesis<T extends Type<any>> {
   compression: Compression;
 }
 
+/**
+ * A Firehose Delivery Stream writing data to a S3 bucket.
+ *
+ * It may or may not be consuming from a Kinesis Stream.
+ */
 export class S3DeliveryStream<T extends Type<any>> implements Resource<DeliveryStream>, Dependency<S3DeliveryStream.Client<RuntimeType<T>>> {
   public readonly resource: DeliveryStream;
   public readonly type: T;
@@ -267,7 +272,8 @@ export class CollectedS3DeliveryStream<T extends Type<any>, E extends Enumerable
 }
 
 /**
- * Add a utility method `toS3DeliveryStream` for `Enumerable` which uses the `S3DeliveryStreamCollector` to produce SNS `S3DeliveryStreams`.
+ * Add a utility method `toS3DeliveryStream` for `Enumerable` which uses the `S3DeliveryStreamCollector` to collect
+ * data to S3 via a Kinesis Firehose Delivery Stream.
  */
 declare module './enumerable' {
   interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {

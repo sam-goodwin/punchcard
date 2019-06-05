@@ -45,7 +45,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
    * Describe a transformation of values.
    *
    * **Warning**: the transformation in a map only runs when terminated, i.e. it is
-   * lazily evaluated, so you must call `forEach` or `forBatch`.
+   * lazily evaluated, so you must call `forEach`, `forBatch` or `collect`.
    *
    * @param f transformation function
    */
@@ -63,7 +63,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
    * Describe a mapping of one value to (potentially) many.
    *
    * **Warning**: the transformation in a map only runs when terminated, i.e. it is
-   * lazily evaluated, so you must call `forEach` or `forBatch`.
+   * lazily evaluated, so you must call `forEach`, `forBatch` or `collect`.
    *
    * @param f transformation function
    */
@@ -126,6 +126,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
     handle: (value: I, deps: Client<D2>) => Promise<any>;
     props?: R;
   }): Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
+    // TODO: let the enumerable type determine default executor service
     const executorService = (input.props && input.props.executorService) || new LambdaExecutorService({
       memorySize: 128,
       timeout: 10

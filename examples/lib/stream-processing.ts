@@ -1,6 +1,6 @@
 import glue = require('@aws-cdk/aws-glue')
 import cdk = require('@aws-cdk/cdk');
-import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency, Collectors } from 'punchcard';
+import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency } from 'punchcard';
 
 import uuid = require('uuid');
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
@@ -49,14 +49,14 @@ const enrichments = new HashTable(stack, 'Enrichments', {
   /**
    * Define our runtime dependencies:
    *
-   * we want to *publish* to the SNS `topic` and *write* to the DynamoDB `table`.
+   * We want to *publish* to the SNS `topic` and *write* to the DynamoDB `table`.
    */
   depends: Dependency.list(topic, enrichments.writeAccess()),
 
   /**
    * Impement the Lambda Function.
    * 
-   * We will be passed clients for each of our dependencies: the `topic` and `table` .
+   * We will be passed clients for each of our dependencies: the `topic` and `table`.
    */
   handle: async (_, [topic, table]) => {
     const key = uuid();
@@ -70,7 +70,7 @@ const enrichments = new HashTable(stack, 'Enrichments', {
 
     // publish a SNS notification
     await topic.publish({
-      // message is structured and strongly typed
+      // message is structured and strongly typed (based on our Topic definition above)
       key,
       count: 1,
       timestamp: new Date()
@@ -98,10 +98,10 @@ const queue = topic.toQueue(stack, 'Queue');
 
 /**
  * Process each message in SQS with Lambda, look up some data in DynamoDB, and persist results in a Kinesis Stream:
- * 
+ *
  *              Dynamo
  *                | (get)
- *                v  
+ *                v
  * SQS Queue -> Lambda -> Kinesis Stream
  */
 const stream = queue.enumerable() // enumerable gives us a nice chainable API for resources like queues, streams, topics etc.
@@ -123,8 +123,10 @@ const stream = queue.enumerable() // enumerable gives us a nice chainable API fo
   .toStream(stack, 'Stream', {
     // encrypt values in the stream with a customer-managed KMS key.
     encryption: StreamEncryption.Kms,
+
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
+
     // type of the data in the stream
     type: struct({
       key: string(),
@@ -135,7 +137,9 @@ const stream = queue.enumerable() // enumerable gives us a nice chainable API fo
   });
 
 /**
- * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioend by `year`, `month`, `day`, `hour` and `minute`)
+ * Persist data in a Kinesis Stream as a Glue Table.
+ * 
+ * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioned by `year`, `month`, `day`, `hour` and `minute`)
  *                                                                      -> Glue Table
  */
 const database = new glue.Database(stack, 'Database', {
@@ -146,7 +150,7 @@ stream.toGlueTable(stack, 'ToGlueDirectly', {
   tableName: 'my_table',
   columns: stream.type.shape,
   partition: {
-    // partition data minutely using the timestamp field
+    // Glue Table partition keys: minutely using the timestamp field
     keys: {
       year: integer(),
       month: integer(),
@@ -155,6 +159,7 @@ stream.toGlueTable(stack, 'ToGlueDirectly', {
       minute: integer()
     },
     get: record => ({
+      // define the mapping of a record to its Glue Table partition keys
       year: record.timestamp.getUTCFullYear(),
       month: record.timestamp.getUTCMonth(),
       day: record.timestamp.getUTCDate(),

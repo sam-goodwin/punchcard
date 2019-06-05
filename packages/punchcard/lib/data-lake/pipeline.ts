@@ -32,7 +32,6 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends cdk.Constr
       type: struct(props.schema.shape),
       encryption: StreamEncryption.Kms
     });
-    this.stream.toS3DeliveryStream(this, 'ToS3');
 
     this.table = this.stream.toGlueTable(this, 'ToGlue', {
       database: props.database,
@@ -52,28 +51,5 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends cdk.Constr
         }
       }
     });
-
-    // this.stagingBucket = new s3.Bucket(this, 'StagingBucket', {
-    //   encryption: s3.BucketEncryption.Kms
-    // });
-
-    // this.validator = new Validator(this, 'Validator', {
-    //   table: this.table
-    // });
-    // this.deliveryStream = new DeliveryStream(this, 'DeliveryStream', {
-    //   compression: Compression.Gzip.type,
-    //   transformFunction: this.validator.processor,
-    //   kinesisStream: this.stream.resource,
-    //   destination: DeliveryStreamDestination.S3,
-    //   type: DeliveryStreamType.KinesisStreamAsSource,
-    //   s3Bucket: this.stagingBucket,
-    //   s3Prefix: this.table.s3Prefix
-    // });
-
-    // this.partitioner = new Partitioner(this, 'Partitioner', {
-    //   table: this.table,
-    //   sourceBucket: this.stagingBucket,
-    //   sourceCompression: Compression.Gzip
-    // });
   }
 }
