@@ -11,9 +11,12 @@ export default app;
 const stack = new cdk.Stack(app, 'stream-processing');
 
 /**
- * Create a strongly-typed SNS Topic.
+ * Create a SNS Topic.
  */
 const topic = new Topic(stack, 'Topic', {
+  /**
+   * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
+   */
   type: struct({
     key: string(),
     count: integer(),
@@ -42,20 +45,32 @@ const enrichments = new HashTable(stack, 'Enrichments', {
  **/ 
 λ().schedule(stack, 'DummyData', {
   rate: Rate.minutes(1),
-  depends: Dependency.list(topic, enrichments),
-  handle: async (_, [topic, enrichments]) => {
+
+  /**
+   * Define our runtime dependencies:
+   *
+   * we want to *publish* to the SNS `topic` and *write* to the DynamoDB `table`.
+   */
+  depends: Dependency.list(topic, enrichments.writeAccess()),
+
+  /**
+   * Impement the Lambda Function.
+   * 
+   * We will be passed clients for each of our dependencies: the `topic` and `table` .
+   */
+  handle: async (_, [topic, table]) => {
     const key = uuid();
-    // this data will be queried by lambda when processing SQS messages
-    await enrichments.put({
+    // write some data to the dynamodb table
+    await table.put({
       item: {
         key,
         tags: ['some', 'tags']
       }
     });
 
-    // trigger the example pipeline by emitting a SNS notification
+    // publish a SNS notification
     await topic.publish({
-      // message is structured and statically typed
+      // message is structured and strongly typed
       key,
       count: 1,
       timestamp: new Date()
@@ -89,13 +104,11 @@ const queue = topic.toQueue(stack, 'Queue');
  *                v  
  * SQS Queue -> Lambda -> Kinesis Stream
  */
-const stream = queue.enumerable()
+const stream = queue.enumerable() // enumerable gives us a nice chainable API for resources like queues, streams, topics etc.
   .map({
-    // define your dependencies - in this case, we need read access to the enrichments table
     depends: enrichments.readAccess(),
-    
-    // implement the enrichment procedure (runs in Lambda triggered by SQS)
     handle: async(message, e) => {
+      // here we transform messages received from SQS by looking up some data in DynamoDB
       const enrichment = await e.get({
         key: message.key
       });
@@ -112,7 +125,7 @@ const stream = queue.enumerable()
     encryption: StreamEncryption.Kms,
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
-    // structure of the data in the stream
+    // type of the data in the stream
     type: struct({
       key: string(),
       count: integer(),
@@ -125,10 +138,11 @@ const stream = queue.enumerable()
  * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioend by `year`, `month`, `day`, `hour` and `minute`)
  *                                                                      -> Glue Table
  */
+const database = new glue.Database(stack, 'Database', {
+  databaseName: 'my_database'
+});
 stream.toGlueTable(stack, 'ToGlueDirectly', {
-  database: new glue.Database(stack, 'Database', {
-    databaseName: 'my_database'
-  }),
+  database,
   tableName: 'my_table',
   columns: stream.type.shape,
   partition: {

@@ -4,10 +4,9 @@ import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/cdk');
 import { Stream } from '../enumerable';
 import { RuntimeShape, Shape, struct, StructType, TimestampType } from '../shape';
-import { Compression } from '../storage/glue/compression';
 import { Period } from '../storage/glue/period';
 import { Table } from '../storage/glue/table';
-import { DeliveryStream, DeliveryStreamDestination, DeliveryStreamType } from './delivery-stream';
+import { DeliveryStream } from './delivery-stream';
 import { Partitioner } from './partitioner';
 import { Schema } from './schema';
 import { Validator } from './validator';
@@ -33,7 +32,7 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends cdk.Constr
       type: struct(props.schema.shape),
       encryption: StreamEncryption.Kms
     });
-    this.stream.toS3(this, 'ToS3');
+    this.stream.toS3DeliveryStream(this, 'ToS3');
 
     this.table = this.stream.toGlueTable(this, 'ToGlue', {
       database: props.database,

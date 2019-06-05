@@ -217,6 +217,7 @@ export function code(scope: cdk.IConstruct): lambda.Code {
   const app = findApp(scope);
   if ((app as any)[codeSymbol] === undefined) {
     const index = process.mainModule!.filename;
+    // TODO: probably better to stash things in the CWD instead of next to the app
     const dist = path.resolve(path.dirname(index), '.punchcard');
     const name = path.basename(index, '.js');
     const codePath = path.join(dist, name);

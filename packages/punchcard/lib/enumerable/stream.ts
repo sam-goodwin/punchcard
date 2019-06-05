@@ -16,7 +16,7 @@ import { Compression } from '../storage/glue/compression';
 import { Collector } from './collector';
 import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';
 import { Resource } from './resource';
-import { S3DeliveryStream } from './s3';
+import { S3DeliveryStream } from './s3-delivery-stream';
 import { sink, Sink, SinkProps } from './sink';
 
 export type EnumerableStreamRuntime = EnumerableRuntime & events.KinesisEventSourceProps;
@@ -64,15 +64,15 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
    *
    * Stream -> Firehose -> S3 (minutely).
    */
-  public toS3(scope: cdk.Construct, id: string, props: {
+  public toS3DeliveryStream(scope: cdk.Construct, id: string, props: {
     codec: Codec;
     comression: Compression;
   } = {
     codec: Codec.Json,
     comression: Compression.Gzip
-  }): S3DeliveryStream<RuntimeType<T>> {
+  }): S3DeliveryStream<T> {
     return new S3DeliveryStream(scope, id, {
-      stream: this as any,
+      stream: this,
       codec: props.codec,
       compression: props.comression
     });
@@ -87,7 +87,7 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
   public toGlueTable<P extends Partition>(scope: cdk.Construct, id: string, props: TableProps<T extends StructType<infer S> ? S : never, P>) {
     scope = new cdk.Construct(scope, id);
     return this
-      .toS3(scope, 'ToS3').enumerable()
+      .toS3DeliveryStream(scope, 'ToS3').enumerable()
       .toGlueTable(scope, 'ToGlue', props);
   }
 

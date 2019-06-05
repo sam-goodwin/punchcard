@@ -6,7 +6,7 @@ import { RuntimeShape, Shape } from '../shape';
 import { Compression } from '../storage/glue/compression';
 import { Partition, Table } from '../storage/glue/table';
 import { Bucket } from '../storage/s3';
-import { S3Event } from '../enumerable/s3';
+import { S3Event } from '../enumerable/s3-delivery-stream';
 
 /**
  * Properties for creating a Validator.

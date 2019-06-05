@@ -3,7 +3,7 @@ import cdk = require('@aws-cdk/cdk');
 import { Type } from '../shape/types/type';
 import { Enumerable } from './enumerable';
 import { QueueCollector, QueueProps } from './queue';
-import { S3DeliveryStreamCollector, S3DeliveryStreamForType } from './s3';
+import { S3DeliveryStreamCollector, S3DeliveryStreamForType } from './s3-delivery-stream';
 import { StreamCollector, StreamProps } from './stream';
 import { TopicCollector, TopicProps } from './topic';
 
@@ -43,11 +43,11 @@ export namespace Collectors {
   }
 
   /**
-   * Collects data from an `Enumerable` into a new Kinesis Stream.
+   * Collects data from an `Enumerable` into S3 via a Firehose Delivery Stream.
    *
    * @param props stream properties
    */
-  export function toS3<T extends Type<any>>(props: S3DeliveryStreamForType<T>): S3DeliveryStreamCollector<T, any> {
+  export function toS3DeliveryStream<T extends Type<any>>(props: S3DeliveryStreamForType<T>): S3DeliveryStreamCollector<T, any> {
     return new S3DeliveryStreamCollector<T, any>(props);
   }
 

@@ -18,10 +18,13 @@ const dataPoints = new Schema({
   timestampField: 'timestamp'
 });
 
-// A data lake is a collection of schemas, where each schema has corresponding
-// infrastructure to collect data:
-// Kinesis -> Firehose -> S3 -> Lambda -> S3
-//                                     -> Glue Table
+/**
+ * A data lake is a collection of schemas, where each schema has corresponding
+ * infrastructure to collect data:
+ *
+ * Kinesis -> Firehose -> S3 -> Lambda -> S3
+ *                                     -> Glue Table
+ */
 const lake = new DataLake(stack, 'Lake', {
   lakeName: 'my_lake',
   schemas: {
