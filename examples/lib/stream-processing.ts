@@ -1,5 +1,5 @@
 import cdk = require('@aws-cdk/cdk');
-import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency } from 'punchcard';
+import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency, Collectors } from 'punchcard';
 
 import uuid = require('uuid');
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
@@ -66,6 +66,10 @@ const stream = queue.stream()
       tags: array(string())
     })
   });
+
+stream.stream().collect(stack, 'ToStream', Collectors.toStream({
+  type: stream.type
+}));
 
 // Lastly, we'll kick off the whole system with a dummy notification sent once per minute
 λ().schedule(stack, 'DummyData', {

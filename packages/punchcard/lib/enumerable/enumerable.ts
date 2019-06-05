@@ -1,8 +1,8 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
-import { Collector } from '../collector/collector';
 import { Client, Clients, Dependency, Function, LambdaExecutorService } from '../compute';
 import { Cons } from '../compute/hlist';
+import { Collector } from './collector/collector';
 
 export type EventType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<infer E, any, any, any> ? E : never;
 export type InformationType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<any, infer I, any, any> ? I : never;
@@ -200,11 +200,5 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
    */
   public collect<T>(scope: cdk.Construct, id: string, collector: Collector<T, this>): T {
     return collector.collect(scope, id, this);
-    // return [sink, this.forBatch(scope, id, {
-    //   depends: sink,
-    //   async handle(values, sink) {
-    //     await sink.sink(values);
-    //   }
-    // }) as any];
   }
 }

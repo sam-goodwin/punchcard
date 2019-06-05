@@ -10,7 +10,6 @@ import { Cache, PropertyBag } from '../compute/property-bag';
 import { BufferMapper, Json, Mapper, RuntimeType, StructType, Type } from '../shape';
 import { Codec, Partition, TableProps } from '../storage';
 import { Compression } from '../storage/glue/compression';
-import { Omit } from '../utils';
 import { Enumerable, EnumerableRuntime } from './enumerable';
 import { Resource } from './resource';
 import { S3DeliveryStream } from './s3';
@@ -30,6 +29,9 @@ export interface StreamProps<T extends Type<any>> extends kinesis.StreamProps {
   partitionBy?: (record: RuntimeType<T>) => string;
 }
 
+/**
+ * A Kinesis stream.
+ */
 export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, Dependency<Stream.Client<T>> {
   public readonly type: T;
   public readonly mapper: Mapper<RuntimeType<T>, Buffer>;
@@ -43,6 +45,9 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
     this.partitionBy = props.partitionBy || (_ => uuid());
   }
 
+  /**
+   * Create an enumerable for this stream to perform chainable computations (map, flatMap, filter, etc.)
+   */
   public stream(): EnumerableStream<RuntimeType<T>, []> {
     return new EnumerableStream(this, this as any, {
       depends: [],
@@ -50,6 +55,11 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
     });
   }
 
+  /**
+   * Forward data in this stream to S3 via a Delivery Stream.
+   *
+   * Stream -> Firehose -> S3 (minutely).
+   */
   public toS3(scope: cdk.Construct, id: string, props: {
     codec: Codec;
     comression: Compression;
@@ -64,6 +74,12 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
     });
   }
 
+  /**
+   * Forward data in this stream to S3 via a Delivery Stream, and then partition and catalog data in a Glue Table.
+   * 
+   * Stream -> Firehose -> S3 (time-based staging) -> Lambda -> S3 (partitioned data)
+   *                                                         -> Glue Table (catalog)
+   */
   public toGlue<P extends Partition>(scope: cdk.Construct, id: string, props: TableProps<T extends StructType<infer S> ? S : never, P>) {
     scope = new cdk.Construct(scope, id);
     return this
@@ -71,30 +87,53 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
       .toGlue(scope, 'ToGlue', props);
   }
 
+  /**
+   * Return an iterator of records parsed from the raw data in the event.
+   * @param event kinesis event sent to lambda
+   */
   public async *run(event: KinesisEvent): AsyncIterableIterator<RuntimeType<T>> {
     for (const record of event.Records.map(record => this.mapper.read(Buffer.from(record.kinesis.data, 'base64')))) {
       yield record;
     }
   }
 
+  /**
+   * Create a client for this stream from within a runtime environment (e.g. lambda function).
+   *
+   * @param properties environment properties
+   * @param cache global cache shared by all clients
+   */
   public bootstrap(properties: PropertyBag, cache: Cache): Stream.Client<T> {
     return new Stream.Client(this,
       properties.get('streamName'),
       cache.getOrCreate('aws:kinesis', () => new AWS.Kinesis()));
   }
 
+  /**
+   * Set streamName and grant permissions to a `Runtime` so it may `bootstrap` a client for this `Stream`.
+   * @param target runtime to install this stream into
+   */
   public install(target: Runtime): void {
     this.readWriteClient().install(target);
   }
 
+  /**
+   * Read and Write access to this stream.
+   */
   public readWriteClient(): Dependency<Stream.Client<T>> {
     return this._client(g => this.resource.grantReadWrite(g));
   }
 
+  /**
+   * Read-only access to this stream.
+   */
   public readClient(): Dependency<Stream.Client<T>> {
     return this._client(g => this.resource.grantRead(g));
   }
 
+  /**
+   * Write-only access to this stream.
+   */
   public writeClient(): Dependency<Stream.Client<T>> {
     return this._client(g => this.resource.grantWrite(g));
   }
@@ -110,6 +149,9 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
   }
 }
 
+/**
+ * An enumerable Kinesis Stream.
+ */
 export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEvent, T, D, EnumerableStreamRuntime>  {
   constructor(public readonly stream: Stream<any>, previous: EnumerableStream<any, any>, input: {
     depends: D;
@@ -118,6 +160,10 @@ export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEven
     super(previous, input.handle, input.depends);
   }
 
+  /**
+   * Create a `KinesisEventSource` which attaches a Lambda Function to this Stream.
+   * @param props optional tuning properties for the event source.
+   */
   public eventSource(props?: EnumerableStreamRuntime) {
     return new events.KinesisEventSource(this.stream.resource, props || {
       batchSize: 100,
@@ -125,6 +171,10 @@ export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEven
     });
   }
 
+  /**
+   * Chain a computation and dependency pair with this computation.
+   * @param input the next computation along with its dependencies.
+   */
   public chain<U, D2 extends any[]>(input: {
     depends: D2;
     handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
@@ -134,11 +184,17 @@ export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEven
 }
 
 export namespace Stream {
-  export type PutRecordInput<T> = {Data: T} & Omit<AWS.Kinesis.PutRecordInput, 'Data' | 'StreamName'>;
+  export type PutRecordInput<T> = {Data: T} & Pick<AWS.Kinesis.PutRecordInput, 'ExplicitHashKey' | 'SequenceNumberForOrdering'>;
   export type PutRecordOutput = AWS.Kinesis.PutRecordOutput;
-  export type PutRecordsInput<T> = Array<{Data: T} & Omit<AWS.Kinesis.PutRecordsRequestEntry, 'Data'>>;
+  export type PutRecordsInput<T> = Array<{Data: T} & Pick<AWS.Kinesis.PutRecordsRequestEntry, 'ExplicitHashKey'>>;
   export type PutRecordsOutput = AWS.Kinesis.PutRecordsOutput;
 
+  /**
+   * A client to a specific Kinesis Stream of some type, `T`.
+   *
+   * @typeparam T type of data in the stream.
+   * @see https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
+   */
   export class Client<T extends Type<any>> implements Sink<RuntimeType<T>> {
     constructor(
       public readonly stream: Stream<T>,
@@ -146,29 +202,55 @@ export namespace Stream {
       public readonly client: AWS.Kinesis
     ) {}
 
-    public putRecord(request: PutRecordInput<RuntimeType<T>>): Promise<PutRecordOutput> {
+    /**
+     * Put a single record to the Stream.
+     * @param input Data and optional ExplicitHashKey and SequenceNumberForOrdering
+     */
+    public putRecord(input: PutRecordInput<RuntimeType<T>>): Promise<PutRecordOutput> {
       return this.client.putRecord({
-        ...request,
+        ...input,
         StreamName: this.streamName,
-        Data: this.stream.mapper.write(request.Data)
+        Data: this.stream.mapper.write(input.Data),
+        PartitionKey: this.stream.partitionBy(input.Data),
       }).promise();
     }
 
+    /**
+     * Put a batch of records to the stream.
+     *
+     * Note: a successful (no exception) does not ensure that all records were successfully put to the
+     * stream; you must check the error code of each record in the response and re-drive those which failed.
+     *
+     * Maxiumum number of records: 500.
+     * Maximum payload size: 1MB (base64-encoded).
+     *
+     * @param request array of records containing Data and optional ExplicitHashKey and SequenceNumberForOrdering
+     * @returns output containing sequence numbers of successful records and error codes of failed records.
+     * @see https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
+     */
     public putRecords(request: PutRecordsInput<RuntimeType<T>>): Promise<PutRecordsOutput> {
       return this.client.putRecords({
         StreamName: this.streamName,
         Records: request.map(record => ({
           ...record,
-          Data: this.stream.mapper.write(record.Data)
+          Data: this.stream.mapper.write(record.Data),
+          PartitionKey: this.stream.partitionBy(record.Data)
         }))
       }).promise();
     }
 
+    /**
+     * Put all records (ignoring request limits of Kinesis) by batching all records into
+     * optimal `putRecords` calls; failed records will be redriven, and intermittent failures
+     * will be handled with back-offs and retry attempts.
+     *
+     * @param records array of records to 'sink' to the stream.
+     * @param props configure retry and ordering behavior
+     */
     public async sink(records: Array<RuntimeType<T>>, props?: SinkProps): Promise<void> {
       await sink(records, async values => {
         const result = await this.putRecords(values.map(value => ({
-          Data: value,
-          PartitionKey: this.stream.partitionBy(value)
+          Data: value
         })));
 
         if (result.FailedRecordCount) {
