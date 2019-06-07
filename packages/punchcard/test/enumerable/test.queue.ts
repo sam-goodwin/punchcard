@@ -2,7 +2,7 @@ import 'jest';
 import sinon = require('sinon');
 
 import cdk = require('@aws-cdk/cdk');
-import { Dependency, integer, Queue, Stream, string, Collectors } from '../../lib';
+import { Collectors, Dependency, integer, Queue, string } from '../../lib';
 import { setRuntime } from '../../lib/constants';
 
 setRuntime();
@@ -17,7 +17,6 @@ describe('run', () => {
 
     const results: string[] = [];
     await (queue.enumerable().forEach(stack, 'od', {
-      depends: Dependency.none,
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);

@@ -60,8 +60,8 @@ export async function sink<T>(values: T[], tryPutBatch: (values: T[]) => Promise
       }
     } else {
       await Promise.all([
-        await sink(values.slice(0, Math.floor(values.length / 2)), tryPutBatch, props, batchSize),
-        await sink(values.slice(Math.floor(values.length / 2), values.length), tryPutBatch, props, batchSize)
+        sink(values.slice(0, Math.floor(values.length / 2)), tryPutBatch, props, batchSize),
+        sink(values.slice(Math.floor(values.length / 2), values.length), tryPutBatch, props, batchSize)
       ]);
     }
   }

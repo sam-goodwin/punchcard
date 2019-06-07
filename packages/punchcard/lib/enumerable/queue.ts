@@ -21,15 +21,15 @@ export type EnumerableQueueRuntime = EnumerableRuntime & events.SqsEventSourcePr
  *
  * It extends the standard `sqs.QueueProps` with a `mapper` instance.
  */
-export interface QueueProps<T> extends sqs.QueueProps {
-  type: Type<T>;
+export interface QueueProps<T extends Type<any>> extends sqs.QueueProps {
+  type: T;
 }
 /**
  * Represents a SQS Queue containtining messages of type, `T`, serialized with some `Codec`.
  */
-export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAndSendClient<T>> {
+export class Queue<T extends Type<any>> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAndSendClient<T>> {
   public readonly context = {};
-  public readonly mapper: Mapper<T, string>;
+  public readonly mapper: Mapper<RuntimeType<T>, string>;
   public readonly resource: sqs.Queue;
 
   constructor(scope: cdk.Construct, id: string, props: QueueProps<T>) {
@@ -37,23 +37,25 @@ export class Queue<T> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAn
     this.mapper = Json.forType(props.type);
   }
 
-  public enumerable(): EnumerableQueue<T, []> {
-    return new EnumerableQueue(this, this as any, {
+  public enumerable(): EnumerableQueue<RuntimeType<T>, []> {
+    const mapper = this.mapper;
+    class Root extends EnumerableQueue<RuntimeType<T>, []> {
+      /**
+       * Bottom of the recursive async generator - returns the records
+       * parsed and validated out of the SQSEvent.
+       *
+       * @param event payload of SQS event
+       */
+      public async *run(event: SQSEvent) {
+        for (const record of event.Records.map(record => mapper.read(record.body))) {
+          yield record;
+        }
+      }
+    }
+    return new Root(this, undefined as any, {
       depends: [],
       handle: i => i
     });
-  }
-
-  /**
-   * Bottom of the recursive async generator - returns the records
-   * parsed and validated out of the SQSEvent.
-   *
-   * @param event payload of SQS event
-   */
-  public async *run(event: SQSEvent): AsyncIterableIterator<T> {
-    for (const record of event.Records.map(record => this.mapper.read(record.body))) {
-      yield record;
-    }
   }
 
   /**
@@ -135,25 +137,25 @@ export class EnumerableQueue<T, D extends any[]> extends Enumerable<SQSEvent, T,
  * Namespace for `Queue` type aliases and its `Client` implementation.
  */
 export namespace Queue {
-  export type ConsumeAndSendClient<T> = Client<T>;
-  export type ConsumeClient<T> = Omit<Client<T>, 'sendMessage' | 'sendMessageBatch'>;
-  export type SendClient<T> = Omit<Client<T>, 'receiveMessage'>;
+  export type ConsumeAndSendClient<T extends Type<any>> = Client<T>;
+  export type ConsumeClient<T extends Type<any>> = Omit<Client<T>, 'sendMessage' | 'sendMessageBatch'>;
+  export type SendClient<T extends Type<any>> = Omit<Client<T>, 'receiveMessage'>;
 
   export type ReceiveMessageRequest = Omit<AWS.SQS.ReceiveMessageRequest, 'QueueUrl'>;
-  export type ReceiveMessageResult<T> = Array<{Body: T} & Omit<AWS.SQS.Message, 'Body'>>;
-  export type SendMessageRequest<T> = {MessageBody: T} & Omit<AWS.SQS.SendMessageRequest, 'QueueUrl' | 'MessageBody'>;
+  export type ReceiveMessageResult<T extends Type<any>> = Array<{Body: RuntimeType<T>} & Omit<AWS.SQS.Message, 'Body'>>;
+  export type SendMessageRequest<T extends Type<any>> = {MessageBody: RuntimeType<T>} & Omit<AWS.SQS.SendMessageRequest, 'QueueUrl' | 'MessageBody'>;
   export type SendMessageResult = AWS.SQS.SendMessageResult;
-  export type SendMessageBatchRequest<T> = Array<{MessageBody: T} & Omit<AWS.SQS.SendMessageBatchRequestEntry, 'MessageBody'>>;
+  export type SendMessageBatchRequest<T extends Type<any>> = Array<{MessageBody: RuntimeType<T>} & Omit<AWS.SQS.SendMessageBatchRequestEntry, 'MessageBody'>>;
   export type SendMessageBatchResult = AWS.SQS.SendMessageBatchResult;
 
   /**
    * Runtime representation of a SQS Queue.
    */
-  export class Client<T> implements Sink<T> {
+  export class Client<T extends Type<any>> implements Sink<RuntimeType<T>> {
     constructor(
       public readonly queueUrl: string,
       public readonly client: AWS.SQS,
-      public readonly mapper: Mapper<T, string>
+      public readonly mapper: Mapper<RuntimeType<T>, string>
     ) {}
 
     /**
@@ -194,7 +196,7 @@ export namespace Queue {
       }).promise();
     }
 
-    public async sink(records: T[], props?: SinkProps): Promise<void> {
+    public async sink(records: Array<RuntimeType<T>>, props?: SinkProps): Promise<void> {
       return sink(records, async values => {
         const batch = values.map((value, i) => ({
           Id: i.toString(10),
@@ -203,9 +205,7 @@ export namespace Queue {
         const result = await this.sendMessageBatch(batch);
 
         if (result.Failed) {
-          return result.Failed
-            .map(r => parseInt(r.Id, 10))
-            .map(i => values[i]);
+          return result.Failed.map(r => values[parseInt(r.Id, 10)]);
         }
         return [];
       }, props, 10);

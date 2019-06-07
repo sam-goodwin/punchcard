@@ -1,3 +1,3 @@
-export * from './codec';
+export * from './compression';
 export * from './period';
 export * from './table';

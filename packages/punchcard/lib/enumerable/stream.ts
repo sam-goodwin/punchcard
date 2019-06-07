@@ -14,9 +14,9 @@ import { BufferMapper, Json, Mapper, RuntimeType, StructType, Type } from '../sh
 import { Codec, Partition, TableProps } from '../storage';
 import { Compression } from '../storage/glue/compression';
 import { Collector } from './collector';
+import { S3DeliveryStream } from './delivery-stream';
 import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';
 import { Resource } from './resource';
-import { S3DeliveryStream } from './s3-delivery-stream';
 import { sink, Sink, SinkProps } from './sink';
 
 export type EnumerableStreamRuntime = EnumerableRuntime & events.KinesisEventSourceProps;
@@ -53,18 +53,30 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
    * Create an enumerable for this stream to perform chainable computations (map, flatMap, filter, etc.)
    */
   public enumerable(): EnumerableStream<RuntimeType<T>, []> {
-    return new EnumerableStream(this, this as any, {
+    const mapper = this.mapper;
+    class Root extends EnumerableStream<RuntimeType<T>, []> {
+      /**
+       * Return an iterator of records parsed from the raw data in the event.
+       * @param event kinesis event sent to lambda
+       */
+      public async *run(event: KinesisEvent) {
+        for (const record of event.Records.map(record => mapper.read(Buffer.from(record.kinesis.data, 'base64')))) {
+          yield record;
+        }
+      }
+    }
+    return new Root(this, undefined as any, {
       depends: [],
       handle: i => i
     });
   }
 
   /**
-   * Forward data in this stream to S3 via a Delivery Stream.
+   * Forward data in this stream to S3 via a Firehose Delivery Stream.
    *
    * Stream -> Firehose -> S3 (minutely).
    */
-  public toS3DeliveryStream(scope: cdk.Construct, id: string, props: {
+  public toS3(scope: cdk.Construct, id: string, props: {
     codec: Codec;
     comression: Compression;
   } = {
@@ -76,29 +88,6 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
       codec: props.codec,
       compression: props.comression
     });
-  }
-
-  /**
-   * Forward data in this stream to S3 via a Delivery Stream, and then partition and catalog data in a Glue Table.
-   *
-   * Stream -> Firehose -> S3 (time-based staging) -> Lambda -> S3 (partitioned data)
-   *                                                         -> Glue Table (catalog)
-   */
-  public toGlueTable<P extends Partition>(scope: cdk.Construct, id: string, props: TableProps<T extends StructType<infer S> ? S : never, P>) {
-    scope = new cdk.Construct(scope, id);
-    return this
-      .toS3DeliveryStream(scope, 'ToS3').enumerable()
-      .toGlueTable(scope, 'ToGlue', props);
-  }
-
-  /**
-   * Return an iterator of records parsed from the raw data in the event.
-   * @param event kinesis event sent to lambda
-   */
-  public async *run(event: KinesisEvent): AsyncIterableIterator<RuntimeType<T>> {
-    for (const record of event.Records.map(record => this.mapper.read(Buffer.from(record.kinesis.data, 'base64')))) {
-      yield record;
-    }
   }
 
   /**
@@ -207,6 +196,7 @@ export namespace Stream {
 
     /**
      * Put a single record to the Stream.
+     *
      * @param input Data and optional ExplicitHashKey and SequenceNumberForOrdering
      */
     public putRecord(input: PutRecordInput<RuntimeType<T>>): Promise<PutRecordOutput> {
@@ -221,13 +211,13 @@ export namespace Stream {
     /**
      * Put a batch of records to the stream.
      *
-     * Note: a successful (no exception) does not ensure that all records were successfully put to the
+     * Note: a successful response (no exception) does not ensure that all records were successfully put to the
      * stream; you must check the error code of each record in the response and re-drive those which failed.
      *
      * Maxiumum number of records: 500.
      * Maximum payload size: 1MB (base64-encoded).
      *
-     * @param request array of records containing Data and optional ExplicitHashKey and SequenceNumberForOrdering
+     * @param request array of records containing Data and optional `ExplicitHashKey` and `SequenceNumberForOrdering`.
      * @returns output containing sequence numbers of successful records and error codes of failed records.
      * @see https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
      */
@@ -243,9 +233,11 @@ export namespace Stream {
     }
 
     /**
-     * Put all records (ignoring request limits of Kinesis) by batching all records into
+     * Put all records (accounting for request limits of Kinesis) by batching all records into
      * optimal `putRecords` calls; failed records will be redriven, and intermittent failures
      * will be handled with back-offs and retry attempts.
+     *
+     * TODO: account for total payload size of 1MB base64-encoded.
      *
      * @param records array of records to 'sink' to the stream.
      * @param props configure retry and ordering behavior

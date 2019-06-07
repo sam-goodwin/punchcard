@@ -92,7 +92,7 @@ topic.enumerable().forEach(stack, 'ForEachNotification', {
 /**
  * Subscribe SNS Topic to a SQS Queue:
  *
- * SQS --(subscription)--> SNS
+ * SNS --(subscription)--> SQS
  */
 const queue = topic.toQueue(stack, 'Queue');
 
@@ -145,26 +145,28 @@ const stream = queue.enumerable() // enumerable gives us a nice chainable API fo
 const database = new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
 });
-stream.toGlueTable(stack, 'ToGlueDirectly', {
-  database,
-  tableName: 'my_table',
-  columns: stream.type.shape,
-  partition: {
-    // Glue Table partition keys: minutely using the timestamp field
-    keys: {
-      year: integer(),
-      month: integer(),
-      day: integer(),
-      hour: integer(),
-      minute: integer()
-    },
-    get: record => ({
-      // define the mapping of a record to its Glue Table partition keys
-      year: record.timestamp.getUTCFullYear(),
-      month: record.timestamp.getUTCMonth(),
-      day: record.timestamp.getUTCDate(),
-      hour: record.timestamp.getUTCHours(),
-      minute: record.timestamp.getUTCMinutes(),
-    })
-  }
-});
+stream
+  .toS3(stack, 'ToS3').enumerable()
+  .toGlueTable(stack, 'ToGlue', {
+    database,
+    tableName: 'my_table',
+    columns: stream.type.shape,
+    partition: {
+      // Glue Table partition keys: minutely using the timestamp field
+      keys: {
+        year: integer(),
+        month: integer(),
+        day: integer(),
+        hour: integer(),
+        minute: integer()
+      },
+      get: record => ({
+        // define the mapping of a record to its Glue Table partition keys
+        year: record.timestamp.getUTCFullYear(),
+        month: record.timestamp.getUTCMonth(),
+        day: record.timestamp.getUTCDate(),
+        hour: record.timestamp.getUTCHours(),
+        minute: record.timestamp.getUTCMinutes(),
+      })
+    }
+  });

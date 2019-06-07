@@ -14,7 +14,6 @@ export interface IDeliveryStream extends cdk.IConstruct {
 }
 
 export abstract class BaseDeliveryStream extends cdk.Resource implements logs.ILogSubscriptionDestination {
-
   /**
    * The ARN of the delivery stream.
    */
@@ -28,7 +27,7 @@ export abstract class BaseDeliveryStream extends cdk.Resource implements logs.IL
   /**
    * Optional KMS encryption key associated with this delivery stream.
    */
-  public abstract readonly encryptionKey?: kms.EncryptionKey;
+  public abstract readonly encryptionKey?: kms.Key;
 
   /**
    * The role that can be used by CloudWatch logs to write to this delivery stream
@@ -45,8 +44,7 @@ export abstract class BaseDeliveryStream extends cdk.Resource implements logs.IL
       .addActions('firehose:PutRecord', 'firehose:PutRecordBatch')
       .addResource(this.deliveryStreamArn));
   }
-
-  public logSubscriptionDestination(sourceLogGroup: logs.LogGroup): logs.LogSubscriptionDestination {
+  public bind(scope: cdk.Construct, sourceLogGroup: logs.ILogGroup): logs.LogSubscriptionDestinationProperties {
     // Following example from https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/SubscriptionFilters.html#DestinationKinesisExample
     if (!this.cloudWatchLogsRole) {
       // Create a role to be assumed by CWL that can write to this stream and pass itself.
@@ -88,7 +86,7 @@ export interface DeliveryStreamProps {
 export class DeliveryStream extends BaseDeliveryStream {
   public readonly deliveryStreamArn: string;
   public readonly deliveryStreamName: string;
-  public readonly encryptionKey: kms.EncryptionKey;
+  public readonly encryptionKey: kms.Key;
   private readonly role: iam.Role;
   private readonly deliveryStreamResource: firehose.CfnDeliveryStream;
 

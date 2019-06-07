@@ -14,22 +14,22 @@ import { Queue } from './queue';
 import { Resource } from './resource';
 import { Sink, sink, SinkProps } from './sink';
 
-export type TopicProps<T> = {
+export type TopicProps<T extends Type<any>> = {
   /**
    * Type of messages.
    */
-  type: Type<T>;
+  type: T;
 } & sns.TopicProps;
 
 /**
- * A SNS `Topic` with notificaqtions of type, `T`.
+ * A SNS `Topic` with notifications of type, `T`.
  *
  * @typeparam T type of notifications sent and emitted from the `Topic`.
  */
-export class Topic<T> implements Resource<sns.Topic>, Dependency<Topic.Client<T>> {
+export class Topic<T extends Type<any>> implements Resource<sns.Topic>, Dependency<Topic.Client<T>> {
   public readonly context = {};
-  public readonly type: Type<T>;
-  public readonly mapper: Mapper<T, string>;
+  public readonly type: T;
+  public readonly mapper: Mapper<RuntimeType<T>, string>;
   public readonly resource: sns.Topic;
 
   constructor(scope: cdk.Construct, id: string, props: TopicProps<T>) {
@@ -41,8 +41,20 @@ export class Topic<T> implements Resource<sns.Topic>, Dependency<Topic.Client<T>
   /**
    * Create an enumerable for this topic's notifications - chainable computations (map, flatMap, filter, etc.)
    */
-  public enumerable(): EnumerableTopic<T, []> {
-    return new EnumerableTopic(this, this as any, {
+  public enumerable(): EnumerableTopic<RuntimeType<T>, []> {
+    const mapper = this.mapper;
+    class Root extends EnumerableTopic<RuntimeType<T>, []> {
+      /**
+       * Return an iterator of records parsed from the raw data in the event.
+       * @param event kinesis event sent to lambda
+       */
+      public async *run(event: SNSEvent) {
+        for (const record of event.Records) {
+          yield mapper.read(record.Sns.Message);
+        }
+      }
+    }
+    return new Root(this, undefined as any, {
       depends: [],
       handle: i => i
     });
@@ -75,16 +87,6 @@ export class Topic<T> implements Resource<sns.Topic>, Dependency<Topic.Client<T>
    */
   public subscribeQueue(queue: Queue<T>): sns.Subscription {
     return this.resource.subscribeQueue(queue.resource, true);
-  }
-
-  /**
-   * Return an iterator of parsed messages.
-   * @param event sns event sent to a `Function` subscribed to this `Topic`.
-   */
-  public async *run(event: SNSEvent): AsyncIterableIterator<T> {
-    for (const record of event.Records) {
-      yield this.mapper.read(record.Sns.Message);
-    }
   }
 
   /**
@@ -146,7 +148,7 @@ export namespace Topic {
    * @typeparam T type of messages sent to (and emitted by) the SNS `Topic.
    * @see https://aws.amazon.com/sns/faqs/ (scroll down to limits section)
    */
-  export class Client<T> implements Sink<T> {
+  export class Client<T extends Type<any>> implements Sink<T> {
     constructor(
       public readonly mapper: Mapper<T, string>,
       public readonly topicArn: string,
@@ -158,7 +160,7 @@ export namespace Topic {
        * @param message content to send
        * @param messageAttributes optional message attributes
        */
-    public publish(message: T, messageAttributes?: {[key: string]: AWS.SNS.MessageAttributeValue}): Promise<PublishResponse> {
+    public publish(message: RuntimeType<T>, messageAttributes?: {[key: string]: AWS.SNS.MessageAttributeValue}): Promise<PublishResponse> {
       return this.client.publish({
         Message: this.mapper.write(message),
         MessageAttributes: messageAttributes,
@@ -172,7 +174,7 @@ export namespace Topic {
      * @param messages messages to publish
      * @param props optional properties to tune retry and concurrency behavior.
      */
-    public async sink(messages: T[], props?: SinkProps): Promise<void> {
+    public async sink(messages: Array<RuntimeType<T>>, props?: SinkProps): Promise<void> {
       await sink(messages, async ([value]) => {
         try {
           await this.publish(value);

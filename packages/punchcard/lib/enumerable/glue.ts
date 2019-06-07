@@ -11,9 +11,9 @@ import { Collector } from './collector';
 import { DependencyType, Enumerable, EventType } from './enumerable';
 
 /**
- * Creates a new SNS `Table` and publishes data from an enumerable to it.
+ * Creates a new Glue `Table` and publishes data from an enumerable to it.
  *
- * @typeparam T type of notififcations sent to (and emitted from) the SNS Table.
+ * @typeparam T type of notififcations sent to (and emitted from) the Glue Table.
  */
 export class GlueTableCollector<S extends Shape, P extends Partition, E extends Enumerable<any, RuntimeShape<S>, any, any>> implements Collector<CollectedGlueTable<S, P, E>, E> {
   constructor(private readonly props: TableProps<S, P>) { }
@@ -37,8 +37,9 @@ export interface CollectedGlueTableProps<S extends Shape, P extends Partition, E
 }
 
 /**
- * A SNS `Table` produced by collecting data from an `Enumerable`.
- * @typeparam T type of notififcations sent to, and emitted from, the SNS Table.
+ * A Glue `Table` produced by collecting data from an `Enumerable`.
+ *
+ * @typeparam T type of notififcations sent to, and emitted from, the Glue Table.
  */
 export class CollectedGlueTable<S extends Shape, P extends Partition, E extends Enumerable<any, any, any, any>> extends Table<S, P> {
   public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Table.Client<S, P>>>>>;
@@ -55,7 +56,7 @@ export class CollectedGlueTable<S extends Shape, P extends Partition, E extends 
 }
 
 /**
- * Add a utility method `toGlueTable` for `Enumerable` which uses the `TableCollector` to produce SNS `Tables`.
+ * Add a utility method `toGlueTable` for `Enumerable` which uses the `TableCollector` to produce Glue `Tables`.
  */
 declare module './enumerable' {
   interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {

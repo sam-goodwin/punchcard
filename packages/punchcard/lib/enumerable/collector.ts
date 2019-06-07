@@ -1,9 +1,9 @@
 import cdk = require('@aws-cdk/cdk');
 
 import { Type } from '../shape/types/type';
+import { S3DeliveryStreamCollector, S3DeliveryStreamForType } from './delivery-stream';
 import { Enumerable } from './enumerable';
 import { QueueCollector, QueueProps } from './queue';
-import { S3DeliveryStreamCollector, S3DeliveryStreamForType } from './s3-delivery-stream';
 import { StreamCollector, StreamProps } from './stream';
 import { TopicCollector, TopicProps } from './topic';
 
