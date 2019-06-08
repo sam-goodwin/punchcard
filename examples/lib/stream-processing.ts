@@ -6,7 +6,9 @@ import uuid = require('uuid');
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 
-const app = new cdk.App();
+const app = new cdk.App({
+  autoRun: false
+});
 export default app;
 const stack = new cdk.Stack(app, 'stream-processing');
 
@@ -137,10 +139,10 @@ const stream = queue.enumerable() // enumerable gives us a nice chainable API fo
   });
 
 /**
- * Persist data in a Kinesis Stream as a Glue Table.
+ * Persist Kinesis Stream data as a tome-series Glue Table.
  * 
  * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioned by `year`, `month`, `day`, `hour` and `minute`)
- *                                                                      -> Glue Table
+ *                                                                      -> Glue Catalog
  */
 const database = new glue.Database(stack, 'Database', {
   databaseName: 'my_database'

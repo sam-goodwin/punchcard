@@ -136,6 +136,12 @@ export class Table<T extends Shape, P extends Partition> implements Resource<glu
     this.partitionMappers = {} as any;
     Object.entries(this.shape.partitions).forEach(([name, type]) => this.partitionMappers[name] = Json.forType(type) as any);
 
+    // Hack: fix tableArn (fixed in 0.32.0)
+    (this.resource as any).tableArn = this.resource.node.stack.formatArn({
+      service: 'glue',
+      resource: 'table',
+      resourceName: `${this.resource.database.databaseName}/${this.resource.tableName}`
+    });
     (this.resource as any).grant = (grantee: iam.IGrantable, actions: string[]) => {
       // Hack: override grant to also add catalog and database arns as resources
       return iam.Grant.addToPrincipal({

@@ -11,19 +11,19 @@
     "jest": "jest"
   },
   "dependencies": {
-    "@aws-cdk/aws-dynamodb": "^0.33.0",
-    "@aws-cdk/aws-glue": "^0.33.0",
-    "@aws-cdk/aws-lambda": "^0.33.0",
-    "@aws-cdk/aws-kinesis": "^0.33.0",
-    "@aws-cdk/aws-s3": "^0.33.0",
-    "@aws-cdk/cdk": "^0.33.0",
+    "@aws-cdk/aws-dynamodb": "^0.31.0",
+    "@aws-cdk/aws-glue": "^0.31.0",
+    "@aws-cdk/aws-lambda": "^0.31.0",
+    "@aws-cdk/aws-kinesis": "^0.31.0",
+    "@aws-cdk/aws-s3": "^0.31.0",
+    "@aws-cdk/cdk": "^0.31.0",
     "@types/uuid": "^3.4.4",
     "punchcard": "^0.4.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
     "@types/node": "^11.13.7",
-    "aws-cdk": "^0.33.0",
+    "aws-cdk": "^0.31.0",
     "aws-sdk": "^2.395.0",
     "typescript": "^3.4.0",
     "tslint": "^5.10.0"

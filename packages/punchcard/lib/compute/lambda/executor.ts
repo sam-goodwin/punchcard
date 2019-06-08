@@ -71,7 +71,7 @@ export class LambdaExecutorService {
       ...props
     });
 
-    new events.Rule(scope, 'Schedule', {
+    new events.EventRule(scope, 'Schedule', {
       scheduleExpression: props.rate.scheduleExpression,
       targets: [new eventTargets.LambdaFunction(f)]
     });

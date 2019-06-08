@@ -2,3 +2,4 @@
 node_modules
 *.js
 .vscode
+cdk.out

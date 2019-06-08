@@ -1,7 +1,9 @@
 import cdk = require('@aws-cdk/cdk');
 import { integer, string, LambdaExecutorService, Rate, Schema, timestamp, char, array, DataLake } from 'punchcard';
 
-const app = new cdk.App();
+const app = new cdk.App({
+  autoRun: false
+});
 export default app;
 
 const stack = new cdk.Stack(app, 'data-lake');
