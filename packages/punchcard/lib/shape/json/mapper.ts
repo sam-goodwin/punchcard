@@ -1,4 +1,4 @@
-import { RuntimeShape, Shape } from '../shape';
+import { RuntimeShape, RuntimeType, Shape } from '../shape';
 
 import { Mapper as IMapper, Reader, Writer } from '../mapper/mapper';
 import { Raw } from '../mapper/raw';
@@ -11,8 +11,8 @@ export namespace Json {
     validate?: boolean;
   }
 
-  export function jsonLine<S extends Shape>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, string> {
-    const m = forShape(shape, configuration);
+  export function jsonLine<T extends Type<any>>(type: T, configuration?: Configuration): IMapper<RuntimeType<T>, string> {
+    const m = forType(type, configuration);
     return {
       read: s => m.read(s),
       write: s => `${m.write(s)}\n`
@@ -30,8 +30,7 @@ export namespace Json {
     };
   }
 
-  type InferType<T extends Type<any>> = T extends Type<infer V> ? V : never;
-  export function forType<T extends Type<any>>(type: T, configuration?: Configuration): IMapper<InferType<T>, string> {
+  export function forType<T extends Type<any>>(type: T, configuration?: Configuration): IMapper<RuntimeType<T>, string> {
     return new Mapper(type, configuration);
   }
 

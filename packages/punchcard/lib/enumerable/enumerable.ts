@@ -2,12 +2,16 @@ import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/cdk');
 import { Client, Clients, Dependency, Function, LambdaExecutorService } from '../compute';
 import { Cons } from '../compute/hlist';
-import { Sink } from './sink';
+import { Collector } from './collector';
+
+export type EventType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<infer E, any, any, any> ? E : never;
+export type InformationType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<any, infer I, any, any> ? I : never;
+export type DependencyType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<any, any, infer D, any> ? D : never;
 
 /**
  * Props to configure an `Enumerable's` evaluation runtime properties.
  */
-export interface EnumerableProps {
+export interface EnumerableRuntime {
   /**
    * The executor service of a `Enumerable` can always be customized.
    */
@@ -18,14 +22,14 @@ export interface EnumerableProps {
  * Represents chainable async operations on a cloud data structure.
  *
  * @typeparam E type of event that triggers the computation, i.e. SQSEvent to a Lambda Function
- * @typeparam T type of records yielded from this source (after transformation)
- * @typeparam C clients required at runtime
- * @typeparam P type of props for configuring computation infrastructure
+ * @typeparam I type of information yielded from this source (after transformation)
+ * @typeparam D runtime dependencies
+ * @typeparam R runtime configuration
  */
-export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProps> {
+export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
   constructor(
-      protected readonly previous: Enumerable<E, any, any, P>,
-      protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,
+      protected readonly previous: Enumerable<E, any, any, R>,
+      protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<I>,
       public readonly dependencies: D) {
     // do nothing
   }
@@ -35,20 +39,20 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    *
    * @param props optional properties - must implement sensible defaults
    */
-  public abstract eventSource(props?: P): lambda.IEventSource;
+  public abstract eventSource(props?: R): lambda.IEventSource;
 
   /**
    * Describe a transformation of values.
    *
    * **Warning**: the transformation in a map only runs when terminated, i.e. it is
-   * lazily evaluated, so you must call `forEach` or `forBatch`.
+   * lazily evaluated, so you must call `forEach`, `forBatch` or `collect`.
    *
    * @param f transformation function
    */
   public map<U, D2 extends Dependency<any> | undefined>(input: {
     depends?: D2;
-    handle: (value: T, deps: Client<D2>) => Promise<U>
-  }): Enumerable<E, U, D2 extends undefined ? D : Cons<D, D2>, P> {
+    handle: (value: I, deps: Client<D2>) => Promise<U>
+  }): Enumerable<E, U, D2 extends undefined ? D : Cons<D, D2>, R> {
     return this.flatMap({
       depends: input.depends,
       handle: async (v, c) => [await input.handle(v, c)]
@@ -59,17 +63,17 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    * Describe a mapping of one value to (potentially) many.
    *
    * **Warning**: the transformation in a map only runs when terminated, i.e. it is
-   * lazily evaluated, so you must call `forEach` or `forBatch`.
+   * lazily evaluated, so you must call `forEach`, `forBatch` or `collect`.
    *
    * @param f transformation function
    */
   public flatMap<U, D2 extends Dependency<any> | undefined>(input: {
     depends?: D2;
-    handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>
-  }): Enumerable<E, U, D2 extends undefined ? D : Cons<D, D2>, P> {
+    handle: (value: I, deps: Client<D2>) => Promise<Iterable<U>>
+  }): Enumerable<E, U, D2 extends undefined ? D : Cons<D, D2>, R> {
     return this.chain({
       depends: (input.depends === undefined ? this.dependencies : [input.depends].concat(this.dependencies)) as any,
-      handle: (async function*(values: AsyncIterableIterator<T>, clients: any) {
+      handle: (async function*(values: AsyncIterableIterator<I>, clients: any) {
         for await (const value of values) {
           for (const mapped of await input.handle(value, clients)) {
             yield mapped;
@@ -89,8 +93,8 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    */
   public abstract chain<U, D2 extends any[]>(input: {
     depends: D2;
-    handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>
-  }): Enumerable<E, U, D2, P>;
+    handle: (value: AsyncIterableIterator<I>, deps: Clients<D2>) => AsyncIterableIterator<U>
+  }): Enumerable<E, U, D2, R>;
 
   /**
    * Asynchronously process an event and yield values.
@@ -98,7 +102,7 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    * @param event payload
    * @param clients bootstrapped clients
    */
-  public run(event: E, deps: Clients<D>): AsyncIterableIterator<T> {
+  public run(event: E, deps: Clients<D>): AsyncIterableIterator<I> {
     if (this.dependencies === this.previous.dependencies) {
       return this.f(this.previous.run(event, deps), deps ? (deps as any[])[0] : undefined);
     } else {
@@ -119,9 +123,10 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    */
   public forEach<D2 extends Dependency<any> | undefined>(scope: cdk.Construct, id: string, input: {
     depends?: D2;
-    handle: (value: T, deps: Client<D2>) => Promise<any>;
-    props?: P;
+    handle: (value: I, deps: Client<D2>) => Promise<any>;
+    props?: R;
   }): Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
+    // TODO: let the enumerable type determine default executor service
     const executorService = (input.props && input.props.executorService) || new LambdaExecutorService({
       memorySize: 128,
       timeout: 10
@@ -156,8 +161,8 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    */
   public forBatch<D2 extends Dependency<any> | undefined>(scope: cdk.Construct, id: string, input: {
     depends?: D2;
-    handle: (value: T[], deps: Client<D2>) => Promise<any>;
-    props?: P;
+    handle: (value: I[], deps: Client<D2>) => Promise<any>;
+    props?: R;
   }): Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
     return this.batched().forEach(scope, id, input);
   }
@@ -167,7 +172,7 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
    *
    * @param size maximum number of records in the batch (defaults to all)
    */
-  public batched(size?: number): Enumerable<E, T[], D, P> {
+  public batched(size?: number): Enumerable<E, I[], D, R> {
     return this.chain({
       depends: this.dependencies,
       async *handle(it) {
@@ -188,19 +193,13 @@ export abstract class Enumerable<E, T, D extends any[], P extends EnumerableProp
   }
 
   /**
-   * Collect data in this enumerable to a generic `Sink`, returning a tuple containing
-   * the `Sink` (i.e. a `Stream`, `Topic` or `Queue`) and the `Function` which sends the data.
+   * Collect data with a `Collector`.
    *
    * @param scope to create resources under
    * @param id of construct under which forwarding resources will be created
-   * @param sink recipient of data
+   * @param collector destination collector
    */
-  public toSink<S extends Dependency<Sink<T>>>(scope: cdk.Construct, id: string, sink: S): [S, Function<E, any, Dependency.List<Cons<D, S>>>] {
-    return [sink, this.forBatch(scope, id, {
-      depends: sink,
-      async handle(values, sink) {
-        await sink.sink(values);
-      }
-    }) as any];
+  public collect<T>(scope: cdk.Construct, id: string, collector: Collector<T, this>): T {
+    return collector.collect(scope, id, this);
   }
 }

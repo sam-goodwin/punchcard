@@ -8,14 +8,16 @@ import cdk = require('@aws-cdk/cdk');
 
 import { Cache, PropertyBag } from '../../compute/property-bag';
 import { Runtime } from '../../compute/runtime';
-import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, Type } from '../../shape';
+import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, struct, Type } from '../../shape';
 import { Omit } from '../../utils';
+import { Codec } from '../codec';
 import { Bucket } from '../s3';
-import { Codec } from './codec';
 import { Compression } from './compression';
 
 import crypto = require('crypto');
 import { Dependency } from '../../compute';
+import { Resource } from '../../enumerable/resource';
+import { Sink } from '../../enumerable/sink';
 
 /**
  * Glue partition shape must be of only string, date or numeric types.
@@ -30,13 +32,29 @@ export type Partition = {
  */
 export type TableProps<T extends Shape, P extends Partition> = {
   /**
-   * Shape of the data stored in the table.
+   * Data columns of the data stored in the table.
    */
   columns: T;
+
+  /**
+   * Validate each record before writing to this table.
+   */
+  validate?: (record: RuntimeShape<T>) => void;
+
   /**
    * Shape of the partition keys of the table.
    */
-  partitions: P;
+  partition: {
+    /**
+     * Partition keys of the table.
+     */
+    keys: P;
+    /**
+     * Get a record's partitition.
+     */
+    get: (record: RuntimeShape<T>) => RuntimeShape<P>;
+  }
+
   /**
    * Data codec of the table.
    *
@@ -50,17 +68,12 @@ export type TableProps<T extends Shape, P extends Partition> = {
    * @default None
    */
   compression?: Compression;
-
-  /**
-   * Function which maps a record to its partition.
-   */
-  partitioner: (record: RuntimeShape<T>) => RuntimeShape<P>;
 } & Omit<glue.TableProps, 'columns' | 'partitionKeys' | 'dataFormat' | 'compressed'>;
 
 /**
  * Represents a partitioned Glue Table.
  */
-export class Table<T extends Shape, P extends Partition> extends glue.Table implements Dependency<Table.ReadWriteClient<T, P>> {
+export class Table<T extends Shape, P extends Partition> implements Resource<glue.Table>, Dependency<Table.ReadWriteClient<T, P>> {
   /**
    * Type of compression.
    */
@@ -77,12 +90,14 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
     [K in keyof P]: Mapper<RuntimeType<P[K]>, string>
   };
   public readonly codec: Codec;
-  public readonly partitioner: (record: RuntimeShape<T>) => RuntimeShape<P>;
+  public readonly partition: (record: RuntimeShape<T>) => RuntimeShape<P>;
+  public readonly validate?: (record: RuntimeShape<T>) => void;
+  public readonly resource: glue.Table;
 
   constructor(scope: cdk.Construct, id: string, props: TableProps<T, P>) {
     const compression = (props.compression || Compression.None);
     const codec = (props.codec || Codec.Json);
-    super(scope, id, {
+    this.resource = new glue.Table(scope, id, {
       ...props,
       dataFormat: codec.format,
       compressed: compression.isCompressed,
@@ -90,7 +105,7 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
         name,
         type: schema.toGlueType()
       })),
-      partitionKeys: Object.entries(props.partitions).map(([name, schema]) => {
+      partitionKeys: Object.entries(props.partition.keys).map(([name, schema]) => {
         switch (schema.kind) {
           case Kind.String:
           case Kind.Boolean:
@@ -110,27 +125,28 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
 
     this.shape = {
       columns: props.columns,
-      partitions: props.partitions
+      partitions: props.partition.keys
     };
-    this.partitioner = props.partitioner;
+    this.partition = props.partition.get;
+    this.validate = props.validate;
 
     this.compression = compression;
     this.codec = codec;
-    this.mapper = this.codec.mapper(this.shape.columns);
+    this.mapper = this.codec.mapper(struct(this.shape.columns));
     this.partitionMappers = {} as any;
     Object.entries(this.shape.partitions).forEach(([name, type]) => this.partitionMappers[name] = Json.forType(type) as any);
 
     // Hack: fix tableArn (fixed in 0.32.0)
-    (this as any).tableArn = this.node.stack.formatArn({
+    (this.resource as any).tableArn = this.resource.node.stack.formatArn({
       service: 'glue',
       resource: 'table',
-      resourceName: `${this.database.databaseName}/${this.tableName}`
+      resourceName: `${this.resource.database.databaseName}/${this.resource.tableName}`
     });
-    (this as any).grant = (grantee: iam.IGrantable, actions: string[]) => {
+    (this.resource as any).grant = (grantee: iam.IGrantable, actions: string[]) => {
       // Hack: override grant to also add catalog and database arns as resources
       return iam.Grant.addToPrincipal({
         grantee,
-        resourceArns: [this.tableArn, this.database.databaseArn, this.database.catalogArn],
+        resourceArns: [this.resource.tableArn, this.resource.database.databaseArn, this.resource.database.catalogArn],
         actions,
       });
     };
@@ -141,15 +157,15 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
   }
 
   public readWriteClient(): Dependency<Table.ReadWriteClient<T, P>> {
-    return this.client(this.grantReadWrite.bind(this), new Bucket(this.bucket).readWriteClient());
+    return this.client(g => this.resource.grantReadWrite(g), new Bucket(this.resource.bucket).readWriteClient());
   }
 
   public readClient(): Dependency<Table.ReadClient<T, P>> {
-    return this.client(this.grantRead.bind(this), new Bucket(this.bucket).readClient());
+    return this.client(g => this.resource.grantRead(g), new Bucket(this.resource.bucket).readClient());
   }
 
   public writeClient(): Dependency<Table.WriteClient<T, P>> {
-    return this.client(this.grantWrite.bind(this), new Bucket(this.bucket).writeClient());
+    return this.client(g => this.resource.grantWrite(g), new Bucket(this.resource.bucket).writeClient());
   }
 
   private client<C>(grant: (grantable: iam.IGrantable) => void, bucket: Dependency<any>): Dependency<C> {
@@ -157,9 +173,9 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
       install: (target) => {
         grant(target.grantable);
         bucket.install(target.namespace('bucket'));
-        target.properties.set('catalogId', this.database.catalogId);
-        target.properties.set('databaseName', this.database.databaseName);
-        target.properties.set('tableName', this.tableName);
+        target.properties.set('catalogId', this.resource.database.catalogId);
+        target.properties.set('databaseName', this.resource.database.databaseName);
+        target.properties.set('tableName', this.resource.tableName);
       },
       bootstrap: this.bootstrap.bind(this) as any
     };
@@ -172,7 +188,7 @@ export class Table<T extends Shape, P extends Partition> extends glue.Table impl
       properties.get('databaseName'),
       properties.get('tableName'),
       this,
-      new Bucket(this.bucket).bootstrap(properties.namespace('bucket'), cache)
+      new Bucket(this.resource.bucket).bootstrap(properties.namespace('bucket'), cache)
     );
   }
 }
@@ -182,7 +198,7 @@ export namespace Table {
    * Client type aliaes.
    */
   export type ReadWriteClient<T extends Shape, P extends Partition> = Table.Client<T, P>;
-  export type ReadClient<T extends Shape, P extends Partition> = Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'write'>;
+  export type ReadClient<T extends Shape, P extends Partition> = Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'>;
   export type WriteClient<T extends Shape, P extends Partition> = Omit<Table.Client<T, P>, 'getPartitions'>;
 
   /**
@@ -203,7 +219,7 @@ export namespace Table {
    * * create, update, delete and query partitions.
    * * write objects to the table (properly partitioned S3 Objects and Glue Partitions).
    */
-  export class Client<T extends Shape, P extends Partition> {
+  export class Client<T extends Shape, P extends Partition> implements Sink<RuntimeShape<T>> {
     private readonly partitions: string[];
 
     constructor(
@@ -228,14 +244,17 @@ export namespace Table {
      *
      * @param records to write to the glue table
      */
-    public async write(records: Iterable<RuntimeShape<T>>) {
+    public async sink(records: Iterable<RuntimeShape<T>>) {
       const partitions: Map<string, {
         partition: RuntimeShape<P>;
         records: Array<RuntimeShape<T>>;
       }> = new Map();
 
       for (const record of records) {
-        const partition = this.table.partitioner(record);
+        if (this.table.validate) {
+          this.table.validate(record);
+        }
+        const partition = this.table.partition(record);
         const key = Object.values(partition).map(p => p.toString()).join('');
         if (!partitions.has(key)) {
           partitions.set(key, {
@@ -250,7 +269,7 @@ export namespace Table {
         const partitionPath = Object.entries(partition).map(([name, value]) => {
           return `${name}=${this.table.partitionMappers[name].write(value as any)}`;
         }).join('/');
-        let location = this.table.s3Prefix ? path.join(this.table.s3Prefix, partitionPath) : partitionPath;
+        let location = this.table.resource.s3Prefix ? path.join(this.table.resource.s3Prefix, partitionPath) : partitionPath;
         if (!location.endsWith('/')) {
           location += '/';
         }
@@ -348,10 +367,10 @@ export namespace Table {
               Type: type.toGlueType().inputString
             };
           }),
-          InputFormat: this.table.dataFormat.inputFormat.className,
-          OutputFormat: this.table.dataFormat.outputFormat.className,
+          InputFormat: this.table.resource.dataFormat.inputFormat.className,
+          OutputFormat: this.table.resource.dataFormat.outputFormat.className,
           SerdeInfo: {
-            SerializationLibrary: this.table.dataFormat.serializationLibrary.className
+            SerializationLibrary: this.table.resource.dataFormat.serializationLibrary.className
           }
         }
       };

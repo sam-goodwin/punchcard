@@ -1,7 +1,9 @@
 import cdk = require('@aws-cdk/cdk');
 import { integer, string, LambdaExecutorService, Rate, Schema, timestamp, char, array, DataLake } from 'punchcard';
 
-const app = new cdk.App();
+const app = new cdk.App({
+  autoRun: false
+});
 export default app;
 
 const stack = new cdk.Stack(app, 'data-lake');
@@ -18,10 +20,13 @@ const dataPoints = new Schema({
   timestampField: 'timestamp'
 });
 
-// A data lake is a collection of schemas, where each schema has corresponding
-// infrastructure to collect data:
-// Kinesis -> Firehose -> S3 -> Lambda -> S3
-//                                     -> Glue Table
+/**
+ * A data lake is a collection of schemas, where each schema has corresponding
+ * infrastructure to collect data:
+ *
+ * Kinesis -> Firehose -> S3 -> Lambda -> S3
+ *                                     -> Glue Table
+ */
 const lake = new DataLake(stack, 'Lake', {
   lakeName: 'my_lake',
   schemas: {
@@ -33,7 +38,7 @@ const lake = new DataLake(stack, 'Lake', {
 // Kinesis -> Lambda
 // Note: the type-safety of the `record`
 lake.pipelines.dataPoints.stream
-  .stream()
+  .enumerable()
   .forEach(stack, 'ForEachDataPoint', {
     async handle(record) {
       console.log('key', record.key);
@@ -50,7 +55,6 @@ new LambdaExecutorService().schedule(stack, 'DummyDataPoints', {
   rate: Rate.minutes(1),
   handle: async (_, stream) => {
     await stream.putRecord({
-      PartitionKey: 'partition-key',
       Data: {
         key: 'key',
         data_points: [0, 1, 2],

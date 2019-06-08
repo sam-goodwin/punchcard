@@ -102,7 +102,7 @@ function bootstrapTests(makeTable: (stack: cdk.Stack) => HashTable<any, any> | S
     const cache = new Cache();
     bag.set('tableName', 'table-name');
     table.bootstrap(bag, cache);
-    expect(cache.has(ITable.cacheKey)).toBe(true);
+    expect(cache.has('aws:dynamodb')).toBe(true);
   });
   it('should use cached dynamo client', () => {
     const ddbClientConstructor = sinon.spy(AWS, 'DynamoDB');

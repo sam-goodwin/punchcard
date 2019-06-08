@@ -6,6 +6,7 @@ import lambda = require("@aws-cdk/aws-lambda");
 import logs = require("@aws-cdk/aws-logs");
 import s3 = require("@aws-cdk/aws-s3");
 import cdk = require("@aws-cdk/cdk");
+import { CompressionType } from "../storage/glue/compression";
 
 export interface IDeliveryStream extends cdk.IConstruct {
   readonly deliveryStreamArn: string;
@@ -13,7 +14,6 @@ export interface IDeliveryStream extends cdk.IConstruct {
 }
 
 export abstract class BaseDeliveryStream extends cdk.Resource implements logs.ILogSubscriptionDestination {
-
   /**
    * The ARN of the delivery stream.
    */
@@ -39,7 +39,12 @@ export abstract class BaseDeliveryStream extends cdk.Resource implements logs.IL
    */
   public s3Bucket?: s3.Bucket;
 
-  public logSubscriptionDestination(sourceLogGroup: logs.LogGroup): logs.LogSubscriptionDestination {
+  public grantWrite(grantable: iam.IGrantable) {
+    grantable.grantPrincipal.addToPolicy(new iam.PolicyStatement()
+      .addActions('firehose:PutRecord', 'firehose:PutRecordBatch')
+      .addResource(this.deliveryStreamArn));
+  }
+  public logSubscriptionDestination(sourceLogGroup: logs.ILogGroup): logs.LogSubscriptionDestination {
     // Following example from https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/SubscriptionFilters.html#DestinationKinesisExample
     if (!this.cloudWatchLogsRole) {
       // Create a role to be assumed by CWL that can write to this stream and pass itself.
@@ -222,11 +227,4 @@ export enum DeliveryStreamDestination {
 
 export enum ProcessorType {
   Lambda = "Lambda"
-}
-
-export enum CompressionType {
-  UNCOMPRESSED = "UNCOMPRESSED",
-  GZIP = "GZIP",
-  ZIP = "ZIP",
-  Snappy = "Snappy"
 }

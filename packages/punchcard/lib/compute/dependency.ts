@@ -24,13 +24,15 @@ export interface Dependency<C> {
    * Install a Client instance into a target:
    * * grant required permissions
    * * add properties required at runtime
+   *
    * @param target
    */
   install(target: Runtime): void;
   /**
    * Bootstrap the runtime interface of a construct.
-   * @param properties a bag of properties
-   * @param cache a cache of state shared by all clients at runtime
+   *
+   * @param properties a bag of properties local to this dependency (namespaced to avoid collisions).
+   * @param cache a cache of state shared by all clients at runtime.
    */
   bootstrap(properties: PropertyBag, cache: Cache): C;
 }

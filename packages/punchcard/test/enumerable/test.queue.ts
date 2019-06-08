@@ -2,7 +2,7 @@ import 'jest';
 import sinon = require('sinon');
 
 import cdk = require('@aws-cdk/cdk');
-import { Dependency, Function, integer, Queue, string, Stream } from '../../lib';
+import { Collectors, Dependency, integer, Queue, string } from '../../lib';
 import { setRuntime } from '../../lib/constants';
 
 setRuntime();
@@ -16,8 +16,7 @@ describe('run', () => {
     });
 
     const results: string[] = [];
-    await (queue.stream().forEach(stack, 'od', {
-      depends: Dependency.none,
+    await (queue.enumerable().forEach(stack, 'od', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -37,7 +36,7 @@ describe('run', () => {
     });
 
     const results: string[] = [];
-    await (queue.stream().forEach(stack, 'od', {
+    await (queue.enumerable().forEach(stack, 'od', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -66,7 +65,7 @@ describe('run', () => {
     };
 
     const results: number[] = [];
-    const f = await (queue.stream().map({
+    const f = await (queue.enumerable().map({
       depends: d1,
       handle: async (v, d1) => {
         expect(d1).toEqual('d1');
@@ -89,7 +88,7 @@ describe('run', () => {
     expect(results).toEqual(['string'.length]);
     expect.assertions(3);
   });
-  it('should transform records with a map and `toSink`', async () => {
+  it('should transform records with a map and `collect`', async () => {
     const stack = new cdk.Stack(new cdk.App(), 'stack');
 
     const queue = new Queue(stack, 'Queue', {
@@ -101,7 +100,7 @@ describe('run', () => {
       install: () => undefined
     };
 
-    const [, l] = queue.stream()
+    const stream = queue.enumerable()
       .map({
         depends: d1,
         handle: async (v, d1) => {
@@ -109,7 +108,7 @@ describe('run', () => {
           return v.length;
         }
       })
-      .toSink(stack, 'ToSink', new Stream(stack, 'Stream', {
+      .collect(stack, 'Stream', Collectors.toStream({
         type: integer()
       }));
 
@@ -117,7 +116,7 @@ describe('run', () => {
       sink: sinon.fake()
     };
 
-    await l.handle({
+    await stream.sender.handle({
       Records: [{
       body: JSON.stringify('string')
     } as any]}, [sink as any, 'd1'], {});
@@ -137,7 +136,7 @@ describe('run', () => {
       install: () => undefined
     };
 
-    const [, l] = queue.stream()
+    const stream = queue.enumerable()
       .map({
         depends: d1,
         handle: async (v, d1) => {
@@ -153,7 +152,7 @@ describe('run', () => {
       sink: sinon.fake()
     };
 
-    await l.handle({
+    await stream.sender.handle({
       Records: [{
       body: JSON.stringify('string')
     } as any]}, [sink as any, 'd1'], {});
