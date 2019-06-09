@@ -4,9 +4,7 @@ import uuid = require('uuid');
 
 import { $input, array, attribute_not_exists, double, response, StatusCode, string, struct } from 'punchcard';
 
-const app = new cdk.App({
-  autoRun: false
-});
+const app = new cdk.App();
 export default app;
 
 // WARNING: this example will be changed - it does not properly descrive the Model and Velocity Templates yet.

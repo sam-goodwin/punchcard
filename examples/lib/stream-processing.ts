@@ -6,9 +6,7 @@ import uuid = require('uuid');
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 
-const app = new cdk.App({
-  autoRun: false
-});
+const app = new cdk.App();
 export default app;
 const stack = new cdk.Stack(app, 'stream-processing');
 
@@ -152,7 +150,12 @@ stream
   .toGlueTable(stack, 'ToGlue', {
     database,
     tableName: 'my_table',
-    columns: stream.type.shape,
+    columns: {
+      key: string(),
+      count: integer(),
+      tags: array(string()),
+      timestamp
+    },
     partition: {
       // Glue Table partition keys: minutely using the timestamp field
       keys: {
