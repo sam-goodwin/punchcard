@@ -3,5 +3,8 @@
   "private": true,
   "devDependencies": {
     "lerna": "^3.13.4"
+  },
+  "dependencies": {
+    "punchcard": "file:packages/punchcard/punchcard-0.4.0.tgz"
   }
 }

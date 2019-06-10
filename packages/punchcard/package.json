@@ -7,6 +7,7 @@
   "scripts": {
     "build": "tsc && tslint --project .",
     "test": "jest",
+    "test-publish": "r2g test",
     "watch": "tsc -w",
     "cdk": "cdk"
   },
@@ -35,9 +36,9 @@
     "@types/node": "^10.14.6",
     "@types/sinon": "^7.0.11",
     "@types/uuid": "^3.4.4",
-    "aws-sdk": "^2.453.0",
     "babel-core": "^7.0.0-bridge.0",
     "jest": "^23.6.0",
+    "r2g": "^0.1.198",
     "sinon": "^7.3.2",
     "tslint": "^5.16.0",
     "typescript": "^3.4.5"
@@ -58,7 +59,7 @@
     "@aws-cdk/aws-sqs": "^0.31.0",
     "@aws-cdk/aws-sns": "^0.31.0",
     "@aws-cdk/aws-s3": "^0.31.0",
-    "fp-ts": "^1.18.2",
+    "aws-sdk": "^2.453.0",
     "uuid": "^3.3.2",
     "moment": "^2.24.0",
     "webpack": "^4.31.0"
