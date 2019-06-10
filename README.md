@@ -138,7 +138,7 @@ const stream = queue.enumerable() // enumerable gives us a nice chainable API fo
   });
 
 /**
- * Persist Kinesis Stream data as a tome-series Glue Table.
+ * Persist Kinesis Stream data as a time-series Glue Table.
  * 
  * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioned by `year`, `month`, `day`, `hour` and `minute`)
  *                                                                      -> Glue Catalog

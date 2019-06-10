@@ -12,7 +12,6 @@ lerna run test
 
 project_dir=$(pwd)
 working_dir=$(mktemp -d)
-echo ${working_dir}
 
 function delete() {
   rm -rf ${working_dir}
@@ -23,11 +22,15 @@ version=$(node -e "console.log(require('./packages/punchcard/package.json').vers
 
 lerna --scope punchcard exec -- npm pack
 
-rsync -av --exclude='node_modules' --exclude='cdk.out' --exclude='.cdk.staging' ./examples/* ${working_dir}
+rsync -av --exclude='node_modules' --exclude='cdk.out' --exclude='.cdk.staging' --exclude='.punchcard' ./examples/* ${working_dir}
 
 cd ${working_dir}
 
 npm install --production
 npm install --production ${project_dir}/packages/punchcard/punchcard-${version}.tgz
 
-find ./lib -name '*.js' -not -path './lib/.punchcard/*' -exec cdk synth -a {} \;
+if [ "$1" = "deploy" ]; then
+  find ./lib -name '*.js' -exec cdk deploy -y -a {} \;
+else 
+  find ./lib -name '*.js' -exec cdk synth -a {} \;
+fi

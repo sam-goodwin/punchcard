@@ -38,7 +38,6 @@
     "@types/uuid": "^3.4.4",
     "babel-core": "^7.0.0-bridge.0",
     "jest": "^23.6.0",
-    "r2g": "^0.1.198",
     "sinon": "^7.3.2",
     "tslint": "^5.16.0",
     "typescript": "^3.4.5"
