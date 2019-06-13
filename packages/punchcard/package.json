@@ -3,11 +3,10 @@
   "description": "A TypeScript meta-language for AWS.",
   "version": "0.5.0",
   "main": "lib/index.js",
-  "types": "lib/index.ts",
+  "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc && tslint --project .",
     "test": "jest",
-    "test-publish": "r2g test",
     "watch": "tsc -w",
     "cdk": "cdk"
   },
