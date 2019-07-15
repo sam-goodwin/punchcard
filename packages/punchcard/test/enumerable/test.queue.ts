@@ -1,15 +1,21 @@
 import 'jest';
 import sinon = require('sinon');
 
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 import { Collectors, Dependency, integer, Queue, string } from '../../lib';
 import { setRuntime } from '../../lib/constants';
+
+const scope: any = {
+  node: {
+    uniqueId: 'test'
+  }
+};
 
 setRuntime();
 
 describe('run', () => {
   it('should parse event into records', async () => {
-    const stack = new cdk.Stack(new cdk.App(), 'stack');
+    const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new Queue(stack, 'Queue', {
       type: string()
@@ -29,7 +35,7 @@ describe('run', () => {
     expect(results).toEqual(['string']);
   });
   it('should not require a depends property', async () => {
-    const stack = new cdk.Stack(new cdk.App(), 'stack');
+    const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new Queue(stack, 'Queue', {
       type: string()
@@ -49,18 +55,18 @@ describe('run', () => {
     expect(results).toEqual(['string']);
   });
   it('should transform records with a map', async () => {
-    const stack = new cdk.Stack(new cdk.App(), 'stack');
+    const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new Queue(stack, 'Queue', {
       type: string()
     });
 
     const d1: Dependency<string> = {
-      bootstrap: () => 'd1',
+      bootstrap: async () => 'd1',
       install: () => undefined
     };
     const d2: Dependency<string> = {
-      bootstrap: () => 'd2',
+      bootstrap: async () => 'd2',
       install: () => undefined
     };
 
@@ -89,14 +95,14 @@ describe('run', () => {
     expect.assertions(3);
   });
   it('should transform records with a map and `collect`', async () => {
-    const stack = new cdk.Stack(new cdk.App(), 'stack');
+    const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new Queue(stack, 'Queue', {
       type: string()
     });
 
     const d1: Dependency<string> = {
-      bootstrap: () => 'd1',
+      bootstrap: async () => 'd1',
       install: () => undefined
     };
 
@@ -125,14 +131,14 @@ describe('run', () => {
     expect.assertions(2);
   });
   it('should transform records with a map and toStream', async () => {
-    const stack = new cdk.Stack(new cdk.App(), 'stack');
+    const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new Queue(stack, 'Queue', {
       type: string()
     });
 
     const d1: Dependency<string> = {
-      bootstrap: () => 'd1',
+      bootstrap: async () => 'd1',
       install: () => undefined
     };
 

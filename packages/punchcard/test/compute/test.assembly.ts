@@ -1,10 +1,16 @@
 import 'jest';
 import sinon = require('sinon');
-import { Cache, PropertyBag } from '../lib';
+import { Assembly, Cache } from '../../lib';
+
+const scope: any = {
+  node: {
+    uniqueId: 'test'
+  }
+};
 
 describe('PropertyBag', () => {
   it('should append prefix keys when setting a value', () => {
-    const bag = new PropertyBag('test', {});
+    const bag = new Assembly(scope);
     bag.set('key', 'value');
     expect(bag.get('key')).toEqual('value');
     expect(bag.properties).toEqual({
@@ -12,7 +18,7 @@ describe('PropertyBag', () => {
     });
   });
   it('push should add another namespace prefix', () => {
-    const bag = new PropertyBag('test', {});
+    const bag = new Assembly(scope);
     const subBag = bag.namespace('2');
     subBag.set('key', 'value');
     expect(bag.properties).toEqual({
@@ -21,10 +27,10 @@ describe('PropertyBag', () => {
     expect(subBag.get('key')).toEqual('value');
   });
   it('get should throw if key does not exist', () => {
-    expect(() => new PropertyBag('test', {}).get('key')).toThrow();
+    expect(() => new Assembly(scope).get('key')).toThrow();
   });
   it('tryGet should return undefined if key does not exist', () => {
-    expect(new PropertyBag('test', {}).tryGet('key')).toEqual(undefined);
+    expect(new Assembly(scope).tryGet('key')).toEqual(undefined);
   });
 });
 

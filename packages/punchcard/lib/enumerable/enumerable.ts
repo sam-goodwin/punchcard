@@ -1,5 +1,5 @@
 import lambda = require('@aws-cdk/aws-lambda');
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 import { Client, Clients, Dependency, Function, LambdaExecutorService } from '../compute';
 import { Cons } from '../compute/hlist';
 import { Collector } from './collector';
@@ -121,7 +121,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
    * @param f next transformation of a record
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forEach<D2 extends Dependency<any> | undefined>(scope: cdk.Construct, id: string, input: {
+  public forEach<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
     depends?: D2;
     handle: (value: I, deps: Client<D2>) => Promise<any>;
     props?: R;
@@ -129,7 +129,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
     // TODO: let the enumerable type determine default executor service
     const executorService = (input.props && input.props.executorService) || new LambdaExecutorService({
       memorySize: 128,
-      timeout: 10
+      timeout: core.Duration.seconds(10)
     });
     const l = executorService.spawn(scope, id, {
       depends: input.depends === undefined
@@ -159,7 +159,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
    * @param f function to process batch of results
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forBatch<D2 extends Dependency<any> | undefined>(scope: cdk.Construct, id: string, input: {
+  public forBatch<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
     depends?: D2;
     handle: (value: I[], deps: Client<D2>) => Promise<any>;
     props?: R;
@@ -199,7 +199,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
    * @param id of construct under which forwarding resources will be created
    * @param collector destination collector
    */
-  public collect<T>(scope: cdk.Construct, id: string, collector: Collector<T, this>): T {
+  public collect<T>(scope: core.Construct, id: string, collector: Collector<T, this>): T {
     return collector.collect(scope, id, this);
   }
 }

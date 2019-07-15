@@ -1,12 +1,12 @@
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import 'jest';
 import { HashTable, HashTableClientImpl, lessThan, Query, Shape, SortedTable, SortedTableClientImpl, string } from '../../../lib';
 
 describe('HashTable', () => {
   function makeTable<S extends Shape, P extends keyof S>(shape: S, partitionKey: P, mock: AWS.DynamoDB): HashTableClientImpl<S, P> {
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, 'stack');
+    const app = new core.App();
+    const stack = new core.Stack(app, 'stack');
     return new HashTableClientImpl(new HashTable(stack, 'table', {
       shape,
       partitionKey
@@ -304,8 +304,8 @@ describe('HashTable', () => {
 describe('SortedTable', () => {
 // tslint:disable-next-line: max-line-length
   function makeTable<S extends Shape, P extends keyof S, SK extends keyof S>(shape: S, partitionKey: P, sortKey: SK, mock: AWS.DynamoDB): SortedTableClientImpl<S, P, SK> {
-    const app = new cdk.App();
-    const stack = new cdk.Stack(app, 'stack');
+    const app = new core.App();
+    const stack = new core.Stack(app, 'stack');
     return new SortedTableClientImpl(new SortedTable(stack, 'table', {
       shape,
       partitionKey,

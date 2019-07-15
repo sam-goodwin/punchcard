@@ -1,7 +1,7 @@
 import events = require('@aws-cdk/aws-events');
 import eventTargets = require('@aws-cdk/aws-events-targets');
 import lambda = require('@aws-cdk/aws-lambda');
-import cdk = require('@aws-cdk/cdk');
+import cdk = require('@aws-cdk/core');
 
 import { Integration, LambdaIntegration, Resource } from '../../api-gateway';
 import { Type } from '../../shape/types/type';
@@ -71,8 +71,8 @@ export class LambdaExecutorService {
       ...props
     });
 
-    new events.EventRule(scope, 'Schedule', {
-      scheduleExpression: props.rate.scheduleExpression,
+    new events.Rule(scope, 'Schedule', {
+      schedule: events.Schedule.expression(props.rate.scheduleExpression),
       targets: [new eventTargets.LambdaFunction(f)]
     });
 

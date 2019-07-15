@@ -1,12 +1,12 @@
 import glue = require('@aws-cdk/aws-glue');
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 
 import 'jest';
 import sinon = require('sinon');
 import { Codec, smallint, Table, timestamp } from '../../../lib';
 import { Bucket } from '../../../lib/storage/s3';
 
-const stack = new cdk.Stack(new cdk.App(), 'stack');
+const stack = new core.Stack(new core.App(), 'stack');
 const database = new glue.Database(stack, 'Database', {
   databaseName: 'database'
 });

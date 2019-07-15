@@ -1,11 +1,13 @@
 import AWS = require('aws-sdk');
 
+import iam = require('@aws-cdk/aws-iam');
 import lambda = require('@aws-cdk/aws-lambda');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import s3 = require('@aws-cdk/aws-s3');
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 
-import { Cache, Clients, Dependency, Function, LambdaExecutorService, PropertyBag, Runtime } from '../compute';
+import { Clients, Dependency, Function, LambdaExecutorService } from '../compute';
+import { Assembly, Cache, Namespace } from '../compute/assembly';
 import { Cons } from '../compute/hlist';
 import { DeliveryStream, DeliveryStreamDestination, DeliveryStreamType } from '../data-lake/delivery-stream';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
@@ -61,7 +63,7 @@ export interface S3DeliveryStreamFromKinesis<T extends Type<any>> extends Delive
  *
  * It may or may not be consuming from a Kinesis Stream.
  */
-export class S3DeliveryStream<T extends Type<any>> extends cdk.Construct implements Dependency<S3DeliveryStream.Client<RuntimeType<T>>> {
+export class S3DeliveryStream<T extends Type<any>> extends core.Construct implements Dependency<S3DeliveryStream.Client<RuntimeType<T>>> {
   public readonly deliveryStream: DeliveryStream;
   public readonly type: T;
 
@@ -70,7 +72,7 @@ export class S3DeliveryStream<T extends Type<any>> extends cdk.Construct impleme
   private readonly compression: Compression;
   public readonly processor: Validator<T>;
 
-  constructor(scope: cdk.Construct, id: string, props: S3DeliveryStreamProps<T>) {
+  constructor(scope: core.Construct, id: string, props: S3DeliveryStreamProps<T>) {
     super(scope, id);
     const fromStream = props as S3DeliveryStreamFromKinesis<T>;
     const fromType = props as S3DeliveryStreamForType<T>;
@@ -128,17 +130,17 @@ export class S3DeliveryStream<T extends Type<any>> extends cdk.Construct impleme
       }
     }
     return new Root(this, undefined as any, {
-      depends: [new Bucket(this.deliveryStream.s3Bucket!).readClient()],
+      depends: [new Bucket(this.deliveryStream.s3Bucket!).readAccess()],
       handle: i => i
     });
   }
 
-  public install(target: Runtime): void {
-    target.properties.set('deliveryStreamName', this.deliveryStream.deliveryStreamName);
-    this.deliveryStream.grantWrite(target.grantable);
+  public install(namespace: Namespace, grantable: iam.IGrantable): void {
+    namespace.set('deliveryStreamName', this.deliveryStream.deliveryStreamName);
+    this.deliveryStream.grantWrite(grantable);
   }
 
-  public bootstrap(properties: PropertyBag, cache: Cache): S3DeliveryStream.Client<RuntimeType<T>> {
+  public async bootstrap(properties: Assembly, cache: Cache): Promise<S3DeliveryStream.Client<RuntimeType<T>>> {
     return new S3DeliveryStream.Client(this,
       properties.get('deliveryStreamName'),
       cache.getOrCreate('aws:firehose', () => new AWS.Firehose()));
@@ -154,7 +156,7 @@ export class EnumerableS3DeliveryStream<T, D extends any[]> extends Enumerable<S
   }
   public eventSource(): lambda.IEventSource {
     return new events.S3EventSource(this.s3Stream.deliveryStream.s3Bucket!, {
-      events: [s3.EventType.ObjectCreated]
+      events: [s3.EventType.OBJECT_CREATED]
     });
   }
   public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): EnumerableS3DeliveryStream<U, D2> {
@@ -272,14 +274,14 @@ export interface ValidatorProps<T extends Type<any>> {
 /**
  * Validates and formats records flowing from Firehose so that they match the format of a Glue Table.
  */
-export class Validator<T extends Type<any>> extends cdk.Construct {
+export class Validator<T extends Type<any>> extends core.Construct {
   public readonly processor: Function<FirehoseEvent, FirehoseResponse, Dependency.None>;
 
-  constructor(scope: cdk.Construct, id: string, props: ValidatorProps<T>) {
+  constructor(scope: core.Construct, id: string, props: ValidatorProps<T>) {
     super(scope, id);
     const executorService = props.executorService || new LambdaExecutorService({
       memorySize: 256,
-      timeout: 60
+      timeout: core.Duration.seconds(60)
     });
 
     this.processor = executorService.spawn(this, 'Processor', {
@@ -344,7 +346,7 @@ export enum ValidationResult {
 export class S3DeliveryStreamCollector<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> implements Collector<CollectedS3DeliveryStream<T, E>, E> {
   constructor(private readonly props: S3DeliveryStreamForType<T>) { }
 
-  public collect(scope: cdk.Construct, id: string, enumerable: E): CollectedS3DeliveryStream<T, E> {
+  public collect(scope: core.Construct, id: string, enumerable: E): CollectedS3DeliveryStream<T, E> {
     return new CollectedS3DeliveryStream(scope, id, {
       ...this.props,
       enumerable
@@ -369,7 +371,7 @@ export interface CollectedS3DeliveryStreamProps<T extends Type<any>, E extends E
 export class CollectedS3DeliveryStream<T extends Type<any>, E extends Enumerable<any, any, any, any>> extends S3DeliveryStream<T> {
   public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<S3DeliveryStream.Client<T>>>>>;
 
-  constructor(scope: cdk.Construct, id: string, props: CollectedS3DeliveryStreamProps<T, E>) {
+  constructor(scope: core.Construct, id: string, props: CollectedS3DeliveryStreamProps<T, E>) {
     super(scope, id, props);
     this.sender = props.enumerable.forBatch(this.deliveryStream, 'ToS3DeliveryStream', {
       depends: this,
@@ -395,9 +397,9 @@ declare module './enumerable' {
      * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
      * @typeparam T concrete type of data flowing to s3
      */
-    toS3<T extends Type<I>>(scope: cdk.Construct, id: string, s3DeliveryStreamProps: S3DeliveryStreamForType<T>, runtimeProps?: R): CollectedS3DeliveryStream<T, this>;
+    toS3<T extends Type<I>>(scope: core.Construct, id: string, s3DeliveryStreamProps: S3DeliveryStreamForType<T>, runtimeProps?: R): CollectedS3DeliveryStream<T, this>;
   }
 }
-Enumerable.prototype.toS3 = function(scope: cdk.Construct, id: string, props: S3DeliveryStreamForType<any>): any {
+Enumerable.prototype.toS3 = function(scope: core.Construct, id: string, props: S3DeliveryStreamForType<any>): any {
   return this.collect(scope, id, new S3DeliveryStreamCollector(props));
 };

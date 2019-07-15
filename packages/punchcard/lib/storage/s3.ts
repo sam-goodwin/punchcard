@@ -3,45 +3,44 @@ import AWS = require('aws-sdk');
 import iam = require('@aws-cdk/aws-iam');
 import s3 = require('@aws-cdk/aws-s3');
 import { Dependency } from '../compute';
-import { Cache, PropertyBag } from '../compute/property-bag';
-import { Runtime } from '../compute/runtime';
+import { Cache, Namespace } from '../compute/assembly';
 import { Omit } from '../utils';
 
 export class Bucket implements Dependency<Bucket.ReadWriteClient> {
   constructor(public readonly bucket: s3.IBucket) {}
 
-  public install(target: Runtime): void {
-    this.readWriteClient().install(target);
+  public install(namespace: Namespace, grantable: iam.IGrantable): void {
+    this.readWriteAccess().install(namespace, grantable);
   }
 
-  public deleteClient(): Dependency<Bucket.DeleteClient> {
+  public deleteAccess(): Dependency<Bucket.DeleteClient> {
     return this.client(this.bucket.grantDelete.bind(this.bucket));
   }
-  public putClient(): Dependency<Bucket.PutClient> {
+  public putAccess(): Dependency<Bucket.PutClient> {
     return this.client(g => this.bucket.grantPut(g));
   }
-  public readWriteClient(): Dependency<Bucket.ReadWriteClient> {
+  public readWriteAccess(): Dependency<Bucket.ReadWriteClient> {
     return this.client(g => this.bucket.grantReadWrite(g));
   }
-  public readClient(): Dependency<Bucket.ReadClient> {
+  public readAccess(): Dependency<Bucket.ReadClient> {
     return this.client(g => this.bucket.grantRead(g));
   }
-  public writeClient(): Dependency<Bucket.WriteClient> {
+  public writeAccess(): Dependency<Bucket.WriteClient> {
     return this.client(g => this.bucket.grantWrite(g));
   }
 
   private client(grant: (grantable: iam.IGrantable) => void): Dependency<Bucket.Client> {
     return {
-      install: (target) => {
-        grant(target.grantable);
-        target.properties.set('bucketName', this.bucket.bucketName);
+      install: (namespace, grantable) => {
+        grant(grantable);
+        namespace.set('bucketName', this.bucket.bucketName);
       },
       bootstrap: this.bootstrap.bind(this)
     };
   }
 
-  public bootstrap(properties: PropertyBag, cache: Cache): Bucket.Client {
-    return new Bucket.Client(cache.getOrCreate('aws:s3', () => new AWS.S3()), properties.get('bucketName'));
+  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Bucket.Client> {
+    return new Bucket.Client(cache.getOrCreate('aws:s3', () => new AWS.S3()), namespace.get('bucketName'));
   }
 }
 

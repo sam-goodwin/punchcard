@@ -1,16 +1,17 @@
 import AWS = require('aws-sdk');
 
+import iam = require('@aws-cdk/aws-iam');
 import lambda = require('@aws-cdk/aws-lambda');
-import cdk = require('@aws-cdk/cdk');
+import cdk = require('@aws-cdk/core');
 import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../../constants';
 import { Json, Mapper, Raw, Type } from '../../shape';
 import { Omit } from '../../utils';
 
 import fs = require('fs');
 import path = require('path');
+import { Assembly, Cache, Namespace } from '../assembly';
 import { Client, Dependency } from '../dependency';
-import { Cache, PropertyBag } from '../property-bag';
-import { Entrypoint, entrypoint, Runtime } from '../runtime';
+import { Entrypoint, entrypoint } from '../entrypoint';
 
 export type FunctionProps<T, U, D extends Dependency<any>> = {
   /**
@@ -69,7 +70,7 @@ export class Function<T, U, D extends Dependency<any>>
     super(scope, id, {
       ...props,
       code: code(scope),
-      runtime: new lambda.Runtime('nodejs10.x', lambda.RuntimeFamily.NodeJS, {supportsInlineCode: true}),
+      runtime: lambda.Runtime.NODEJS_10_X,
       handler: 'index.handler'
     });
 
@@ -79,17 +80,19 @@ export class Function<T, U, D extends Dependency<any>>
     this.response = props.response;
     this.dependencies = props.depends;
 
-    const properties = new PropertyBag(this.node.uniqueId, {});
+    const assembly = new Assembly(this);
     if (this.dependencies) {
-      this.dependencies.install(new Runtime(properties, this));
+      this.dependencies.install(assembly, this);
     }
-    for (const [name, p] of Object.entries(properties.properties)) {
+    for (const [name, p] of Object.entries(assembly.properties)) {
       this.addEnvironment(name, p);
     }
     this.addEnvironment(RUNTIME_ENV, this.node.path);
   }
 
   public async boot(): Promise<(event: any, context: any) => Promise<U>> {
+    const installRoot = '/opt/punchcard';
+
     const bag: {[name: string]: string} = {};
     for (const [env, value] of Object.entries(process.env)) {
       if (env.startsWith(this.node.uniqueId) && value !== undefined) {
@@ -100,8 +103,8 @@ export class Function<T, U, D extends Dependency<any>>
 
     if (this.dependencies) {
       const cache = new Cache();
-      const runtimeProperties = new PropertyBag(this.node.uniqueId, bag);
-      client = this.dependencies.bootstrap(runtimeProperties, cache);
+      const runtimeProperties = new Assembly(this, bag);
+      client = await this.dependencies.bootstrap(runtimeProperties, cache);
     }
     const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forType(this.request);
     const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forType(this.response);
@@ -122,9 +125,9 @@ export class Function<T, U, D extends Dependency<any>>
    *
    * @param target runtime
    */
-  public install(target: Runtime): void {
-    this.grantInvoke(target.grantable);
-    target.properties.set('functionArn', this.functionArn);
+  public install(namespace: Namespace, grantable: iam.IGrantable): void {
+    this.grantInvoke(grantable);
+    namespace.set('functionArn', this.functionArn);
   }
 
   /**
@@ -133,7 +136,7 @@ export class Function<T, U, D extends Dependency<any>>
    * @param properties property bag containing variables set during the `install` phase
    * @param cache global cache shared by the runtime
    */
-  public bootstrap(properties: PropertyBag, cache: Cache): Function.Client<T, U> {
+  public async bootstrap(properties: Assembly, cache: Cache): Promise<Function.Client<T, U>> {
     const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forType(this.request);
     const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forType(this.response);
     return new Function.Client(
@@ -170,12 +173,10 @@ export namespace Function {
       if (response.StatusCode === 200) {
         if (typeof response.Payload === 'string') {
           return this.responseMapper.read(response.Payload);
+        } else if (Buffer.isBuffer(response.Payload)) {
+          return this.responseMapper.read(response.Payload.toString('utf8'));
         } else {
-          if (Buffer.isBuffer(response.Payload)) {
-            return this.responseMapper.read(response.Payload.toString('utf8'));
-          } else {
-            throw new Error(`Unknown response payload type: ${typeof response.Payload}`);
-          }
+          throw new Error(`Unknown response payload type: ${typeof response.Payload}`);
         }
       } else {
         throw new Error(`Function returned non-200 status code, '${response.StatusCode}' with error, '${response.FunctionError}'`);
@@ -233,7 +234,7 @@ export function code(scope: cdk.IConstruct): lambda.Code {
 
     const webpack = require('webpack');
     const compiler = webpack({
-      mode: scope.node.getContext(WEBPACK_MODE) || 'production',
+      mode: scope.node.tryGetContext(WEBPACK_MODE) || 'production',
       entry: index,
       target: 'node',
       output: {
@@ -268,7 +269,7 @@ var handler;
 exports.handler = async (event, context) => {
   if (!handler) {
     const runPath = process.env['${RUNTIME_ENV}'];
-    const target = app.node.findChild(runPath);
+    const target = findChild(app, runPath);
     if (target[Symbol.for('${ENTRYPOINT_SYMBOL_NAME}')] === true) {
       handler = await target.boot();
     } else {
@@ -277,6 +278,20 @@ exports.handler = async (event, context) => {
   }
   return await handler(event, context);
 };
+
+function findChild(scope, path) {
+  const elements = path.split('/');
+  for (const e of elements) {
+    scope = scope.node.tryFindChild(e);
+    if (!scope) {
+      break;
+    }
+  }
+  if (!scope) {
+    throw new Error(\`no child found with path: \${path}\`);
+  }
+  return scope;
+}
 `);
     (app as any)[codeSymbol] = lambda.Code.asset(codePath);
   }

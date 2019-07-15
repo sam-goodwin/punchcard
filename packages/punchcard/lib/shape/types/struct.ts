@@ -112,7 +112,7 @@ export class BaseStructPath<S extends Shape, T extends BaseStructType<S>> extend
     this.fields = {} as StructFields<S>;
 
     Object.keys(type.shape).forEach(field => {
-      this.fields[field] = type.shape[field].toJsonPath(this, `['${field}']`) as InferJsonPathType<S[typeof field]>;
+      this.fields[field as keyof S] = type.shape[field].toJsonPath(this, `['${field}']`) as InferJsonPathType<S[typeof field]>;
     });
   }
 }
@@ -132,7 +132,7 @@ export class StructDynamoPath<S extends Shape> extends BaseDynamoPath<StructType
   constructor(parent: DynamoPath, name: string, type: StructType<S>) {
     super(parent, name, type);
     for (const [key, schema] of Object.entries(type.shape)) {
-      this.fields[key] = schema.toDynamoPath(new MapKeyParent(this, key), key) as any;
+      this.fields[key as keyof S] = schema.toDynamoPath(new MapKeyParent(this, key), key) as any;
     }
   }
 }

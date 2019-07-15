@@ -5,15 +5,15 @@ import kms = require("@aws-cdk/aws-kms");
 import lambda = require("@aws-cdk/aws-lambda");
 import logs = require("@aws-cdk/aws-logs");
 import s3 = require("@aws-cdk/aws-s3");
-import cdk = require("@aws-cdk/cdk");
+import core = require("@aws-cdk/core");
 import { CompressionType } from "../storage/glue/compression";
 
-export interface IDeliveryStream extends cdk.IConstruct {
+export interface IDeliveryStream extends core.IConstruct {
   readonly deliveryStreamArn: string;
   readonly deliveryStreamName: string;
 }
 
-export abstract class BaseDeliveryStream extends cdk.Resource implements logs.ILogSubscriptionDestination {
+export abstract class BaseDeliveryStream extends core.Resource implements logs.ILogSubscriptionDestination {
   /**
    * The ARN of the delivery stream.
    */
@@ -27,7 +27,7 @@ export abstract class BaseDeliveryStream extends cdk.Resource implements logs.IL
   /**
    * Optional KMS encryption key associated with this delivery stream.
    */
-  public abstract readonly encryptionKey?: kms.EncryptionKey;
+  public abstract readonly encryptionKey?: kms.Key;
 
   /**
    * The role that can be used by CloudWatch logs to write to this delivery stream
@@ -40,29 +40,36 @@ export abstract class BaseDeliveryStream extends cdk.Resource implements logs.IL
   public s3Bucket?: s3.Bucket;
 
   public grantWrite(grantable: iam.IGrantable) {
-    grantable.grantPrincipal.addToPolicy(new iam.PolicyStatement()
-      .addActions('firehose:PutRecord', 'firehose:PutRecordBatch')
-      .addResource(this.deliveryStreamArn));
+    grantable.grantPrincipal.addToPolicy(new iam.PolicyStatement({
+      actions: ['firehose:PutRecord', 'firehose:PutRecordBatch'],
+      resources: [this.deliveryStreamArn]
+    }));
   }
-  public logSubscriptionDestination(sourceLogGroup: logs.ILogGroup): logs.LogSubscriptionDestination {
+  public bind(scope: core.Construct, sourceLogGroup: logs.ILogGroup): logs.LogSubscriptionDestinationConfig {
     // Following example from https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/SubscriptionFilters.html#DestinationKinesisExample
     if (!this.cloudWatchLogsRole) {
       // Create a role to be assumed by CWL that can write to this stream and pass itself.
       this.cloudWatchLogsRole = new iam.Role(this, 'CloudWatchLogsCanPutRecords', {
-        assumedBy: new iam.ServicePrincipal(cdk.Fn.join('', ['logs.', this.node.stack.region, '.amazonaws.com']).toString()),
+        assumedBy: new iam.ServicePrincipal(core.Fn.join('', ['logs.', this.stack.region, '.amazonaws.com']).toString()),
       });
-      this.cloudWatchLogsRole.addToPolicy(new iam.PolicyStatement().addAction('firehose:Put*').addResource(this.deliveryStreamArn));
-      this.cloudWatchLogsRole.addToPolicy(new iam.PolicyStatement().addAction('iam:PassRole').addResource(this.cloudWatchLogsRole.roleArn));
+      this.cloudWatchLogsRole.addToPolicy(new iam.PolicyStatement({
+        actions: ['firehose:Put*'],
+        resources: [this.deliveryStreamArn]
+      }));
+      this.cloudWatchLogsRole.addToPolicy(new iam.PolicyStatement({
+        actions: ['iam:PassRole'],
+        resources: [this.cloudWatchLogsRole.roleArn]
+      }));
     }
 
     // We've now made it possible for CloudWatch events to write to us. In case the LogGroup is in a
     // different account, we must add a Destination in between as well.
-    const sourceStack = sourceLogGroup.node.stack;
-    const thisStack = this.node.stack;
+    const sourceStack = sourceLogGroup.stack;
+    const thisStack = this.stack;
 
     // Case considered: if both accounts are undefined, we can't make any assumptions. Better
     // to assume we don't need to do anything special.
-    const sameAccount = sourceStack.env.account === thisStack.env.account;
+    const sameAccount = sourceStack.account === thisStack.account;
 
     if (!sameAccount) {
       throw new Error('cross account not supported yet');
@@ -86,11 +93,11 @@ export interface DeliveryStreamProps {
 export class DeliveryStream extends BaseDeliveryStream {
   public readonly deliveryStreamArn: string;
   public readonly deliveryStreamName: string;
-  public readonly encryptionKey: kms.EncryptionKey;
+  public readonly encryptionKey: kms.Key;
   private readonly role: iam.Role;
   private readonly deliveryStreamResource: firehose.CfnDeliveryStream;
 
-  constructor(parent: cdk.Construct, name: string, props: DeliveryStreamProps) {
+  constructor(parent: core.Construct, name: string, props: DeliveryStreamProps) {
     super(parent, name);
     this.role = new iam.Role(this, "KinesisRole", {
       assumedBy: new iam.ServicePrincipal("firehose.amazonaws.com")
@@ -113,7 +120,8 @@ export class DeliveryStream extends BaseDeliveryStream {
     });
     this.deliveryStreamResource.node.addDependency(this.role);
 
-    this.deliveryStreamArn = this.deliveryStreamResource.deliveryStreamArn;
+    this.deliveryStreamName = this.deliveryStreamResource.ref;
+    this.deliveryStreamArn = this.deliveryStreamResource.getAtt('Arn').toString();
   }
 
   private makeKinesisSourceConfig(props: DeliveryStreamProps): firehose.CfnDeliveryStream.KinesisStreamSourceConfigurationProperty {
@@ -163,9 +171,10 @@ export class DeliveryStream extends BaseDeliveryStream {
 
   private makeProcessorConfig(props: DeliveryStreamProps): firehose.CfnDeliveryStream.ProcessingConfigurationProperty {
     if (props.transformFunction) {
-      this.role.addToPolicy(new iam.PolicyStatement()
-        .addAction("lambda:InvokeFunction")
-        .addResource(props.transformFunction.functionArn));
+      this.role.addToPolicy(new iam.PolicyStatement({
+        actions: ['lambda:InvokeFunction'],
+        resources: [props.transformFunction.functionArn]
+      }));
 
       return {
         enabled: true,

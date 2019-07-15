@@ -2,16 +2,16 @@ import iam = require('@aws-cdk/aws-iam');
 import kinesis = require('@aws-cdk/aws-kinesis');
 import lambda = require('@aws-cdk/aws-lambda');
 import events = require('@aws-cdk/aws-lambda-event-sources');
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
 import { Function } from '../compute';
-import { Clients, Dependency, Runtime } from '../compute';
+import { Clients, Dependency } from '../compute';
+import { Cache, Namespace } from '../compute/assembly';
 import { Cons } from '../compute/hlist';
-import { Cache, PropertyBag } from '../compute/property-bag';
-import { BufferMapper, Json, Mapper, RuntimeType, StructType, Type } from '../shape';
-import { Codec, Partition, TableProps } from '../storage';
+import { BufferMapper, Json, Mapper, RuntimeType, Type } from '../shape';
+import { Codec } from '../storage';
 import { Compression } from '../storage/glue/compression';
 import { Collector } from './collector';
 import { S3DeliveryStream } from './delivery-stream';
@@ -42,7 +42,7 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
   public readonly partitionBy: (record: RuntimeType<T>) => string;
   public readonly resource: kinesis.Stream;
 
-  constructor(scope: cdk.Construct, id: string, props: StreamProps<T>) {
+  constructor(scope: core.Construct, id: string, props: StreamProps<T>) {
     this.type = props.type;
     this.resource = new kinesis.Stream(scope, id, props);
     this.mapper = BufferMapper.wrap(Json.forType(props.type));
@@ -76,7 +76,7 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
    *
    * Stream -> Firehose -> S3 (minutely).
    */
-  public toS3(scope: cdk.Construct, id: string, props: {
+  public toS3(scope: core.Construct, id: string, props: {
     codec: Codec;
     comression: Compression;
   } = {
@@ -92,49 +92,48 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
 
   /**
    * Create a client for this `Stream` from within a `Runtime` environment (e.g. a Lambda Function.).
-   * @param properties runtime properties local to this `stream`.
+   * @param namespace runtime properties local to this `stream`.
    * @param cache global `Cache` shared by all clients.
    */
-  public bootstrap(properties: PropertyBag, cache: Cache): Stream.Client<T> {
+  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Stream.Client<T>> {
     return new Stream.Client(this,
-      properties.get('streamName'),
+      namespace.get('streamName'),
       cache.getOrCreate('aws:kinesis', () => new AWS.Kinesis()));
   }
 
   /**
    * Set `streamName` and grant permissions to a `Runtime` so it may `bootstrap` a client for this `Stream`.
-   * @param target runtime to install this stream into
    */
-  public install(target: Runtime): void {
-    this.readWriteClient().install(target);
+  public install(namespace: Namespace, grantable: iam.IGrantable): void {
+    this.readWriteAccess().install(namespace, grantable);
   }
 
   /**
    * Read and Write access to this stream.
    */
-  public readWriteClient(): Dependency<Stream.Client<T>> {
+  public readWriteAccess(): Dependency<Stream.Client<T>> {
     return this._client(g => this.resource.grantReadWrite(g));
   }
 
   /**
    * Read-only access to this stream.
    */
-  public readClient(): Dependency<Stream.Client<T>> {
+  public readAccess(): Dependency<Stream.Client<T>> {
     return this._client(g => this.resource.grantRead(g));
   }
 
   /**
    * Write-only access to this stream.
    */
-  public writeClient(): Dependency<Stream.Client<T>> {
+  public writeAccess(): Dependency<Stream.Client<T>> {
     return this._client(g => this.resource.grantWrite(g));
   }
 
   private _client(grant: (grantable: iam.IGrantable) => void): Dependency<Stream.Client<T>> {
     return {
-      install: target => {
-        target.properties.set('streamName', this.resource.streamName);
-        grant(target.grantable);
+      install: (namespace, grantable) => {
+        namespace.set('streamName', this.resource.streamName);
+        grant(grantable);
       },
       bootstrap: this.bootstrap.bind(this),
     };
@@ -159,7 +158,7 @@ export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEven
   public eventSource(props?: EnumerableStreamRuntime) {
     return new events.KinesisEventSource(this.stream.resource, props || {
       batchSize: 100,
-      startingPosition: lambda.StartingPosition.TrimHorizon
+      startingPosition: lambda.StartingPosition.TRIM_HORIZON
     });
   }
 
@@ -293,7 +292,7 @@ export interface KinesisEvent {
 export class StreamCollector<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> implements Collector<CollectedStream<T, E>, E> {
   constructor(private readonly props: StreamProps<T>) { }
 
-  public collect(scope: cdk.Construct, id: string, enumerable: E): CollectedStream<T, E> {
+  public collect(scope: core.Construct, id: string, enumerable: E): CollectedStream<T, E> {
     return new CollectedStream(scope, id, {
       ...this.props,
       enumerable
@@ -317,10 +316,10 @@ export interface CollectedStreamProps<T extends Type<any>, E extends Enumerable<
 export class CollectedStream<T extends Type<any>, E extends Enumerable<any, any, any, any>> extends Stream<T> {
   public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Stream.Client<T>>>>>;
 
-  constructor(scope: cdk.Construct, id: string, props: CollectedStreamProps<T, E>) {
+  constructor(scope: core.Construct, id: string, props: CollectedStreamProps<T, E>) {
     super(scope, id, props);
     this.sender = props.enumerable.forBatch(this.resource, 'ToStream', {
-      depends: this.writeClient(),
+      depends: this.writeAccess(),
       handle: async (events, self) => {
         self.sink(events);
       }
@@ -342,9 +341,9 @@ declare module './enumerable' {
      * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
      * @typeparam T concrete type of data flowing to stream
      */
-    toStream<T extends Type<I>>(scope: cdk.Construct, id: string, streamProps: StreamProps<T>, runtimeProps?: R): CollectedStream<T, this>;
+    toStream<T extends Type<I>>(scope: core.Construct, id: string, streamProps: StreamProps<T>, runtimeProps?: R): CollectedStream<T, this>;
   }
 }
-Enumerable.prototype.toStream = function(scope: cdk.Construct, id: string, props: StreamProps<any>): any {
+Enumerable.prototype.toStream = function(scope: core.Construct, id: string, props: StreamProps<any>): any {
   return this.collect(scope, id, new StreamCollector(props));
 };

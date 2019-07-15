@@ -4,10 +4,9 @@ import path = require('path');
 
 import glue = require('@aws-cdk/aws-glue');
 import iam = require('@aws-cdk/aws-iam');
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 
-import { Cache, PropertyBag } from '../../compute/property-bag';
-import { Runtime } from '../../compute/runtime';
+import { Cache, Namespace } from '../../compute/assembly';
 import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, struct, Type } from '../../shape';
 import { Omit } from '../../utils';
 import { Codec } from '../codec';
@@ -94,7 +93,7 @@ export class Table<T extends Shape, P extends Partition> implements Resource<glu
   public readonly validate?: (record: RuntimeShape<T>) => void;
   public readonly resource: glue.Table;
 
-  constructor(scope: cdk.Construct, id: string, props: TableProps<T, P>) {
+  constructor(scope: core.Construct, id: string, props: TableProps<T, P>) {
     const compression = (props.compression || Compression.None);
     const codec = (props.codec || Codec.Json);
     this.resource = new glue.Table(scope, id, {
@@ -134,10 +133,10 @@ export class Table<T extends Shape, P extends Partition> implements Resource<glu
     this.codec = codec;
     this.mapper = this.codec.mapper(struct(this.shape.columns));
     this.partitionMappers = {} as any;
-    Object.entries(this.shape.partitions).forEach(([name, type]) => this.partitionMappers[name] = Json.forType(type) as any);
+    Object.entries(this.shape.partitions).forEach(([name, type]) => this.partitionMappers[name as keyof P] = Json.forType(type) as any);
 
     // Hack: fix tableArn (fixed in 0.32.0)
-    (this.resource as any).tableArn = this.resource.node.stack.formatArn({
+    (this.resource as any).tableArn = this.resource.stack.formatArn({
       service: 'glue',
       resource: 'table',
       resourceName: `${this.resource.database.databaseName}/${this.resource.tableName}`
@@ -152,43 +151,43 @@ export class Table<T extends Shape, P extends Partition> implements Resource<glu
     };
   }
 
-  public install(target: Runtime): void {
-    return this.readWriteClient().install(target);
+  public install(namespace: Namespace, grantable: iam.IGrantable): void {
+    return this.readWriteAccess().install(namespace, grantable);
   }
 
-  public readWriteClient(): Dependency<Table.ReadWriteClient<T, P>> {
-    return this.client(g => this.resource.grantReadWrite(g), new Bucket(this.resource.bucket).readWriteClient());
+  public readWriteAccess(): Dependency<Table.ReadWriteClient<T, P>> {
+    return this.client(g => this.resource.grantReadWrite(g), new Bucket(this.resource.bucket).readWriteAccess());
   }
 
-  public readClient(): Dependency<Table.ReadClient<T, P>> {
-    return this.client(g => this.resource.grantRead(g), new Bucket(this.resource.bucket).readClient());
+  public readAccess(): Dependency<Table.ReadClient<T, P>> {
+    return this.client(g => this.resource.grantRead(g), new Bucket(this.resource.bucket).readAccess());
   }
 
-  public writeClient(): Dependency<Table.WriteClient<T, P>> {
-    return this.client(g => this.resource.grantWrite(g), new Bucket(this.resource.bucket).writeClient());
+  public writeAccess(): Dependency<Table.WriteClient<T, P>> {
+    return this.client(g => this.resource.grantWrite(g), new Bucket(this.resource.bucket).writeAccess());
   }
 
   private client<C>(grant: (grantable: iam.IGrantable) => void, bucket: Dependency<any>): Dependency<C> {
     return {
-      install: (target) => {
-        grant(target.grantable);
-        bucket.install(target.namespace('bucket'));
-        target.properties.set('catalogId', this.resource.database.catalogId);
-        target.properties.set('databaseName', this.resource.database.databaseName);
-        target.properties.set('tableName', this.resource.tableName);
+      install: (namespace, grantable) => {
+        grant(grantable);
+        bucket.install(namespace.namespace('bucket'), grantable);
+        namespace.set('catalogId', this.resource.database.catalogId);
+        namespace.set('databaseName', this.resource.database.databaseName);
+        namespace.set('tableName', this.resource.tableName);
       },
       bootstrap: this.bootstrap.bind(this) as any
     };
   }
 
-  public bootstrap(properties: PropertyBag, cache: Cache): Table.Client<T, P> {
+  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Table.Client<T, P>> {
     return new Table.Client(
       cache.getOrCreate('aws:glue', () => new AWS.Glue()),
-      properties.get('catalogId'),
-      properties.get('databaseName'),
-      properties.get('tableName'),
+      namespace.get('catalogId'),
+      namespace.get('databaseName'),
+      namespace.get('tableName'),
       this,
-      new Bucket(this.resource.bucket).bootstrap(properties.namespace('bucket'), cache)
+      await new Bucket(this.resource.bucket).bootstrap(namespace.namespace('bucket'), cache)
     );
   }
 }
@@ -255,7 +254,7 @@ export namespace Table {
           this.table.validate(record);
         }
         const partition = this.table.partition(record);
-        const key = Object.values(partition).map(p => p.toString()).join('');
+        const key = Object.values(partition).map(value => (value as any).toString()).join('');
         if (!partitions.has(key)) {
           partitions.set(key, {
             partition,
@@ -348,13 +347,13 @@ export namespace Table {
         CatalogId: this.catalogId,
         DatabaseName: this.databaseName,
         TableName: this.tableName,
-        PartitionValueList: Object.values(request.Partition).map(p => p.toString()),
+        PartitionValueList: Object.values(request.Partition).map(value => (value as any).toString()),
         PartitionInput: this.createPartitionInput(request.UpdatedPartition)
       }).promise();
     }
 
     private createPartitionInput(request: CreatePartitionRequest<P>): AWS.Glue.PartitionInput {
-      const partitionValues = Object.values(request.Partition).map(value => value.toString());
+      const partitionValues = Object.values(request.Partition).map(value => (value as any).toString());
       return {
         Values: partitionValues,
         LastAccessTime: request.LastAccessTime || new Date(),

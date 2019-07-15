@@ -11,13 +11,13 @@ export type CompositeKey<T extends Shape, PKey extends keyof T, SKey extends key
 export function keyType(kind: Kind): dynamodb.AttributeType {
   switch (kind) {
     case Kind.String:
-    return dynamodb.AttributeType.String;
+    return dynamodb.AttributeType.STRING;
     case Kind.Timestamp:
     case Kind.Number:
     case Kind.Integer:
-      return dynamodb.AttributeType.Number;
+      return dynamodb.AttributeType.NUMBER;
     case Kind.Binary:
-      return dynamodb.AttributeType.Binary;
+      return dynamodb.AttributeType.BINARY;
     default:
       throw new Error(`key Kind must be String, Number or Integer, got ${kind}`);
   }

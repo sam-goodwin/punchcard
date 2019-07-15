@@ -1,5 +1,5 @@
 import apigateway = require('@aws-cdk/aws-apigateway');
-import cdk = require('@aws-cdk/cdk');
+import cdk = require('@aws-cdk/core');
 
 import { Dependency } from '../compute/dependency';
 import { isRuntime } from '../constants';
@@ -110,7 +110,7 @@ export class Resource extends Tree<Resource> {
   }
 
   private addMethod<R extends Dependency<any>, T extends Shape, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
-    this.makeHandler(methodName, method);
+    this.makeHandler(methodName, method as any);
     if (isRuntime()) {
       // don't do expensive work at runtime
       return;
@@ -120,7 +120,7 @@ export class Resource extends Tree<Resource> {
     const cfnMethod = methodResource.node.findChild('Resource') as apigateway.CfnMethod;
 
     const requestShape = method.request.shape;
-    (cfnMethod.propertyOverrides as any).integration = {
+    cfnMethod.addPropertyOverride('Integration', {
       passthroughBehavior: 'NEVER',
       requestTemplates: {
         'application/json': velocityTemplate(requestShape, {
@@ -147,22 +147,22 @@ export class Resource extends Tree<Resource> {
           };
         }
       })
-    };
+    });
 
     if (methodName === 'GET') {
-      (cfnMethod.propertyOverrides as any).requestValidatorId = this.getRequestValidator.requestValidatorId;
+      cfnMethod.addPropertyOverride('RequestValidatorId', this.getRequestValidator.ref);
     } else {
-      (cfnMethod.propertyOverrides as any).requestValidatorId = this.bodyRequestValidator.requestValidatorId;
+      cfnMethod.addPropertyOverride('RequestValidatorId', this.bodyRequestValidator.ref);
     }
-    (cfnMethod.propertyOverrides as any).requestModels = {
+    cfnMethod.addPropertyOverride('RequestModels', {
       'application/json': new apigateway.CfnModel(methodResource, 'Request', {
         restApiId: this.restApiId,
         contentType: 'application/json',
         schema: jsonSchema(requestShape)
-      }).modelName
-    };
+      }).ref
+    });
     const responses = new cdk.Construct(methodResource, 'Response');
-    (cfnMethod.propertyOverrides as any).methodResponses = Object.keys(method.responses).map(statusCode => {
+    cfnMethod.addPropertyOverride('MethodResponses', Object.keys(method.responses).map(statusCode => {
       return {
         statusCode,
         responseModels: {
@@ -170,11 +170,11 @@ export class Resource extends Tree<Resource> {
             restApiId: this.restApiId,
             contentType: 'application/json',
             schema: (method.responses as {[key: string]: Type<any>})[statusCode].toJsonSchema()
-          }).modelName
+          }).ref
         },
         // TODO: responseParameters
       };
-    });
+    }));
   }
 
   private makeHandler(httpMethod: string, method: Method<any, any, any, any>): void {

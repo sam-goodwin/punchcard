@@ -1,10 +1,10 @@
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 import { integer, string, LambdaExecutorService, Rate, Schema, timestamp, char, array, DataLake } from 'punchcard';
 
-const app = new cdk.App();
+const app = new core.App();
 export default app;
 
-const stack = new cdk.Stack(app, 'data-lake');
+const stack = new core.Stack(app, 'data-lake');
 
 // create a schema to describe our data
 const dataPoints = new Schema({
@@ -49,7 +49,7 @@ lake.pipelines.dataPoints.stream
 
 // send some dumy data to the dataPoints schema
 new LambdaExecutorService().schedule(stack, 'DummyDataPoints', {
-  depends: lake.pipelines.dataPoints.stream.writeClient(),
+  depends: lake.pipelines.dataPoints.stream.writeAccess(),
   rate: Rate.minutes(1),
   handle: async (_, stream) => {
     await stream.putRecord({

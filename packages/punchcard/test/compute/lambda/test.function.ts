@@ -1,4 +1,4 @@
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 import 'jest';
 import sinon = require('sinon');
 
@@ -11,10 +11,10 @@ setRuntime();
 
 describe('Function', () => {
   it('should install clients in context', () => {
-    const stack = new cdk.Stack(new cdk.App(), 'stack');
+    const stack = new core.Stack(new core.App(), 'stack');
     const client: Dependency<any> = {
-      install: target => target.properties.set('test', 'value'),
-      bootstrap: () => null
+      install: (namespace, grantable) => namespace.set('test', 'value'),
+      bootstrap: async () => null
     };
     const f = L().spawn(stack, 'function', {
       depends: client,
@@ -23,10 +23,10 @@ describe('Function', () => {
     expect((f as any).environment[`${f.node.uniqueId}_test`]).toEqual('value');
   });
   it('should bootstrap all clients on boot and pass to handler', async () => {
-    const stack = new cdk.Stack(new cdk.App(), 'stack');
+    const stack = new core.Stack(new core.App(), 'stack');
     const client: Dependency<any> = {
-      install: target => target.properties.set('test', 'value'),
-      bootstrap: () => 'client'
+      install: (namespace, grantable) => namespace.set('test', 'value'),
+      bootstrap: async () => 'client'
     };
     const fake = sinon.fake();
     const f = new Function(stack, 'function', {
@@ -134,13 +134,13 @@ describe('Function.Client', () => {
 
 it('should install and bootstrap dependencies', async () => {
   const dependency = {
-    bootstrap: sinon.fake.returns(1),
+    bootstrap: sinon.fake.returns(Promise.resolve(1)),
     install: sinon.fake()
   };
 
-  const f = L().spawn(new cdk.Stack(new cdk.App(), 'stack'), 'f', {
+  const f = L().spawn(new core.Stack(new core.App(), 'stack'), 'f', {
     depends: dependency,
-    async handle(_, dep) {
+    async handle(_, dep: any) {
       return dep.toString(); // expect '1' as result
     }
   });
@@ -151,14 +151,15 @@ it('should install and bootstrap dependencies', async () => {
 
 it('should install and bootstrap nested dependencies', async () => {
   const dependency = {
-    bootstrap: sinon.fake.returns(1),
+    bootstrap: sinon.fake.returns(Promise.resolve(1)),
     install: sinon.fake()
   };
 
-  const f = L().spawn(new cdk.Stack(new cdk.App(), 'stack'), 'f', {
+  const f = L().spawn(new core.Stack(new core.App(), 'stack'), 'f', {
     depends: Dependency.list(dependency, dependency),
     async handle(_, [d1, d2]) {
-      return d1.toString() + d2.toString(); // expect '11' as result
+      console.log(d1, d2);
+      return (d1 as any).toString() + (d2 as any).toString(); // expect '11' as result
     }
   });
 
@@ -168,7 +169,7 @@ it('should install and bootstrap nested dependencies', async () => {
 
 // it('should install and bootstrap named dependencies', async () => {
 //   const dependency = {
-//     bootstrap: sinon.fake.returns(1),
+//     bootstrap: sinon.fake.returns(Promise.resolve(1)),
 //     install: sinon.fake()
 //   };
 

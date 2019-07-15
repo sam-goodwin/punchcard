@@ -2,11 +2,10 @@ import AWS = require('aws-sdk');
 
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 
 import { Dependency } from '../../compute';
-import { Cache, PropertyBag } from '../../compute/property-bag';
-import { Runtime } from '../../compute/runtime';
+import { Cache, Namespace } from '../../compute/assembly';
 import { Dynamo, Mapper, RuntimeShape, Shape, struct } from "../../shape";
 import { Omit } from '../../utils';
 import { HashTableClient, HashTableClientImpl, SortedTableClient, SortedTableClientImpl, TableClient } from './client';
@@ -62,7 +61,7 @@ abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Sha
   public readonly mapper: Mapper<RuntimeShape<S>, AWS.DynamoDB.AttributeMap>;
   public readonly keyMapper: Mapper<RuntimeShape<K>, AWS.DynamoDB.AttributeMap>;
 
-  constructor(scope: cdk.Construct, id: string, props: TableProps<S, K>) {
+  constructor(scope: core.Construct, id: string, props: TableProps<S, K>) {
     super(scope, id, props.props);
 
     this.key = props.key;
@@ -76,12 +75,12 @@ abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Sha
    * Create the client for the table by looking up the table name property
    * and initializing a DynamoDB client.
    *
-   * @param properties local properties set by this table by `install`
+   * @param namespace local properties set by this table by `install`
    * @param cache global cache shared by all clients
    */
-  public bootstrap(properties: PropertyBag, cache: Cache): C {
+  public async bootstrap(namespace: Namespace, cache: Cache): Promise<C> {
     return this.makeClient(
-      properties.get('tableName'),
+      namespace.get('tableName'),
       cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB()));
   }
 
@@ -100,15 +99,15 @@ abstract class Table<C extends TableClient<S, K>, S extends Shape, K extends Sha
    *
    * @param target
    */
-  public install(target: Runtime): void {
-    this.readWriteAccess().install(target);
+  public install(namespace: Namespace, grantable: iam.IGrantable): void {
+    this.readWriteAccess().install(namespace, grantable);
   }
 
   private _install(grant: (grantable: iam.IGrantable) => void): Dependency<C> {
     return {
-      install: (target: Runtime) => {
-        target.properties.set('tableName', this.tableName);
-        grant(target.grantable);
+      install: (namespace: Namespace, grantable: iam.IGrantable) => {
+        namespace.set('tableName', this.tableName);
+        grant(grantable);
       },
       bootstrap: this.bootstrap.bind(this)
     };
@@ -174,7 +173,7 @@ export class HashTable<S extends Shape, P extends keyof S> extends Table<HashTab
    */
   public readonly partitionKey: P;
 
-  constructor(scope: cdk.Construct, id: string, props: HashTableProps<S, P>) {
+  constructor(scope: core.Construct, id: string, props: HashTableProps<S, P>) {
     super(scope, id, {
       shape: props.shape,
       key: {
@@ -233,7 +232,7 @@ export class SortedTable<S extends Shape, PKey extends keyof S, SKey extends key
   public readonly sortKey: SKey;
   public readonly sortKeyType: dynamodb.AttributeType;
 
-  constructor(scope: cdk.Construct, id: string, props: SortedTableProps<S, PKey, SKey>) {
+  constructor(scope: core.Construct, id: string, props: SortedTableProps<S, PKey, SKey>) {
     super(scope, id, {
       shape: props.shape,
       key: {

@@ -1,28 +1,23 @@
+import core = require('@aws-cdk/core');
+import { File } from './file-system';
+
 /**
  * A namespaced bag of properties stored as a flat key-value store of strings.
  *
  * This bag is translated to environment variables (hence the flat format).
  */
-export class PropertyBag {
+export class Namespace {
   constructor(
+    public readonly scope: Namespace,
     protected readonly _namespace: string,
-    protected readonly bag: {[key: string]: string}) {}
-
-  /**
-   * @return a copy of the properties contained by this bag
-   */
-  public get properties() {
-    return {
-      ...this.bag
-    };
-  }
+    protected readonly _properties: {[key: string]: string}) {}
 
   /**
    * Create a sub-bag of properties prefixed by a namespace.
    * @param namespace to prefix properties with.
    */
   public namespace(namespace: string) {
-    return new PropertyBag(`${this._namespace}_${namespace}`, this.bag);
+    return new Namespace(this, `${this._namespace}_${namespace}`, this._properties);
   }
 
   /**
@@ -31,7 +26,7 @@ export class PropertyBag {
    * @param value value of the property
    */
   public set(name: string, value: string): void {
-    this.bag[this.makeKey(name)] = value;
+    this._properties[this.makeKey(name)] = value;
   }
 
   /**
@@ -53,11 +48,23 @@ export class PropertyBag {
    * @returns the property or undefined if it does not exist
    */
   public tryGet(name: string): undefined | string {
-    return this.bag[this.makeKey(name)];
+    return this._properties[this.makeKey(name)];
   }
 
   private makeKey(name: string): string {
     return `${this._namespace}_${name}`;
+  }
+}
+
+export class Assembly extends Namespace {
+  constructor(scope: core.Construct, properties?: {[key: string]: string}) {
+    super(undefined as any, scope.node.uniqueId, properties || {});
+  }
+
+  public get properties() {
+    return {
+      ...this._properties
+    };
   }
 }
 

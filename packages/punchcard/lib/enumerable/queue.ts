@@ -1,12 +1,12 @@
 import iam = require('@aws-cdk/aws-iam');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import sqs = require('@aws-cdk/aws-sqs');
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 
-import { Clients, Dependency, Function, Runtime } from '../compute';
+import { Clients, Dependency, Function } from '../compute';
+import { Cache, Namespace } from '../compute/assembly';
 import { Cons } from '../compute/hlist';
-import { Cache, PropertyBag } from '../compute/property-bag';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Omit } from '../utils';
 import { Collector } from './collector';
@@ -32,7 +32,7 @@ export class Queue<T extends Type<any>> implements Resource<sqs.Queue>, Dependen
   public readonly mapper: Mapper<RuntimeType<T>, string>;
   public readonly resource: sqs.Queue;
 
-  constructor(scope: cdk.Construct, id: string, props: QueueProps<T>) {
+  constructor(scope: core.Construct, id: string, props: QueueProps<T>) {
     this.resource = new sqs.Queue(scope, id, props);
     this.mapper = Json.forType(props.type);
   }
@@ -61,12 +61,12 @@ export class Queue<T extends Type<any>> implements Resource<sqs.Queue>, Dependen
   /**
    * Get the `queueUrl` from properties and create a SQS client for this queue's data type.
    *
-   * @param properties runtime property bag
+   * @param namespace runtime property bag
    * @param cache of shared runtime state
    */
-  public bootstrap(properties: PropertyBag, cache: Cache): Queue.Client<T> {
+  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Queue.Client<T>> {
     return new Queue.Client(
-      properties.get('queueUrl'),
+      namespace.get('queueUrl'),
       cache.getOrCreate('aws:sqs', () => new AWS.SQS()),
       this.mapper);
   }
@@ -74,14 +74,14 @@ export class Queue<T extends Type<any>> implements Resource<sqs.Queue>, Dependen
   /**
    * By default, the consume and send client is installed for a Queue.
    */
-  public install(target: Runtime): void {
-    this.consumeAndSendClient().install(target);
+  public install(namespace: Namespace, grantable: iam.IGrantable): void {
+    this.consumeAndSendAccess().install(namespace, grantable);
   }
 
   /**
    * A client with permission to consume and send messages.
    */
-  public consumeAndSendClient(): Dependency<Queue.ConsumeAndSendClient<T>> {
+  public consumeAndSendAccess(): Dependency<Queue.ConsumeAndSendClient<T>> {
     return this._client(g => {
       this.resource.grantConsumeMessages(g);
       this.resource.grantSendMessages(g);
@@ -91,22 +91,22 @@ export class Queue<T extends Type<any>> implements Resource<sqs.Queue>, Dependen
   /**
    * A client with only permission to consume messages from this Queue.
    */
-  public consumeClient(): Dependency<Queue.ConsumeClient<T>> {
+  public consumeAccess(): Dependency<Queue.ConsumeClient<T>> {
     return this._client(g => this.resource.grantConsumeMessages(g));
   }
 
   /**
    * A client with only permission to send messages to this Queue.
    */
-  public sendClient(): Dependency<Queue.SendClient<T>> {
+  public sendAccess(): Dependency<Queue.SendClient<T>> {
     return this._client(g => this.resource.grantSendMessages(g));
   }
 
   private _client(grant: (grantable: iam.IGrantable) => void): Dependency<Queue.Client<T>> {
     return {
-      install: (target: Runtime) => {
-        target.properties.set('queueUrl', this.resource.queueUrl);
-        grant(target.grantable);
+      install: (namespace, grantable) => {
+        namespace.set('queueUrl', this.resource.queueUrl);
+        grant(grantable);
       },
       bootstrap: this.bootstrap.bind(this),
     };
@@ -240,7 +240,7 @@ export interface SQSEvent {
 export class QueueCollector<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> implements Collector<CollectedQueue<T, E>, E> {
   constructor(private readonly props: QueueProps<T>) { }
 
-  public collect(scope: cdk.Construct, id: string, enumerable: E): CollectedQueue<T, E> {
+  public collect(scope: core.Construct, id: string, enumerable: E): CollectedQueue<T, E> {
     return new CollectedQueue(scope, id, {
       ...this.props,
       enumerable
@@ -265,7 +265,7 @@ export interface CollectedQueueProps<T extends Type<any>, E extends Enumerable<a
 export class CollectedQueue<T extends Type<any>, E extends Enumerable<any, any, any, any>> extends Queue<T> {
   public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Queue.Client<T>>>>>;
 
-  constructor(scope: cdk.Construct, id: string, props: CollectedQueueProps<T, E>) {
+  constructor(scope: core.Construct, id: string, props: CollectedQueueProps<T, E>) {
     super(scope, id, props);
     this.sender = props.enumerable.forBatch(this.resource, 'ToQueue', {
       depends: this,
@@ -290,9 +290,9 @@ declare module './enumerable' {
      * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
      * @typeparam T concrete type of data flowing to queue
      */
-    toQueue<T extends Type<I>>(scope: cdk.Construct, id: string, queueProps: QueueProps<T>, runtimeProps?: R): CollectedQueue<T, this>;
+    toQueue<T extends Type<I>>(scope: core.Construct, id: string, queueProps: QueueProps<T>, runtimeProps?: R): CollectedQueue<T, this>;
   }
 }
-Enumerable.prototype.toQueue = function(scope: cdk.Construct, id: string, props: QueueProps<any>): any {
+Enumerable.prototype.toQueue = function(scope: core.Construct, id: string, props: QueueProps<any>): any {
   return this.collect(scope, id, new QueueCollector(props));
 };

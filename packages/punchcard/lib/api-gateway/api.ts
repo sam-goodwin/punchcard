@@ -1,5 +1,5 @@
 import apigateway = require('@aws-cdk/aws-apigateway');
-import cdk = require('@aws-cdk/cdk');
+import cdk = require('@aws-cdk/core');
 
 import { Resource } from './resource';
 
@@ -16,11 +16,11 @@ export class Api extends Resource {
     (this as any).getRequestValidator = new apigateway.CfnRequestValidator(api, `GetRequestValidator`, {
       restApiId: this.restApiId,
       validateRequestParameters: true
-    }).requestValidatorId;
+    }).ref;
     (this as any).bodyRequestValidator = new apigateway.CfnRequestValidator(api, `BodyRequestValidator`, {
       restApiId: this.restApiId,
       validateRequestBody: true,
       validateRequestParameters: true
-    }).requestValidatorId;
+    }).ref;
   }
 }

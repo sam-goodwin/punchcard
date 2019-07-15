@@ -1,6 +1,7 @@
-import { Cons, Head, HList } from './hlist';
-import { Cache, PropertyBag } from './property-bag';
-import { Runtime } from './runtime';
+import iam = require('@aws-cdk/aws-iam');
+
+import { Assembly, Cache, Namespace } from './assembly';
+import { HList } from './hlist';
 
 /**
  * Maps a `Dependency` to its runtime representation.
@@ -25,23 +26,24 @@ export interface Dependency<C> {
    * * grant required permissions
    * * add properties required at runtime
    *
-   * @param target
+   * @param namespace property namespace
+   * @param grantable principal to grant permissions to
    */
-  install(target: Runtime): void;
+  install(namespace: Namespace, grantable: iam.IGrantable): void;
   /**
    * Bootstrap the runtime interface of a construct.
    *
-   * @param properties a bag of properties local to this dependency (namespaced to avoid collisions).
+   * @param namespace property namespace
    * @param cache a cache of state shared by all clients at runtime.
    */
-  bootstrap(properties: PropertyBag, cache: Cache): C;
+  bootstrap(namespace: Namespace, cache: Cache): Promise<C>;
 }
 
 export namespace Dependency {
   export type None = typeof none;
   export const none: Dependency<{}> = {
     [Symbol.for('punchcard:dependency:none')]: true,
-    bootstrap: () => ({}),
+    bootstrap: async () => ({}),
     install: () => undefined
   };
 
@@ -51,11 +53,13 @@ export namespace Dependency {
 
   export class List<T extends any[]> implements Dependency<Clients<HList<T>>> {
     constructor(private readonly deps: T) {}
-    public install(target: Runtime): void {
-      this.deps.forEach((d, i) => d.install(target.namespace(i.toString())));
+
+    public install(namespace: Namespace, grantable: iam.IGrantable): void {
+      this.deps.forEach((d, i) => d.install(namespace.namespace(i.toString()), grantable));
     }
-    public bootstrap(properties: PropertyBag, cache: Cache): Clients<HList<T>> {
-      return this.deps.map((d, i) => d.bootstrap(properties.namespace(i.toString()), cache)) as any;
+
+    public async bootstrap(namespace: Assembly, cache: Cache): Promise<Clients<HList<T>>> {
+      return await Promise.all(this.deps.map((d, i) => d.bootstrap(namespace.namespace(i.toString()), cache))) as any;
     }
   }
 
@@ -67,16 +71,21 @@ export namespace Dependency {
   export class Named<D extends {[name: string]: Dependency<any>}> implements Dependency<NamedClients<D>> {
     constructor(private readonly dependencies: D) {}
 
-    public install(target: Runtime): void {
+    public install(namespace: Namespace, grantable: iam.IGrantable): void {
       for (const [name, dep] of Object.entries(this.dependencies)) {
-        dep.install(target.namespace(name));
+        dep.install(namespace.namespace(name), grantable);
       }
     }
 
-    public bootstrap(properties: PropertyBag, cache: Cache): { [name in keyof D]: Client<D[name]>; } {
+    public async bootstrap(properties: Assembly, cache: Cache): Promise<{ [name in keyof D]: Client<D[name]>; }> {
       const client: any = {};
-      for (const [name, dep] of Object.entries(this.dependencies)) {
-        client[name] = dep.bootstrap(properties.namespace(name), cache);
+      const deps = await Promise.all(Object
+        .entries(this.dependencies)
+        .map(async ([name, dep]) => {
+          return [name, await dep.bootstrap(properties.namespace(name), cache)];
+        }));
+      for (const [name, dep] of deps) {
+        client[name] = dep;
       }
       return client;
     }

@@ -1,14 +1,14 @@
 import glue = require('@aws-cdk/aws-glue')
-import cdk = require('@aws-cdk/cdk');
-import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency } from 'punchcard';
+import core = require('@aws-cdk/core');
+import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency, cons } from 'punchcard';
 
 import uuid = require('uuid');
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 
-const app = new cdk.App();
+const app = new core.App();
 export default app;
-const stack = new cdk.Stack(app, 'stream-processing');
+const stack = new core.Stack(app, 'stream-processing');
 
 /**
  * Create a SNS Topic.
@@ -34,7 +34,7 @@ const enrichments = new HashTable(stack, 'Enrichments', {
     key: string(),
     tags: array(string())
   },
-  billingMode: BillingMode.PayPerRequest
+  billingMode: BillingMode.PAY_PER_REQUEST
 });
 
 /**
@@ -122,7 +122,7 @@ const stream = queue.enumerable() // enumerable gives us a nice chainable API fo
   })
   .toStream(stack, 'Stream', {
     // encrypt values in the stream with a customer-managed KMS key.
-    encryption: StreamEncryption.Kms,
+    encryption: StreamEncryption.KMS,
 
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,

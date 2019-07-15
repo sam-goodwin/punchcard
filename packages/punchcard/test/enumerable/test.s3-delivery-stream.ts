@@ -1,7 +1,7 @@
 import 'jest';
 import sinon = require('sinon');
 
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 import { Codec, S3DeliveryStream, string, struct } from '../../lib';
 import { setRuntime } from '../../lib/constants';
 import { Compression } from '../../lib/storage/glue/compression';
@@ -10,7 +10,7 @@ setRuntime();
 
 describe('run', () => {
   it('should get object amnd parse lines into records', async () => {
-    const stack = new cdk.Stack(new cdk.App(), 'stack');
+    const stack = new core.Stack(new core.App(), 'stack');
 
     const bucket = {
       getObject: sinon.fake.returns(Promise.resolve({
@@ -53,7 +53,7 @@ describe('run', () => {
   });
 
   it('should throw if getting object fails', async () => {
-    const stack = new cdk.Stack(new cdk.App(), 'stack');
+    const stack = new core.Stack(new core.App(), 'stack');
 
     const bucket = {
       getObject: sinon.fake.returns(Promise.reject(new Error('fail')))

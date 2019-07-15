@@ -1,5 +1,5 @@
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
-import cdk = require('@aws-cdk/cdk');
+import cdk = require('@aws-cdk/core');
 
 import { attribute_not_exists, HashTable, integer, LambdaExecutorService, Rate, string, size } from 'punchcard';
 
@@ -16,7 +16,7 @@ const table = new HashTable(stack, 'my-table', {
       minimum: 0
     })
   },
-  billingMode: BillingMode.PayPerRequest
+  billingMode: BillingMode.PAY_PER_REQUEST
 });
 
 const executorService = new LambdaExecutorService();

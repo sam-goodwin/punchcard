@@ -1,4 +1,4 @@
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 
 import { Type } from '../shape/types/type';
 import { S3DeliveryStreamCollector, S3DeliveryStreamForType } from './delivery-stream';
@@ -17,7 +17,7 @@ export interface Collector<T, E extends Enumerable<any, any, any, any>> {
   /**
    * Create constructs to collect data from the enumerable an
    */
-  collect(scope: cdk.Construct, id: string, enumerable: E): T
+  collect(scope: core.Construct, id: string, enumerable: E): T
 }
 
 /**

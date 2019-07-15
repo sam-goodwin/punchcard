@@ -1,15 +1,15 @@
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 
 import { attribute_not_exists, HashTable, integer, LambdaExecutorService, Rate, string, struct } from 'punchcard';
 
-const app = new cdk.App();
+const app = new core.App();
 export default app;
 
-const stack = new cdk.Stack(app, 'invoke-function');
+const stack = new core.Stack(app, 'invoke-function');
 
 const executorService = new LambdaExecutorService({
-  timeout: 10
+  timeout: core.Duration.seconds(10)
 });
 
 const table = new HashTable(stack, 'my-table', {
@@ -20,7 +20,7 @@ const table = new HashTable(stack, 'my-table', {
       minimum: 0
     })
   },
-  billingMode: BillingMode.PayPerRequest
+  billingMode: BillingMode.PAY_PER_REQUEST
 });
 
 // create a function that increments counts in a dynamodb table

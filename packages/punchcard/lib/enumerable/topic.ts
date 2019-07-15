@@ -1,11 +1,14 @@
 import AWS = require('aws-sdk');
 
+import iam = require('@aws-cdk/aws-iam');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import sns = require('@aws-cdk/aws-sns');
-import cdk = require('@aws-cdk/cdk');
+import snsSubs = require('@aws-cdk/aws-sns-subscriptions');
+import core = require('@aws-cdk/core');
 
-import { Cache, Clients, Dependency, PropertyBag, Runtime } from '../compute';
+import { Clients, Dependency } from '../compute';
 import { Function } from '../compute';
+import { Cache, Namespace } from '../compute/assembly';
 import { Cons } from '../compute/hlist';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Collector } from './collector';
@@ -32,7 +35,7 @@ export class Topic<T extends Type<any>> implements Resource<sns.Topic>, Dependen
   public readonly mapper: Mapper<RuntimeType<T>, string>;
   public readonly resource: sns.Topic;
 
-  constructor(scope: cdk.Construct, id: string, props: TopicProps<T>) {
+  constructor(scope: core.Construct, id: string, props: TopicProps<T>) {
     this.resource = new sns.Topic(scope, id, props);
     this.type = props.type;
     this.mapper = Json.forType(props.type);
@@ -70,7 +73,7 @@ export class Topic<T extends Type<any>> implements Resource<sns.Topic>, Dependen
    * @see https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html
    * @see https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
    */
-  public toQueue(scope: cdk.Construct, id: string): Queue<T> {
+  public toQueue(scope: core.Construct, id: string): Queue<T> {
     const q = new Queue(scope, id, {
       type: this.type
     });
@@ -85,26 +88,27 @@ export class Topic<T extends Type<any>> implements Resource<sns.Topic>, Dependen
    *
    * @param queue to subscribe to this `Topic`.
    */
-  public subscribeQueue(queue: Queue<T>): sns.Subscription {
-    return this.resource.subscribeQueue(queue.resource, true);
+  public subscribeQueue(queue: Queue<T>): void {
+    this.resource.addSubscription(new snsSubs.SqsSubscription(queue.resource, {
+      rawMessageDelivery: true
+    }));
   }
 
   /**
    * Create a client for this `Topic` from within a `Runtime` environment (e.g. a Lambda Function.).
-   * @param properties runtime properties local to this `Topic`.
+   * @param namespace runtime properties local to this `Topic`.
    * @param cache global `Cache` shared by all clients.
    */
-  public bootstrap(properties: PropertyBag, cache: Cache): Topic.Client<T> {
-    return new Topic.Client(this.mapper, properties.get('topicArn'), cache.getOrCreate('aws:sns', () => new AWS.SNS()));
+  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Topic.Client<T>> {
+    return new Topic.Client(this.mapper, namespace.get('topicArn'), cache.getOrCreate('aws:sns', () => new AWS.SNS()));
   }
 
   /**
    * Set `topicArn` and grant permissions to a `Runtime` so it may `bootstrap` a client for this `Topic`.
-   * @param target runtime to install this `Topic` into.
    */
-  public install(target: Runtime): void {
-    this.resource.grantPublish(target.grantable);
-    target.properties.set('topicArn', this.resource.topicArn);
+  public install(namespace: Namespace, grantable: iam.IGrantable): void {
+    this.resource.grantPublish(grantable);
+    namespace.set('topicArn', this.resource.topicArn);
   }
 }
 
@@ -225,7 +229,7 @@ export interface SNSEvent {
 export class TopicCollector<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> implements Collector<CollectedTopic<T, E>, E> {
   constructor(private readonly props: TopicProps<T>) { }
 
-  public collect(scope: cdk.Construct, id: string, enumerable: E): CollectedTopic<T, E> {
+  public collect(scope: core.Construct, id: string, enumerable: E): CollectedTopic<T, E> {
     return new CollectedTopic(scope, id, {
       ...this.props,
       enumerable
@@ -250,7 +254,7 @@ export interface CollectedTopicProps<T extends Type<any>, E extends Enumerable<a
 export class CollectedTopic<T extends Type<any>, E extends Enumerable<any, any, any, any>> extends Topic<T> {
   public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Topic.Client<T>>>>>;
 
-  constructor(scope: cdk.Construct, id: string, props: CollectedTopicProps<T, E>) {
+  constructor(scope: core.Construct, id: string, props: CollectedTopicProps<T, E>) {
     super(scope, id, props);
     this.sender = props.enumerable.forBatch(this.resource, 'ToTopic', {
       depends: this,
@@ -275,9 +279,9 @@ declare module './enumerable' {
      * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
      * @typeparam T concrete type of data flowing to topic
      */
-    toTopic<T extends Type<I>>(scope: cdk.Construct, id: string, topicProps: TopicProps<T>, runtimeProps?: R): CollectedTopic<T, this>;
+    toTopic<T extends Type<I>>(scope: core.Construct, id: string, topicProps: TopicProps<T>, runtimeProps?: R): CollectedTopic<T, this>;
   }
 }
-Enumerable.prototype.toTopic = function(scope: cdk.Construct, id: string, props: TopicProps<any>): any {
+Enumerable.prototype.toTopic = function(scope: core.Construct, id: string, props: TopicProps<any>): any {
   return this.collect(scope, id, new TopicCollector(props));
 };

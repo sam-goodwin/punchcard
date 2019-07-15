@@ -1,13 +1,13 @@
-import cdk = require('@aws-cdk/cdk');
+import core = require('@aws-cdk/core');
 import 'jest';
 import sinon = require('sinon');
 
-import { Stream, string, StringType } from '../../lib';
+import { Stream, string } from '../../lib';
 
 describe('client', () => {
   describe('sink', () => {
     it('should sink all messages', async () => {
-      const stream = new Stream(new cdk.Stack(new cdk.App(), 'stack'), 'stream', {
+      const stream = new Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
         type: string(),
         partitionBy: () => 'p'
       });
@@ -32,7 +32,7 @@ describe('client', () => {
       }]);
     });
     it('should divide and conquer evenly', async () => {
-      const stream = new Stream(new cdk.Stack(new cdk.App(), 'stack'), 'stream', {
+      const stream = new Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
         type: string(),
         partitionBy: () => 'p'
       });
@@ -64,7 +64,7 @@ describe('client', () => {
       }]);
     });
     it('should divide and conquer oddly', async () => {
-      const stream = new Stream(new cdk.Stack(new cdk.App(), 'stack'), 'stream', {
+      const stream = new Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
         type: string(),
         partitionBy: () => 'p'
       });
