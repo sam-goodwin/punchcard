@@ -1,7 +1,7 @@
 {
   "name": "punchcard",
-  "description": "A TypeScript meta-language for AWS.",
-  "version": "0.5.1",
+  "description": "Type-safe AWS infrastructure.",
+  "version": "0.6.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -29,6 +29,7 @@
     "cloudformation"
   ],
   "devDependencies": {
+    "@aws-cdk/assert": "^1.0.0",
     "@babel/core": "^7.4.5",
     "@babel/preset-env": "^7.4.5",
     "@types/jest": "^23.3.13",
@@ -43,7 +44,6 @@
   },
   "dependencies": {
     "@aws-cdk/core": "^1.0.0",
-    "@aws-cdk/assert": "^1.0.0",
     "@aws-cdk/aws-apigateway": "^1.0.0",
     "@aws-cdk/aws-ecs": "^1.0.0",
     "@aws-cdk/aws-dynamodb": "^1.0.0",
@@ -65,7 +65,12 @@
     "webpack": "^4.31.0"
   },
   "peerDependencies": {
-    "@aws-cdk/cdk": "^0.31.0"
+    "@aws-cdk/aws-dynamodb": "^1.0.0",
+    "@aws-cdk/aws-glue": "^1.0.0",
+    "@aws-cdk/aws-lambda": "^1.0.0",
+    "@aws-cdk/aws-kinesis": "^1.0.0",
+    "@aws-cdk/aws-s3": "^1.0.0",
+    "@aws-cdk/core": "^1.0.0"
   },
   "jest": {
     "testMatch": [
