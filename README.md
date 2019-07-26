@@ -1,8 +1,10 @@
 ## Punchcard
 
-Punchcard is a TypeScript project aimed at imagining what the future of software development might look like for the Cloud. It builds on top of the [AWS Cloud Development Kit (CDK)](https://github.com/awslabs/aws-cdk), AWS's infrastructure-as-code product, adding a variety of high-level and type-safe features. 
+Punchcard is a TypeScript project to imagine what the future of software development might look like for the Cloud. It builds on top of the [AWS Cloud Development Kit (CDK)](https://github.com/awslabs/aws-cdk), AWS's infrastructure-as-code product, adding a variety of high-level and type-safe features. 
 
-The name punchcard comes from the idea that, as infrastructure-as-code projects mature, the technology we are used to using today will feel as ancient to us as punchcards do today. You know, those times when we were restricted to writing and sharing software on cards with holes in them ;)
+The name punchcard comes from the idea that as infrastructure-as-code projects mature, the technology we are familiar with today will feel as ancient to us as punchcards. You know, those times when we were restricted to writing and sharing software on cards with holes in them ;)
+
+This style of programming should feel familiar - the idea is to map ordinary in-memory data structures and algorithms to the AWS Cloud. So, instead of using in-memory hash maps, you use a DynamoDB Table, and instead of an in-memory queue, it's an AWS SQS Queue, etc.
 
 Let's walk through some punchcard features to demonstrate:
 
@@ -220,10 +222,6 @@ s3DeliveryStream.toGlueTable(stack, 'ToGlue', {
 });
 ```
 
-### Conclusion
-
-This style of programming should feel familiar - the idea is to map ordinary in-memory data structures and algorithms to the AWS Cloud. So, instead of using in-memory hash maps, you use a DynamoDB Table, and instead of an in-memory queue, it's an AWS SQS Queue, etc.
-
 ## [Examples]([examples](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib))
 More detailed examples can be found in the source:
 * [Stream Processing](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/stream-processing.ts) - respond to SNS notifications with a Lambda Function; subscribe notifications to a SQS Queue and process them with a Lambda Function; process and forward data from a SQS Queue to a Kinesis Stream; sink records from the Stream to S3 and catalog it in a Glue Table.
@@ -253,7 +251,7 @@ import cdk = require('@aws-cdk/cdk');
 import punchcard = require('punchcard');
 
 const app = new cdk.App();
-const stack = new cdk.Stack(app, 'CronStack');
+const stack = new cdk.Stack(app, 'MyStack');
 
 // NOTE: make sure you export the app as default, or else your code won't run at runtime
 export default app;
