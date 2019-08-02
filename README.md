@@ -5,7 +5,7 @@
 
 Punchcard is a TypeScript project to imagine what the future of software development might look like for the Cloud. It builds on top of the [AWS Cloud Development Kit (CDK)](https://github.com/awslabs/aws-cdk), AWS's infrastructure-as-code product, adding a variety of high-level and type-safe features. 
 
-The name punchcard comes from the idea that as infrastructure-as-code projects mature, the technology we are familiar with today will feel as ancient to us as punchcards. You know, those times when we were restricted to writing and sharing software on cards with holes in them ;)
+The name punchcard comes from the idea that as infrastructure-as-code projects mature, the technology we are familiar with today will feel as ancient to us as punchcards. You know, those times when we were restricted to writing and sharing software on decks of cards ;).
 
 This style of programming should feel familiar - the idea is to map ordinary in-memory data structures and algorithms to the AWS Cloud. So, instead of using in-memory hash maps, you use a DynamoDB Table, and instead of an in-memory queue, it's an AWS SQS Queue, etc.
 
@@ -13,7 +13,7 @@ Let's walk through some punchcard features to demonstrate:
 
 ### Runtime Code and Dependencies
 
-Punchcard unifies "infrastructure code" with "runtime code" - i.e. you can declare *and* implement an AWS Lambda Function with the same code:
+Punchcard unifies **infrastructure** code with **runtime** code - i.e. you can declare *and* implement an AWS Lambda Function with the same code:
 
 ```ts
 new Function(stack, 'MyFunction', {
