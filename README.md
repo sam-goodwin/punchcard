@@ -1,3 +1,5 @@
+[![Gitter](https://badges.gitter.im/punchcard-cdk/community.svg)](https://gitter.im/punchcard-cdk/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+
 ## Punchcard
 
 Punchcard is a TypeScript project to imagine what the future of software development might look like for the Cloud. It builds on top of the [AWS Cloud Development Kit (CDK)](https://github.com/awslabs/aws-cdk), AWS's infrastructure-as-code product, adding a variety of high-level and type-safe features. 
