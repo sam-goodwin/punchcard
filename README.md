@@ -1,4 +1,5 @@
 [![Gitter](https://badges.gitter.im/punchcard-cdk/community.svg)](https://gitter.im/punchcard-cdk/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![npm version](https://badge.fury.io/js/punchcard.svg)](https://badge.fury.io/js/punchcard)
 
 ## Punchcard
 
