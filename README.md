@@ -248,7 +248,7 @@ npm install --save punchcard
 Create an `index.ts` file to contain your application's entrypoint:
 
 ```ts
-import cdk = require('@aws-cdk/cdk');
+import cdk = require('@aws-cdk/core');
 import punchcard = require('punchcard');
 
 const app = new cdk.App();
