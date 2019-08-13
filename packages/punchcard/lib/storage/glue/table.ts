@@ -9,9 +9,9 @@ import core = require('@aws-cdk/core');
 
 import { Dependency } from '../../compute';
 import { Cache, Namespace } from '../../compute/assembly';
-import { Resource } from '../../enumerable/resource';
-import { Sink } from '../../enumerable/sink';
 import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, struct, Type } from '../../shape';
+import { Resource } from '../../stream/resource';
+import { Sink } from '../../stream/sink';
 import { Omit } from '../../utils';
 import { Codec } from '../codec';
 import { Compression } from '../compression';

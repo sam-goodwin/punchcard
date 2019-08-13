@@ -12,10 +12,10 @@ import { Cache, Namespace } from '../compute/assembly';
 import { Cons } from '../compute/hlist';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Collector } from './collector';
-import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';
 import { Queue } from './queue';
 import { Resource } from './resource';
 import { Sink, sink, SinkProps } from './sink';
+import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './stream';
 
 export type TopicProps<T extends Type<any>> = {
   /**
@@ -268,7 +268,7 @@ export class CollectedTopic<T extends Type<any>, E extends Enumerable<any, any, 
 /**
  * Add a utility method `toTopic` for `Enumerable` which uses the `TopicCollector` to produce SNS `Topics`.
  */
-declare module './enumerable' {
+declare module './stream' {
   interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
     /**
      * Collect data to a SNS Topic (as notification messages).

@@ -8,7 +8,7 @@ import { StructType } from '../shape/types/struct';
 import { Type } from '../shape/types/type';
 import { Glue } from '../storage';
 import { Collector } from './collector';
-import { DependencyType, Enumerable, EventType } from './enumerable';
+import { DependencyType, Enumerable, EventType } from './stream';
 
 /**
  * Creates a new Glue `Table` and publishes data from an enumerable to it.
@@ -58,7 +58,7 @@ export class CollectedGlueTable<S extends Shape, P extends Glue.Partition, E ext
 /**
  * Add a utility method `toGlueTable` for `Enumerable` which uses the `TableCollector` to produce Glue `Tables`.
  */
-declare module './enumerable' {
+declare module './stream' {
   interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
     /**
      * Collect data to S3 via a Firehose Delivery Stream.

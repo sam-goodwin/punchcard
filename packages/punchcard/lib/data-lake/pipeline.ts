@@ -2,7 +2,7 @@ import { Database } from '@aws-cdk/aws-glue';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
-import { Kinesis } from '../enumerable';
+import { Kinesis } from '../stream';
 import { RuntimeShape, Shape, struct, StructType, TimestampType } from '../shape';
 import { Glue } from '../storage/glue';
 import { DeliveryStream } from './delivery-stream';

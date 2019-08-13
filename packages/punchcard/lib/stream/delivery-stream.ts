@@ -15,9 +15,9 @@ import { Codec } from '../storage';
 import { Compression } from '../storage/compression';
 import { Bucket } from '../storage/s3';
 import { Collector } from './collector';
-import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';
 import { Kinesis } from './kinesis';
 import { Sink, sink, SinkProps } from './sink';
+import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './stream';
 
 export type S3DeliveryStreamProps<T extends Type<any>> = S3DeliveryStreamForType<T> | S3DeliveryStreamFromKinesis<T>;
 
@@ -386,7 +386,7 @@ export class CollectedS3DeliveryStream<T extends Type<any>, E extends Enumerable
  * Add a utility method `toS3DeliveryStream` for `Enumerable` which uses the `S3DeliveryStreamCollector` to collect
  * data to S3 via a Kinesis Firehose Delivery Stream.
  */
-declare module './enumerable' {
+declare module './stream' {
   interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
     /**
      * Collect data to S3 via a Firehose Delivery Stream.

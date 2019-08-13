@@ -10,9 +10,9 @@ import { Cons } from '../compute/hlist';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Omit } from '../utils';
 import { Collector } from './collector';
-import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
+import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './stream';
 
 export type EnumerableQueueRuntime = EnumerableRuntime & events.SqsEventSourceProps;
 
@@ -279,7 +279,7 @@ export class CollectedQueue<T extends Type<any>, E extends Enumerable<any, any, 
 /**
  * Add a utility method `toQueue` for `Enumerable` which uses the `QueueCollector` to produce SQS `Queues`.
  */
-declare module './enumerable' {
+declare module './stream' {
   interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
     /**
      * Collect data to a SQS Queue (as messages).

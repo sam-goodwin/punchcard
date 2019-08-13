@@ -2,9 +2,9 @@ import core = require('@aws-cdk/core');
 
 import { Type } from '../shape/types/type';
 import { S3DeliveryStreamCollector, S3DeliveryStreamForType } from './delivery-stream';
-import { Enumerable } from './enumerable';
 import { Kinesis } from './kinesis';
 import { QueueCollector, QueueProps } from './queue';
+import { Enumerable } from './stream';
 import { TopicCollector, TopicProps } from './topic';
 
 /**

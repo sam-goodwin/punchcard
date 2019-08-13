@@ -15,9 +15,9 @@ import { Codec } from '../storage';
 import { Compression } from '../storage/compression';
 import { Collector } from './collector';
 import { S3DeliveryStream } from './delivery-stream';
-import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
+import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './stream';
 
 export namespace Kinesis {
   export type EnumerableStreamRuntime = EnumerableRuntime & events.KinesisEventSourceProps;
@@ -332,7 +332,7 @@ export namespace Kinesis {
 /**
  * Add a utility method `toStream` for `Enumerable` which uses the `StreamCollector` to produce Kinesis `Streams`.
  */
-declare module './enumerable' {
+declare module './stream' {
   interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
     /**
      * Collect data to a Kinesis Stream.

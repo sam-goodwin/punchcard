@@ -1,6 +1,6 @@
 import glue = require('@aws-cdk/aws-glue')
 import core = require('@aws-cdk/core');
-import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency, cons } from 'punchcard';
+import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency } from 'punchcard';
 
 import uuid = require('uuid');
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
