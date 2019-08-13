@@ -3,7 +3,7 @@ import core = require('@aws-cdk/core');
 
 import 'jest';
 import sinon = require('sinon');
-import { Codec, smallint, Table, timestamp } from '../../../lib';
+import { Codec, Glue, smallint, timestamp } from '../../../lib';
 import { Bucket } from '../../../lib/storage/s3';
 
 const stack = new core.Stack(new core.App(), 'stack');
@@ -11,7 +11,7 @@ const database = new glue.Database(stack, 'Database', {
   databaseName: 'database'
 });
 
-const table = new Table(stack, 'Table', {
+const table = new Glue.Table(stack, 'Table', {
   database,
   codec: Codec.Json,
   tableName: 'table_name',
@@ -31,7 +31,7 @@ const table = new Table(stack, 'Table', {
 });
 
 function makeClient(glue: AWS.Glue, mockBucket?: Bucket.Client) {
-  return new Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, mockBucket as any);
+  return new Glue.Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, mockBucket as any);
 }
 
 describe('getPartitions', () => {

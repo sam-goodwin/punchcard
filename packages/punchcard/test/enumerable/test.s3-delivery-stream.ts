@@ -4,7 +4,7 @@ import sinon = require('sinon');
 import core = require('@aws-cdk/core');
 import { Codec, S3DeliveryStream, string, struct } from '../../lib';
 import { setRuntime } from '../../lib/constants';
-import { Compression } from '../../lib/storage/glue/compression';
+import { Compression } from '../../lib/storage/compression';
 
 setRuntime();
 

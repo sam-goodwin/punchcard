@@ -91,8 +91,6 @@ export class Function<T, U, D extends Dependency<any>>
   }
 
   public async boot(): Promise<(event: any, context: any) => Promise<U>> {
-    const installRoot = '/opt/punchcard';
-
     const bag: {[name: string]: string} = {};
     for (const [env, value] of Object.entries(process.env)) {
       if (env.startsWith(this.node.uniqueId) && value !== undefined) {

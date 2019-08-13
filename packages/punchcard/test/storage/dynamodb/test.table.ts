@@ -5,7 +5,7 @@ import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import 'jest';
 // tslint:disable-next-line: max-line-length
-import { array, Assembly, bigint, binary, Cache, Dependency, double, float, HashTable, integer, map, optional, set, smallint, SortedTable, string, struct, Table, timestamp, tinyint, Type } from '../../../lib';
+import { array, Assembly, bigint, binary, Cache, Dependency, double, float, HashTable, integer, map, optional, set, smallint, SortedTable, string, struct, timestamp, tinyint, Type } from '../../../lib';
 
 const scope: any = {
   node: {

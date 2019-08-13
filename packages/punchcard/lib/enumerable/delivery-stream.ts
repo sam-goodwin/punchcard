@@ -12,7 +12,7 @@ import { Cons } from '../compute/hlist';
 import { DeliveryStream, DeliveryStreamDestination, DeliveryStreamType } from '../data-lake/delivery-stream';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Codec } from '../storage';
-import { Compression } from '../storage/glue/compression';
+import { Compression } from '../storage/compression';
 import { Bucket } from '../storage/s3';
 import { Collector } from './collector';
 import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';

@@ -4,8 +4,7 @@ import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
 import { Stream } from '../enumerable';
 import { RuntimeShape, Shape, struct, StructType, TimestampType } from '../shape';
-import { Period } from '../storage/glue/period';
-import { Table } from '../storage/glue/table';
+import { Glue } from '../storage/glue';
 import { DeliveryStream } from './delivery-stream';
 import { Schema } from './schema';
 
@@ -19,7 +18,7 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends core.Const
   public readonly stream: Stream<StructType<S>>;
   public readonly deliveryStream: DeliveryStream;
   public readonly stagingBucket: s3.Bucket;
-  public readonly table: Table<S, Period.PT1M>;
+  public readonly table: Glue.Table<S, Glue.Period.PT1M>;
 
   constructor(scope: core.Construct, id: string, props: DataPipelineProps<S, T>) {
     super(scope, id);
@@ -36,8 +35,8 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends core.Const
         tableName: props.schema.schemaName,
         columns: props.schema.shape,
         partition: {
-          keys: Period.PT1M.schema,
-          get(record): RuntimeShape<Period.PT1M> {
+          keys: Glue.Period.PT1M.schema,
+          get(record): RuntimeShape<Glue.Period.PT1M> {
             const ts = props.schema.timestamp(record);
             return {
               year: ts.getUTCFullYear(),

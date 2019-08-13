@@ -2,7 +2,7 @@ import glue = require('@aws-cdk/aws-glue');
 import core = require('@aws-cdk/core');
 
 import 'jest';
-import { array, bigint, binary, boolean, char, Codec, double, float, integer, map, smallint, string, struct, Table, timestamp, tinyint, Type, varchar } from '../../../lib';
+import { array, bigint, binary, boolean, char, Codec, double, float, Glue, integer, map, smallint, string, struct, timestamp, tinyint, Type, varchar } from '../../../lib';
 
 it('should map columns and partition keys to their respective types', () => {
   const stack = new core.Stack(new core.App(), 'stack');
@@ -10,7 +10,7 @@ it('should map columns and partition keys to their respective types', () => {
     databaseName: 'database'
   });
 
-  const table = new Table(stack, 'Table', {
+  const table = new Glue.Table(stack, 'Table', {
     database,
     codec: Codec.Json,
     tableName: 'table_name',
@@ -158,7 +158,7 @@ it('should default to Json Codec', () => {
     databaseName: 'database'
   });
 
-  const table = new Table(stack, 'Table', {
+  const table = new Glue.Table(stack, 'Table', {
     database,
     tableName: 'table_name',
     columns: {
@@ -184,7 +184,7 @@ function partitionTest(type: Type<any>) {
     databaseName: 'database'
   });
 
-  new Table(stack, 'Table', {
+  new Glue.Table(stack, 'Table', {
     database,
     codec: Codec.Json,
     tableName: 'table_name',

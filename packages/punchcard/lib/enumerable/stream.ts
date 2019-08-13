@@ -12,7 +12,7 @@ import { Cache, Namespace } from '../compute/assembly';
 import { Cons } from '../compute/hlist';
 import { BufferMapper, Json, Mapper, RuntimeType, Type } from '../shape';
 import { Codec } from '../storage';
-import { Compression } from '../storage/glue/compression';
+import { Compression } from '../storage/compression';
 import { Collector } from './collector';
 import { S3DeliveryStream } from './delivery-stream';
 import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';

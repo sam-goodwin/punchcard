@@ -1,40 +1,47 @@
 import { Shape, smallint } from '../../shape';
+import { Glue } from './table';
 
-export interface Period<P extends Shape> {
-  id: string;
-  schema: P;
-  milliseconds: number;
+declare module './table' {
+  export namespace Glue {
+    export interface Period<P extends Shape> {
+      id: string;
+      schema: P;
+      milliseconds: number;
+    }
+    export namespace Period {
+      export type PT1H = typeof Periods.PT1H;
+      export type PT1M = typeof Periods.PT1M;
+
+      export const PT1M: Period<PT1M>;
+      export const PT1H: Period<PT1H>;
+    }
+  }
 }
 
-export namespace Period {
-  namespace schemas {
-    export const PT1H = {
-      year: smallint(),
-      month: smallint(),
-      day: smallint(),
-      hour: smallint()
-    };
+class Period<P extends Shape> implements Glue.Period<P> {
+  constructor(
+    public readonly id: string,
+    public readonly schema: P,
+    public readonly milliseconds: number
+  ) {}
+}
 
-    export const PT1M = {
-      year: smallint(),
-      month: smallint(),
-      day: smallint(),
-      hour: smallint(),
-      minute: smallint()
-    };
-  }
+(Glue.Period as any).PT1M = new Period('minutely', Periods.PT1M, 60 * 1000);
+(Glue.Period as any).PT1H = new Period('hourly', Periods.PT1M, 60 * 60 * 1000);
 
-  export type PT1M = typeof PT1M.schema;
-  export const PT1M: Period<typeof schemas.PT1M> = {
-    id: 'minutely',
-    schema: schemas.PT1M,
-    milliseconds: 60 * 1000
+namespace Periods {
+  export const PT1H = {
+    year: smallint(),
+    month: smallint(),
+    day: smallint(),
+    hour: smallint()
   };
 
-  export type PT1H = typeof PT1H.schema;
-  export const PT1H: Period<typeof schemas.PT1H> = {
-    id: 'hourly',
-    schema: schemas.PT1H,
-    milliseconds: 60 * 60 * 1000
+  export const PT1M = {
+    year: smallint(),
+    month: smallint(),
+    day: smallint(),
+    hour: smallint(),
+    minute: smallint()
   };
 }
