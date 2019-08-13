@@ -2,7 +2,7 @@ import { Database } from '@aws-cdk/aws-glue';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
-import { Stream } from '../enumerable';
+import { Kinesis } from '../enumerable';
 import { RuntimeShape, Shape, struct, StructType, TimestampType } from '../shape';
 import { Glue } from '../storage/glue';
 import { DeliveryStream } from './delivery-stream';
@@ -16,7 +16,7 @@ export interface DataPipelineProps<S extends Shape, T extends keyof S> {
   schema: Schema<S, T>;
 }
 export class DataPipeline<S extends Shape, T extends keyof S> extends core.Construct {
-  public readonly stream: Stream<StructType<S>>;
+  public readonly stream: Kinesis.Stream<StructType<S>>;
   public readonly deliveryStream: DeliveryStream;
   public readonly stagingBucket: s3.Bucket;
   public readonly table: Glue.Table<S, Period.PT1M>;
@@ -24,7 +24,7 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends core.Const
   constructor(scope: core.Construct, id: string, props: DataPipelineProps<S, T>) {
     super(scope, id);
 
-    this.stream = new Stream(this, 'Stream', {
+    this.stream = new Kinesis.Stream(this, 'Stream', {
       type: struct(props.schema.shape),
       encryption: StreamEncryption.KMS
     });

@@ -4,5 +4,5 @@ export * from './enumerable';
 export * from './glue';
 export * from './queue';
 export * from './sink';
-export * from './stream';
+export * from './kinesis';
 export * from './topic';

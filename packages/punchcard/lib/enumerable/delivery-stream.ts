@@ -16,8 +16,8 @@ import { Compression } from '../storage/compression';
 import { Bucket } from '../storage/s3';
 import { Collector } from './collector';
 import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './enumerable';
+import { Kinesis } from './kinesis';
 import { Sink, sink, SinkProps } from './sink';
-import { Stream } from './stream';
 
 export type S3DeliveryStreamProps<T extends Type<any>> = S3DeliveryStreamForType<T> | S3DeliveryStreamFromKinesis<T>;
 
@@ -55,7 +55,7 @@ export interface S3DeliveryStreamFromKinesis<T extends Type<any>> extends Delive
   /**
    * Kinesis stream to persist in S3.
    */
-  stream: Stream<T>;
+  stream: Kinesis.Stream<T>;
 }
 
 /**

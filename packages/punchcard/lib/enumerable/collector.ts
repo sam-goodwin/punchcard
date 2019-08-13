@@ -3,8 +3,8 @@ import core = require('@aws-cdk/core');
 import { Type } from '../shape/types/type';
 import { S3DeliveryStreamCollector, S3DeliveryStreamForType } from './delivery-stream';
 import { Enumerable } from './enumerable';
+import { Kinesis } from './kinesis';
 import { QueueCollector, QueueProps } from './queue';
-import { StreamCollector, StreamProps } from './stream';
 import { TopicCollector, TopicProps } from './topic';
 
 /**
@@ -38,8 +38,8 @@ export namespace Collectors {
    *
    * @param props stream properties
    */
-  export function toStream<T extends Type<any>>(props: StreamProps<T>): StreamCollector<T, any> {
-    return new StreamCollector<T, any>(props);
+  export function toStream<T extends Type<any>>(props: Kinesis.StreamProps<T>): Kinesis.StreamCollector<T, any> {
+    return new Kinesis.StreamCollector<T, any>(props);
   }
 
   /**

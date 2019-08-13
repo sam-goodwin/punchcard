@@ -2,12 +2,12 @@ import core = require('@aws-cdk/core');
 import 'jest';
 import sinon = require('sinon');
 
-import { Stream, string } from '../../lib';
+import { Kinesis, string } from '../../lib';
 
 describe('client', () => {
   describe('sink', () => {
     it('should sink all messages', async () => {
-      const stream = new Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
+      const stream = new Kinesis.Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
         type: string(),
         partitionBy: () => 'p'
       });
@@ -18,7 +18,7 @@ describe('client', () => {
           })
         })
       };
-      const client = new Stream.Client(stream, 'streamName', mockClient as any);
+      const client = new Kinesis.Stream.Client(stream, 'streamName', mockClient as any);
 
       await client.sink(['1']);
 
@@ -32,7 +32,7 @@ describe('client', () => {
       }]);
     });
     it('should divide and conquer evenly', async () => {
-      const stream = new Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
+      const stream = new Kinesis.Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
         type: string(),
         partitionBy: () => 'p'
       });
@@ -43,7 +43,7 @@ describe('client', () => {
           })
         })
       };
-      const client = new Stream.Client(stream, 'streamName', mockClient as any);
+      const client = new Kinesis.Stream.Client(stream, 'streamName', mockClient as any);
 
       await client.sink(Array(600).fill('1'));
 
@@ -64,7 +64,7 @@ describe('client', () => {
       }]);
     });
     it('should divide and conquer oddly', async () => {
-      const stream = new Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
+      const stream = new Kinesis.Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
         type: string(),
         partitionBy: () => 'p'
       });
@@ -75,7 +75,7 @@ describe('client', () => {
           })
         })
       };
-      const client = new Stream.Client(stream, 'streamName', mockClient as any);
+      const client = new Kinesis.Stream.Client(stream, 'streamName', mockClient as any);
 
       await client.sink(Array(599).fill('1'));
 
