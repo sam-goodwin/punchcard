@@ -41,7 +41,7 @@ new Function(stack, 'MyFunction', {
 Furthermore, its interface is higher-level than what would normally be expected when using the `aws-sdk`, and it's also type-safe: the argument to the `publish` method is not an opaque `string` or `Buffer`, it is an `object` with keys and rich types such as `Date`. This is because data structures in punchcard, such as `Topic`, `Queue`, `Stream`, etc. are generic with statically declared types (like an `Array<T>`):
 
 ```ts
-const topic = new Topic(stack, 'Topic', {
+const topic = new SNS.Topic(stack, 'Topic', {
   /**
    * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
    */
@@ -67,7 +67,7 @@ This feature in punchcard becomes even more evident when using DynamoDB. To demo
 *(by `HashTable`, we mean a DynamoDB Table with only a partitionKey and no sortKey)*
 
 ```ts
-const table = new HashTable(stack, 'my-table', {
+const table = new DynamoDB.HashTable(stack, 'my-table', {
   partitionKey: 'id',
   shape: {
     id: string(),
@@ -122,17 +122,17 @@ await table.query({
   },
 })
 ```
-### Enumerable Data Structures
+### Streams
 
-Punchcard also has the concept of `Enumerable` data structures, which should feel similar to in-memory arrays/lists because of its chainable API, including operations such as `map`, `flatMap`, `filter`, `collect` etc.
+Punchcard also has the concept of `Stream` data structures, which should feel similar to in-memory streams/arrays/lists because of its chainable API, including operations such as `map`, `flatMap`, `filter`, `collect` etc.
 
-Data structures that implement `Enumerable` are: `Topic`, `Queue`, `Stream`, `Bucket` and (Glue) `Table`.
+Data structures that implement `Stream` are: `Topic`, `Queue`, `Stream`, `Bucket` and (Glue) `Table`.
 
 Let's look at some examples of how powerful this flow can be.
 
 Given a SNS Topic:
 ```ts
-const topic = new Topic(stack, 'Topic', {
+const topic = new SNS.Topic(stack, 'Topic', {
   type: struct({
     key: string(),
     count: integer(),
@@ -143,7 +143,7 @@ const topic = new Topic(stack, 'Topic', {
 
 You can attach a new Lambda Function to process each notification:
 ```ts
-topic.enumerable().forEach(stack, 'ForEachNotification', {
+topic.stream().forEach(stack, 'ForEachNotification', {
   handle: async (notification) => {
     console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
   }
@@ -155,13 +155,13 @@ Or, create a new SQS Queue and subscribe notifications to it:
 *(Messages in the `Queue` are of the same type as the notifications in the `Topic`.)*
 
 ```ts
-const queue = topic.toQueue(stack, 'MyNewQueue');
+const queue = topic.toSQS(stack, 'MyNewQueue');
 ```
 
 We can then, perhaps, `map` over each message in the `Queue` and collect the results into a new AWS Kinesis `Stream`:
 
 ```ts
-const stream = queue.enumerable()
+const stream = queue.stream()
   .map({
     handle: async(message, e) => {
       return {
@@ -170,7 +170,7 @@ const stream = queue.enumerable()
       };
     }
   })
-  .toStream(stack, 'Stream', {
+  .toKinesis(stack, 'Stream', {
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
 
@@ -198,7 +198,7 @@ import glue = require('@aws-cdk/aws-glue');
 const database = new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
 });
-s3DeliveryStream.toGlueTable(stack, 'ToGlue', {
+s3DeliveryStream.stream().toGlueTable(stack, 'ToGlue', {
   database,
   tableName: 'my_table',
   columns: stream.type.shape,
