@@ -81,16 +81,40 @@ export namespace Glue {
      * Rich model of the columns and partitions of the table.
      */
     public readonly shape: {
+      /**
+       * Shape of the table's columns.
+       */
       columns: T;
+      /**
+       * Shape of the table's partition keys.
+       */
       partitions: P;
     };
+    /**
+     * Mapper for serializing and deserializing a record.
+     */
     public readonly mapper: Mapper<RuntimeShape<T>, Buffer>;
+    /**
+     * Mappers for reading and writing partition keys to/from strings.
+     */
     public readonly partitionMappers: {
       [K in keyof P]: Mapper<RuntimeType<P[K]>, string>
     };
+    /**
+     * Codec for reading and writing records (in a queue/stream/topic/etc.) and blobs (s3 objects).
+     */
     public readonly codec: Codec;
+    /**
+     * Get the partition columns from a record.
+     */
     public readonly partition: (record: RuntimeShape<T>) => RuntimeShape<P>;
+    /**
+     * Optional function to validate data prior to writing into this table.
+     */
     public readonly validate?: (record: RuntimeShape<T>) => void;
+    /**
+     * The underlying `glue.Table` construct.
+     */
     public readonly resource: glue.Table;
 
     constructor(scope: core.Construct, id: string, props: TableProps<T, P>) {
@@ -151,18 +175,30 @@ export namespace Glue {
       };
     }
 
+    /**
+     * By default, depending on the `Table` installs read/write access.
+     */
     public install(namespace: Namespace, grantable: iam.IGrantable): void {
       return this.readWriteAccess().install(namespace, grantable);
     }
 
+    /**
+     * Runtime dependency with read/write access to the Table and S3 Bucket.
+     */
     public readWriteAccess(): Dependency<Table.ReadWriteClient<T, P>> {
       return this.client(g => this.resource.grantReadWrite(g), new Bucket(this.resource.bucket).readWriteAccess());
     }
 
+    /**
+     * Runtime dependency with read access to the Table and S3 Bucket.
+     */
     public readAccess(): Dependency<Table.ReadClient<T, P>> {
       return this.client(g => this.resource.grantRead(g), new Bucket(this.resource.bucket).readAccess());
     }
 
+    /**
+     * Runtime dependency with write access to the Table and S3 Bucket.
+     */
     public writeAccess(): Dependency<Table.WriteClient<T, P>> {
       return this.client(g => this.resource.grantWrite(g), new Bucket(this.resource.bucket).writeAccess());
     }
