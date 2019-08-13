@@ -2,7 +2,7 @@ import core = require('@aws-cdk/core');
 import punchcard = require('punchcard');
 import uuid = require('uuid');
 
-import { $input, array, attribute_not_exists, double, response, StatusCode, string, struct } from 'punchcard';
+import { $input, array, DynamoDB, double, response, StatusCode, string, struct } from 'punchcard';
 
 const app = new core.App();
 export default app;
@@ -11,7 +11,7 @@ export default app;
 
 const stack = new core.Stack(app, 'pet-store');
 
-const petStore = new punchcard.HashTable(stack, 'pet-store', {
+const petStore = new DynamoDB.HashTable(stack, 'pet-store', {
   partitionKey: 'id',
   shape: {
     id: string(),
@@ -104,7 +104,7 @@ pets.setPostMethod({
           id,
           ...request
         },
-        if: item => attribute_not_exists(item.id)
+        if: item => DynamoDB.attribute_not_exists(item.id)
       });
       return response(StatusCode.Ok, {
         id

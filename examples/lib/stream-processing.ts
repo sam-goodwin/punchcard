@@ -1,6 +1,6 @@
 import glue = require('@aws-cdk/aws-glue')
 import core = require('@aws-cdk/core');
-import { integer, string, struct, SNS, Rate, λ, HashTable, array, timestamp, Dependency } from 'punchcard';
+import { integer, string, struct, SNS, Rate, λ, DynamoDB, array, timestamp, Dependency } from 'punchcard';
 
 import uuid = require('uuid');
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
@@ -27,7 +27,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
 /**
  * Create a DynamoDB Table to store some data.
  */
-const enrichments = new HashTable(stack, 'Enrichments', {
+const enrichments = new DynamoDB.HashTable(stack, 'Enrichments', {
   partitionKey: 'key',
   shape: {
     // define the shape of data in the dynamodb table

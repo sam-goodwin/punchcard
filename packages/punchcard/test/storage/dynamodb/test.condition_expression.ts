@@ -1,26 +1,29 @@
 import 'jest';
 
 import {
-  _,
-  and,
   array,
-  attribute_exists,
-  attribute_not_exists,
   binary,
   boolean,
+  DynamoDB,
   float,
   integer,
   map,
-  not,
-  or,
   set,
-  size,
   string,
   struct,
   timestamp,
-  toFacade
 } from '../../../lib';
 import { CompileContextImpl } from '../../../lib/storage/dynamodb';
+
+const _ = DynamoDB._;
+const and = DynamoDB.and;
+const attribute_exists = DynamoDB.attribute_exists;
+const attribute_not_exists = DynamoDB.attribute_not_exists;
+
+const not = DynamoDB.not;
+const or = DynamoDB.or;
+const size = DynamoDB.size;
+const toFacade = DynamoDB.toFacade;
 
 /**
  * TODO: Tests for optional attributes

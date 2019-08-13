@@ -1,14 +1,14 @@
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import cdk = require('@aws-cdk/core');
 
-import { attribute_not_exists, HashTable, integer, LambdaExecutorService, Rate, string, size } from 'punchcard';
+import { DynamoDB, integer, LambdaExecutorService, Rate, string } from 'punchcard';
 
 const app = new cdk.App();
 export default app;
 
 const stack = new cdk.Stack(app, 'scheduled-function-example');
 
-const table = new HashTable(stack, 'my-table', {
+const table = new DynamoDB.HashTable(stack, 'my-table', {
   partitionKey: 'id',
   shape: {
     id: string(),
@@ -44,7 +44,7 @@ executorService.schedule(stack, 'Poller', {
           id: 'state',
           count: 1
         },
-        if: item => attribute_not_exists(item.id)
+        if: item => DynamoDB.attribute_not_exists(item.id)
       });
     }
   }

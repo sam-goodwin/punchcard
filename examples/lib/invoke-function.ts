@@ -1,7 +1,7 @@
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import core = require('@aws-cdk/core');
 
-import { attribute_not_exists, HashTable, integer, LambdaExecutorService, Rate, string, struct } from 'punchcard';
+import { DynamoDB, integer, LambdaExecutorService, Rate, string, struct } from 'punchcard';
 
 const app = new core.App();
 export default app;
@@ -12,7 +12,7 @@ const executorService = new LambdaExecutorService({
   timeout: core.Duration.seconds(10)
 });
 
-const table = new HashTable(stack, 'my-table', {
+const table = new DynamoDB.HashTable(stack, 'my-table', {
   partitionKey: 'id',
   shape: {
     id: string(),
@@ -56,7 +56,7 @@ const incrementer = executorService.spawn(stack, 'Callable', {
           id: request.id,
           count: 1
         },
-        if: item => attribute_not_exists(item.id)
+        if: item => DynamoDB.attribute_not_exists(item.id)
       });
       newCount = 1;
     }

@@ -4,16 +4,14 @@ import {
   array,
   binary,
   boolean,
+  DynamoDB,
   float,
   integer,
   map,
   set,
-  SetAction,
   string,
   struct,
-
   timestamp,
-  toFacade,
 } from '../../../lib';
 import { CompileContextImpl } from '../../../lib/storage/dynamodb/expression/compiler';
 
@@ -57,9 +55,9 @@ const table = {
   other_binarySetAttribute: set(binary()),
 };
 
-const facade = toFacade(table);
+const facade = DynamoDB.toFacade(table);
 
-function render(u: SetAction<any, any>) {
+function render(u: DynamoDB.SetAction<any, any>) {
   const context = new CompileContextImpl();
   const s = u.compile(context);
   return {
