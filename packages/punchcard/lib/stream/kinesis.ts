@@ -333,7 +333,7 @@ export namespace Kinesis {
  * Add a utility method `toStream` for `Enumerable` which uses the `StreamCollector` to produce Kinesis `Streams`.
  */
 declare module './stream' {
-  interface Stream<E, I, D extends any[], R extends StreamRuntime> {
+  interface Stream<E, T, D extends any[], R extends StreamRuntime> {
     /**
      * Collect data to a Kinesis Stream.
      *
@@ -343,9 +343,9 @@ declare module './stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
      * @typeparam T concrete type of data flowing to stream
      */
-    toStream<T extends Type<I>>(scope: core.Construct, id: string, streamProps: Kinesis.StreamProps<T>, runtimeProps?: R): Kinesis.CollectedStream<T, this>;
+    toKinesis<DataType extends Type<T>>(scope: core.Construct, id: string, streamProps: Kinesis.StreamProps<DataType>, runtimeProps?: R): Kinesis.CollectedStream<DataType, this>;
   }
 }
-SStream.prototype.toStream = function(scope: core.Construct, id: string, props: Kinesis.StreamProps<any>): any {
+SStream.prototype.toKinesis = function(scope: core.Construct, id: string, props: Kinesis.StreamProps<any>): any {
   return this.collect(scope, id, new Kinesis.StreamCollector(props));
 };

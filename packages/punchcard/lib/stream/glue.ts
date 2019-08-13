@@ -59,7 +59,7 @@ export class CollectedGlueTable<S extends Shape, P extends Glue.Partition, E ext
  * Add a utility method `toGlueTable` for `Enumerable` which uses the `TableCollector` to produce Glue `Tables`.
  */
 declare module './stream' {
-  interface Stream<E, I, D extends any[], R extends StreamRuntime> {
+  interface Stream<E, T, D extends any[], R extends StreamRuntime> {
     /**
      * Collect data to S3 via a Firehose Delivery Stream.
      *
@@ -69,7 +69,7 @@ declare module './stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
      * @typeparam T concrete type of data flowing to s3
      */
-    toGlueTable<S extends Shape, T extends StructType<S> & Type<I>, P extends Glue.Partition>(scope: core.Construct, id: string, tableProps: Glue.TableProps<S, P>, runtimeProps?: R): CollectedGlueTable<S, P, this>;
+    toGlueTable<S extends Shape, T extends StructType<S> & Type<T>, P extends Glue.Partition>(scope: core.Construct, id: string, tableProps: Glue.TableProps<S, P>, runtimeProps?: R): CollectedGlueTable<S, P, this>;
   }
 }
 Stream.prototype.toGlueTable = function(scope: core.Construct, id: string, tableProps: any, runtimeProps?: any): any {

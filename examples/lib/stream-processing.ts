@@ -1,6 +1,6 @@
 import glue = require('@aws-cdk/aws-glue')
 import core = require('@aws-cdk/core');
-import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency } from 'punchcard';
+import { integer, string, struct, SNS, Rate, λ, HashTable, array, timestamp, Dependency } from 'punchcard';
 
 import uuid = require('uuid');
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
@@ -13,7 +13,7 @@ const stack = new core.Stack(app, 'stream-processing');
 /**
  * Create a SNS Topic.
  */
-const topic = new Topic(stack, 'Topic', {
+const topic = new SNS.Topic(stack, 'Topic', {
   /**
    * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
    */
@@ -94,7 +94,7 @@ topic.stream().forEach(stack, 'ForEachNotification', {
  *
  * SNS --(subscription)--> SQS
  */
-const queue = topic.toQueue(stack, 'Queue');
+const queue = topic.toSQS(stack, 'Queue');
 
 /**
  * Process each message in SQS with Lambda, look up some data in DynamoDB, and persist results in a Kinesis Stream:
@@ -120,7 +120,7 @@ const stream = queue.stream() // stream gives us a nice chainable API for resour
       };
     }
   })
-  .toStream(stack, 'Stream', {
+  .toKinesis(stack, 'Stream', {
     // encrypt values in the stream with a customer-managed KMS key.
     encryption: StreamEncryption.KMS,
 

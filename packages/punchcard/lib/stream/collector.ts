@@ -3,9 +3,9 @@ import core = require('@aws-cdk/core');
 import { Type } from '../shape/types/type';
 import { S3DeliveryStreamCollector, S3DeliveryStreamForType } from './delivery-stream';
 import { Kinesis } from './kinesis';
-import { QueueCollector, QueueProps } from './queue';
+import { SNS } from './sns';
+import { SQS } from './sqs';
 import { Stream } from './stream';
-import { TopicCollector, TopicProps } from './topic';
 
 /**
  * Collects data from an `Enumerable`.
@@ -29,8 +29,8 @@ export namespace Collectors {
    *
    * @param props queue properties
    */
-  export function toQueue<T extends Type<any>>(props: QueueProps<T>): QueueCollector<T, any> {
-    return new QueueCollector<T, any>(props);
+  export function toSQS<T extends Type<any>>(props: SQS.QueueProps<T>): SQS.QueueCollector<T, any> {
+    return new SQS.QueueCollector<T, any>(props);
   }
 
   /**
@@ -38,7 +38,7 @@ export namespace Collectors {
    *
    * @param props stream properties
    */
-  export function toStream<T extends Type<any>>(props: Kinesis.StreamProps<T>): Kinesis.StreamCollector<T, any> {
+  export function toKinesis<T extends Type<any>>(props: Kinesis.StreamProps<T>): Kinesis.StreamCollector<T, any> {
     return new Kinesis.StreamCollector<T, any>(props);
   }
 
@@ -56,7 +56,7 @@ export namespace Collectors {
    *
    * @param props topic properties
    */
-  export function toTopic<T extends Type<any>>(props: TopicProps<T>): TopicCollector<T, any> {
-    return new TopicCollector<T, any>(props);
+  export function toSNS<T extends Type<any>>(props: SNS.TopicProps<T>): SNS.TopicCollector<T, any> {
+    return new SNS.TopicCollector<T, any>(props);
   }
 }

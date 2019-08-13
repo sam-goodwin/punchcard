@@ -387,7 +387,7 @@ export class CollectedS3DeliveryStream<T extends Type<any>, E extends Stream<any
  * data to S3 via a Kinesis Firehose Delivery Stream.
  */
 declare module './stream' {
-  interface Stream<E, I, D extends any[], R extends StreamRuntime> {
+  interface Stream<E, T, D extends any[], R extends StreamRuntime> {
     /**
      * Collect data to S3 via a Firehose Delivery Stream.
      *
@@ -397,7 +397,7 @@ declare module './stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
      * @typeparam T concrete type of data flowing to s3
      */
-    toS3<T extends Type<I>>(scope: core.Construct, id: string, s3DeliveryStreamProps: S3DeliveryStreamForType<T>, runtimeProps?: R): CollectedS3DeliveryStream<T, this>;
+    toS3<T extends Type<T>>(scope: core.Construct, id: string, s3DeliveryStreamProps: S3DeliveryStreamForType<T>, runtimeProps?: R): CollectedS3DeliveryStream<T, this>;
   }
 }
 Stream.prototype.toS3 = function(scope: core.Construct, id: string, props: S3DeliveryStreamForType<any>): any {

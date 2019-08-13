@@ -22,14 +22,14 @@ export interface StreamRuntime {
  * Represents chainable async operations on a cloud data structure.
  *
  * @typeparam E type of event that triggers the computation, i.e. SQSEvent to a Lambda Function
- * @typeparam I type of information yielded from this source (after transformation)
+ * @typeparam T type of data yielded from this source (after transformation)
  * @typeparam D runtime dependencies
  * @typeparam R runtime configuration
  */
-export abstract class Stream<E, I, D extends any[], R extends StreamRuntime> {
+export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
   constructor(
       protected readonly previous: Stream<E, any, any, R>,
-      protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<I>,
+      protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,
       public readonly dependencies: D) {
     // do nothing
   }
@@ -51,7 +51,7 @@ export abstract class Stream<E, I, D extends any[], R extends StreamRuntime> {
    */
   public map<U, D2 extends Dependency<any> | undefined>(input: {
     depends?: D2;
-    handle: (value: I, deps: Client<D2>) => Promise<U>
+    handle: (value: T, deps: Client<D2>) => Promise<U>
   }): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, R> {
     return this.flatMap({
       depends: input.depends,
@@ -69,11 +69,11 @@ export abstract class Stream<E, I, D extends any[], R extends StreamRuntime> {
    */
   public flatMap<U, D2 extends Dependency<any> | undefined>(input: {
     depends?: D2;
-    handle: (value: I, deps: Client<D2>) => Promise<Iterable<U>>
+    handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>
   }): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, R> {
     return this.chain({
       depends: (input.depends === undefined ? this.dependencies : [input.depends].concat(this.dependencies)) as any,
-      handle: (async function*(values: AsyncIterableIterator<I>, clients: any) {
+      handle: (async function*(values: AsyncIterableIterator<T>, clients: any) {
         for await (const value of values) {
           for (const mapped of await input.handle(value, clients)) {
             yield mapped;
@@ -93,7 +93,7 @@ export abstract class Stream<E, I, D extends any[], R extends StreamRuntime> {
    */
   public abstract chain<U, D2 extends any[]>(input: {
     depends: D2;
-    handle: (value: AsyncIterableIterator<I>, deps: Clients<D2>) => AsyncIterableIterator<U>
+    handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>
   }): Stream<E, U, D2, R>;
 
   /**
@@ -102,7 +102,7 @@ export abstract class Stream<E, I, D extends any[], R extends StreamRuntime> {
    * @param event payload
    * @param clients bootstrapped clients
    */
-  public run(event: E, deps: Clients<D>): AsyncIterableIterator<I> {
+  public run(event: E, deps: Clients<D>): AsyncIterableIterator<T> {
     if (this.dependencies === this.previous.dependencies) {
       return this.f(this.previous.run(event, deps), deps ? (deps as any[])[0] : undefined);
     } else {
@@ -123,7 +123,7 @@ export abstract class Stream<E, I, D extends any[], R extends StreamRuntime> {
    */
   public forEach<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
     depends?: D2;
-    handle: (value: I, deps: Client<D2>) => Promise<any>;
+    handle: (value: T, deps: Client<D2>) => Promise<any>;
     props?: R;
   }): Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
     // TODO: let the enumerable type determine default executor service
@@ -161,7 +161,7 @@ export abstract class Stream<E, I, D extends any[], R extends StreamRuntime> {
    */
   public forBatch<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
     depends?: D2;
-    handle: (value: I[], deps: Client<D2>) => Promise<any>;
+    handle: (value: T[], deps: Client<D2>) => Promise<any>;
     props?: R;
   }): Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
     return this.batched().forEach(scope, id, input);
@@ -172,7 +172,7 @@ export abstract class Stream<E, I, D extends any[], R extends StreamRuntime> {
    *
    * @param size maximum number of records in the batch (defaults to all)
    */
-  public batched(size?: number): Stream<E, I[], D, R> {
+  public batched(size?: number): Stream<E, T[], D, R> {
     return this.chain({
       depends: this.dependencies,
       async *handle(it) {

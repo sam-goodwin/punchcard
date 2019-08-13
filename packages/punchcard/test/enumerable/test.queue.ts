@@ -2,14 +2,8 @@ import 'jest';
 import sinon = require('sinon');
 
 import core = require('@aws-cdk/core');
-import { Collectors, Dependency, integer, Queue, string } from '../../lib';
+import { Collectors, Dependency, integer, SQS, string } from '../../lib';
 import { setRuntime } from '../../lib/constants';
-
-const scope: any = {
-  node: {
-    uniqueId: 'test'
-  }
-};
 
 setRuntime();
 
@@ -17,7 +11,7 @@ describe('run', () => {
   it('should parse event into records', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
-    const queue = new Queue(stack, 'Queue', {
+    const queue = new SQS.Queue(stack, 'Queue', {
       type: string()
     });
 
@@ -37,7 +31,7 @@ describe('run', () => {
   it('should not require a depends property', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
-    const queue = new Queue(stack, 'Queue', {
+    const queue = new SQS.Queue(stack, 'Queue', {
       type: string()
     });
 
@@ -57,7 +51,7 @@ describe('run', () => {
   it('should transform records with a map', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
-    const queue = new Queue(stack, 'Queue', {
+    const queue = new SQS.Queue(stack, 'Queue', {
       type: string()
     });
 
@@ -97,7 +91,7 @@ describe('run', () => {
   it('should transform records with a map and `collect`', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
-    const queue = new Queue(stack, 'Queue', {
+    const queue = new SQS.Queue(stack, 'Queue', {
       type: string()
     });
 
@@ -114,7 +108,7 @@ describe('run', () => {
           return v.length;
         }
       })
-      .collect(stack, 'Stream', Collectors.toStream({
+      .collect(stack, 'Stream', Collectors.toKinesis({
         type: integer()
       }));
 
@@ -133,7 +127,7 @@ describe('run', () => {
   it('should transform records with a map and toStream', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
-    const queue = new Queue(stack, 'Queue', {
+    const queue = new SQS.Queue(stack, 'Queue', {
       type: string()
     });
 
@@ -150,7 +144,7 @@ describe('run', () => {
           return v.length;
         }
       })
-      .toStream(stack, 'Stream', {
+      .toKinesis(stack, 'Stream', {
         type: integer()
       });
 
