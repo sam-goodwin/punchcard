@@ -18,7 +18,6 @@ import { SQS } from './sqs';
 import { DependencyType, EventType, Stream, StreamRuntime } from './stream';
 
 export namespace SNS {
-
   export type TopicProps<T extends Type<any>> = {
     /**
      * Type of messages.

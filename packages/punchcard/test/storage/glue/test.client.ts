@@ -4,7 +4,7 @@ import core = require('@aws-cdk/core');
 import 'jest';
 import sinon = require('sinon');
 import { Codec, Glue, smallint, timestamp } from '../../../lib';
-import { Bucket } from '../../../lib/storage/s3';
+import { S3 } from '../../../lib/storage/s3';
 
 const stack = new core.Stack(new core.App(), 'stack');
 const database = new glue.Database(stack, 'Database', {
@@ -30,7 +30,7 @@ const table = new Glue.Table(stack, 'Table', {
   }
 });
 
-function makeClient(glue: AWS.Glue, mockBucket?: Bucket.Client) {
+function makeClient(glue: AWS.Glue, mockBucket?: S3.Bucket.Client) {
   return new Glue.Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, mockBucket as any);
 }
 

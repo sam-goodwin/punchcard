@@ -15,7 +15,7 @@ import { Sink } from '../../stream/sink';
 import { Omit } from '../../utils';
 import { Codec } from '../codec';
 import { Compression } from '../compression';
-import { Bucket } from '../s3';
+import { S3 } from '../s3';
 
 export namespace Glue {
   /**
@@ -186,21 +186,21 @@ export namespace Glue {
      * Runtime dependency with read/write access to the Table and S3 Bucket.
      */
     public readWriteAccess(): Dependency<Table.ReadWriteClient<T, P>> {
-      return this.client(g => this.resource.grantReadWrite(g), new Bucket(this.resource.bucket).readWriteAccess());
+      return this.client(g => this.resource.grantReadWrite(g), new S3.Bucket(this.resource.bucket).readWriteAccess());
     }
 
     /**
      * Runtime dependency with read access to the Table and S3 Bucket.
      */
     public readAccess(): Dependency<Table.ReadClient<T, P>> {
-      return this.client(g => this.resource.grantRead(g), new Bucket(this.resource.bucket).readAccess());
+      return this.client(g => this.resource.grantRead(g), new S3.Bucket(this.resource.bucket).readAccess());
     }
 
     /**
      * Runtime dependency with write access to the Table and S3 Bucket.
      */
     public writeAccess(): Dependency<Table.WriteClient<T, P>> {
-      return this.client(g => this.resource.grantWrite(g), new Bucket(this.resource.bucket).writeAccess());
+      return this.client(g => this.resource.grantWrite(g), new S3.Bucket(this.resource.bucket).writeAccess());
     }
 
     private client<C>(grant: (grantable: iam.IGrantable) => void, bucket: Dependency<any>): Dependency<C> {
@@ -223,7 +223,7 @@ export namespace Glue {
         namespace.get('databaseName'),
         namespace.get('tableName'),
         this,
-        await new Bucket(this.resource.bucket).bootstrap(namespace.namespace('bucket'), cache)
+        await new S3.Bucket(this.resource.bucket).bootstrap(namespace.namespace('bucket'), cache)
       );
     }
   }
@@ -263,7 +263,7 @@ export namespace Glue {
         public readonly databaseName: string,
         public readonly tableName: string,
         public readonly table: Table<T, P>,
-        public readonly bucket: Bucket.Client
+        public readonly bucket: S3.Bucket.Client
       ) {
         this.partitions = Object.keys(table.shape.partitions);
       }

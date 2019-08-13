@@ -13,7 +13,7 @@ import { DeliveryStream, DeliveryStreamDestination, DeliveryStreamType } from '.
 import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Codec } from '../storage';
 import { Compression } from '../storage/compression';
-import { Bucket } from '../storage/s3';
+import { S3 } from '../storage/s3';
 import { Collector } from './collector';
 import { Kinesis } from './kinesis';
 import { Sink, sink, SinkProps } from './sink';
@@ -108,12 +108,12 @@ export class S3DeliveryStream<T extends Type<any>> extends core.Construct implem
     }
   }
 
-  public stream(): EnumerableS3DeliveryStream<RuntimeType<T>, [Dependency<Bucket.ReadClient>]> {
+  public stream(): EnumerableS3DeliveryStream<RuntimeType<T>, [Dependency<S3.Bucket.ReadClient>]> {
     const codec = this.codec;
     const compression = this.compression;
     const mapper = this.mapper;
-    class Root extends EnumerableS3DeliveryStream<RuntimeType<T>, [Dependency<Bucket.ReadClient>]> {
-      public async *run(event: S3Event, [bucket]: [Bucket.ReadClient]) {
+    class Root extends EnumerableS3DeliveryStream<RuntimeType<T>, [Dependency<S3.Bucket.ReadClient>]> {
+      public async *run(event: S3Event, [bucket]: [S3.Bucket.ReadClient]) {
         for (const record of event.Records) {
           // TODO: parallelism
           // TODO: streaming I/O
@@ -130,7 +130,7 @@ export class S3DeliveryStream<T extends Type<any>> extends core.Construct implem
       }
     }
     return new Root(this, undefined as any, {
-      depends: [new Bucket(this.deliveryStream.s3Bucket!).readAccess()],
+      depends: [new S3.Bucket(this.deliveryStream.s3Bucket!).readAccess()],
       handle: i => i
     });
   }
