@@ -1,22 +1,21 @@
 import AWS = require('aws-sdk');
 
+import crypto = require('crypto');
 import path = require('path');
 
 import glue = require('@aws-cdk/aws-glue');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 
+import { Dependency } from '../../compute';
 import { Cache, Namespace } from '../../compute/assembly';
+import { Resource } from '../../enumerable/resource';
+import { Sink } from '../../enumerable/sink';
 import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, struct, Type } from '../../shape';
 import { Omit } from '../../utils';
 import { Codec } from '../codec';
 import { Compression } from '../compression';
 import { Bucket } from '../s3';
-
-import crypto = require('crypto');
-import { Dependency } from '../../compute';
-import { Resource } from '../../enumerable/resource';
-import { Sink } from '../../enumerable/sink';
 
 export namespace Glue {
   /**
