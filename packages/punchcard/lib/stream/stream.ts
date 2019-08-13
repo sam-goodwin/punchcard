@@ -4,14 +4,14 @@ import { Client, Clients, Dependency, Function, LambdaExecutorService } from '..
 import { Cons } from '../compute/hlist';
 import { Collector } from './collector';
 
-export type EventType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<infer E, any, any, any> ? E : never;
-export type InformationType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<any, infer I, any, any> ? I : never;
-export type DependencyType<E extends Enumerable<any, any, any, any>> = E extends Enumerable<any, any, infer D, any> ? D : never;
+export type EventType<E extends Stream<any, any, any, any>> = E extends Stream<infer E, any, any, any> ? E : never;
+export type InformationType<E extends Stream<any, any, any, any>> = E extends Stream<any, infer I, any, any> ? I : never;
+export type DependencyType<E extends Stream<any, any, any, any>> = E extends Stream<any, any, infer D, any> ? D : never;
 
 /**
  * Props to configure an `Enumerable's` evaluation runtime properties.
  */
-export interface EnumerableRuntime {
+export interface StreamRuntime {
   /**
    * The executor service of a `Enumerable` can always be customized.
    */
@@ -26,9 +26,9 @@ export interface EnumerableRuntime {
  * @typeparam D runtime dependencies
  * @typeparam R runtime configuration
  */
-export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
+export abstract class Stream<E, I, D extends any[], R extends StreamRuntime> {
   constructor(
-      protected readonly previous: Enumerable<E, any, any, R>,
+      protected readonly previous: Stream<E, any, any, R>,
       protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<I>,
       public readonly dependencies: D) {
     // do nothing
@@ -52,7 +52,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
   public map<U, D2 extends Dependency<any> | undefined>(input: {
     depends?: D2;
     handle: (value: I, deps: Client<D2>) => Promise<U>
-  }): Enumerable<E, U, D2 extends undefined ? D : Cons<D, D2>, R> {
+  }): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, R> {
     return this.flatMap({
       depends: input.depends,
       handle: async (v, c) => [await input.handle(v, c)]
@@ -70,7 +70,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
   public flatMap<U, D2 extends Dependency<any> | undefined>(input: {
     depends?: D2;
     handle: (value: I, deps: Client<D2>) => Promise<Iterable<U>>
-  }): Enumerable<E, U, D2 extends undefined ? D : Cons<D, D2>, R> {
+  }): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, R> {
     return this.chain({
       depends: (input.depends === undefined ? this.dependencies : [input.depends].concat(this.dependencies)) as any,
       handle: (async function*(values: AsyncIterableIterator<I>, clients: any) {
@@ -94,7 +94,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
   public abstract chain<U, D2 extends any[]>(input: {
     depends: D2;
     handle: (value: AsyncIterableIterator<I>, deps: Clients<D2>) => AsyncIterableIterator<U>
-  }): Enumerable<E, U, D2, R>;
+  }): Stream<E, U, D2, R>;
 
   /**
    * Asynchronously process an event and yield values.
@@ -172,7 +172,7 @@ export abstract class Enumerable<E, I, D extends any[], R extends EnumerableRunt
    *
    * @param size maximum number of records in the batch (defaults to all)
    */
-  public batched(size?: number): Enumerable<E, I[], D, R> {
+  public batched(size?: number): Stream<E, I[], D, R> {
     return this.chain({
       depends: this.dependencies,
       async *handle(it) {

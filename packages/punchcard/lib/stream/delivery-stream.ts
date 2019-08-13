@@ -17,7 +17,7 @@ import { Bucket } from '../storage/s3';
 import { Collector } from './collector';
 import { Kinesis } from './kinesis';
 import { Sink, sink, SinkProps } from './sink';
-import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './stream';
+import { DependencyType, EventType, Stream, StreamRuntime } from './stream';
 
 export type S3DeliveryStreamProps<T extends Type<any>> = S3DeliveryStreamForType<T> | S3DeliveryStreamFromKinesis<T>;
 
@@ -108,7 +108,7 @@ export class S3DeliveryStream<T extends Type<any>> extends core.Construct implem
     }
   }
 
-  public enumerable(): EnumerableS3DeliveryStream<RuntimeType<T>, [Dependency<Bucket.ReadClient>]> {
+  public stream(): EnumerableS3DeliveryStream<RuntimeType<T>, [Dependency<Bucket.ReadClient>]> {
     const codec = this.codec;
     const compression = this.compression;
     const mapper = this.mapper;
@@ -147,7 +147,7 @@ export class S3DeliveryStream<T extends Type<any>> extends core.Construct implem
   }
 }
 
-export class EnumerableS3DeliveryStream<T, D extends any[]> extends Enumerable<S3Event, T, D, EnumerableRuntime> {
+export class EnumerableS3DeliveryStream<T, D extends any[]> extends Stream<S3Event, T, D, StreamRuntime> {
   constructor(public readonly s3Stream: S3DeliveryStream<any>, previous: EnumerableS3DeliveryStream<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>
@@ -343,7 +343,7 @@ export enum ValidationResult {
  *
  * @typeparam T type of notififcations sent to (and emitted from) the SNS S3DeliveryStream.
  */
-export class S3DeliveryStreamCollector<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> implements Collector<CollectedS3DeliveryStream<T, E>, E> {
+export class S3DeliveryStreamCollector<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedS3DeliveryStream<T, E>, E> {
   constructor(private readonly props: S3DeliveryStreamForType<T>) { }
 
   public collect(scope: core.Construct, id: string, enumerable: E): CollectedS3DeliveryStream<T, E> {
@@ -357,7 +357,7 @@ export class S3DeliveryStreamCollector<T extends Type<any>, E extends Enumerable
 /**
  * Properties for creating a collected `S3DeliveryStream`.
  */
-export interface CollectedS3DeliveryStreamProps<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> extends S3DeliveryStreamForType<T> {
+export interface CollectedS3DeliveryStreamProps<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> extends S3DeliveryStreamForType<T> {
   /**
    * Source of the data; an enumerable.
    */
@@ -368,7 +368,7 @@ export interface CollectedS3DeliveryStreamProps<T extends Type<any>, E extends E
  * A SNS `S3DeliveryStream` produced by collecting data from an `Enumerable`.
  * @typeparam T type of notififcations sent to, and emitted from, the SNS S3DeliveryStream.
  */
-export class CollectedS3DeliveryStream<T extends Type<any>, E extends Enumerable<any, any, any, any>> extends S3DeliveryStream<T> {
+export class CollectedS3DeliveryStream<T extends Type<any>, E extends Stream<any, any, any, any>> extends S3DeliveryStream<T> {
   public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<S3DeliveryStream.Client<T>>>>>;
 
   constructor(scope: core.Construct, id: string, props: CollectedS3DeliveryStreamProps<T, E>) {
@@ -387,7 +387,7 @@ export class CollectedS3DeliveryStream<T extends Type<any>, E extends Enumerable
  * data to S3 via a Kinesis Firehose Delivery Stream.
  */
 declare module './stream' {
-  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
+  interface Stream<E, I, D extends any[], R extends StreamRuntime> {
     /**
      * Collect data to S3 via a Firehose Delivery Stream.
      *
@@ -400,6 +400,6 @@ declare module './stream' {
     toS3<T extends Type<I>>(scope: core.Construct, id: string, s3DeliveryStreamProps: S3DeliveryStreamForType<T>, runtimeProps?: R): CollectedS3DeliveryStream<T, this>;
   }
 }
-Enumerable.prototype.toS3 = function(scope: core.Construct, id: string, props: S3DeliveryStreamForType<any>): any {
+Stream.prototype.toS3 = function(scope: core.Construct, id: string, props: S3DeliveryStreamForType<any>): any {
   return this.collect(scope, id, new S3DeliveryStreamCollector(props));
 };

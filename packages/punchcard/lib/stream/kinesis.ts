@@ -17,10 +17,10 @@ import { Collector } from './collector';
 import { S3DeliveryStream } from './delivery-stream';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
-import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './stream';
+import { DependencyType, EventType, Stream as SStream, StreamRuntime } from './stream';
 
 export namespace Kinesis {
-  export type EnumerableStreamRuntime = EnumerableRuntime & events.KinesisEventSourceProps;
+  export type EnumerableStreamRuntime = StreamRuntime & events.KinesisEventSourceProps;
 
   export interface StreamProps<T extends Type<any>> extends kinesis.StreamProps {
     /**
@@ -53,7 +53,7 @@ export namespace Kinesis {
     /**
      * Create an enumerable for this stream to perform chainable computations (map, flatMap, filter, etc.)
      */
-    public enumerable(): EnumerableStream<RuntimeType<T>, []> {
+    public stream(): EnumerableStream<RuntimeType<T>, []> {
       const mapper = this.mapper;
       class Root extends EnumerableStream<RuntimeType<T>, []> {
         /**
@@ -144,7 +144,7 @@ export namespace Kinesis {
   /**
    * An enumerable Kinesis Stream.
    */
-  export class EnumerableStream<T, D extends any[]> extends Enumerable<KinesisEvent, T, D, EnumerableStreamRuntime>  {
+  export class EnumerableStream<T, D extends any[]> extends SStream<KinesisEvent, T, D, EnumerableStreamRuntime>  {
     constructor(public readonly stream: Stream<any>, previous: EnumerableStream<any, any>, input: {
       depends: D;
       handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
@@ -290,7 +290,7 @@ export namespace Kinesis {
   /**
    * Creates a new Kineis stream and sends data from an enumerable to it.
    */
-  export class StreamCollector<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> implements Collector<CollectedStream<T, E>, E> {
+  export class StreamCollector<T extends Type<any>, E extends SStream<any, RuntimeType<T>, any, any>> implements Collector<CollectedStream<T, E>, E> {
     constructor(private readonly props: StreamProps<T>) { }
 
     public collect(scope: core.Construct, id: string, enumerable: E): CollectedStream<T, E> {
@@ -304,7 +304,7 @@ export namespace Kinesis {
   /**
    * Properties for creating a collected stream.
    */
-  export interface CollectedStreamProps<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> extends StreamProps<T> {
+  export interface CollectedStreamProps<T extends Type<any>, E extends SStream<any, RuntimeType<T>, any, any>> extends StreamProps<T> {
     /**
      * Source of the data; an enumerable.
      */
@@ -314,7 +314,7 @@ export namespace Kinesis {
    * A Kinesis `Stream` produced by collecting data from an `Enumerable`.
    * @typeparam
    */
-  export class CollectedStream<T extends Type<any>, E extends Enumerable<any, any, any, any>> extends Stream<T> {
+  export class CollectedStream<T extends Type<any>, E extends SStream<any, any, any, any>> extends Stream<T> {
     public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Stream.Client<T>>>>>;
 
     constructor(scope: core.Construct, id: string, props: CollectedStreamProps<T, E>) {
@@ -333,7 +333,7 @@ export namespace Kinesis {
  * Add a utility method `toStream` for `Enumerable` which uses the `StreamCollector` to produce Kinesis `Streams`.
  */
 declare module './stream' {
-  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
+  interface Stream<E, I, D extends any[], R extends StreamRuntime> {
     /**
      * Collect data to a Kinesis Stream.
      *
@@ -346,6 +346,6 @@ declare module './stream' {
     toStream<T extends Type<I>>(scope: core.Construct, id: string, streamProps: Kinesis.StreamProps<T>, runtimeProps?: R): Kinesis.CollectedStream<T, this>;
   }
 }
-Enumerable.prototype.toStream = function(scope: core.Construct, id: string, props: Kinesis.StreamProps<any>): any {
+SStream.prototype.toStream = function(scope: core.Construct, id: string, props: Kinesis.StreamProps<any>): any {
   return this.collect(scope, id, new Kinesis.StreamCollector(props));
 };

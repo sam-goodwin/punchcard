@@ -83,7 +83,7 @@ const enrichments = new HashTable(stack, 'Enrichments', {
  *
  * SNS -> Lambda
  */
-topic.enumerable().forEach(stack, 'ForEachNotification', {
+topic.stream().forEach(stack, 'ForEachNotification', {
   async handle(message) {
     console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`);
   }
@@ -104,7 +104,7 @@ const queue = topic.toQueue(stack, 'Queue');
  *                v
  * SQS Queue -> Lambda -> Kinesis Stream
  */
-const stream = queue.enumerable() // enumerable gives us a nice chainable API for resources like queues, streams, topics etc.
+const stream = queue.stream() // stream gives us a nice chainable API for resources like queues, streams, topics etc.
   .map({
     depends: enrichments.readAccess(),
     handle: async(message, e) => {
@@ -146,7 +146,7 @@ const database = new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
 });
 stream
-  .toS3(stack, 'ToS3').enumerable()
+  .toS3(stack, 'ToS3').stream()
   .toGlueTable(stack, 'ToGlue', {
     database,
     tableName: 'my_table',

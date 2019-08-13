@@ -22,7 +22,7 @@ describe('run', () => {
     });
 
     const results: string[] = [];
-    await (queue.enumerable().forEach(stack, 'od', {
+    await (queue.stream().forEach(stack, 'od', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -42,7 +42,7 @@ describe('run', () => {
     });
 
     const results: string[] = [];
-    await (queue.enumerable().forEach(stack, 'od', {
+    await (queue.stream().forEach(stack, 'od', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -71,7 +71,7 @@ describe('run', () => {
     };
 
     const results: number[] = [];
-    const f = await (queue.enumerable().map({
+    const f = await (queue.stream().map({
       depends: d1,
       handle: async (v, d1) => {
         expect(d1).toEqual('d1');
@@ -106,7 +106,7 @@ describe('run', () => {
       install: () => undefined
     };
 
-    const stream = queue.enumerable()
+    const stream = queue.stream()
       .map({
         depends: d1,
         handle: async (v, d1) => {
@@ -142,7 +142,7 @@ describe('run', () => {
       install: () => undefined
     };
 
-    const stream = queue.enumerable()
+    const stream = queue.stream()
       .map({
         depends: d1,
         handle: async (v, d1) => {

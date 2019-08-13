@@ -36,7 +36,7 @@ const lake = new DataLake(stack, 'Lake', {
 // Kinesis -> Lambda
 // Note: the type-safety of the `record`
 lake.pipelines.dataPoints.stream
-  .enumerable()
+  .stream()
   .forEach(stack, 'ForEachDataPoint', {
     async handle(record) {
       console.log('key', record.key);

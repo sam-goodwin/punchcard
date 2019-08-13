@@ -2,9 +2,9 @@ import { Database } from '@aws-cdk/aws-glue';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
-import { Kinesis } from '../stream';
 import { RuntimeShape, Shape, struct, StructType, TimestampType } from '../shape';
 import { Glue } from '../storage/glue';
+import { Kinesis } from '../stream';
 import { DeliveryStream } from './delivery-stream';
 import { Period } from './period';
 import { Schema } from './schema';
@@ -30,7 +30,7 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends core.Const
     });
 
     this.table = this.stream
-      .toS3(this, 'ToS3').enumerable()
+      .toS3(this, 'ToS3').stream()
       .toGlueTable(this, 'ToGlue', {
         database: props.database,
         tableName: props.schema.schemaName,

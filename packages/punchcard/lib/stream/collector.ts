@@ -4,7 +4,7 @@ import { Type } from '../shape/types/type';
 import { S3DeliveryStreamCollector, S3DeliveryStreamForType } from './delivery-stream';
 import { Kinesis } from './kinesis';
 import { QueueCollector, QueueProps } from './queue';
-import { Enumerable } from './stream';
+import { Stream } from './stream';
 import { TopicCollector, TopicProps } from './topic';
 
 /**
@@ -13,7 +13,7 @@ import { TopicCollector, TopicProps } from './topic';
  * @param T type of collected result
  * @param E source enumerable
  */
-export interface Collector<T, E extends Enumerable<any, any, any, any>> {
+export interface Collector<T, E extends Stream<any, any, any, any>> {
   /**
    * Create constructs to collect data from the enumerable an
    */

@@ -15,7 +15,7 @@ import { Collector } from './collector';
 import { Queue } from './queue';
 import { Resource } from './resource';
 import { Sink, sink, SinkProps } from './sink';
-import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './stream';
+import { DependencyType, EventType, Stream, StreamRuntime } from './stream';
 
 export type TopicProps<T extends Type<any>> = {
   /**
@@ -44,7 +44,7 @@ export class Topic<T extends Type<any>> implements Resource<sns.Topic>, Dependen
   /**
    * Create an enumerable for this topic's notifications - chainable computations (map, flatMap, filter, etc.)
    */
-  public enumerable(): EnumerableTopic<RuntimeType<T>, []> {
+  public stream(): EnumerableTopic<RuntimeType<T>, []> {
     const mapper = this.mapper;
     class Root extends EnumerableTopic<RuntimeType<T>, []> {
       /**
@@ -115,7 +115,7 @@ export class Topic<T extends Type<any>> implements Resource<sns.Topic>, Dependen
 /**
  * An enumerable SNS `Topic`.
  */
-export class EnumerableTopic<T, D extends any[]> extends Enumerable<SNSEvent, T, D, EnumerableRuntime>  {
+export class EnumerableTopic<T, D extends any[]> extends Stream<SNSEvent, T, D, StreamRuntime>  {
   constructor(public readonly topic: Topic<any>, previous: EnumerableTopic<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
@@ -226,7 +226,7 @@ export interface SNSEvent {
  *
  * @typeparam T type of notififcations sent to (and emitted from) the SNS Topic.
  */
-export class TopicCollector<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> implements Collector<CollectedTopic<T, E>, E> {
+export class TopicCollector<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedTopic<T, E>, E> {
   constructor(private readonly props: TopicProps<T>) { }
 
   public collect(scope: core.Construct, id: string, enumerable: E): CollectedTopic<T, E> {
@@ -240,7 +240,7 @@ export class TopicCollector<T extends Type<any>, E extends Enumerable<any, Runti
 /**
  * Properties for creating a collected `Topic`.
  */
-export interface CollectedTopicProps<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> extends TopicProps<T> {
+export interface CollectedTopicProps<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> extends TopicProps<T> {
   /**
    * Source of the data; an enumerable.
    */
@@ -251,7 +251,7 @@ export interface CollectedTopicProps<T extends Type<any>, E extends Enumerable<a
  * A SNS `Topic` produced by collecting data from an `Enumerable`.
  * @typeparam T type of notififcations sent to, and emitted from, the SNS Topic.
  */
-export class CollectedTopic<T extends Type<any>, E extends Enumerable<any, any, any, any>> extends Topic<T> {
+export class CollectedTopic<T extends Type<any>, E extends Stream<any, any, any, any>> extends Topic<T> {
   public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Topic.Client<T>>>>>;
 
   constructor(scope: core.Construct, id: string, props: CollectedTopicProps<T, E>) {
@@ -269,7 +269,7 @@ export class CollectedTopic<T extends Type<any>, E extends Enumerable<any, any, 
  * Add a utility method `toTopic` for `Enumerable` which uses the `TopicCollector` to produce SNS `Topics`.
  */
 declare module './stream' {
-  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
+  interface Stream<E, I, D extends any[], R extends StreamRuntime> {
     /**
      * Collect data to a SNS Topic (as notification messages).
      *
@@ -282,6 +282,6 @@ declare module './stream' {
     toTopic<T extends Type<I>>(scope: core.Construct, id: string, topicProps: TopicProps<T>, runtimeProps?: R): CollectedTopic<T, this>;
   }
 }
-Enumerable.prototype.toTopic = function(scope: core.Construct, id: string, props: TopicProps<any>): any {
+Stream.prototype.toTopic = function(scope: core.Construct, id: string, props: TopicProps<any>): any {
   return this.collect(scope, id, new TopicCollector(props));
 };

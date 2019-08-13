@@ -12,9 +12,9 @@ import { Omit } from '../utils';
 import { Collector } from './collector';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
-import { DependencyType, Enumerable, EnumerableRuntime, EventType } from './stream';
+import { DependencyType, EventType, Stream, StreamRuntime } from './stream';
 
-export type EnumerableQueueRuntime = EnumerableRuntime & events.SqsEventSourceProps;
+export type EnumerableQueueRuntime = StreamRuntime & events.SqsEventSourceProps;
 
 /**
  * Props for constructing a Queue.
@@ -37,7 +37,7 @@ export class Queue<T extends Type<any>> implements Resource<sqs.Queue>, Dependen
     this.mapper = Json.forType(props.type);
   }
 
-  public enumerable(): EnumerableQueue<RuntimeType<T>, []> {
+  public stream(): EnumerableQueue<RuntimeType<T>, []> {
     const mapper = this.mapper;
     class Root extends EnumerableQueue<RuntimeType<T>, []> {
       /**
@@ -113,7 +113,7 @@ export class Queue<T extends Type<any>> implements Resource<sqs.Queue>, Dependen
   }
 }
 
-export class EnumerableQueue<T, D extends any[]> extends Enumerable<SQSEvent, T, D, EnumerableQueueRuntime>  {
+export class EnumerableQueue<T, D extends any[]> extends Stream<SQSEvent, T, D, EnumerableQueueRuntime>  {
   constructor(public readonly queue: Queue<any>, previous: EnumerableQueue<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
@@ -237,7 +237,7 @@ export interface SQSEvent {
  *
  * @typeparam T type of messages in the SQS Queue.
  */
-export class QueueCollector<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> implements Collector<CollectedQueue<T, E>, E> {
+export class QueueCollector<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedQueue<T, E>, E> {
   constructor(private readonly props: QueueProps<T>) { }
 
   public collect(scope: core.Construct, id: string, enumerable: E): CollectedQueue<T, E> {
@@ -251,7 +251,7 @@ export class QueueCollector<T extends Type<any>, E extends Enumerable<any, Runti
 /**
  * Properties for creating a collected `Queue`.
  */
-export interface CollectedQueueProps<T extends Type<any>, E extends Enumerable<any, RuntimeType<T>, any, any>> extends QueueProps<T> {
+export interface CollectedQueueProps<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> extends QueueProps<T> {
   /**
    * Source of the data; an enumerable.
    */
@@ -262,7 +262,7 @@ export interface CollectedQueueProps<T extends Type<any>, E extends Enumerable<a
  * A SQS `Queue` produced by collecting data from an `Enumerable`.
  * @typeparam T type of notififcations sent to, and emitted from, the SQS Queue.
  */
-export class CollectedQueue<T extends Type<any>, E extends Enumerable<any, any, any, any>> extends Queue<T> {
+export class CollectedQueue<T extends Type<any>, E extends Stream<any, any, any, any>> extends Queue<T> {
   public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Queue.Client<T>>>>>;
 
   constructor(scope: core.Construct, id: string, props: CollectedQueueProps<T, E>) {
@@ -280,7 +280,7 @@ export class CollectedQueue<T extends Type<any>, E extends Enumerable<any, any, 
  * Add a utility method `toQueue` for `Enumerable` which uses the `QueueCollector` to produce SQS `Queues`.
  */
 declare module './stream' {
-  interface Enumerable<E, I, D extends any[], R extends EnumerableRuntime> {
+  interface Stream<E, I, D extends any[], R extends StreamRuntime> {
     /**
      * Collect data to a SQS Queue (as messages).
      *
@@ -293,6 +293,6 @@ declare module './stream' {
     toQueue<T extends Type<I>>(scope: core.Construct, id: string, queueProps: QueueProps<T>, runtimeProps?: R): CollectedQueue<T, this>;
   }
 }
-Enumerable.prototype.toQueue = function(scope: core.Construct, id: string, props: QueueProps<any>): any {
+Stream.prototype.toQueue = function(scope: core.Construct, id: string, props: QueueProps<any>): any {
   return this.collect(scope, id, new QueueCollector(props));
 };
