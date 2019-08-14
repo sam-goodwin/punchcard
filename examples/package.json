@@ -7,26 +7,32 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "cdk": "cdk",
-    "jest": "jest"
+    "cdk": "cdk"
   },
   "dependencies": {
-    "@aws-cdk/aws-dynamodb": "^1.0.0",
-    "@aws-cdk/aws-events": "^1.0.0",
-    "@aws-cdk/aws-glue": "^1.0.0",
-    "@aws-cdk/aws-lambda": "^1.0.0",
-    "@aws-cdk/aws-kinesis": "^1.0.0",
-    "@aws-cdk/aws-s3": "^1.0.0",
-    "@aws-cdk/core": "^1.0.0",
+    "@aws-cdk/aws-dynamodb": "^1.4.0",
+    "@aws-cdk/aws-events": "^1.4.0",
+    "@aws-cdk/aws-glue": "^1.4.0",
+    "@aws-cdk/aws-lambda": "^1.4.0",
+    "@aws-cdk/aws-kinesis": "^1.4.0",
+    "@aws-cdk/aws-s3": "^1.4.0",
+    "@aws-cdk/core": "^1.4.0",
     "@types/uuid": "^3.4.4",
     "punchcard": "^0.6.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
+    "@types/jest": "^23.3.13",
     "@types/node": "^11.13.7",
-    "aws-cdk": "^1.0.0",
+    "aws-cdk": "^1.4.0",
     "aws-sdk": "^2.395.0",
+    "jest": "^23.6.0",
     "typescript": "^3.4.0",
     "tslint": "^5.10.0"
+  },
+  "jest": {
+    "testMatch": [
+      "**/test/**/*.js"
+    ]
   }
 }
