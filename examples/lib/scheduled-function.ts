@@ -1,7 +1,9 @@
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import cdk = require('@aws-cdk/core');
+import { Duration } from '@aws-cdk/core';
+import { Schedule } from '@aws-cdk/aws-events';
 
-import { DynamoDB, integer, LambdaExecutorService, Rate, string } from 'punchcard';
+import { DynamoDB, integer, Lambda, string } from 'punchcard';
 
 const app = new cdk.App();
 export default app;
@@ -19,11 +21,11 @@ const table = new DynamoDB.HashTable(stack, 'my-table', {
   billingMode: BillingMode.PAY_PER_REQUEST
 });
 
-const executorService = new LambdaExecutorService();
+const executorService = new Lambda.ExecutorService();
 
 executorService.schedule(stack, 'Poller', {
   depends: table,
-  rate: Rate.minutes(1),
+  schedule: Schedule.rate(Duration.minutes(1)),
   handle: async (_, table) => {
     const item = await table.get({
       id: 'state'

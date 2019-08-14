@@ -6,7 +6,7 @@ import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
-import { Function } from '../compute';
+import { Lambda } from '../compute';
 import { Clients, Dependency } from '../compute';
 import { Cache, Namespace } from '../compute/assembly';
 import { Cons } from '../compute/hlist';
@@ -315,7 +315,7 @@ export namespace Kinesis {
    * @typeparam
    */
   export class CollectedStream<T extends Type<any>, E extends SStream<any, any, any, any>> extends Stream<T> {
-    public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Stream.Client<T>>>>>;
+    public readonly sender: Lambda.Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Stream.Client<T>>>>>;
 
     constructor(scope: core.Construct, id: string, props: CollectedStreamProps<T, E>) {
       super(scope, id, props);

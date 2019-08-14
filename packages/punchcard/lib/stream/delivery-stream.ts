@@ -6,7 +6,7 @@ import events = require('@aws-cdk/aws-lambda-event-sources');
 import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
 
-import { Clients, Dependency, Function, LambdaExecutorService } from '../compute';
+import { Clients, Dependency, Lambda } from '../compute';
 import { Assembly, Cache, Namespace } from '../compute/assembly';
 import { Cons } from '../compute/hlist';
 import { DeliveryStream, DeliveryStreamDestination, DeliveryStreamType } from '../data-lake/delivery-stream';
@@ -35,7 +35,7 @@ interface DeliveryStreamProps<T extends Type<any>> {
   /**
    * Override to tune configuration of the delivery stream transform function.
    */
-  executorService?: LambdaExecutorService;
+  executorService?: Lambda.ExecutorService;
 
   /**
    * Optional function to validate data being written by Firehose.
@@ -261,7 +261,7 @@ export interface ValidatorProps<T extends Type<any>> {
    *
    * @default executorService with `memorySize: 256` and `timeout: 60`.
    */
-  executorService?: LambdaExecutorService;
+  executorService?: Lambda.ExecutorService;
 
   /**
    * Additional validation logic to apply to each record.
@@ -275,11 +275,11 @@ export interface ValidatorProps<T extends Type<any>> {
  * Validates and formats records flowing from Firehose so that they match the format of a Glue Table.
  */
 export class Validator<T extends Type<any>> extends core.Construct {
-  public readonly processor: Function<FirehoseEvent, FirehoseResponse, Dependency.None>;
+  public readonly processor: Lambda.Function<FirehoseEvent, FirehoseResponse, Dependency.None>;
 
   constructor(scope: core.Construct, id: string, props: ValidatorProps<T>) {
     super(scope, id);
-    const executorService = props.executorService || new LambdaExecutorService({
+    const executorService = props.executorService || new Lambda.ExecutorService({
       memorySize: 256,
       timeout: core.Duration.seconds(60)
     });
@@ -369,7 +369,7 @@ export interface CollectedS3DeliveryStreamProps<T extends Type<any>, E extends S
  * @typeparam T type of notififcations sent to, and emitted from, the SNS S3DeliveryStream.
  */
 export class CollectedS3DeliveryStream<T extends Type<any>, E extends Stream<any, any, any, any>> extends S3DeliveryStream<T> {
-  public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<S3DeliveryStream.Client<T>>>>>;
+  public readonly sender: Lambda.Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<S3DeliveryStream.Client<T>>>>>;
 
   constructor(scope: core.Construct, id: string, props: CollectedS3DeliveryStreamProps<T, E>) {
     super(scope, id, props);

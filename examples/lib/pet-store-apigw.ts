@@ -2,7 +2,7 @@ import core = require('@aws-cdk/core');
 import punchcard = require('punchcard');
 import uuid = require('uuid');
 
-import { $input, array, DynamoDB, double, response, StatusCode, string, struct } from 'punchcard';
+import { $input, array, DynamoDB, Lambda, double, response, StatusCode, string, struct } from 'punchcard';
 
 const app = new core.App();
 export default app;
@@ -20,7 +20,7 @@ const petStore = new DynamoDB.HashTable(stack, 'pet-store', {
   }
 });
 
-const executorService = new punchcard.LambdaExecutorService({
+const executorService = new Lambda.ExecutorService({
   memorySize: 512
 });
 

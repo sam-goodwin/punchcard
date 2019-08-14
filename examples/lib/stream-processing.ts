@@ -1,14 +1,16 @@
 import glue = require('@aws-cdk/aws-glue')
-import core = require('@aws-cdk/core');
-import { integer, string, struct, SNS, Rate, λ, DynamoDB, array, timestamp, Dependency } from 'punchcard';
+import cdk = require('@aws-cdk/core');
+import { integer, string, struct, SNS, Lambda, DynamoDB, array, timestamp, Dependency } from 'punchcard';
 
 import uuid = require('uuid');
+import { Duration } from '@aws-cdk/core';
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
+import { Schedule } from '@aws-cdk/aws-events';
 
-const app = new core.App();
+const app = new cdk.App();
 export default app;
-const stack = new core.Stack(app, 'stream-processing');
+const stack = new cdk.Stack(app, 'stream-processing');
 
 /**
  * Create a SNS Topic.
@@ -43,8 +45,11 @@ const enrichments = new DynamoDB.HashTable(stack, 'Enrichments', {
  * CloudWatch Event --(minutely)--> Lambda --(send)-> SNS Topic
  *                                         --(put)--> Dynamo Table
  **/ 
-λ().schedule(stack, 'DummyData', {
-  rate: Rate.minutes(1),
+Lambda.λ().schedule(stack, 'DummyData', {
+  /**
+   * Trigger the function every minute.
+   */
+  schedule: Schedule.rate(Duration.minutes(1)),
 
   /**
    * Define our runtime dependencies:

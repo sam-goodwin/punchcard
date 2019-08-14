@@ -1,11 +1,11 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import core = require('@aws-cdk/core');
-import { Client, Clients, Dependency, Function, LambdaExecutorService } from '../compute';
+import { Client, Clients, Dependency, Lambda } from '../compute';
 import { Cons } from '../compute/hlist';
 import { Collector } from './collector';
 
 export type EventType<E extends Stream<any, any, any, any>> = E extends Stream<infer E, any, any, any> ? E : never;
-export type InformationType<E extends Stream<any, any, any, any>> = E extends Stream<any, infer I, any, any> ? I : never;
+export type DataType<E extends Stream<any, any, any, any>> = E extends Stream<any, infer I, any, any> ? I : never;
 export type DependencyType<E extends Stream<any, any, any, any>> = E extends Stream<any, any, infer D, any> ? D : never;
 
 /**
@@ -15,7 +15,7 @@ export interface StreamRuntime {
   /**
    * The executor service of a `Enumerable` can always be customized.
    */
-  executorService?: LambdaExecutorService;
+  executorService?: Lambda.ExecutorService;
 }
 
 /**
@@ -125,9 +125,9 @@ export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
     depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<any>;
     props?: R;
-  }): Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
+  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
     // TODO: let the enumerable type determine default executor service
-    const executorService = (input.props && input.props.executorService) || new LambdaExecutorService({
+    const executorService = (input.props && input.props.executorService) || new Lambda.ExecutorService({
       memorySize: 128,
       timeout: core.Duration.seconds(10)
     });
@@ -163,7 +163,7 @@ export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
     depends?: D2;
     handle: (value: T[], deps: Client<D2>) => Promise<any>;
     props?: R;
-  }): Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
+  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
     return this.batched().forEach(scope, id, input);
   }
 

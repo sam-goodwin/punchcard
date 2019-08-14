@@ -9,41 +9,16 @@ import { Omit } from '../../utils';
 import { Client, Dependency } from '../dependency';
 import { Function } from './function';
 
-export enum Unit {
-  Day = 'day',
-  Days = 'days',
-  Hour = 'hour',
-  Hours = 'hours',
-  Minute = 'minute',
-  Minutes = 'minutes'
-}
-export class Rate {
-  public static minutes(value: number) {
-    if (value === 1) {
-      return new Rate(value, Unit.Minute);
-    }
-    return new Rate(value, Unit.Minutes);
-  }
-
-  // TODO: others
-
-  constructor(public readonly rate: number, public readonly unit: Unit) {}
-
-  public get scheduleExpression(): string {
-    return `rate(${this.rate} ${this.unit})`;
-  }
-}
-
 /**
  * Alias for creating a LambdaExecutorService
  * @param props
  */
 export function λ(props?: Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>) {
-  return new LambdaExecutorService(props);
+  return new ExecutorService(props);
 }
 export const L = λ;
 
-export class LambdaExecutorService {
+export class ExecutorService {
   constructor(private readonly props: Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'> = {
     memorySize: 128
   }) {}
@@ -61,7 +36,7 @@ export class LambdaExecutorService {
   }
 
   public schedule<D extends Dependency<any>>(scope: cdk.Construct, id: string, props: {
-    rate: Rate;
+    schedule: events.Schedule;
     depends: D;
     handle: (event: CloudwatchEvent, run: Client<D>, context: any) => Promise<any>;
   }): Function<CloudwatchEvent, any, D> {
@@ -72,7 +47,7 @@ export class LambdaExecutorService {
     });
 
     new events.Rule(scope, 'Schedule', {
-      schedule: events.Schedule.expression(props.rate.scheduleExpression),
+      schedule: props.schedule,
       targets: [new eventTargets.LambdaFunction(f)]
     });
 

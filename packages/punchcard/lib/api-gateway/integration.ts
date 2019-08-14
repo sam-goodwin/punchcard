@@ -1,6 +1,6 @@
 import api = require('@aws-cdk/aws-apigateway');
 
-import { Dependency, Function } from '../compute';
+import { Dependency, Lambda } from '../compute';
 import { Omit } from '../utils';
 import { Resource } from './resource';
 
@@ -16,7 +16,7 @@ export class LambdaIntegration<R extends Dependency<any>> extends api.LambdaInte
   private readonly resourceMappings: {[key: string]: Resource} = {};
   private index: ResourceMappings;
 
-  constructor(private readonly fn: Function<any, any, R>, options?: Omit<api.LambdaIntegrationOptions, 'proxy'>) {
+  constructor(private readonly fn: Lambda.Function<any, any, R>, options?: Omit<api.LambdaIntegrationOptions, 'proxy'>) {
     super(fn, {
       ...(options || {}),
       proxy: false

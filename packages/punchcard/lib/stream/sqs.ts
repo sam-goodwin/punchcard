@@ -4,7 +4,7 @@ import sqs = require('@aws-cdk/aws-sqs');
 import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 
-import { Clients, Dependency, Function } from '../compute';
+import { Clients, Dependency, Lambda } from '../compute';
 import { Cache, Namespace } from '../compute/assembly';
 import { Cons } from '../compute/hlist';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
@@ -264,7 +264,7 @@ export namespace SQS {
    * @typeparam T type of notififcations sent to, and emitted from, the SQS Queue.
    */
   export class CollectedQueue<T extends Type<any>, E extends Stream<any, any, any, any>> extends Queue<T> {
-    public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Queue.Client<T>>>>>;
+    public readonly sender: Lambda.Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Queue.Client<T>>>>>;
 
     constructor(scope: core.Construct, id: string, props: CollectedQueueProps<T, E>) {
       super(scope, id, props);

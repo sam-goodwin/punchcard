@@ -2,7 +2,7 @@ import core = require('@aws-cdk/core');
 import 'jest';
 import sinon = require('sinon');
 
-import { Dependency, Function, L } from '../../../lib';
+import { Dependency, Lambda } from '../../../lib';
 import { setRuntime } from '../../../lib/constants';
 
 // stop web-pack from running
@@ -16,7 +16,7 @@ describe('Function', () => {
       install: (namespace, grantable) => namespace.set('test', 'value'),
       bootstrap: async () => null
     };
-    const f = L().spawn(stack, 'function', {
+    const f = Lambda.L().spawn(stack, 'function', {
       depends: client,
       handle: null as any
     });
@@ -29,7 +29,7 @@ describe('Function', () => {
       bootstrap: async () => 'client'
     };
     const fake = sinon.fake();
-    const f = new Function(stack, 'function', {
+    const f = new Lambda.Function(stack, 'function', {
       depends: client,
       handle: fake
     });
@@ -55,7 +55,7 @@ describe('Function.Client', () => {
     const responseMapper = {
       read: sinon.fake.returns('response')
     };
-    const f = new Function.Client(
+    const f = new Lambda.Function.Client(
       client as any,
       'arn',
       requestMapper as any,
@@ -86,7 +86,7 @@ describe('Function.Client', () => {
     const responseMapper = {
       read: sinon.fake.returns('response')
     };
-    const f = new Function.Client(
+    const f = new Lambda.Function.Client(
       client as any,
       'arn',
       requestMapper as any,
@@ -117,7 +117,7 @@ describe('Function.Client', () => {
     const responseMapper = {
       read: sinon.fake.returns('response')
     };
-    const f = new Function.Client(
+    const f = new Lambda.Function.Client(
       client as any,
       'arn',
       requestMapper as any,
@@ -138,7 +138,7 @@ it('should install and bootstrap dependencies', async () => {
     install: sinon.fake()
   };
 
-  const f = L().spawn(new core.Stack(new core.App(), 'stack'), 'f', {
+  const f = Lambda.L().spawn(new core.Stack(new core.App(), 'stack'), 'f', {
     depends: dependency,
     async handle(_, dep: any) {
       return dep.toString(); // expect '1' as result
@@ -155,7 +155,7 @@ it('should install and bootstrap nested dependencies', async () => {
     install: sinon.fake()
   };
 
-  const f = L().spawn(new core.Stack(new core.App(), 'stack'), 'f', {
+  const f = Lambda.L().spawn(new core.Stack(new core.App(), 'stack'), 'f', {
     depends: Dependency.list(dependency, dependency),
     async handle(_, [d1, d2]) {
       return (d1 as any).toString() + (d2 as any).toString(); // expect '11' as result
@@ -172,7 +172,7 @@ it('should install and bootstrap nested dependencies', async () => {
 //     install: sinon.fake()
 //   };
 
-//   const f = L().spawn(new cdk.Stack(new cdk.App(), 'stack'), 'f', {
+//   const f = Lambda.L().spawn(new cdk.Stack(new cdk.App(), 'stack'), 'f', {
 //     depends: Dependency.list({
 //       d1: dependency,
 //       d2: dependency

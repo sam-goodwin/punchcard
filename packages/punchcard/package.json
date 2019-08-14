@@ -66,6 +66,7 @@
   },
   "peerDependencies": {
     "@aws-cdk/aws-dynamodb": "^1.0.0",
+    "@aws-cdk/aws-events": "^1.0.0",
     "@aws-cdk/aws-glue": "^1.0.0",
     "@aws-cdk/aws-lambda": "^1.0.0",
     "@aws-cdk/aws-kinesis": "^1.0.0",

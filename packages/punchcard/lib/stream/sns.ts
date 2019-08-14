@@ -6,8 +6,7 @@ import sns = require('@aws-cdk/aws-sns');
 import snsSubs = require('@aws-cdk/aws-sns-subscriptions');
 import core = require('@aws-cdk/core');
 
-import { Clients, Dependency } from '../compute';
-import { Function } from '../compute';
+import { Clients, Dependency, Lambda } from '../compute';
 import { Cache, Namespace } from '../compute/assembly';
 import { Cons } from '../compute/hlist';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
@@ -253,7 +252,7 @@ export namespace SNS {
    * @typeparam T type of notififcations sent to, and emitted from, the SNS Topic.
    */
   export class CollectedTopic<T extends Type<any>, E extends Stream<any, any, any, any>> extends Topic<T> {
-    public readonly sender: Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Topic.Client<T>>>>>;
+    public readonly sender: Lambda.Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Topic.Client<T>>>>>;
 
     constructor(scope: core.Construct, id: string, props: CollectedTopicProps<T, E>) {
       super(scope, id, props);
