@@ -108,7 +108,7 @@ describe('run', () => {
           return v.length;
         }
       })
-      .collect(stack, 'Stream', Collectors.toKinesis({
+      .collect(stack, 'Stream', Collectors.toKinesisStream({
         type: integer()
       }));
 
@@ -144,7 +144,7 @@ describe('run', () => {
           return v.length;
         }
       })
-      .toKinesis(stack, 'Stream', {
+      .toKinesisStream(stack, 'Stream', {
         type: integer()
       });
 

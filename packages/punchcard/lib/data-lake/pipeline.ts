@@ -30,7 +30,7 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends core.Const
     });
 
     this.table = this.stream
-      .toS3(this, 'ToS3').stream()
+      .toS3DeliveryStream(this, 'ToS3').stream()
       .toGlueTable(this, 'ToGlue', {
         database: props.database,
         tableName: props.schema.schemaName,

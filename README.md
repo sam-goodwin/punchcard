@@ -170,7 +170,7 @@ const stream = queue.stream()
       };
     }
   })
-  .toKinesis(stack, 'Stream', {
+  .toKinesisStream(stack, 'Stream', {
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
 
@@ -187,7 +187,7 @@ const stream = queue.stream()
 With data in a `Stream`, we might want to write out all records to a new S3 `Bucket` by attaching a new Firehose `DeliveryStream` to it:
 
 ```ts
-const s3DeliveryStream = stream.toS3(stack, 'ToS3');
+const s3DeliveryStream = stream.toS3DeliveryStream(stack, 'ToS3');
 ```
 
 With data now flowing to S3, let's partition and catalog it in a Glue `Table` (backed by a new S3 `Bucket`) so we can easily query it with AWS Athena, AWS EMR and AWS Glue:

@@ -77,7 +77,7 @@ export namespace Kinesis {
      *
      * Stream -> Firehose -> S3 (minutely).
      */
-    public toS3(scope: core.Construct, id: string, props: {
+    public toS3DeliveryStream(scope: core.Construct, id: string, props: {
       codec: Codec;
       comression: Compression;
     } = {
@@ -343,9 +343,9 @@ declare module './stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
      * @typeparam T concrete type of data flowing to stream
      */
-    toKinesis<DataType extends Type<T>>(scope: core.Construct, id: string, streamProps: Kinesis.StreamProps<DataType>, runtimeProps?: R): Kinesis.CollectedStream<DataType, this>;
+    toKinesisStream<DataType extends Type<T>>(scope: core.Construct, id: string, streamProps: Kinesis.StreamProps<DataType>, runtimeProps?: R): Kinesis.CollectedStream<DataType, this>;
   }
 }
-SStream.prototype.toKinesis = function(scope: core.Construct, id: string, props: Kinesis.StreamProps<any>): any {
+SStream.prototype.toKinesisStream = function(scope: core.Construct, id: string, props: Kinesis.StreamProps<any>): any {
   return this.collect(scope, id, new Kinesis.StreamCollector(props));
 };

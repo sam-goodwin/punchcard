@@ -94,7 +94,7 @@ topic.stream().forEach(stack, 'ForEachNotification', {
  *
  * SNS --(subscription)--> SQS
  */
-const queue = topic.toSQS(stack, 'Queue');
+const queue = topic.toSQSQueue(stack, 'Queue');
 
 /**
  * Process each message in SQS with Lambda, look up some data in DynamoDB, and persist results in a Kinesis Stream:
@@ -120,7 +120,7 @@ const stream = queue.stream() // stream gives us a nice chainable API for resour
       };
     }
   })
-  .toKinesis(stack, 'Stream', {
+  .toKinesisStream(stack, 'Stream', {
     // encrypt values in the stream with a customer-managed KMS key.
     encryption: StreamEncryption.KMS,
 
@@ -146,7 +146,7 @@ const database = new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
 });
 stream
-  .toS3(stack, 'ToS3').stream()
+  .toS3DeliveryStream(stack, 'ToS3').stream()
   .toGlueTable(stack, 'ToGlue', {
     database,
     tableName: 'my_table',

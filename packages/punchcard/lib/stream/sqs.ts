@@ -292,9 +292,9 @@ declare module './stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
      * @typeparam T concrete type of data flowing to queue
      */
-    toQueue<DataType extends Type<T>>(scope: core.Construct, id: string, queueProps: SQS.QueueProps<DataType>, runtimeProps?: R): SQS.CollectedQueue<DataType, this>;
+    toSQSQueue<DataType extends Type<T>>(scope: core.Construct, id: string, queueProps: SQS.QueueProps<DataType>, runtimeProps?: R): SQS.CollectedQueue<DataType, this>;
   }
 }
-Stream.prototype.toQueue = function(scope: core.Construct, id: string, props: SQS.QueueProps<any>): any {
+Stream.prototype.toSQSQueue = function(scope: core.Construct, id: string, props: SQS.QueueProps<any>): any {
   return this.collect(scope, id, new SQS.QueueCollector(props));
 };

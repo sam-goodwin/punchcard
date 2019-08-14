@@ -74,7 +74,7 @@ export namespace SNS {
      * @see https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html
      * @see https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
      */
-    public toSQS(scope: core.Construct, id: string): SQS.Queue<T> {
+    public toSQSQueue(scope: core.Construct, id: string): SQS.Queue<T> {
       const q = new SQS.Queue(scope, id, {
         type: this.type
       });
@@ -281,9 +281,9 @@ declare module './stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
      * @typeparam T concrete type of data flowing to topic
      */
-    toSNS<DataType extends Type<T>>(scope: core.Construct, id: string, topicProps: SNS.TopicProps<DataType>, runtimeProps?: R): SNS.CollectedTopic<DataType, this>;
+    toSNSTopic<DataType extends Type<T>>(scope: core.Construct, id: string, topicProps: SNS.TopicProps<DataType>, runtimeProps?: R): SNS.CollectedTopic<DataType, this>;
   }
 }
-Stream.prototype.toSNS = function(scope: core.Construct, id: string, props: SNS.TopicProps<any>): any {
+Stream.prototype.toSNSTopic = function(scope: core.Construct, id: string, props: SNS.TopicProps<any>): any {
   return this.collect(scope, id, new SNS.TopicCollector(props));
 };

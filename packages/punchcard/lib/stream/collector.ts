@@ -29,7 +29,7 @@ export namespace Collectors {
    *
    * @param props queue properties
    */
-  export function toSQS<T extends Type<any>>(props: SQS.QueueProps<T>): SQS.QueueCollector<T, any> {
+  export function toSQSQueue<T extends Type<any>>(props: SQS.QueueProps<T>): SQS.QueueCollector<T, any> {
     return new SQS.QueueCollector<T, any>(props);
   }
 
@@ -38,7 +38,7 @@ export namespace Collectors {
    *
    * @param props stream properties
    */
-  export function toKinesis<T extends Type<any>>(props: Kinesis.StreamProps<T>): Kinesis.StreamCollector<T, any> {
+  export function toKinesisStream<T extends Type<any>>(props: Kinesis.StreamProps<T>): Kinesis.StreamCollector<T, any> {
     return new Kinesis.StreamCollector<T, any>(props);
   }
 
@@ -56,7 +56,7 @@ export namespace Collectors {
    *
    * @param props topic properties
    */
-  export function toSNS<T extends Type<any>>(props: SNS.TopicProps<T>): SNS.TopicCollector<T, any> {
+  export function toSNSTopic<T extends Type<any>>(props: SNS.TopicProps<T>): SNS.TopicCollector<T, any> {
     return new SNS.TopicCollector<T, any>(props);
   }
 }
