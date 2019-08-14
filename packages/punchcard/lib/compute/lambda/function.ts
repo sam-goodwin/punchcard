@@ -205,10 +205,15 @@ const codeSymbol = Symbol.for('punchcard:code');
 export function code(scope: cdk.IConstruct): lambda.Code {
   if (isRuntime()) {
     class MockCode extends lambda.Code {
-      public readonly isInline: boolean = false;
-      public _toJSON(_resource?: cdk.CfnResource): lambda.CfnFunction.CodeProperty {
-        return {};
+      public bind(): lambda.CodeConfig {
+        return {
+          s3Location: {
+            bucketName: 'mock',
+            objectKey: 'mock'
+          }
+        };
       }
+      public readonly isInline: boolean = false;
     }
     return new MockCode();
   }
@@ -257,7 +262,7 @@ if (app === undefined) {
   throw new Error('app is null, are you exporting your cdk.App as the default in your main module (i.e. index.js)?');
 }
 
-app.run = (() => {
+app.synth = (() => {
   // no-op when at runtime
   console.log('cdk.App.run: no-op');
   return null;

@@ -45,7 +45,7 @@ const enrichments = new DynamoDB.HashTable(stack, 'Enrichments', {
  * CloudWatch Event --(minutely)--> Lambda --(send)-> SNS Topic
  *                                         --(put)--> Dynamo Table
  **/ 
-Lambda.λ().schedule(stack, 'DummyData', {
+new Lambda.ExecutorService().schedule(stack, 'DummyData', {
   /**
    * Trigger the function every minute.
    */
