@@ -1,19 +1,21 @@
 import glue = require('@aws-cdk/aws-glue')
-import core = require('@aws-cdk/core');
-import { integer, string, struct, Topic, Rate, λ, HashTable, array, timestamp, Dependency, cons } from 'punchcard';
+import cdk = require('@aws-cdk/core');
+import { integer, string, struct, SNS, Lambda, DynamoDB, array, timestamp, Dependency } from 'punchcard';
 
 import uuid = require('uuid');
+import { Duration } from '@aws-cdk/core';
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
+import { Schedule } from '@aws-cdk/aws-events';
 
-const app = new core.App();
+const app = new cdk.App();
 export default app;
-const stack = new core.Stack(app, 'stream-processing');
+const stack = new cdk.Stack(app, 'stream-processing');
 
 /**
  * Create a SNS Topic.
  */
-const topic = new Topic(stack, 'Topic', {
+const topic = new SNS.Topic(stack, 'Topic', {
   /**
    * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
    */
@@ -27,7 +29,7 @@ const topic = new Topic(stack, 'Topic', {
 /**
  * Create a DynamoDB Table to store some data.
  */
-const enrichments = new HashTable(stack, 'Enrichments', {
+const enrichments = new DynamoDB.HashTable(stack, 'Enrichments', {
   partitionKey: 'key',
   shape: {
     // define the shape of data in the dynamodb table
@@ -43,8 +45,11 @@ const enrichments = new HashTable(stack, 'Enrichments', {
  * CloudWatch Event --(minutely)--> Lambda --(send)-> SNS Topic
  *                                         --(put)--> Dynamo Table
  **/ 
-λ().schedule(stack, 'DummyData', {
-  rate: Rate.minutes(1),
+Lambda.λ().schedule(stack, 'DummyData', {
+  /**
+   * Trigger the function every minute.
+   */
+  schedule: Schedule.rate(Duration.minutes(1)),
 
   /**
    * Define our runtime dependencies:
@@ -83,7 +88,7 @@ const enrichments = new HashTable(stack, 'Enrichments', {
  *
  * SNS -> Lambda
  */
-topic.enumerable().forEach(stack, 'ForEachNotification', {
+topic.stream().forEach(stack, 'ForEachNotification', {
   async handle(message) {
     console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`);
   }
@@ -94,7 +99,7 @@ topic.enumerable().forEach(stack, 'ForEachNotification', {
  *
  * SNS --(subscription)--> SQS
  */
-const queue = topic.toQueue(stack, 'Queue');
+const queue = topic.toSQSQueue(stack, 'Queue');
 
 /**
  * Process each message in SQS with Lambda, look up some data in DynamoDB, and persist results in a Kinesis Stream:
@@ -104,7 +109,7 @@ const queue = topic.toQueue(stack, 'Queue');
  *                v
  * SQS Queue -> Lambda -> Kinesis Stream
  */
-const stream = queue.enumerable() // enumerable gives us a nice chainable API for resources like queues, streams, topics etc.
+const stream = queue.stream() // stream gives us a nice chainable API for resources like queues, streams, topics etc.
   .map({
     depends: enrichments.readAccess(),
     handle: async(message, e) => {
@@ -120,7 +125,7 @@ const stream = queue.enumerable() // enumerable gives us a nice chainable API fo
       };
     }
   })
-  .toStream(stack, 'Stream', {
+  .toKinesisStream(stack, 'Stream', {
     // encrypt values in the stream with a customer-managed KMS key.
     encryption: StreamEncryption.KMS,
 
@@ -146,7 +151,7 @@ const database = new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
 });
 stream
-  .toS3(stack, 'ToS3').enumerable()
+  .toS3DeliveryStream(stack, 'ToS3').stream()
   .toGlueTable(stack, 'ToGlue', {
     database,
     tableName: 'my_table',

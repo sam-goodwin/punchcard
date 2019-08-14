@@ -121,10 +121,10 @@ export class MapDynamoPath<T extends Type<V>, V> extends BaseDynamoPath<MapType<
   }
 
   public put(key: string, value: ConditionValue<T, V>): SetAction<T, V> {
-    return ( this.get(key) as any).set(value);
+    return (this.get(key) as any).set(value);
   }
 
   public remove(key: string): RemoveAction<T, V> {
-    return remove( this.get(key) as any);
+    return remove(this.get(key) as any);
   }
 }

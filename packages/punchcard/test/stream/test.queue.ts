@@ -2,14 +2,8 @@ import 'jest';
 import sinon = require('sinon');
 
 import core = require('@aws-cdk/core');
-import { Collectors, Dependency, integer, Queue, string } from '../../lib';
+import { Collectors, Dependency, integer, SQS, string } from '../../lib';
 import { setRuntime } from '../../lib/constants';
-
-const scope: any = {
-  node: {
-    uniqueId: 'test'
-  }
-};
 
 setRuntime();
 
@@ -17,12 +11,12 @@ describe('run', () => {
   it('should parse event into records', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
-    const queue = new Queue(stack, 'Queue', {
+    const queue = new SQS.Queue(stack, 'Queue', {
       type: string()
     });
 
     const results: string[] = [];
-    await (queue.enumerable().forEach(stack, 'od', {
+    await (queue.stream().forEach(stack, 'od', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -37,12 +31,12 @@ describe('run', () => {
   it('should not require a depends property', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
-    const queue = new Queue(stack, 'Queue', {
+    const queue = new SQS.Queue(stack, 'Queue', {
       type: string()
     });
 
     const results: string[] = [];
-    await (queue.enumerable().forEach(stack, 'od', {
+    await (queue.stream().forEach(stack, 'od', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -57,7 +51,7 @@ describe('run', () => {
   it('should transform records with a map', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
-    const queue = new Queue(stack, 'Queue', {
+    const queue = new SQS.Queue(stack, 'Queue', {
       type: string()
     });
 
@@ -71,7 +65,7 @@ describe('run', () => {
     };
 
     const results: number[] = [];
-    const f = await (queue.enumerable().map({
+    const f = await (queue.stream().map({
       depends: d1,
       handle: async (v, d1) => {
         expect(d1).toEqual('d1');
@@ -97,7 +91,7 @@ describe('run', () => {
   it('should transform records with a map and `collect`', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
-    const queue = new Queue(stack, 'Queue', {
+    const queue = new SQS.Queue(stack, 'Queue', {
       type: string()
     });
 
@@ -106,7 +100,7 @@ describe('run', () => {
       install: () => undefined
     };
 
-    const stream = queue.enumerable()
+    const stream = queue.stream()
       .map({
         depends: d1,
         handle: async (v, d1) => {
@@ -114,7 +108,7 @@ describe('run', () => {
           return v.length;
         }
       })
-      .collect(stack, 'Stream', Collectors.toStream({
+      .collect(stack, 'Stream', Collectors.toKinesisStream({
         type: integer()
       }));
 
@@ -133,7 +127,7 @@ describe('run', () => {
   it('should transform records with a map and toStream', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
-    const queue = new Queue(stack, 'Queue', {
+    const queue = new SQS.Queue(stack, 'Queue', {
       type: string()
     });
 
@@ -142,7 +136,7 @@ describe('run', () => {
       install: () => undefined
     };
 
-    const stream = queue.enumerable()
+    const stream = queue.stream()
       .map({
         depends: d1,
         handle: async (v, d1) => {
@@ -150,7 +144,7 @@ describe('run', () => {
           return v.length;
         }
       })
-      .toStream(stack, 'Stream', {
+      .toKinesisStream(stack, 'Stream', {
         type: integer()
       });
 

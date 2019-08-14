@@ -6,7 +6,7 @@ import lambda = require("@aws-cdk/aws-lambda");
 import logs = require("@aws-cdk/aws-logs");
 import s3 = require("@aws-cdk/aws-s3");
 import core = require("@aws-cdk/core");
-import { CompressionType } from "../storage/glue/compression";
+import { CompressionType } from "../storage/compression";
 
 export interface IDeliveryStream extends core.IConstruct {
   readonly deliveryStreamArn: string;

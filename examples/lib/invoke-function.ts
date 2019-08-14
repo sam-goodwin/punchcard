@@ -1,18 +1,20 @@
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
-import core = require('@aws-cdk/core');
+import cdk = require('@aws-cdk/core');
+import { Duration } from '@aws-cdk/core';
+import { Schedule } from '@aws-cdk/aws-events';
 
-import { attribute_not_exists, HashTable, integer, LambdaExecutorService, Rate, string, struct } from 'punchcard';
+import { DynamoDB, integer, Lambda, string, struct } from 'punchcard';
 
-const app = new core.App();
+const app = new cdk.App();
 export default app;
 
-const stack = new core.Stack(app, 'invoke-function');
+const stack = new cdk.Stack(app, 'invoke-function');
 
-const executorService = new LambdaExecutorService({
-  timeout: core.Duration.seconds(10)
+const executorService = new Lambda.ExecutorService({
+  timeout: cdk.Duration.seconds(10)
 });
 
-const table = new HashTable(stack, 'my-table', {
+const table = new DynamoDB.HashTable(stack, 'my-table', {
   partitionKey: 'id',
   shape: {
     id: string(),
@@ -56,7 +58,7 @@ const incrementer = executorService.spawn(stack, 'Callable', {
           id: request.id,
           count: 1
         },
-        if: item => attribute_not_exists(item.id)
+        if: item => DynamoDB.attribute_not_exists(item.id)
       });
       newCount = 1;
     }
@@ -67,7 +69,7 @@ const incrementer = executorService.spawn(stack, 'Callable', {
 // call the incrementer function from another Lambda Function
 executorService.schedule(stack, 'Caller', {
   depends: incrementer,
-  rate: Rate.minutes(1),
+  schedule: Schedule.rate(Duration.minutes(1)),
   handle: async (_, incrementer) => {
     const newCount = await incrementer.invoke({
       id: 'id'

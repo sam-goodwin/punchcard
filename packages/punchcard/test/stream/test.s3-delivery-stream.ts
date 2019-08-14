@@ -4,7 +4,7 @@ import sinon = require('sinon');
 import core = require('@aws-cdk/core');
 import { Codec, S3DeliveryStream, string, struct } from '../../lib';
 import { setRuntime } from '../../lib/constants';
-import { Compression } from '../../lib/storage/glue/compression';
+import { Compression } from '../../lib/storage/compression';
 
 setRuntime();
 
@@ -29,7 +29,7 @@ describe('run', () => {
     });
 
     const results: Array<{key: string}> = [];
-    await (stream.enumerable().forEach(stack, 'id', {
+    await (stream.stream().forEach(stack, 'id', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -65,7 +65,7 @@ describe('run', () => {
       type: struct({key: string()})
     });
 
-    expect((stream.enumerable().forEach(stack, 'id', {
+    expect((stream.stream().forEach(stack, 'id', {
       async handle(v) {
         // do nothing
       }

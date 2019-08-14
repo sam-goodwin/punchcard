@@ -1,13 +1,13 @@
 import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import 'jest';
-import { HashTable, HashTableClientImpl, lessThan, Query, Shape, SortedTable, SortedTableClientImpl, string } from '../../../lib';
+import { DynamoDB, Shape, string } from '../../../lib';
 
 describe('HashTable', () => {
-  function makeTable<S extends Shape, P extends keyof S>(shape: S, partitionKey: P, mock: AWS.DynamoDB): HashTableClientImpl<S, P> {
+  function makeTable<S extends Shape, P extends keyof S>(shape: S, partitionKey: P, mock: AWS.DynamoDB): DynamoDB.HashTableClientImpl<S, P> {
     const app = new core.App();
     const stack = new core.Stack(app, 'stack');
-    return new HashTableClientImpl(new HashTable(stack, 'table', {
+    return new DynamoDB.HashTableClientImpl(new DynamoDB.HashTable(stack, 'table', {
       shape,
       partitionKey
     }), 'tableName', mock);
@@ -303,10 +303,10 @@ describe('HashTable', () => {
 
 describe('SortedTable', () => {
 // tslint:disable-next-line: max-line-length
-  function makeTable<S extends Shape, P extends keyof S, SK extends keyof S>(shape: S, partitionKey: P, sortKey: SK, mock: AWS.DynamoDB): SortedTableClientImpl<S, P, SK> {
+  function makeTable<S extends Shape, P extends keyof S, SK extends keyof S>(shape: S, partitionKey: P, sortKey: SK, mock: AWS.DynamoDB): DynamoDB.SortedTableClientImpl<S, P, SK> {
     const app = new core.App();
     const stack = new core.Stack(app, 'stack');
-    return new SortedTableClientImpl(new SortedTable(stack, 'table', {
+    return new DynamoDB.SortedTableClientImpl(new DynamoDB.SortedTable(stack, 'table', {
       shape,
       partitionKey,
       sortKey
@@ -324,7 +324,7 @@ describe('SortedTable', () => {
       value: { S: 'some-value' }
     }]
   };
-  async function mockRequest(query: Query<typeof shape, 'key', 'sortKey'>) {
+  async function mockRequest(query: DynamoDB.Query<typeof shape, 'key', 'sortKey'>) {
     let request: AWS.DynamoDB.QueryInput = undefined as any;
     const mock = {
       query: (_request: AWS.DynamoDB.QueryInput) => {
@@ -387,7 +387,7 @@ describe('SortedTable', () => {
     const [request, result] = await mockRequest({
       key: {
         key: 'some-key',
-        sortKey: lessThan('some-value')
+        sortKey: DynamoDB.lessThan('some-value')
       }
     });
     expect(result).toEqual([{

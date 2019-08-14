@@ -2,11 +2,11 @@ import { Database } from '@aws-cdk/aws-glue';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
-import { Stream } from '../enumerable';
 import { RuntimeShape, Shape, struct, StructType, TimestampType } from '../shape';
-import { Period } from '../storage/glue/period';
-import { Table } from '../storage/glue/table';
+import { Glue } from '../storage/glue';
+import { Kinesis } from '../stream';
 import { DeliveryStream } from './delivery-stream';
+import { Period } from './period';
 import { Schema } from './schema';
 
 export type TimeSeriesData = Shape & { timestamp: TimestampType; };
@@ -16,21 +16,21 @@ export interface DataPipelineProps<S extends Shape, T extends keyof S> {
   schema: Schema<S, T>;
 }
 export class DataPipeline<S extends Shape, T extends keyof S> extends core.Construct {
-  public readonly stream: Stream<StructType<S>>;
+  public readonly stream: Kinesis.Stream<StructType<S>>;
   public readonly deliveryStream: DeliveryStream;
   public readonly stagingBucket: s3.Bucket;
-  public readonly table: Table<S, Period.PT1M>;
+  public readonly table: Glue.Table<S, Period.PT1M>;
 
   constructor(scope: core.Construct, id: string, props: DataPipelineProps<S, T>) {
     super(scope, id);
 
-    this.stream = new Stream(this, 'Stream', {
+    this.stream = new Kinesis.Stream(this, 'Stream', {
       type: struct(props.schema.shape),
       encryption: StreamEncryption.KMS
     });
 
     this.table = this.stream
-      .toS3(this, 'ToS3').enumerable()
+      .toS3DeliveryStream(this, 'ToS3').stream()
       .toGlueTable(this, 'ToGlue', {
         database: props.database,
         tableName: props.schema.schemaName,

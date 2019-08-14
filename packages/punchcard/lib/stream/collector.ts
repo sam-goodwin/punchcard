@@ -2,10 +2,10 @@ import core = require('@aws-cdk/core');
 
 import { Type } from '../shape/types/type';
 import { S3DeliveryStreamCollector, S3DeliveryStreamForType } from './delivery-stream';
-import { Enumerable } from './enumerable';
-import { QueueCollector, QueueProps } from './queue';
-import { StreamCollector, StreamProps } from './stream';
-import { TopicCollector, TopicProps } from './topic';
+import { Kinesis } from './kinesis';
+import { SNS } from './sns';
+import { SQS } from './sqs';
+import { Stream } from './stream';
 
 /**
  * Collects data from an `Enumerable`.
@@ -13,7 +13,7 @@ import { TopicCollector, TopicProps } from './topic';
  * @param T type of collected result
  * @param E source enumerable
  */
-export interface Collector<T, E extends Enumerable<any, any, any, any>> {
+export interface Collector<T, E extends Stream<any, any, any, any>> {
   /**
    * Create constructs to collect data from the enumerable an
    */
@@ -29,8 +29,8 @@ export namespace Collectors {
    *
    * @param props queue properties
    */
-  export function toQueue<T extends Type<any>>(props: QueueProps<T>): QueueCollector<T, any> {
-    return new QueueCollector<T, any>(props);
+  export function toSQSQueue<T extends Type<any>>(props: SQS.QueueProps<T>): SQS.QueueCollector<T, any> {
+    return new SQS.QueueCollector<T, any>(props);
   }
 
   /**
@@ -38,8 +38,8 @@ export namespace Collectors {
    *
    * @param props stream properties
    */
-  export function toStream<T extends Type<any>>(props: StreamProps<T>): StreamCollector<T, any> {
-    return new StreamCollector<T, any>(props);
+  export function toKinesisStream<T extends Type<any>>(props: Kinesis.StreamProps<T>): Kinesis.StreamCollector<T, any> {
+    return new Kinesis.StreamCollector<T, any>(props);
   }
 
   /**
@@ -56,7 +56,7 @@ export namespace Collectors {
    *
    * @param props topic properties
    */
-  export function toTopic<T extends Type<any>>(props: TopicProps<T>): TopicCollector<T, any> {
-    return new TopicCollector<T, any>(props);
+  export function toSNSTopic<T extends Type<any>>(props: SNS.TopicProps<T>): SNS.TopicCollector<T, any> {
+    return new SNS.TopicCollector<T, any>(props);
   }
 }
