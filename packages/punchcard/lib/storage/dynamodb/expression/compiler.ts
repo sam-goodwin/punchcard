@@ -1,7 +1,7 @@
 import AWS = require('aws-sdk');
 import { Writer } from '../../../shape/mapper';
 import { Type } from '../../../shape/types';
-import { Dynamo } from '../mapper';
+import * as Dynamo from '../mapper';
 import { CompileContext } from './compile-context';
 
 export class CompileContextImpl implements CompileContext {

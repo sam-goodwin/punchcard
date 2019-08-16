@@ -1,6 +1,7 @@
 import 'jest';
 
 import {
+  any,
   array,
   binary,
   boolean,
@@ -19,6 +20,7 @@ import { CompileContextImpl } from '../../../lib/storage/dynamodb/expression/com
  * TODO: Tests for optional attributes
  */
 const table = {
+  anyAttribute: any,
   stringAttribute: string(),
   intAttribute: integer(),
   floatAttribute: float(),
@@ -70,6 +72,18 @@ function render(u: DynamoDB.SetAction<any, any>) {
 describe('update-expression', () => {
   describe('set', () => {
     describe('value', () => {
+      it('any', () => {
+        expect(render(facade.anyAttribute.as(boolean).set(true))).toEqual({
+          UpdateExpression: '#0 = :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute'
+          },
+          ExpressionAttributeValues: {
+            ':0': { BOOL: true }
+          }
+        });
+      });
+
       it('boolean', () => {
         expect(render(facade.boolAttribute.set(true))).toEqual({
           UpdateExpression: '#0 = :0',
@@ -240,6 +254,17 @@ describe('update-expression', () => {
     });
 
     describe('to another attribute', () => {
+      it('any', () => {
+        expect(render(facade.anyAttribute.as(boolean).set(facade.other_boolAttribute))).toEqual({
+          UpdateExpression: '#0 = #1',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute',
+            '#1': 'other_boolAttribute',
+          },
+          ExpressionAttributeValues: {}
+        });
+      });
+
       it('boolean', () => {
         expect(render(facade.boolAttribute.set(facade.other_boolAttribute))).toEqual({
           UpdateExpression: '#0 = #1',
@@ -376,6 +401,19 @@ describe('update-expression', () => {
     });
 
     describe('to another computation', () => {
+      it('any', () => {
+        expect(render(facade.anyAttribute.as(integer()).set(facade.other_intAttribute.plus(1)))).toEqual({
+          UpdateExpression: '#0 = #1 + :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute',
+            '#1': 'other_intAttribute',
+          },
+          ExpressionAttributeValues: {
+            ':0': { N: '1' }
+          }
+        });
+      });
+
       it('int', () => {
         expect(render(facade.intAttribute.set(facade.other_intAttribute.plus(1)))).toEqual({
           UpdateExpression: '#0 = #1 + :0',

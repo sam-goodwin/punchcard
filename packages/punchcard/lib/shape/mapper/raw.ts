@@ -78,7 +78,9 @@ export namespace Raw {
     }
 
     public read<T extends Type<V>, V>(type: T, parsed: any): any {
-      if (type.kind === Kind.Boolean) {
+      if (type.kind === Kind.Any) {
+        return parsed;
+      } else if (type.kind === Kind.Boolean) {
         if (typeof parsed !== 'boolean') {
           Reader.throwError(type.kind, parsed, 'boolean');
         }
@@ -175,7 +177,9 @@ export namespace Raw {
     }
 
     public write<T extends Type<V>, V>(type: T, value: any): any {
-      if (type.kind === Kind.Boolean) {
+      if (type.kind === Kind.Any) {
+        return value;
+      } else if (type.kind === Kind.Boolean) {
         return value;
       } else if (type.kind === Kind.Integer || type.kind === Kind.Number) {
         return value;
