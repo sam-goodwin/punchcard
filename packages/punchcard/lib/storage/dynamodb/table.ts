@@ -6,11 +6,14 @@ import core = require('@aws-cdk/core');
 
 import { Dependency } from '../../compute';
 import { Cache, Namespace } from '../../compute/assembly';
-import { Dynamo, Mapper, RuntimeShape, Shape, struct } from "../../shape";
+import { Mapper, RuntimeShape, Shape, struct } from "../../shape";
 import { Omit } from '../../utils';
 import { HashTableClient, HashTableClientImpl, SortedTableClient, SortedTableClientImpl, TableClient } from './client';
 import { Facade, toFacade } from './expression/path';
 import { CompositeKey, HashKey, keyType } from './key';
+
+import * as Dynamo from './mapper';
+
 /**
  * Interface for a DynamoDB Table.
  *

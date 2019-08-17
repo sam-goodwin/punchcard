@@ -29,7 +29,7 @@ describe('HashTable', () => {
     };
     const table = makeTable({
       key: string(),
-      value: string()
+      value: string(),
     }, 'key', mock as any);
 
     const result = await table.get({

@@ -1,6 +1,7 @@
 import 'jest';
 
 import {
+  any,
   array,
   binary,
   boolean,
@@ -29,6 +30,7 @@ const toFacade = DynamoDB.toFacade;
  * TODO: Tests for optional attributes
  */
 const table = {
+  anyAttribute: any,
   stringAttribute: string(),
   intAttribute: integer(),
   floatAttribute: float(),
@@ -54,6 +56,20 @@ const facade = toFacade(table);
 describe('condition-expression', () => {
   describe('operand comparator operand', () => {
     describe('=', () => {
+      it('any', () => {
+        expect(facade.anyAttribute.as(boolean).equals(true).render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0 = :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              BOOL: true
+            }
+          }
+        });
+      });
+
       it('boolean', () => {
         expect(facade.boolAttribute.equals(true).render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
@@ -175,6 +191,23 @@ describe('condition-expression', () => {
         });
       });
 
+      it('struct as any', () => {
+        expect(facade.anyAttribute.as(struct({
+          nested_id: integer()
+        })).fields.nested_id.equals(1).render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0.#1 = :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute',
+            '#1': 'nested_id'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              N: '1'
+            }
+          }
+        });
+      });
+
       it ('list', () => {
         expect(facade.list.equals([1]).render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
@@ -238,6 +271,20 @@ describe('condition-expression', () => {
     });
 
     describe('<>', () => {
+      it('any', () => {
+        expect(facade.anyAttribute.as(boolean).notEquals(true).render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0 <> :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              BOOL: true
+            }
+          }
+        });
+      });
+
       it('boolean', () => {
         expect(facade.boolAttribute.ne(true).render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
@@ -359,6 +406,23 @@ describe('condition-expression', () => {
         });
       });
 
+      it('struct as any', () => {
+        expect(facade.anyAttribute.as(struct({
+          nested_id: integer()
+        })).fields.nested_id.ne(1).render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0.#1 <> :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute',
+            '#1': 'nested_id'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              N: '1'
+            }
+          }
+        });
+      });
+
       it ('list', () => {
         expect(facade.list.ne([1]).render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
@@ -422,6 +486,20 @@ describe('condition-expression', () => {
     });
 
     describe('>', () => {
+      it('any', () => {
+        expect(facade.anyAttribute.as(string()).greaterThan('test').render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0 > :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              S: 'test'
+            }
+          }
+        });
+      });
+
       it('string', () => {
         expect(facade.stringAttribute.gt('test').render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 > :0',
@@ -507,6 +585,23 @@ describe('condition-expression', () => {
         });
       });
 
+      it('struct as any', () => {
+        expect(facade.anyAttribute.as(struct({
+          nested_id: integer()
+        })).fields.nested_id.gt(1).render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0.#1 > :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute',
+            '#1': 'nested_id'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              N: '1'
+            }
+          }
+        });
+      });
+
       it ('list item', () => {
         expect(facade.list.get(0).gt(1).render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] > :0',
@@ -538,6 +633,20 @@ describe('condition-expression', () => {
     });
 
     describe('>=', () => {
+      it('any', () => {
+        expect(facade.anyAttribute.as(string()).greaterThanOrEqual('test').render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0 >= :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              S: 'test'
+            }
+          }
+        });
+      });
+
       it('string', () => {
         expect(facade.stringAttribute.gte('test').render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 >= :0',
@@ -623,6 +732,23 @@ describe('condition-expression', () => {
         });
       });
 
+      it('struct as any', () => {
+        expect(facade.anyAttribute.as(struct({
+          nested_id: integer()
+        })).fields.nested_id.gte(1).render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0.#1 >= :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute',
+            '#1': 'nested_id'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              N: '1'
+            }
+          }
+        });
+      });
+
       it ('list item', () => {
         expect(facade.list.get(0).gte(1).render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] >= :0',
@@ -654,6 +780,20 @@ describe('condition-expression', () => {
     });
 
     describe('<', () => {
+      it('any', () => {
+        expect(facade.anyAttribute.as(string()).lessThan('test').render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0 < :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              S: 'test'
+            }
+          }
+        });
+      });
+
       it('string', () => {
         expect(facade.stringAttribute.lt('test').render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 < :0',
@@ -739,6 +879,23 @@ describe('condition-expression', () => {
         });
       });
 
+      it('struct as any', () => {
+        expect(facade.anyAttribute.as(struct({
+          nested_id: integer()
+        })).fields.nested_id.lt(1).render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0.#1 < :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute',
+            '#1': 'nested_id'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              N: '1'
+            }
+          }
+        });
+      });
+
       it ('list item', () => {
         expect(facade.list.get(0).lt(1).render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] < :0',
@@ -770,6 +927,20 @@ describe('condition-expression', () => {
     });
 
     describe('<=', () => {
+      it('any', () => {
+        expect(facade.anyAttribute.as(string()).lessThanOrEqual('test').render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0 <= :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              S: 'test'
+            }
+          }
+        });
+      });
+
       it('string', () => {
         expect(facade.stringAttribute.lte('test').render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <= :0',
@@ -855,6 +1026,23 @@ describe('condition-expression', () => {
         });
       });
 
+      it('struct as any', () => {
+        expect(facade.anyAttribute.as(struct({
+          nested_id: integer()
+        })).fields.nested_id.lte(1).render(new CompileContextImpl())).toEqual({
+          ConditionExpression: '#0.#1 <= :0',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute',
+            '#1': 'nested_id'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              N: '1'
+            }
+          }
+        });
+      });
+
       it ('list item', () => {
         expect(facade.list.get(0).lte(1).render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] <= :0',
@@ -887,6 +1075,19 @@ describe('condition-expression', () => {
   });
 
   describe('operand BETWEEN operand AND operand', () => {
+    it('any', () => {
+      expect(facade.anyAttribute.as(string()).between('a', 'b').render(new CompileContextImpl())).toEqual({
+        ConditionExpression: '#0 BETWEEN :0 AND :1',
+        ExpressionAttributeNames: {
+          '#0': 'anyAttribute'
+        },
+        ExpressionAttributeValues: {
+          ':0': { S: 'a' },
+          ':1': { S: 'b' }
+        }
+      });
+    });
+
     it('string', () => {
       expect(facade.stringAttribute.between('a', 'b').render(new CompileContextImpl())).toEqual({
         ConditionExpression: '#0 BETWEEN :0 AND :1',
@@ -995,6 +1196,20 @@ describe('condition-expression', () => {
   });
 
   describe("operand IN operand (',' operand (, ...) ))", () => {
+    it('string', () => {
+      expect(facade.anyAttribute.as(string()).in('a', 'b', 'c').render(new CompileContextImpl())).toEqual({
+        ConditionExpression: '#0 IN (:0,:1,:2)',
+        ExpressionAttributeNames: {
+          '#0': 'anyAttribute'
+        },
+        ExpressionAttributeValues: {
+          ':0': { S: 'a' },
+          ':1': { S: 'b' },
+          ':2': { S: 'c' }
+        }
+      });
+    });
+
     it('string', () => {
       expect(facade.stringAttribute.in('a', 'b', 'c').render(new CompileContextImpl())).toEqual({
         ConditionExpression: '#0 IN (:0,:1,:2)',
@@ -1131,6 +1346,18 @@ describe('condition-expression', () => {
 
     describe('begins_with', () => {
       it('string', () => {
+        expect(facade.anyAttribute.as(string()).beginsWith('string').render(new CompileContextImpl())).toEqual({
+          ConditionExpression: 'begins_with(#0,:0)',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute'
+          },
+          ExpressionAttributeValues: {
+            ':0': { S: 'string' }
+          }
+        });
+      });
+
+      it('string', () => {
         expect(facade.stringAttribute.beginsWith('string').render(new CompileContextImpl())).toEqual({
           ConditionExpression: 'begins_with(#0,:0)',
           ExpressionAttributeNames: {
@@ -1156,6 +1383,20 @@ describe('condition-expression', () => {
     });
 
     describe('contains', () => {
+      it('any attribute', () => {
+        expect(facade.anyAttribute.as(string()).contains('string').render(new CompileContextImpl())).toEqual({
+          ConditionExpression: 'contains(#0,:0)',
+          ExpressionAttributeNames: {
+            '#0': 'anyAttribute'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              S: 'string'
+            }
+          }
+        });
+      });
+
       it('string attribute', () => {
         expect(facade.stringAttribute.contains('string').render(new CompileContextImpl())).toEqual({
           ConditionExpression: 'contains(#0,:0)',
@@ -1336,5 +1577,4 @@ describe('condition-expression', () => {
         });
     });
   });
-
 });

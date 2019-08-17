@@ -1,6 +1,6 @@
 import glue = require('@aws-cdk/aws-glue')
 import cdk = require('@aws-cdk/core');
-import { integer, string, struct, SNS, Lambda, DynamoDB, array, timestamp, Dependency } from 'punchcard';
+import { any, integer, string, struct, SNS, Lambda, DynamoDB, array, timestamp, Dependency, optional } from 'punchcard';
 
 import uuid = require('uuid');
 import { Duration } from '@aws-cdk/core';
@@ -22,7 +22,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
   type: struct({
     key: string(),
     count: integer(),
-    timestamp
+    timestamp,
   })
 });
 
@@ -78,7 +78,7 @@ new Lambda.ExecutorService().schedule(stack, 'DummyData', {
       // message is structured and strongly typed (based on our Topic definition above)
       key,
       count: 1,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   }
 });
