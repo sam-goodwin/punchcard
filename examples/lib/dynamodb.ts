@@ -94,7 +94,7 @@ executorService.schedule(stack, 'Caller', {
       actions: item => [
         // set strings
         item.name.set('name'),
-        // increement/derecment numbers
+        // increement/decrement numbers
         item.count.increment(1),
         item.count.decrement(1),
 
