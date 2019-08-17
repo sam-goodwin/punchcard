@@ -30,7 +30,7 @@ export type TableProps<S extends Shape, PKey extends keyof S, SKey extends keyof
  */
 export class Table<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined>
     extends dynamodb.Table
-    implements Dependency<Table.InferClientType<S, PKey, SKey>> {
+    implements Dependency<Table.Client<S, PKey, SKey>> {
   /**
    * Shape of data in the table.
    */
@@ -107,10 +107,10 @@ export class Table<S extends Shape, PKey extends keyof S, SKey extends keyof S |
    * @param namespace local properties set by this table by `install`
    * @param cache global cache shared by all clients
    */
-  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Table.InferClientType<S, PKey, SKey>> {
+  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Table.Client<S, PKey, SKey>> {
     return new Table.Client(this,
       namespace.get('tableName'),
-      cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())) as Table.InferClientType<S, PKey, SKey>;
+      cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())) as Table.Client<S, PKey, SKey>;
   }
 
   /**
@@ -124,7 +124,7 @@ export class Table<S extends Shape, PKey extends keyof S, SKey extends keyof S |
     this.readWriteAccess().install(namespace, grantable);
   }
 
-  private _install(grant: (grantable: iam.IGrantable) => void): Dependency<Table.InferClientType<S, PKey, SKey>> {
+  private _install(grant: (grantable: iam.IGrantable) => void): Dependency<Table.Client<S, PKey, SKey>> {
     return {
       install: (namespace: Namespace, grantable: iam.IGrantable) => {
         namespace.set('tableName', this.tableName);
@@ -137,38 +137,33 @@ export class Table<S extends Shape, PKey extends keyof S, SKey extends keyof S |
   /**
    * Take a *read-only* dependency on this table.
    */
-  public readAccess(): Dependency<Table.InferClientType<S, PKey, SKey>> {
+  public readAccess(): Dependency<Table.Client<S, PKey, SKey>> {
     return this._install(this.grantReadData.bind(this));
   }
 
   /**
    * Take a *read-write* dependency on this table.
    */
-  public readWriteAccess(): Dependency<Table.InferClientType<S, PKey, SKey>> {
+  public readWriteAccess(): Dependency<Table.Client<S, PKey, SKey>> {
     return this._install(this.grantReadWriteData.bind(this));
   }
 
   /**
    * Take a *write-only* dependency on this table.
    */
-  public writeAccess(): Dependency<Table.InferClientType<S, PKey, SKey>> {
+  public writeAccess(): Dependency<Table.Client<S, PKey, SKey>> {
     return this._install(this.grantWriteData.bind(this));
   }
 
   /**
    * Take a *full-access* dependency on this table.
    */
-  public fullAccess(): Dependency<Table.InferClientType<S, PKey, SKey>> {
+  public fullAccess(): Dependency<Table.Client<S, PKey, SKey>> {
     return this._install(this.grantFullAccess.bind(this));
   }
 }
 
 export namespace Table {
-  export type InferClientType<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined> =
-    SKey extends keyof S ?
-      Client<S, PKey, SKey> :
-      Omit<Client<S, PKey, SKey>, 'query'>;
-
   export class Client<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined> {
     constructor(
       public readonly table: Table<S, PKey, SKey>,
