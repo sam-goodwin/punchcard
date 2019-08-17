@@ -63,13 +63,12 @@ Topic<{
 }>
 ```
 
-This feature in punchcard becomes even more evident when using DynamoDB. To demonstrate, let's create a DynamoDB `HashTable` and use it in a `Function`:
-
-*(by `HashTable`, we mean a DynamoDB Table with only a partitionKey and no sortKey)*
+This feature in punchcard becomes even more evident when using DynamoDB. To demonstrate, let's create a DynamoDB `Table` and use it in a `Function`:
 
 ```ts
-const table = new DynamoDB.HashTable(stack, 'my-table', {
+const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
+  sortKey: undefined,
   shape: {
     id: string(),
     count: integer({
@@ -88,7 +87,7 @@ const item = await table.get({
 });
 ```
 
-The interface is statically typed and derived from the definition of the `HashTable` - we specified the `partitionKey` as the `id` field which has type `string`, and so the object passed to the `get` method must correspond.
+The interface is statically typed and derived from the definition of the `Table` - we specified the `partitionKey` as the `id` field which has type `string`, and so the object passed to the `get` method must correspond.
 
 `PutItem` and `UpdateItem` have similarly high-level and statically checked interfaces. More interestingly, condition and update expressions are built with helpers derived (again) from the table definition:
 
@@ -99,7 +98,7 @@ await table.put({
     id: 'state',
     count: 1
   },
-  if: item => attribute_not_exists(item.id)
+  if: item => DynamoDB.attribute_not_exists(item.id)
 });
 
 // increment the count property by 1
@@ -113,13 +112,13 @@ await table.update({
 });
 ```
 
-If your table is a `SortedTable`, which is a DynamoDB Table with both a `partitionKey` and a `sortKey`, then you can also build typesafe query expressions:
+If you specified a `sortKey`, then you can also build typesafe query expressions:
 
 ```ts
 await table.query({
   key: {
     id: 'id',
-    count: greaterThan(1)
+    count: DynamoDB.greaterThan(1)
   },
 })
 ```
