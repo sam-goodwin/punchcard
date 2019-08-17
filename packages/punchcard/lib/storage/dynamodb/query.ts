@@ -1,8 +1,7 @@
 import { BinaryType, RuntimeType, Shape, StringType, Type } from '../../shape';
-import { Query } from './client';
 import { CompileContext } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';
-import { SortedTable } from './table';
+import { Query, Table } from './table';
 
 export interface CompiledQuery {
   KeyConditionExpression: string;
@@ -11,16 +10,16 @@ export interface CompiledQuery {
   ExpressionAttributeValues?: AWS.DynamoDB.ExpressionAttributeValueMap;
 }
 
-export function compileQuery<T extends Shape, PKey extends keyof T, SKey extends keyof T>(
-  table: SortedTable<T, PKey, SKey>, query: Query<T, PKey, SKey>): CompiledQuery {
+export function compileQuery<S extends Shape, PKey extends keyof S, SKey extends keyof S>(
+  table: Table<S, PKey, SKey>, query: Query<S, PKey, SKey>): CompiledQuery {
 
   const context = new CompileContextImpl();
   const pName = context.name(table.partitionKey.toString());
   const pValue = context.value(table.shape[table.partitionKey], query.key[table.partitionKey]);
   let keyConditionExpression: string = `${pName} = ${pValue}`;
-  if (query.key[table.sortKey]) {
+  if ((query.key as any)[table.sortKey]) {
     // TODO: why not inferred?
-    const keyComparison = query.key[table.sortKey] as any as Comparison<T[SKey], RuntimeType<T[SKey]>>;
+    const keyComparison = (query.key as any)[table.sortKey] as any as Comparison<S[SKey], RuntimeType<S[SKey]>>;
     keyConditionExpression += ` AND ${(keyComparison.compile(table.sortKey.toString(), table.shape[table.sortKey], context))}`;
   }
 

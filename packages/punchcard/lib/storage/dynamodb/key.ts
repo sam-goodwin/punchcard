@@ -1,6 +1,9 @@
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import { Kind, Shape } from '../../shape';
 
+export type Key<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined> =
+  SKey extends keyof undefined ? HashKey<S, PKey> : CompositeKey<S, PKey, SKey extends keyof S ? SKey : never>;
+
 export type HashKey<T extends Shape, PKey extends keyof T> = {
   [K in PKey]: T[K];
 };
