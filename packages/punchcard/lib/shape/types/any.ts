@@ -5,14 +5,14 @@ import { hashCode as strHashCode } from './hash';
 import { Kind } from './kind';
 import { Type } from './type';
 
-export class AnyType implements Type<any> {
+export class AnyType implements Type<unknown> {
   public readonly kind: Kind = Kind.Any;
 
-  public validate(value: any): void {
+  public validate(value: unknown): void {
     // no op
   }
 
-  public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<any> {
+  public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<unknown> {
     throw new Error('Method not implemented.');
   }
   public toDynamoPath(parent: DynamoPath, name: string): AnyDynamoPath {
@@ -24,7 +24,7 @@ export class AnyType implements Type<any> {
   public toGlueType(): { inputString: string; isPrimitive: boolean; } {
     throw new Error(`any is not supported with Glue`);
   }
-  public hashCode(value: any): number {
+  public hashCode(value: unknown): number {
     return hashCode(value);
 
     function hashCode(value: any): number {
@@ -53,7 +53,7 @@ export class AnyType implements Type<any> {
       }
     }
   }
-  public equals(a: any, b: any): boolean {
+  public equals(a: unknown, b: unknown): boolean {
     return equals(a, b);
 
     function equals(a: any, b: any): boolean {
