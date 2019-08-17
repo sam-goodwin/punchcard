@@ -1,3 +1,4 @@
+export * from './any';
 export * from './array';
 export * from './binary';
 export * from './boolean';

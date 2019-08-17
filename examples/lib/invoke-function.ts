@@ -3,7 +3,7 @@ import cdk = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
 
-import { DynamoDB, integer, Lambda, string, struct } from 'punchcard';
+import { DynamoDB, integer, Lambda, string, struct, any, boolean } from 'punchcard';
 
 const app = new cdk.App();
 export default app;
@@ -20,7 +20,8 @@ const table = new DynamoDB.HashTable(stack, 'my-table', {
     id: string(),
     count: integer({
       minimum: 0
-    })
+    }),
+    anyProperty: any 
   },
   billingMode: BillingMode.PAY_PER_REQUEST
 });
@@ -56,7 +57,10 @@ const incrementer = executorService.spawn(stack, 'Callable', {
       await table.put({
         item: {
           id: request.id,
-          count: 1
+          count: 1,
+          anyProperty: {
+            this: 'property can be any type supported by the AWS.DynamoDB.DocumentClient',
+          }
         },
         if: item => DynamoDB.attribute_not_exists(item.id)
       });

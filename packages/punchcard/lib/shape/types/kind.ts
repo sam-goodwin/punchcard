@@ -1,4 +1,5 @@
 export enum Kind {
+  Any = 'Any',
   Array = 'Array',
   Binary = 'Binary',
   Boolean = 'Boolean',
