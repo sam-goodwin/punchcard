@@ -16,7 +16,6 @@ const executorService = new Lambda.ExecutorService({
 
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
-  sortKey: undefined,
   shape: {
     id: string(),
     count: integer({

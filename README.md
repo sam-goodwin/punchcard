@@ -68,7 +68,6 @@ This feature in punchcard becomes even more evident when using DynamoDB. To demo
 ```ts
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
-  sortKey: undefined,
   shape: {
     id: string(),
     count: integer({

@@ -17,7 +17,7 @@ import { compileQuery, KeyConditionExpression } from './query';
 
 export type TableProps<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined> = {
   partitionKey: PKey;
-  sortKey: SKey;
+  sortKey?: SKey;
   shape: S;
 } & Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'>;
 

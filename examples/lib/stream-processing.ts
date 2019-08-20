@@ -31,7 +31,6 @@ const topic = new SNS.Topic(stack, 'Topic', {
  */
 const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
   partitionKey: 'key',
-  sortKey: undefined,
   shape: {
     // define the shape of data in the dynamodb table
     key: string(),
