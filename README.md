@@ -111,7 +111,17 @@ await table.update({
 });
 ```
 
-If you specified a `sortKey`, then you can also build typesafe query expressions:
+If you specified a `sortKey`:
+
+```ts
+const table = new DynamoDB.Table(stack, 'my-table', {
+  partitionKey: 'id',
+  sortKey: 'count', // specify a sortKey
+  // ...
+});
+```
+
+Then you can also build typesafe query expressions:
 
 ```ts
 await table.query({
