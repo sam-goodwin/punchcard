@@ -258,7 +258,7 @@ Create an `index.ts` file to contain your application's entrypoint:
 
 ```ts
 import cdk = require('@aws-cdk/core');
-import punchcard = require('punchcard');
+import { DynamoDB } from 'punchcard';
 
 const app = new cdk.App();
 const stack = new cdk.Stack(app, 'MyStack');
@@ -267,7 +267,7 @@ const stack = new cdk.Stack(app, 'MyStack');
 export default app;
 
 // create and use punchcard or CDK constructs
-const table = new punchcard.HashTable(stack, 'MyTable', {
+const table = new DynamoDB.Table(stack, 'MyTable', {
   // ...
 });
 ```
