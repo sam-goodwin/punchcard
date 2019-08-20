@@ -29,7 +29,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
 /**
  * Create a DynamoDB Table to store some data.
  */
-const enrichments = new DynamoDB.HashTable(stack, 'Enrichments', {
+const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
   partitionKey: 'key',
   shape: {
     // define the shape of data in the dynamodb table
@@ -38,6 +38,7 @@ const enrichments = new DynamoDB.HashTable(stack, 'Enrichments', {
   },
   billingMode: BillingMode.PAY_PER_REQUEST
 });
+
 
 /**
  * Schedule a Lambda Function to send a (dummy) message to the SNS topic:
@@ -113,6 +114,7 @@ const stream = queue.stream() // stream gives us a nice chainable API for resour
   .map({
     depends: enrichments.readAccess(),
     handle: async(message, e) => {
+      e
       // here we transform messages received from SQS by looking up some data in DynamoDB
       const enrichment = await e.get({
         key: message.key

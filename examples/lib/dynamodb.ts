@@ -14,7 +14,7 @@ const executorService = new Lambda.ExecutorService({
   timeout: cdk.Duration.seconds(10)
 });
 
-const table = new DynamoDB.HashTable(stack, 'my-table', {
+const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
   shape: {
     id: string(),
@@ -31,7 +31,7 @@ const table = new DynamoDB.HashTable(stack, 'my-table', {
   billingMode: BillingMode.PAY_PER_REQUEST
 });
 
-const sortedTable = new DynamoDB.SortedTable(stack, 'my-table', {
+const sortedTable = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
   sortKey: 'count',
   shape: {

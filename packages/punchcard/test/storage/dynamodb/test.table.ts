@@ -61,8 +61,8 @@ function keyTypeTests(makeTable: (type: Type<any>) => void) {
 }
 
 // tests for installing the table into an RunTarget
-function installTests(makeTable: (stack: core.Stack) => DynamoDB.HashTable<any, any> | DynamoDB.SortedTable<any, any, any>) {
-  function installTest(getRun: (t: DynamoDB.HashTable<any, any> | DynamoDB.SortedTable<any, any, any>) => Dependency<any>, expectedGrant: keyof (DynamoDB.HashTable<any, any> | DynamoDB.SortedTable<any, any, any>)) {
+function installTests(makeTable: (stack: core.Stack) => DynamoDB.Table<any, any, any>) {
+  function installTest(getRun: (t: DynamoDB.Table<any, any, any>) => Dependency<any>, expectedGrant: keyof DynamoDB.Table<any, any, any>) {
     const stack = new core.Stack(new core.App(), 'stack');
     const table = makeTable(stack);
     const tableSpy = sinon.spy(table, expectedGrant);
@@ -93,7 +93,7 @@ function installTests(makeTable: (stack: core.Stack) => DynamoDB.HashTable<any, 
 }
 
 // tests for bootstrapping a runnable client from a property bag
-function bootstrapTests(makeTable: (stack: core.Stack) => DynamoDB.HashTable<any, any> | DynamoDB.SortedTable<any, any, any>) {
+function bootstrapTests(makeTable: (stack: core.Stack) => DynamoDB.Table<any, any, any>) {
   it('should lookup tableName from properties', async () => {
     const table = makeTable(new core.Stack(new core.App(), 'hello'));
     const bag = new Assembly(scope, {});
@@ -125,15 +125,16 @@ function bootstrapTests(makeTable: (stack: core.Stack) => DynamoDB.HashTable<any
   });
 }
 
-describe('DynamoDB.HashTable', () => {
+describe('DynamoDB.Table', () => {
   describe('partition key must be S, N or B', () => {
     keyTypeTests(type => {
       const stack = new core.Stack(new core.App(), 'stack');
-      const table = new DynamoDB.HashTable(stack, 'table', {
+      const table = new DynamoDB.Table(stack, 'table', {
         shape: {
           key: type
         },
-        partitionKey: 'key'
+        partitionKey: 'key',
+        sortKey: undefined
       });
       expect(table.key).toEqual({
         key: type
@@ -142,11 +143,12 @@ describe('DynamoDB.HashTable', () => {
   });
   function boringTable(stack?: core.Stack) {
     stack = stack || new core.Stack(new core.App(), 'stack');
-    return new DynamoDB.HashTable(stack, 'table', {
+    return new DynamoDB.Table(stack, 'table', {
       shape: {
         key: string()
       },
-      partitionKey: 'key'
+      partitionKey: 'key',
+      sortKey: undefined
     });
   }
   describe('install', () => {
@@ -156,11 +158,11 @@ describe('DynamoDB.HashTable', () => {
     bootstrapTests(boringTable);
   });
 });
-describe('DynamoDB.SortedTable', () => {
+describe('SortedTable', () => {
   describe('partition and sort keys must be S, N or B', () => {
     keyTypeTests(type => {
       const stack = new core.Stack(new core.App(), 'stack');
-      const table = new DynamoDB.SortedTable(stack, 'table', {
+      const table = new DynamoDB.Table(stack, 'table', {
         shape: {
           key: type,
           sortKey: type
@@ -175,7 +177,7 @@ describe('DynamoDB.SortedTable', () => {
     });
   });
   function boringTable(stack: core.Stack) {
-    return new DynamoDB.SortedTable(stack, 'table', {
+    return new DynamoDB.Table(stack, 'table', {
       shape: {
         key: string(),
         sortKey: string()

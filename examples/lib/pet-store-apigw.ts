@@ -11,8 +11,9 @@ export default app;
 
 const stack = new core.Stack(app, 'pet-store');
 
-const petStore = new DynamoDB.HashTable(stack, 'pet-store', {
+const petStore = new DynamoDB.Table(stack, 'pet-store', {
   partitionKey: 'id',
+  sortKey: undefined,
   shape: {
     id: string(),
     type: string(),

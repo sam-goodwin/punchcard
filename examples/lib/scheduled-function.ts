@@ -10,8 +10,9 @@ export default app;
 
 const stack = new cdk.Stack(app, 'scheduled-function-example');
 
-const table = new DynamoDB.HashTable(stack, 'my-table', {
+const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
+  sortKey: undefined,
   shape: {
     id: string(),
     count: integer({

@@ -4,12 +4,13 @@ import 'jest';
 import { DynamoDB, Shape, string } from '../../../lib';
 
 describe('HashTable', () => {
-  function makeTable<S extends Shape, P extends keyof S>(shape: S, partitionKey: P, mock: AWS.DynamoDB): DynamoDB.HashTableClientImpl<S, P> {
+  function makeTable<S extends Shape, P extends keyof S>(shape: S, partitionKey: P, mock: AWS.DynamoDB): DynamoDB.Table.Client<S, P, undefined> {
     const app = new core.App();
     const stack = new core.Stack(app, 'stack');
-    return new DynamoDB.HashTableClientImpl(new DynamoDB.HashTable(stack, 'table', {
+    return new DynamoDB.Table.Client(new DynamoDB.Table(stack, 'table', {
       shape,
-      partitionKey
+      partitionKey,
+      sortKey: undefined
     }), 'tableName', mock);
   }
   test('get should serialize string key and deserialize response', async () => {
@@ -303,10 +304,10 @@ describe('HashTable', () => {
 
 describe('SortedTable', () => {
 // tslint:disable-next-line: max-line-length
-  function makeTable<S extends Shape, P extends keyof S, SK extends keyof S>(shape: S, partitionKey: P, sortKey: SK, mock: AWS.DynamoDB): DynamoDB.SortedTableClientImpl<S, P, SK> {
+  function makeTable<S extends Shape, P extends keyof S, SK extends keyof S>(shape: S, partitionKey: P, sortKey: SK, mock: AWS.DynamoDB): DynamoDB.Table.Client<S, P, SK> {
     const app = new core.App();
     const stack = new core.Stack(app, 'stack');
-    return new DynamoDB.SortedTableClientImpl(new DynamoDB.SortedTable(stack, 'table', {
+    return new DynamoDB.Table.Client(new DynamoDB.Table(stack, 'table', {
       shape,
       partitionKey,
       sortKey
