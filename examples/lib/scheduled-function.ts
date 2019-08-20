@@ -1,16 +1,13 @@
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import cdk = require('@aws-cdk/core');
-import { Duration } from '@aws-cdk/core';
-import { Schedule } from '@aws-cdk/aws-events';
-
-import { DynamoDB, integer, Lambda, string } from 'punchcard';
+import punchcard = require('punchcard');
+import { string, integer } from 'punchcard';
 
 const app = new cdk.App();
 export default app;
 
 const stack = new cdk.Stack(app, 'scheduled-function-example');
-
-const table = new DynamoDB.HashTable(stack, 'my-table', {
+const table = new punchcard.HashTable(stack, 'my-table', {
   partitionKey: 'id',
   shape: {
     id: string(),
@@ -21,11 +18,11 @@ const table = new DynamoDB.HashTable(stack, 'my-table', {
   billingMode: BillingMode.PAY_PER_REQUEST
 });
 
-const executorService = new Lambda.ExecutorService();
+const executorService = new punchcard.LambdaExecutorService();
 
 executorService.schedule(stack, 'Poller', {
   depends: table,
-  schedule: Schedule.rate(Duration.minutes(1)),
+  rate: new punchcard.Rate(1, punchcard.Unit.Minute),
   handle: async (_, table) => {
     const item = await table.get({
       id: 'state'
@@ -46,7 +43,7 @@ executorService.schedule(stack, 'Poller', {
           id: 'state',
           count: 1
         },
-        if: item => DynamoDB.attribute_not_exists(item.id)
+        if: item => punchcard.attribute_not_exists(item.id)
       });
     }
   }
