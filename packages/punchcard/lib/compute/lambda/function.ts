@@ -203,7 +203,7 @@ function findApp(c: cdk.IConstruct): cdk.App {
 
 const codeSymbol = Symbol.for('punchcard:code');
 export function code(scope: cdk.IConstruct): lambda.Code {
-  if (isRuntime()) {
+  if (isRuntime() || !process.mainModule) {
     class MockCode extends lambda.Code {
       public bind(): lambda.CodeConfig {
         return {
