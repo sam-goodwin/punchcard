@@ -75,7 +75,7 @@ export class Reader implements IReader<AWS.DynamoDB.AttributeValue> {
   }
 
   public read<T extends Type<V>, V>(type: T, value: AWS.DynamoDB.AttributeValue): any {
-    if (type.kind === Kind.Any) {
+    if (type.kind === Kind.Dynamic) {
       return AWS.DynamoDB.Converter.output(value);
     } else if (type.kind === Kind.Boolean) {
       if (value.BOOL === undefined) {
@@ -192,7 +192,7 @@ export class Writer implements IWriter<AWS.DynamoDB.AttributeValue> {
   }
 
   public write<T extends Type<V>, V>(type: T, value: any): AWS.DynamoDB.AttributeValue {
-    if (type.kind === Kind.Any) {
+    if (type.kind === Kind.Dynamic) {
       return AWS.DynamoDB.Converter.input(value);
     } else if (type.kind === Kind.Boolean) {
       return { BOOL: value };

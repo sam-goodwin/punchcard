@@ -1,8 +1,8 @@
 export enum Kind {
-  Any = 'Any',
   Array = 'Array',
   Binary = 'Binary',
   Boolean = 'Boolean',
+  Dynamic = 'Dynamic',
   Integer = 'Integer',
   Map = 'Map',
   Number = 'Number',

@@ -1,10 +1,10 @@
 import 'jest';
 
 import {
-  any,
   array,
   binary,
   boolean,
+  dynamic,
   DynamoDB,
   float,
   integer,
@@ -30,7 +30,7 @@ const toFacade = DynamoDB.toFacade;
  * TODO: Tests for optional attributes
  */
 const table = {
-  anyAttribute: any,
+  anyAttribute: dynamic,
   stringAttribute: string(),
   intAttribute: integer(),
   floatAttribute: float(),
@@ -56,7 +56,7 @@ const facade = toFacade(table);
 describe('condition-expression', () => {
   describe('operand comparator operand', () => {
     describe('=', () => {
-      it('any', () => {
+      it('dynamic', () => {
         expect(facade.anyAttribute.as(boolean).equals(true).render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
@@ -271,7 +271,7 @@ describe('condition-expression', () => {
     });
 
     describe('<>', () => {
-      it('any', () => {
+      it('dynamic', () => {
         expect(facade.anyAttribute.as(boolean).notEquals(true).render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
@@ -486,7 +486,7 @@ describe('condition-expression', () => {
     });
 
     describe('>', () => {
-      it('any', () => {
+      it('dynamic', () => {
         expect(facade.anyAttribute.as(string()).greaterThan('test').render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 > :0',
           ExpressionAttributeNames: {
@@ -633,7 +633,7 @@ describe('condition-expression', () => {
     });
 
     describe('>=', () => {
-      it('any', () => {
+      it('dynamic', () => {
         expect(facade.anyAttribute.as(string()).greaterThanOrEqual('test').render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 >= :0',
           ExpressionAttributeNames: {
@@ -780,7 +780,7 @@ describe('condition-expression', () => {
     });
 
     describe('<', () => {
-      it('any', () => {
+      it('dynamic', () => {
         expect(facade.anyAttribute.as(string()).lessThan('test').render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 < :0',
           ExpressionAttributeNames: {
@@ -927,7 +927,7 @@ describe('condition-expression', () => {
     });
 
     describe('<=', () => {
-      it('any', () => {
+      it('dynamic', () => {
         expect(facade.anyAttribute.as(string()).lessThanOrEqual('test').render(new CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <= :0',
           ExpressionAttributeNames: {
@@ -1075,7 +1075,7 @@ describe('condition-expression', () => {
   });
 
   describe('operand BETWEEN operand AND operand', () => {
-    it('any', () => {
+    it('dynamic', () => {
       expect(facade.anyAttribute.as(string()).between('a', 'b').render(new CompileContextImpl())).toEqual({
         ConditionExpression: '#0 BETWEEN :0 AND :1',
         ExpressionAttributeNames: {

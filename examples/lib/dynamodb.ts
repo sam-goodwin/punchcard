@@ -3,7 +3,7 @@ import cdk = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
 
-import { any, DynamoDB, integer, Lambda, string, struct, array, Dependency } from 'punchcard';
+import { dynamic, DynamoDB, integer, Lambda, string, struct, array, Dependency } from 'punchcard';
 
 const app = new cdk.App();
 export default app;
@@ -26,7 +26,7 @@ const table = new DynamoDB.Table(stack, 'my-table', {
     struct: struct({
       key: string()
     }),
-    any
+    any: dynamic
   },
   billingMode: BillingMode.PAY_PER_REQUEST
 });
