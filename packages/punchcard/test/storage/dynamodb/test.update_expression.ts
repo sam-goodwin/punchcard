@@ -1,10 +1,10 @@
 import 'jest';
 
 import {
-  any,
   array,
   binary,
   boolean,
+  dynamic,
   DynamoDB,
   float,
   integer,
@@ -20,7 +20,7 @@ import { CompileContextImpl } from '../../../lib/storage/dynamodb/expression/com
  * TODO: Tests for optional attributes
  */
 const table = {
-  anyAttribute: any,
+  anyAttribute: dynamic,
   stringAttribute: string(),
   intAttribute: integer(),
   floatAttribute: float(),
@@ -72,7 +72,7 @@ function render(u: DynamoDB.SetAction<any, any>) {
 describe('update-expression', () => {
   describe('set', () => {
     describe('value', () => {
-      it('any', () => {
+      it('dynamic', () => {
         expect(render(facade.anyAttribute.as(boolean).set(true))).toEqual({
           UpdateExpression: '#0 = :0',
           ExpressionAttributeNames: {
@@ -254,7 +254,7 @@ describe('update-expression', () => {
     });
 
     describe('to another attribute', () => {
-      it('any', () => {
+      it('dynamic', () => {
         expect(render(facade.anyAttribute.as(boolean).set(facade.other_boolAttribute))).toEqual({
           UpdateExpression: '#0 = #1',
           ExpressionAttributeNames: {
@@ -401,7 +401,7 @@ describe('update-expression', () => {
     });
 
     describe('to another computation', () => {
-      it('any', () => {
+      it('dynamic', () => {
         expect(render(facade.anyAttribute.as(integer()).set(facade.other_intAttribute.plus(1)))).toEqual({
           UpdateExpression: '#0 = #1 + :0',
           ExpressionAttributeNames: {

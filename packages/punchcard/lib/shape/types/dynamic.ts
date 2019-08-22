@@ -5,14 +5,20 @@ import { hashCode as strHashCode } from './hash';
 import { Kind } from './kind';
 import { Type } from './type';
 
-export class AnyType implements Type<unknown> {
-  public readonly kind: Kind = Kind.Any;
+/**
+ * A dynamic value. Resolves to `any` or `unknown` at runtime.
+ *
+ * @see dynamic
+ * @see unsafeDynamic
+ */
+export class DynamicType<T extends any | unknown> implements Type<T> {
+  public readonly kind: Kind = Kind.Dynamic;
 
   public validate(value: unknown): void {
     // no op
   }
 
-  public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<unknown> {
+  public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<T> {
     throw new Error('Method not implemented.');
   }
   public toDynamoPath(parent: DynamoPath, name: string): AnyDynamoPath {
@@ -53,7 +59,7 @@ export class AnyType implements Type<unknown> {
       }
     }
   }
-  public equals(a: unknown, b: unknown): boolean {
+  public equals(a: T, b: T): boolean {
     return equals(a, b);
 
     function equals(a: any, b: any): boolean {
@@ -103,8 +109,15 @@ export class AnyType implements Type<unknown> {
   }
 }
 
-// tslint:disable-next-line: variable-name
-export const any: AnyType = new AnyType();
+/**
+ * A safe dynamic value. Resolves to `unknown` at runtime.
+ */
+export const dynamic = new DynamicType<unknown>();
+
+/**
+ * An un-safe dynamic value value. Resolves to `any` at runtime.
+ */
+export const unsafeDynamic = new DynamicType<any>();
 
 export class AnyDynamoPath extends DynamoPath {
   public as<T extends Type<any>>(type: T): InferDynamoPathType<T> {

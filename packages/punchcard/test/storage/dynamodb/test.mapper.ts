@@ -1,9 +1,9 @@
 import 'jest';
 
-import { any, array, binary, boolean, double, DynamoDB, integer, set, Shape, string, struct } from '../../../lib';
+import { array, binary, boolean, double, dynamic, DynamoDB, integer, set, Shape, string, struct } from '../../../lib';
 
 const shape = {
-  any,
+  dynamic,
   string: string(),
   binary: binary(),
   int: integer(),
@@ -19,7 +19,7 @@ const shape = {
 const mapper = DynamoDB.forShape(shape);
 
 const richValue = {
-  any: {
+  dynamic: {
     some: 'value'
   },
   binary: Buffer.from('a buffer'),
@@ -35,7 +35,7 @@ const richValue = {
 };
 
 const rawValue = {
-  any: {
+  dynamic: {
     M: {
       some: {
         S: 'value'

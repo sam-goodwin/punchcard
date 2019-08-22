@@ -78,7 +78,7 @@ export namespace Raw {
     }
 
     public read<T extends Type<V>, V>(type: T, parsed: any): any {
-      if (type.kind === Kind.Any) {
+      if (type.kind === Kind.Dynamic) {
         return parsed;
       } else if (type.kind === Kind.Boolean) {
         if (typeof parsed !== 'boolean') {
@@ -177,7 +177,7 @@ export namespace Raw {
     }
 
     public write<T extends Type<V>, V>(type: T, value: any): any {
-      if (type.kind === Kind.Any) {
+      if (type.kind === Kind.Dynamic) {
         return value;
       } else if (type.kind === Kind.Boolean) {
         return value;

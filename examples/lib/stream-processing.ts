@@ -1,6 +1,6 @@
 import glue = require('@aws-cdk/aws-glue')
 import cdk = require('@aws-cdk/core');
-import { any, integer, string, struct, SNS, Lambda, DynamoDB, array, timestamp, Dependency, optional } from 'punchcard';
+import { integer, string, struct, SNS, Lambda, DynamoDB, array, timestamp, Dependency } from 'punchcard';
 
 import uuid = require('uuid');
 import { Duration } from '@aws-cdk/core';

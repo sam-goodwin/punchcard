@@ -22,7 +22,7 @@ function stringMapping(name: string) {
   return new TypedMapping(string(), name);
 }
 
-export function dynamic(fn: (name: string) => StringMapping): {[key: string]: Mapping} {
+export function dynamicVariable(fn: (name: string) => StringMapping): {[key: string]: Mapping} {
   return new Proxy({}, {
     get: (_target, name) => {
       return fn(name.toString());
@@ -54,9 +54,9 @@ export const $context = {
       if (name === 'principalId') {
         return stringMapping('$context.authorizer.principalId');
       } else if (name === 'claims') {
-        return dynamic(name => stringMapping(`$context.claims.${name}`));
+        return dynamicVariable(name => stringMapping(`$context.claims.${name}`));
       } else {
-        return dynamic(name => stringMapping(`$context.authorizer.${name}`));
+        return dynamicVariable(name => stringMapping(`$context.authorizer.${name}`));
       }
     }
   }) as {
@@ -92,14 +92,14 @@ export const $context = {
   path: stringMapping('$context.path'),
   protocol: stringMapping('$context.protocol'),
   requestOverride: {
-    header: dynamic(name => stringMapping(`$context.requestOverride.header.${name}`)),
-    path: dynamic(name => stringMapping(`$context.requestOverride.path.${name}`)),
-    querystring: dynamic(name => stringMapping(`$context.requestOverride.querystring.${name}`)),
+    header: dynamicVariable(name => stringMapping(`$context.requestOverride.header.${name}`)),
+    path: dynamicVariable(name => stringMapping(`$context.requestOverride.path.${name}`)),
+    querystring: dynamicVariable(name => stringMapping(`$context.requestOverride.querystring.${name}`)),
   },
   responseOverride: {
-    header: dynamic(name => stringMapping(`$context.responseOverride.header.${name}`)),
-    path: dynamic(name => stringMapping(`$context.responseOverride.path.${name}`)),
-    querystring: dynamic(name => stringMapping(`$context.responseOverride.querystring.${name}`)),
+    header: dynamicVariable(name => stringMapping(`$context.responseOverride.header.${name}`)),
+    path: dynamicVariable(name => stringMapping(`$context.responseOverride.path.${name}`)),
+    querystring: dynamicVariable(name => stringMapping(`$context.responseOverride.querystring.${name}`)),
     status: new TypedMapping(integer(), '$context.responseOverride.status')
   },
   requestTime: new TypedMapping(timestamp, '$context.requestTime'),
@@ -113,7 +113,7 @@ export const $context = {
   webaclArn: stringMapping('$context.webaclArn'),
 };
 
-export const $stageVariables = dynamic(name => stringMapping(`$stageVariables.${name}`));
+export const $stageVariables = dynamicVariable(name => stringMapping(`$stageVariables.${name}`));
 
 export const $util = {
   escapeJavaScript: (mapping: StringMapping): StringMapping => {
