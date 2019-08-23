@@ -18,7 +18,3 @@ export interface Type<V> {
   hashCode(value: V): number;
   equals(a: V, b: V): boolean;
 }
-
-export namespace Type {
-  export const tag = Symbol.for('punchcard:type');
-}

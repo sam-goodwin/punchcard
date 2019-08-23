@@ -34,14 +34,6 @@ export class DynamicType<T extends any | unknown> implements Type<T> {
     throw new Error(`any is not supported with Glue`);
   }
 
-  public isType(type: Type<any>): type is this {
-    return this.kind === type.kind;
-  }
-
-  public isInstance(a: any): a is T {
-    return true;
-  }
-
   public hashCode(value: unknown): number {
     return hashCode(value);
 
