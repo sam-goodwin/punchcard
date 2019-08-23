@@ -15,7 +15,7 @@ Let's walk through some punchcard features to demonstrate:
 Creating a Lambda Function is super simple - just create it and implement `handle`:
 
 ```ts
-new Function(stack, 'MyFunction', {
+new Lambda.Function(stack, 'MyFunction', {
   handle: async (event) => {
     console.log('hello world');
   }
@@ -27,7 +27,7 @@ To contact other services in your Function, data structures such as SNS Topics, 
 This will create the required IAM policies for your Function's IAM Role, add any environment variables for details such as the Topic's ARN, and automatically create a client for accessing the `Construct`. The result is that your `handle` function is now passed a `topic` instance which you can interact with:
 
 ```ts
-new Function(stack, 'MyFunction', {
+new Lambda.Function(stack, 'MyFunction', {
   depends: topic,
   handle: async (event, topic) => {
     await topic.publish({
