@@ -1,4 +1,4 @@
-import { RuntimeShape, Shape } from '../shape/shape';
+import { RuntimeShape, RuntimeType, Shape } from '../shape/shape';
 import { StructType, Type } from '../shape/types';
 
 import { Client, Dependency } from '../compute';
@@ -38,17 +38,15 @@ export type Responses =  {
   [S in StatusCode]?: Type<any>;
 };
 
-// TODO: Why do we need to use GetShape when all values of Responses is a Shape????
-type GetShape<T> = T extends Type<infer V> ? V : never;
 export interface Response<R extends Responses, S extends keyof R> {
   statusCode: S;
-  payload: GetShape<R[S]>;
+  payload: RuntimeType<R[S]>;
 }
 
 // TODO: Why do we need this function to enforce type safety .. ?
 export function response<R extends Responses, S extends keyof R>(
     statusCode: S,
-    payload: GetShape<R[S]>): Response<R, S> {
+    payload: RuntimeType<R[S]>): Response<R, S> {
   return {
     statusCode,
     payload
