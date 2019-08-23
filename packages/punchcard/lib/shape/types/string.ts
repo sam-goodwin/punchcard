@@ -10,11 +10,7 @@ export interface StringTypeConstraints {
   pattern?: RegExp;
 }
 
-const symbol = Symbol.for('punchcard:type:string');
-
 export abstract class BaseStringType extends PrimitiveType<string> {
-  public readonly [symbol]: string = 'string';
-
   constructor(private readonly constraints: StringTypeConstraints = {}) {
     super(Kind.String);
   }

@@ -14,16 +14,8 @@ export interface SetTypeConstraints {
   maxItems?: number;
 }
 
-const symbol = Symbol.for('punchcard:type:SetType');
-
 export class SetType<T extends Type<any>> implements Type<Set<RuntimeType<T>>> {
-  public readonly [symbol] = true;
-
   public readonly kind = Kind.Set;
-
-  public static isSetType(a: any): a is SetType<any> {
-    return a[symbol] === true;
-  }
 
   constructor(public readonly itemType: T, private readonly constraints?: SetTypeConstraints) {}
 
