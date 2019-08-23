@@ -1,7 +1,6 @@
 import { BaseDynamoPath, DynamoPath } from '../../storage/dynamodb/expression/path';
 import { Kind } from './kind';
 import { PrimitiveType } from './primitive';
-import { Type } from './type';
 
 export class BooleanType extends PrimitiveType<boolean> {
   constructor() { super(Kind.Boolean); }

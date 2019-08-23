@@ -8,11 +8,9 @@ import { Type } from './type';
 
 type RuntimeMap<T extends Type<any>> = {[key: string]: RuntimeType<T>};
 
-export function map<T extends Type<any>>(valueType: T, constraints?: MapTypeConstraints): MakeMapType<T> {
-  return new MapType(valueType, constraints) as MakeMapType<T>;
+export function map<T extends Type<any>>(valueType: T, constraints?: MapTypeConstraints): MapType<T> {
+  return new MapType(valueType, constraints) as MapType<T>;
 }
-
-type MakeMapType<T extends Type<any>> = T extends Type<infer V> ? MapType<T> : never;
 
 export interface MapTypeConstraints {
   minProperties?: number;

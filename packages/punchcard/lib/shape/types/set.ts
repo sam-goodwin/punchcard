@@ -5,11 +5,9 @@ import { Kind } from './kind';
 import { Type } from './type';
 import { TypeSet } from './typed-set';
 
-export function set<T extends Type<any>>(itemType: T, constraints: SetTypeConstraints = {}): MakeSetType<T> {
-  return new SetType(itemType, constraints) as MakeSetType<T>;
+export function set<T extends Type<any>>(itemType: T, constraints: SetTypeConstraints = {}): SetType<T> {
+  return new SetType(itemType, constraints) as SetType<T>;
 }
-
-type MakeSetType<T extends Type<any>> = T extends Type<infer V> ? SetType<T> : never;
 
 export interface SetTypeConstraints {
   minItems?: number;

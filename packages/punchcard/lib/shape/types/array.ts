@@ -5,11 +5,9 @@ import { RuntimeType } from '../shape';
 import { Kind } from './kind';
 import { Type } from './type';
 
-export function array<T extends Type<any>>(itemType: T, constraints: ArrayTypeConstraints = {}): MakeArrayType<T> {
-  return new ArrayType(itemType, constraints) as MakeArrayType<T>;
+export function array<T extends Type<any>>(itemType: T, constraints: ArrayTypeConstraints = {}): ArrayType<T> {
+  return new ArrayType(itemType, constraints);
 }
-
-type MakeArrayType<T extends Type<any>> = T extends Type<infer V> ? ArrayType<T> : never;
 
 export interface ArrayTypeConstraints {
   minItems?: number;
