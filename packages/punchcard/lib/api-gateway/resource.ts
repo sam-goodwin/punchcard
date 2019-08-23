@@ -200,7 +200,7 @@ function velocityTemplate<S extends Shape>(
   let template = `#set($inputRoot = ${root})\n`;
   template += '{\n';
 
-  function walk(shape: Shape, name: string, mapping: TypedMapping<any, any> | object, depth: number) {
+  function walk(shape: Shape, name: string, mapping: TypedMapping<any> | object, depth: number) {
     template += '  '.repeat(depth);
     if (mapping) {
       if ((mapping as any)[isMapping]) {

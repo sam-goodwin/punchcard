@@ -114,7 +114,6 @@ const stream = queue.stream() // stream gives us a nice chainable API for resour
   .map({
     depends: enrichments.readAccess(),
     handle: async(message, e) => {
-      e
       // here we transform messages received from SQS by looking up some data in DynamoDB
       const enrichment = await e.get({
         key: message.key

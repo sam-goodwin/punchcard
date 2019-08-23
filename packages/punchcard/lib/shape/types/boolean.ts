@@ -1,6 +1,7 @@
 import { BaseDynamoPath, DynamoPath } from '../../storage/dynamodb/expression/path';
 import { Kind } from './kind';
 import { PrimitiveType } from './primitive';
+import { Type } from './type';
 
 export class BooleanType extends PrimitiveType<boolean> {
   constructor() { super(Kind.Boolean); }
@@ -9,7 +10,7 @@ export class BooleanType extends PrimitiveType<boolean> {
     return value;
   }
 
-  public toDynamoPath(parent: DynamoPath, name: string): BaseDynamoPath<BooleanType, boolean> {
+  public toDynamoPath(parent: DynamoPath, name: string): BaseDynamoPath<this> {
     return new BaseDynamoPath(parent, name, this);
   }
 

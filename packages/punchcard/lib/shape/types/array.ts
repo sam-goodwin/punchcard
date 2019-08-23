@@ -1,6 +1,7 @@
 // tslint:disable-next-line: max-line-length
 import { BaseDynamoPath, ConditionValue, DynamoPath, IndexParent, InferDynamoPathType, list_append, remove, RemoveAction, SetAction, UpdateValue } from '../../storage/dynamodb/expression/path';
 import { InferJsonPathType, JsonPath } from '../json/path';
+import { RuntimeType } from '../shape';
 import { Kind } from './kind';
 import { Type } from './type';
 
@@ -8,7 +9,7 @@ export function array<T extends Type<any>>(itemType: T, constraints: ArrayTypeCo
   return new ArrayType(itemType, constraints) as MakeArrayType<T>;
 }
 
-type MakeArrayType<T extends Type<any>> = T extends Type<infer V> ? ArrayType<T, V> : never;
+type MakeArrayType<T extends Type<any>> = T extends Type<infer V> ? ArrayType<T> : never;
 
 export interface ArrayTypeConstraints {
   minItems?: number;
@@ -16,11 +17,11 @@ export interface ArrayTypeConstraints {
   uniqueItems?: boolean;
 }
 
-export class ArrayType<T extends Type<V>, V> implements Type<V[]> {
+export class ArrayType<T extends Type<any>> implements Type<Array<RuntimeType<T>>> {
   public readonly kind = Kind.Array;
   constructor(public readonly itemType: T, private readonly constraints?: ArrayTypeConstraints) {}
 
-  public validate(value: V[]): void {
+  public validate(value: Array<RuntimeType<T>>): void {
     value.forEach(v => this.itemType.validate(v));
     if (!this.constraints) {
       return;
@@ -32,7 +33,7 @@ export class ArrayType<T extends Type<V>, V> implements Type<V[]> {
       throw new Error(`expected maxItems=${this.constraints.maxItems} but array contains ${value.length} items`);
     }
     if (this.constraints.uniqueItems) {
-      const map: Map<number, V[]> = new Map();
+      const map: Map<number, Array<RuntimeType<T>>> = new Map();
       value.forEach(item => {
         const hashCode = this.itemType.hashCode(item);
         if (map.has(hashCode)) {
@@ -48,11 +49,11 @@ export class ArrayType<T extends Type<V>, V> implements Type<V[]> {
     }
   }
 
-  public toDynamoPath(parent: DynamoPath, name: string): ArrayDynamoPath<T, V> {
+  public toDynamoPath(parent: DynamoPath, name: string): ArrayDynamoPath<T> {
     return new ArrayDynamoPath(parent, name, this);
   }
 
-  public toJsonPath(parent: JsonPath<any>, name: string): ArrayPath<T, V> {
+  public toJsonPath(parent: JsonPath<any>, name: string): ArrayPath<T> {
     return new ArrayPath(parent, name, this);
   }
 
@@ -78,14 +79,14 @@ export class ArrayType<T extends Type<V>, V> implements Type<V[]> {
     };
   }
 
-  public hashCode(value: V[]): number {
+  public hashCode(value: Array<RuntimeType<T>>): number {
     const prime = 31;
     let result = 1;
     value.forEach(item => result += prime * result + this.itemType.hashCode(item));
     return result;
   }
 
-  public equals(a: V[], b: V[]): boolean {
+  public equals(a: Array<RuntimeType<T>>, b: Array<RuntimeType<T>>): boolean {
     if (a.length !== b.length) {
       return false;
     }
@@ -100,10 +101,10 @@ export class ArrayType<T extends Type<V>, V> implements Type<V[]> {
   }
 }
 
-export class ArrayPath<T extends Type<V>, V> extends JsonPath<V[]> {
+export class ArrayPath<T extends Type<any>> extends JsonPath<Array<RuntimeType<T>>> {
   public readonly items: InferJsonPathType<T>;
 
-  constructor(parent: JsonPath<any>, name: string, public readonly type: ArrayType<T, V>) {
+  constructor(parent: JsonPath<any>, name: string, public readonly type: ArrayType<T>) {
     super(parent, name, type);
     this.items = this.type.itemType.toJsonPath(this, '[:0]') as InferJsonPathType<T>;
   }
@@ -124,7 +125,7 @@ export class ArrayPath<T extends Type<V>, V> extends JsonPath<V[]> {
 /**
  * Represents a path to a List attribute.
  */
-export class ArrayDynamoPath<T extends Type<V>, V> extends BaseDynamoPath<ArrayType<T, V>, V[]> {
+export class ArrayDynamoPath<T extends Type<any>> extends BaseDynamoPath<ArrayType<T>> {
   /**
    * Get a path to an item in the list by position.
    *
@@ -134,19 +135,19 @@ export class ArrayDynamoPath<T extends Type<V>, V> extends BaseDynamoPath<ArrayT
     return this.type.itemType.toDynamoPath(new IndexParent(this, index), index.toString()) as InferDynamoPathType<T>;
   }
 
-  public insert(index: number, value: ConditionValue<T, V>): SetAction<T, V> {
+  public insert(index: number, value: ConditionValue<T>): SetAction<T> {
     return ( this.get(index) as any).set(value);
   }
 
-  public remove(index: number): RemoveAction<T, V> {
+  public remove(index: number): RemoveAction<T> {
     return remove(( this.get(index) as any));
   }
 
-  public append(values: UpdateValue<ArrayType<T, V>, V[]>): SetAction<ArrayType<T, V>, V[]> {
+  public append(values: UpdateValue<ArrayType<T>>): SetAction<ArrayType<T>> {
     return this.set(list_append(this.type, this, values));
   }
 
-  public prepend(values: UpdateValue<ArrayType<T, V>, V[]>): SetAction<ArrayType<T, V>, V[]> {
+  public prepend(values: UpdateValue<ArrayType<T>>): SetAction<ArrayType<T>> {
     return this.set(list_append(this.type, values, this));
   }
 }

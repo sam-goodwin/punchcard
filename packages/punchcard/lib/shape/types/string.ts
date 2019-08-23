@@ -10,12 +10,16 @@ export interface StringTypeConstraints {
   pattern?: RegExp;
 }
 
+const symbol = Symbol.for('punchcard:type:string');
+
 export abstract class BaseStringType extends PrimitiveType<string> {
+  public readonly [symbol]: string = 'string';
+
   constructor(private readonly constraints: StringTypeConstraints = {}) {
     super(Kind.String);
   }
 
-  public toDynamoPath(parent: DynamoPath, name: string): StringDynamoPath<this, string> {
+  public toDynamoPath(parent: DynamoPath, name: string): StringDynamoPath<this> {
     return new StringDynamoPath(parent, name, this);
   }
 
@@ -105,12 +109,12 @@ export function varchar(length: number, constraints?: FixedLengthConstraints) {
   return new FixedLength('varchar', length, constraints);
 }
 
-export class StringDynamoPath<T extends Type<V>, V> extends OrdPath<T, V> {
-  public beginsWith(value: ConditionValue<T, V>): BeginsWith<T, V> {
+export class StringDynamoPath<T extends Type<any>> extends OrdPath<T> {
+  public beginsWith(value: ConditionValue<T>): BeginsWith<T> {
     return new BeginsWith(this, value);
   }
 
-  public contains(value: ConditionValue<T, V>): Contains<T, V> {
+  public contains(value: ConditionValue<T>): Contains<T> {
     return new Contains(this, this.type, value);
   }
 }

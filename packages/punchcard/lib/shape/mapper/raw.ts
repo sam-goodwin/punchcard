@@ -1,4 +1,4 @@
-import { RuntimeShape, Shape } from '../shape';
+import { RuntimeShape, RuntimeType, Shape } from '../shape';
 import { ArrayType, Kind, MapType, OptionalType, SetType, struct, StructType, Type, TypeSet } from '../types';
 import { Mapper as IMapper, Reader as IReader, Writer as IWriter } from './mapper';
 import { TimestampFormat } from './timestamp';
@@ -28,7 +28,7 @@ export namespace Raw {
     return new Mapper(type, configuration) as any;
   }
 
-  export class Mapper<T extends Type<V>, V> implements IMapper<V, string> {
+  export class Mapper<T extends Type<any>> implements IMapper<any, string> {
     private readonly reader: IReader<any>;
     private readonly writer: IWriter<any>;
     private readonly validate: boolean;
@@ -45,15 +45,15 @@ export namespace Raw {
       }
     }
 
-    public read(raw: any): V {
-      const record: V = this.reader.read(this.type, raw);
+    public read(raw: any): RuntimeType<T> {
+      const record: RuntimeType<T> = this.reader.read(this.type, raw);
       if (this.validate) {
         this.type.validate(record);
       }
       return record;
     }
 
-    public write(record: V): any {
+    public write(record: RuntimeType<T>): any {
       if (this.validate) {
         this.type.validate(record);
       }
@@ -109,7 +109,7 @@ export namespace Raw {
         if (parsed === undefined || parsed === null) {
           return undefined;
         } else {
-          const optional = type as any as OptionalType<any, any>;
+          const optional = type as any as OptionalType<any>;
           return this.read(optional.type, parsed);
         }
       } else if (type.kind === Kind.Struct) {
@@ -130,7 +130,7 @@ export namespace Raw {
           Reader.throwError(type.kind, parsed, 'array');
         }
 
-        const array = type as any as ArrayType<any, any>;
+        const array = type as any as ArrayType<any>;
         const itemType: any = array.itemType;
         return parsed.map((p: any) => this.read(itemType, p)) as any;
       } else if (type.kind === Kind.Set) {
@@ -138,7 +138,7 @@ export namespace Raw {
           Reader.throwError(type.kind, parsed, 'array');
         }
 
-        const set = type as any as SetType<any, any>;
+        const set = type as any as SetType<any>;
         const itemType: any = set.itemType;
         const typedSet = TypeSet.forType(itemType);
         parsed.forEach((p: any) => typedSet.add(this.read(itemType, p)));
@@ -147,7 +147,7 @@ export namespace Raw {
         if (typeof parsed !== 'object') {
           Reader.throwError(type.kind, parsed, 'object');
         }
-        const map = type as any as MapType<any, any>;
+        const map = type as any as MapType<any>;
         const result: any = {};
         Object.keys(parsed).forEach(name => {
           const value = parsed[name];
@@ -193,7 +193,7 @@ export namespace Raw {
         if (value === undefined || value === null) {
           return this.writeNulls ? null : undefined;
         } else {
-          const optional = type as any as OptionalType<any, any>;
+          const optional = type as any as OptionalType<any>;
           return this.write(optional.type, value);
         }
       } else if (type.kind === Kind.Struct) {
@@ -207,12 +207,12 @@ export namespace Raw {
         return result;
 
       } else if (type.kind === Kind.Array) {
-        const array = type as any as ArrayType<any, any>;
+        const array = type as any as ArrayType<any>;
         const itemType: any = array.itemType;
         return value.map((p: any) => this.write(itemType, p));
       } else if (type.kind === Kind.Set) {
-        const setType = type as any as SetType<any, any>;
-        const setValue: TypeSet<any, any> = value;
+        const setType = type as any as SetType<any>;
+        const setValue: TypeSet<any> = value;
         const itemType: any = setType.itemType;
         const result = [];
         for (const v of setValue.values()) {
@@ -220,7 +220,7 @@ export namespace Raw {
         }
         return result;
       } else if (type.kind === Kind.Map) {
-        const map = type as any as MapType<any, any>;
+        const map = type as any as MapType<any>;
         const result: any = {};
         Object.keys(value).forEach(name => {
           const v = value[name];
