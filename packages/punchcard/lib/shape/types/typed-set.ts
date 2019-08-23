@@ -13,10 +13,17 @@ export namespace TypeSet {
       return new GeneralSet(type);
     }
   };
+
+  export function isSet(a: any): a is TypeSet<any, any> {
+    return a[isSetSymbol] === true;
+  }
 }
 
+const isSetSymbol = Symbol.for('punchcard:isSet');
+
 class PrimitiveSet<T extends Type<V>, V> implements Set<V> {
-  public [Symbol.toStringTag]: 'Set' = 'Set';
+  public readonly [isSetSymbol] = true;
+  public readonly [Symbol.toStringTag]: 'Set' = 'Set';
   public size: number = 0;
 
   private readonly delegate: Set<V> = new Set();
@@ -66,6 +73,8 @@ class PrimitiveSet<T extends Type<V>, V> implements Set<V> {
 }
 
 class GeneralSet<T extends Type<V>, V> implements Set<V> {
+  public readonly [isSetSymbol] = true;
+
   public readonly [Symbol.toStringTag]: 'Set' = 'Set';
 
   public size: number = 0;

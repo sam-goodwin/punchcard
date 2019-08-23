@@ -59,6 +59,19 @@ abstract class BaseNumberType extends PrimitiveType<number> {
     }
   }
 
+  public isInstance(a: any): a is number {
+    if (typeof a !== 'number') {
+      return false;
+    }
+    try {
+      // TODO: ugly, return something better from validate.
+      this.validate(a);
+      return true;
+    } catch (err) {
+      return false;
+    }
+  }
+
   public hashCode(value: number): number {
     return value;
   }
@@ -71,6 +84,7 @@ class WholeNumberType extends BaseNumberType {
       throw new Error('integer must be a whole number');
     }
   }
+
 }
 
 export class BigIntType extends WholeNumberType {

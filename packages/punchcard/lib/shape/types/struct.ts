@@ -11,7 +11,9 @@ export function struct<S extends Shape>(schema: S): StructType<S> {
 }
 
 export abstract class BaseStructType<S extends Shape> implements Type<RuntimeShape<S>> {
-  public kind: Kind = Kind.Struct;
+  public readonly [symbol] = 'struct';
+
+  public readonly kind: Kind.Struct = Kind.Struct;
 
   constructor(public readonly shape: S) {}
 
@@ -58,6 +60,18 @@ export abstract class BaseStructType<S extends Shape> implements Type<RuntimeSha
       }).join(',')}>`,
       isPrimitive: false
     };
+  }
+
+  public isInstance(a: any): a is RuntimeShape<S> {
+    if (typeof a !== 'object' || Array.isArray(a)) {
+      return false;
+    }
+    for (const [key, value] of Object.keys(a)) {
+      if (typeof key !== 'string' || this.shape[key] === undefined || !this.shape[key].isInstance(value)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public equals(a: RuntimeShape<S>, b: RuntimeShape<S>): boolean {

@@ -78,6 +78,10 @@ export class ArrayType<T extends Type<V>, V> implements Type<V[]> {
     };
   }
 
+  public isInstance(a: any): a is V[] {
+    return Array.isArray(a) && a.findIndex(item => !this.itemType.isInstance(item)) === -1;
+  }
+
   public hashCode(value: V[]): number {
     const prime = 31;
     let result = 1;

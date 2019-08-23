@@ -24,6 +24,10 @@ export class BooleanType extends PrimitiveType<boolean> {
     };
   }
 
+  public isInstance(a: any): a is boolean {
+    return typeof a === 'boolean';
+  }
+
   public hashCode(value: boolean): number {
     return value ? 1 : 0;
   }

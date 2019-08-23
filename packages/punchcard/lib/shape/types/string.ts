@@ -10,7 +10,11 @@ export interface StringTypeConstraints {
   pattern?: RegExp;
 }
 
+const symbol = Symbol.for('punchcard:type:string');
+
 export abstract class BaseStringType extends PrimitiveType<string> {
+  public readonly [symbol]: string = 'string';
+
   constructor(private readonly constraints: StringTypeConstraints = {}) {
     super(Kind.String);
   }
@@ -47,6 +51,14 @@ export abstract class BaseStringType extends PrimitiveType<string> {
         }
       }
     }
+  }
+
+  public isType(a: any): a is this {
+    return a[symbol] === this[symbol];
+  }
+
+  public isInstance(a: any): a is string {
+    return typeof a === 'string';
   }
 
   public hashCode(value: string): number {

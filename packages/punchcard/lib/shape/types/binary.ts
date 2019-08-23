@@ -47,6 +47,10 @@ export class BinaryType extends PrimitiveType<Buffer> {
     }
   }
 
+  public isInstance(a: any): a is Buffer {
+    return Buffer.isBuffer(a);
+  }
+
   public hashCode(value: Buffer): number {
     return hashCode(value);
   }

@@ -1,6 +1,7 @@
 import { DynamoPath, InferDynamoPathType } from '../../storage/dynamodb/expression/path';
 import { TreeFields } from '../../tree';
 import { InferJsonPathType, JsonPath } from '../json/path';
+import { RuntimeType } from '../shape';
 import { hashCode as strHashCode } from './hash';
 import { Kind } from './kind';
 import { Type } from './type';
@@ -21,15 +22,23 @@ export class DynamicType<T extends any | unknown> implements Type<T> {
   public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<T> {
     throw new Error('Method not implemented.');
   }
+
   public toDynamoPath(parent: DynamoPath, name: string): AnyDynamoPath {
     return new AnyDynamoPath(parent, name);
   }
+
   public toJsonSchema(): { [key: string]: any; } {
     return {};
   }
+
   public toGlueType(): { inputString: string; isPrimitive: boolean; } {
     throw new Error(`any is not supported with Glue`);
   }
+
+  public isInstance(a: any): a is T {
+    return true;
+  }
+
   public hashCode(value: unknown): number {
     return hashCode(value);
 
@@ -59,6 +68,7 @@ export class DynamicType<T extends any | unknown> implements Type<T> {
       }
     }
   }
+
   public equals(a: T, b: T): boolean {
     return equals(a, b);
 
@@ -129,4 +139,12 @@ export class AnyJsonPath extends JsonPath<any> {
   public as<T extends Type<any>>(type: T): InferJsonPathType<T> {
     return type.toJsonPath(this[TreeFields.parent] as JsonPath<any>, this[TreeFields.name]) as InferJsonPathType<T>;
   }
+}
+
+/**
+ * Return a type that
+ */
+export interface TypeMapper<T extends Type<any>> {
+  type: T;
+  isInstance: (a: any) => a is RuntimeType<T>;
 }

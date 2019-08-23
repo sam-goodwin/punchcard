@@ -41,6 +41,10 @@ export class OptionalType<T extends Type<V>, V> implements Type<V | undefined> {
     return this.type.toGlueType();
   }
 
+  public isInstance(a: any): a is V | undefined {
+    return typeof a === 'undefined' || this.type.isInstance(a);
+  }
+
   public hashCode(value: V): number {
     if (value === undefined) {
       return 0;

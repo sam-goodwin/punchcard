@@ -15,8 +15,17 @@ export interface SetTypeConstraints {
   maxItems?: number;
 }
 
+const symbol = Symbol.for('punchcard:type:SetType');
+
 export class SetType<T extends Type<V>, V> implements Type<Set<V>> {
+  public readonly [symbol] = true;
+
   public readonly kind = Kind.Set;
+
+  public static isSetType(a: any): a is SetType<any, any> {
+    return a[symbol] === true;
+  }
+
   constructor(public readonly itemType: T, private readonly constraints?: SetTypeConstraints) {}
 
   public validate(value: Set<V>): void {
@@ -62,6 +71,18 @@ export class SetType<T extends Type<V>, V> implements Type<Set<V>> {
       inputString: `array<${this.itemType.toGlueType().inputString}>`,
       isPrimitive: false
     };
+  }
+
+  public isType(a: Type<any>): a is this {
+    return a.kind === Kind.Set && this.itemType.isType((a as any).itemType);
+  }
+
+  public isInstance(a: any): a is Set<V> {
+    if (TypeSet.isSet(a)) {
+      return SetType.isSetType(a) && this.itemType.isType(a);
+    }
+
+    return (a instanceof Set);
   }
 
   public hashCode(value: Set<V>): number {

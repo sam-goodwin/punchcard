@@ -21,5 +21,6 @@ export abstract class PrimitiveType<V> implements Type<V> {
     isPrimitive: boolean;
   };
   public abstract validate(value: V): void;
+  public abstract isInstance(a: any): a is V;
   public abstract hashCode(value: V): number;
 }

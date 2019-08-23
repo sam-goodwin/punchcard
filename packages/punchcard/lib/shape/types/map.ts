@@ -66,6 +66,21 @@ export class MapType<T extends Type<V>, V> implements Type<RuntimeMap<V>> {
     };
   }
 
+  public isInstance(a: any): a is RuntimeMap<V> {
+    if (typeof a !== 'object' || Array.isArray(a)) {
+      return false;
+    }
+    for (const [key, value] of Object.entries(a)) {
+      if (typeof key !== 'string') {
+        return false;
+      }
+      if (!this.valueType.isInstance(value)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   public hashCode(value: RuntimeMap<V>): number {
     const prime = 31;
     let result = 1;

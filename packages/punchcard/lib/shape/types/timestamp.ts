@@ -40,6 +40,12 @@ export class TimestampType implements Type<Date> {
     };
   }
 
+  public isInstance(a: any): a is Date {
+    // https://stackoverflow.com/questions/643782/how-to-check-whether-an-object-is-a-date
+    // I think instanceof will be sufficient
+    return a instanceof Date ||  Object.prototype.toString.call(a) === '[object Date]';
+  }
+
   public equals(a: Date, b: Date): boolean {
     return a.getTime() === b.getTime();
   }
