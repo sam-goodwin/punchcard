@@ -35,6 +35,10 @@ export class DynamicType<T extends any | unknown> implements Type<T> {
     throw new Error(`any is not supported with Glue`);
   }
 
+  public isType(type: Type<any>): type is this {
+    return this.kind === type.kind;
+  }
+
   public isInstance(a: any): a is T {
     return true;
   }
@@ -113,7 +117,7 @@ export class DynamicType<T extends any | unknown> implements Type<T> {
           }
           return true;
         default:
-            throw new Error(`unsupported value in any type: '${type}'`);
+          throw new Error(`unsupported value in any type: '${type}'`);
       }
     }
   }
@@ -139,12 +143,4 @@ export class AnyJsonPath extends JsonPath<any> {
   public as<T extends Type<any>>(type: T): InferJsonPathType<T> {
     return type.toJsonPath(this[TreeFields.parent] as JsonPath<any>, this[TreeFields.name]) as InferJsonPathType<T>;
   }
-}
-
-/**
- * Return a type that
- */
-export interface TypeMapper<T extends Type<any>> {
-  type: T;
-  isInstance: (a: any) => a is RuntimeType<T>;
 }

@@ -34,7 +34,7 @@ export namespace Json {
     return new Mapper(type, configuration);
   }
 
-  export class Mapper<T extends Type<V>, V> implements IMapper<V, string> {
+  export class Mapper<T extends Type<any>> implements IMapper<RuntimeType<T>, string> {
     private readonly reader: Reader<any>;
     private readonly writer: Writer<any>;
     private readonly validate: boolean;
@@ -45,15 +45,15 @@ export namespace Json {
       this.validate = configuration.validate === undefined ? true : configuration.validate;
     }
 
-    public read(json: string): V {
-      const record: V = this.reader.read(this.type, JSON.parse(json));
+    public read(json: string): RuntimeType<T> {
+      const record: RuntimeType<T> = this.reader.read(this.type, JSON.parse(json));
       if (this.validate) {
         this.type.validate(record);
       }
       return record;
     }
 
-    public write(record: V): string {
+    public write(record: RuntimeType<T>): string {
       if (this.validate) {
         this.type.validate(record);
       }

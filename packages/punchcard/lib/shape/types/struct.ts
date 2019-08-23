@@ -11,8 +11,6 @@ export function struct<S extends Shape>(schema: S): StructType<S> {
 }
 
 export abstract class BaseStructType<S extends Shape> implements Type<RuntimeShape<S>> {
-  public readonly [symbol] = 'struct';
-
   public readonly kind: Kind.Struct = Kind.Struct;
 
   constructor(public readonly shape: S) {}
@@ -22,7 +20,7 @@ export abstract class BaseStructType<S extends Shape> implements Type<RuntimeSha
       const item = (value as any)[field];
       const schema = this.shape[field];
 
-      if (item === undefined && !( schema as OptionalType<any, any>).isOptional) {
+      if (item === undefined && !( schema as OptionalType<any>).isOptional) {
         throw new Error(`required field ${field} is mising from object`);
       } else {
         schema.validate(item);
@@ -60,18 +58,6 @@ export abstract class BaseStructType<S extends Shape> implements Type<RuntimeSha
       }).join(',')}>`,
       isPrimitive: false
     };
-  }
-
-  public isInstance(a: any): a is RuntimeShape<S> {
-    if (typeof a !== 'object' || Array.isArray(a)) {
-      return false;
-    }
-    for (const [key, value] of Object.keys(a)) {
-      if (typeof key !== 'string' || this.shape[key] === undefined || !this.shape[key].isInstance(value)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   public equals(a: RuntimeShape<S>, b: RuntimeShape<S>): boolean {
@@ -140,7 +126,7 @@ export abstract class CustomPath<S extends Shape, T extends CustomType<S>> exten
  *
  * Recursively creates an attribute for each key in the schema and assigns it to 'fields'.
  */
-export class StructDynamoPath<S extends Shape> extends BaseDynamoPath<StructType<S>, RuntimeShape<S>> {
+export class StructDynamoPath<S extends Shape> extends BaseDynamoPath<StructType<S>> {
   public readonly fields: Facade<S> = {} as Facade<S>;
 
   constructor(parent: DynamoPath, name: string, type: StructType<S>) {

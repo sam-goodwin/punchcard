@@ -19,7 +19,7 @@ export abstract class BaseStringType extends PrimitiveType<string> {
     super(Kind.String);
   }
 
-  public toDynamoPath(parent: DynamoPath, name: string): StringDynamoPath<this, string> {
+  public toDynamoPath(parent: DynamoPath, name: string): StringDynamoPath<this> {
     return new StringDynamoPath(parent, name, this);
   }
 
@@ -51,14 +51,6 @@ export abstract class BaseStringType extends PrimitiveType<string> {
         }
       }
     }
-  }
-
-  public isType(a: any): a is this {
-    return a[symbol] === this[symbol];
-  }
-
-  public isInstance(a: any): a is string {
-    return typeof a === 'string';
   }
 
   public hashCode(value: string): number {
@@ -117,12 +109,12 @@ export function varchar(length: number, constraints?: FixedLengthConstraints) {
   return new FixedLength('varchar', length, constraints);
 }
 
-export class StringDynamoPath<T extends Type<V>, V> extends OrdPath<T, V> {
-  public beginsWith(value: ConditionValue<T, V>): BeginsWith<T, V> {
+export class StringDynamoPath<T extends Type<any>> extends OrdPath<T> {
+  public beginsWith(value: ConditionValue<T>): BeginsWith<T> {
     return new BeginsWith(this, value);
   }
 
-  public contains(value: ConditionValue<T, V>): Contains<T, V> {
+  public contains(value: ConditionValue<T>): Contains<T> {
     return new Contains(this, this.type, value);
   }
 }

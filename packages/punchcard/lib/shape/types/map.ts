@@ -1,29 +1,30 @@
 import { BaseDynamoPath, ConditionValue, DynamoPath, InferDynamoPathType,
   MapKeyParent, remove, RemoveAction, SetAction } from '../../storage/dynamodb/expression/path';
 import { InferJsonPathType, JsonPath } from '../json/path';
+import { RuntimeType } from '../shape';
 import { hashCode } from './hash';
 import { Kind } from './kind';
 import { Type } from './type';
 
-type RuntimeMap<V> = {[key: string]: V};
+type RuntimeMap<T extends Type<any>> = {[key: string]: RuntimeType<T>};
 
 export function map<T extends Type<any>>(valueType: T, constraints?: MapTypeConstraints): MakeMapType<T> {
   return new MapType(valueType, constraints) as MakeMapType<T>;
 }
 
-type MakeMapType<T extends Type<any>> = T extends Type<infer V> ? MapType<T, V> : never;
+type MakeMapType<T extends Type<any>> = T extends Type<infer V> ? MapType<T> : never;
 
 export interface MapTypeConstraints {
   minProperties?: number;
   maxProperties?: number;
 }
 
-export class MapType<T extends Type<V>, V> implements Type<RuntimeMap<V>> {
+export class MapType<T extends Type<any>> implements Type<RuntimeMap<T>> {
   public readonly kind = Kind.Map;
 
   constructor(public readonly valueType: T, private readonly constraints?: MapTypeConstraints) {}
 
-  public validate(value: RuntimeMap<V>): void {
+  public validate(value: RuntimeMap<T>): void {
     const len = Object.keys(value).length;
     if (this.constraints) {
       if (this.constraints.minProperties !== undefined && len < this.constraints.minProperties) {
@@ -36,11 +37,11 @@ export class MapType<T extends Type<V>, V> implements Type<RuntimeMap<V>> {
     Object.keys(value).forEach(key => this.valueType.validate(value[key]));
   }
 
-  public toDynamoPath(parent: DynamoPath, name: string): MapDynamoPath<T, V> {
+  public toDynamoPath(parent: DynamoPath, name: string): MapDynamoPath<T> {
     return new MapDynamoPath(parent, name, this);
   }
 
-  public toJsonPath(parent: JsonPath<any>, name: string): MapPath<T, V> {
+  public toJsonPath(parent: JsonPath<any>, name: string): MapPath<T> {
     return new MapPath(parent, name, this);
   }
 
@@ -66,22 +67,7 @@ export class MapType<T extends Type<V>, V> implements Type<RuntimeMap<V>> {
     };
   }
 
-  public isInstance(a: any): a is RuntimeMap<V> {
-    if (typeof a !== 'object' || Array.isArray(a)) {
-      return false;
-    }
-    for (const [key, value] of Object.entries(a)) {
-      if (typeof key !== 'string') {
-        return false;
-      }
-      if (!this.valueType.isInstance(value)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  public hashCode(value: RuntimeMap<V>): number {
+  public hashCode(value: RuntimeMap<T>): number {
     const prime = 31;
     let result = 1;
     Object.keys(value).forEach(key => {
@@ -91,7 +77,7 @@ export class MapType<T extends Type<V>, V> implements Type<RuntimeMap<V>> {
     return result;
   }
 
-  public equals(a: RuntimeMap<V>, b: RuntimeMap<V>): boolean {
+  public equals(a: RuntimeMap<T>, b: RuntimeMap<T>): boolean {
     const aKeys = Object.keys(a);
     const bKeys = Object.keys(b);
     if (aKeys.length !== bKeys.length) {
@@ -112,8 +98,8 @@ export class MapType<T extends Type<V>, V> implements Type<RuntimeMap<V>> {
   }
 }
 
-export class MapPath<T extends Type<V>, V> extends JsonPath<RuntimeMap<V>> {
-  constructor(parent: JsonPath<any>, name: string, public readonly type: MapType<T, V>) {
+export class MapPath<T extends Type<any>> extends JsonPath<RuntimeMap<T>> {
+  constructor(parent: JsonPath<any>, name: string, public readonly type: MapType<T>) {
     super(parent, name, type);
   }
 
@@ -125,7 +111,7 @@ export class MapPath<T extends Type<V>, V> extends JsonPath<RuntimeMap<V>> {
 /**
  * Represents a path to a Map attribute.
  */
-export class MapDynamoPath<T extends Type<V>, V> extends BaseDynamoPath<MapType<T, V>, { [key: string]: V }> {
+export class MapDynamoPath<T extends Type<any>> extends BaseDynamoPath<MapType<T>> {
   /**
    * Get a path to an attribute in the map by its name.
    *
@@ -135,11 +121,11 @@ export class MapDynamoPath<T extends Type<V>, V> extends BaseDynamoPath<MapType<
     return this.type.valueType.toDynamoPath(new MapKeyParent(this, key), key) as InferDynamoPathType<T>;
   }
 
-  public put(key: string, value: ConditionValue<T, V>): SetAction<T, V> {
+  public put(key: string, value: ConditionValue<T>): SetAction<T> {
     return (this.get(key) as any).set(value);
   }
 
-  public remove(key: string): RemoveAction<T, V> {
+  public remove(key: string): RemoveAction<T> {
     return remove(this.get(key) as any);
   }
 }

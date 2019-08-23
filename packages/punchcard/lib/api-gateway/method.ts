@@ -24,7 +24,7 @@ export type MappingType<T extends Type<any>> =
   T extends StructType<infer S> ? {
     [K in keyof S]: MappingType<S[K]>;
   } :
-  T extends Type<infer V> ? TypedMapping<T, V> : never;
+  T extends Type<any> ? TypedMapping<T> : never;
 
 export type RequestMappings<S extends Shape, M extends MethodName> = M extends 'GET' ?
   // 'GET' methods require mappings for all properties since there is no body

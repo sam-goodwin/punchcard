@@ -1,3 +1,4 @@
+import { RuntimeType } from '../shape';
 import { Type } from '../types';
 
 export interface Mapper<De, Ser> {
@@ -6,9 +7,9 @@ export interface Mapper<De, Ser> {
 }
 
 export interface Reader<Ser> {
-  read<T extends Type<V>, V>(type: T, value: Ser): V;
+  read<T extends Type<any>>(type: T, value: Ser): RuntimeType<T>;
 }
 
 export interface Writer<Ser> {
-  write<T extends Type<V>, V>(type: T, value: V): Ser
+  write<T extends Type<any>>(type: T, value: RuntimeType<T>): Ser
 }

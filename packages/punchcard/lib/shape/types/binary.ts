@@ -2,6 +2,7 @@ import { DynamoPath } from '../../storage/dynamodb/expression/path';
 import { Kind } from './kind';
 import { PrimitiveType } from './primitive';
 import { StringDynamoPath } from './string';
+import { Type } from './type';
 
 export interface BinaryTypeConstraints {
   minLength?: number;
@@ -15,7 +16,7 @@ export class BinaryType extends PrimitiveType<Buffer> {
     super(Kind.Binary);
   }
 
-  public toDynamoPath(parent: DynamoPath, name: string): StringDynamoPath<BinaryType, Buffer> {
+  public toDynamoPath(parent: DynamoPath, name: string): StringDynamoPath<this> {
     return new StringDynamoPath(parent, name, this);
   }
 
@@ -45,10 +46,6 @@ export class BinaryType extends PrimitiveType<Buffer> {
         throw new Error(`string length of ${len} exceeds maximum ${this.constraints.minLength}`);
       }
     }
-  }
-
-  public isInstance(a: any): a is Buffer {
-    return Buffer.isBuffer(a);
   }
 
   public hashCode(value: Buffer): number {
