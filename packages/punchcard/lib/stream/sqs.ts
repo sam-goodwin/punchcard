@@ -12,10 +12,10 @@ import { Omit } from '../utils';
 import { Collector } from './collector';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
-import { DependencyType, EventType, Stream, StreamRuntime } from './stream';
+import { DependencyType, EventType, Stream } from './stream';
 
 export namespace SQS {
-  export type QueueStreamRuntime = StreamRuntime & events.SqsEventSourceProps;
+  export type Config = Stream.Config & events.SqsEventSourceProps;
 
   /**
    * Props for constructing a Queue.
@@ -38,9 +38,9 @@ export namespace SQS {
       this.mapper = Json.forType(props.type);
     }
 
-    public stream(): EnumerableQueue<RuntimeType<T>, []> {
+    public stream(): StreamQueue<RuntimeType<T>, []> {
       const mapper = this.mapper;
-      class Root extends EnumerableQueue<RuntimeType<T>, []> {
+      class Root extends StreamQueue<RuntimeType<T>, []> {
         /**
          * Bottom of the recursive async generator - returns the records
          * parsed and validated out of the SQSEvent.
@@ -114,23 +114,23 @@ export namespace SQS {
     }
   }
 
-  export class EnumerableQueue<T, D extends any[]> extends Stream<SQSEvent, T, D, QueueStreamRuntime>  {
-    constructor(public readonly queue: Queue<any>, previous: EnumerableQueue<any, any>, input: {
+  export class StreamQueue<T, D extends any[]> extends Stream<SQSEvent, T, D, Config>  {
+    constructor(public readonly queue: Queue<any>, previous: StreamQueue<any, any>, input: {
       depends: D;
       handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
     }) {
       super(previous, input.handle, input.depends);
     }
 
-    public eventSource(props?: QueueStreamRuntime) {
+    public eventSource(props?: Config) {
       return new events.SqsEventSource(this.queue.resource, props);
     }
 
     public chain<U, D2 extends any[]>(input: {
       depends: D2;
       handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
-    }): EnumerableQueue<U, D2> {
-      return new EnumerableQueue<U, D2>(this.queue, this, input);
+    }): StreamQueue<U, D2> {
+      return new StreamQueue<U, D2>(this.queue, this, input);
     }
   }
 
@@ -234,17 +234,17 @@ export namespace SQS {
   }
 
   /**
-   * Creates a new SQS `Queue` and sends data from an enumerable to it (as messages).
+   * Creates a new SQS `Queue` and sends data from a `Stream` to it (as messages).
    *
    * @typeparam T type of messages in the SQS Queue.
    */
   export class QueueCollector<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedQueue<T, E>, E> {
     constructor(private readonly props: QueueProps<T>) { }
 
-    public collect(scope: core.Construct, id: string, enumerable: E): CollectedQueue<T, E> {
+    public collect(scope: core.Construct, id: string, stream: E): CollectedQueue<T, E> {
       return new CollectedQueue(scope, id, {
         ...this.props,
-        enumerable
+        stream
       });
     }
   }
@@ -254,13 +254,13 @@ export namespace SQS {
    */
   export interface CollectedQueueProps<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> extends QueueProps<T> {
     /**
-     * Source of the data; an enumerable.
+     * Source of the data; a `Stream`.
      */
-    readonly enumerable: E;
+    readonly stream: E;
   }
 
   /**
-   * A SQS `Queue` produced by collecting data from an `Enumerable`.
+   * A SQS `Queue` produced by collecting data from an `Stream`.
    * @typeparam T type of notififcations sent to, and emitted from, the SQS Queue.
    */
   export class CollectedQueue<T extends Type<any>, E extends Stream<any, any, any, any>> extends Queue<T> {
@@ -268,7 +268,7 @@ export namespace SQS {
 
     constructor(scope: core.Construct, id: string, props: CollectedQueueProps<T, E>) {
       super(scope, id, props);
-      this.sender = props.enumerable.forBatch(this.resource, 'ToQueue', {
+      this.sender = props.stream.forBatch(this.resource, 'ToQueue', {
         depends: this,
         handle: async (events, self) => {
           self.sink(events);
@@ -279,17 +279,17 @@ export namespace SQS {
 }
 
 /**
- * Add a utility method `toQueue` for `Enumerable` which uses the `QueueCollector` to produce SQS `Queues`.
+ * Add a utility method `toQueue` for `Stream` which uses the `QueueCollector` to produce SQS `Queues`.
  */
 declare module './stream' {
-  interface Stream<E, T, D extends any[], R extends StreamRuntime> {
+  interface Stream<E, T, D extends any[], R extends Stream.Config> {
     /**
      * Collect data to a SQS Queue (as messages).
      *
      * @param scope
      * @param id
      * @param queueProps properties of the created queue
-     * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
+     * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to queue
      */
     toSQSQueue<DataType extends Type<T>>(scope: core.Construct, id: string, queueProps: SQS.QueueProps<DataType>, runtimeProps?: R): SQS.CollectedQueue<DataType, this>;

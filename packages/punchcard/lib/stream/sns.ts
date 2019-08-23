@@ -14,7 +14,7 @@ import { Collector } from './collector';
 import { Resource } from './resource';
 import { Sink, sink, SinkProps } from './sink';
 import { SQS } from './sqs';
-import { DependencyType, EventType, Stream, StreamRuntime } from './stream';
+import { DependencyType, EventType, Stream } from './stream';
 
 export namespace SNS {
   export type TopicProps<T extends Type<any>> = {
@@ -42,11 +42,11 @@ export namespace SNS {
     }
 
     /**
-     * Create an enumerable for this topic's notifications - chainable computations (map, flatMap, filter, etc.)
+     * Create a `Stream` for this topic's notifications - chainable computations (map, flatMap, filter, etc.)
      */
-    public stream(): EnumerableTopic<RuntimeType<T>, []> {
+    public stream(): StreamTopic<RuntimeType<T>, []> {
       const mapper = this.mapper;
-      class Root extends EnumerableTopic<RuntimeType<T>, []> {
+      class Root extends StreamTopic<RuntimeType<T>, []> {
         /**
          * Return an iterator of records parsed from the raw data in the event.
          * @param event kinesis event sent to lambda
@@ -113,10 +113,10 @@ export namespace SNS {
   }
 
   /**
-   * An enumerable SNS `Topic`.
+   * An stream SNS `Topic`.
    */
-  export class EnumerableTopic<T, D extends any[]> extends Stream<SNSEvent, T, D, StreamRuntime>  {
-    constructor(public readonly topic: Topic<any>, previous: EnumerableTopic<any, any>, input: {
+  export class StreamTopic<T, D extends any[]> extends Stream<SNSEvent, T, D, Stream.Config>  {
+    constructor(public readonly topic: Topic<any>, previous: StreamTopic<any, any>, input: {
       depends: D;
       handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
     }) {
@@ -137,8 +137,8 @@ export namespace SNS {
     public chain<U, D2 extends any[]>(input: {
       depends: D2;
       handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
-    }): EnumerableTopic<U, D2> {
-      return new EnumerableTopic<U, D2>(this.topic, this, input);
+    }): StreamTopic<U, D2> {
+      return new StreamTopic<U, D2>(this.topic, this, input);
     }
   }
 
@@ -222,17 +222,17 @@ export namespace SNS {
   }
 
   /**
-   * Creates a new SNS `Topic` and publishes data from an enumerable to it.
+   * Creates a new SNS `Topic` and publishes data from a `Stream` to it.
    *
    * @typeparam T type of notififcations sent to (and emitted from) the SNS Topic.
    */
   export class TopicCollector<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedTopic<T, E>, E> {
     constructor(private readonly props: TopicProps<T>) { }
 
-    public collect(scope: core.Construct, id: string, enumerable: E): CollectedTopic<T, E> {
+    public collect(scope: core.Construct, id: string, stream: E): CollectedTopic<T, E> {
       return new CollectedTopic(scope, id, {
         ...this.props,
-        enumerable
+        stream
       });
     }
   }
@@ -242,13 +242,13 @@ export namespace SNS {
    */
   export interface CollectedTopicProps<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> extends TopicProps<T> {
     /**
-     * Source of the data; an enumerable.
+     * Source of the data; a `Stream`.
      */
-    readonly enumerable: E;
+    readonly stream: E;
   }
 
   /**
-   * A SNS `Topic` produced by collecting data from an `Enumerable`.
+   * A SNS `Topic` produced by collecting data from an `Stream`.
    * @typeparam T type of notififcations sent to, and emitted from, the SNS Topic.
    */
   export class CollectedTopic<T extends Type<any>, E extends Stream<any, any, any, any>> extends Topic<T> {
@@ -256,7 +256,7 @@ export namespace SNS {
 
     constructor(scope: core.Construct, id: string, props: CollectedTopicProps<T, E>) {
       super(scope, id, props);
-      this.sender = props.enumerable.forBatch(this.resource, 'ToTopic', {
+      this.sender = props.stream.forBatch(this.resource, 'ToTopic', {
         depends: this,
         handle: async (events, self) => {
           self.sink(events);
@@ -267,17 +267,17 @@ export namespace SNS {
 }
 
 /**
- * Add a utility method `toTopic` for `Enumerable` which uses the `TopicCollector` to produce SNS `Topics`.
+ * Add a utility method `toTopic` for `Stream` which uses the `TopicCollector` to produce SNS `Topics`.
  */
 declare module './stream' {
-  interface Stream<E, T, D extends any[], R extends StreamRuntime> {
+  interface Stream<E, T, D extends any[], R extends Stream.Config> {
     /**
      * Collect data to a SNS Topic (as notification messages).
      *
      * @param scope
      * @param id
      * @param topicProps properties of the created topic
-     * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
+     * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to topic
      */
     toSNSTopic<DataType extends Type<T>>(scope: core.Construct, id: string, topicProps: SNS.TopicProps<DataType>, runtimeProps?: R): SNS.CollectedTopic<DataType, this>;
