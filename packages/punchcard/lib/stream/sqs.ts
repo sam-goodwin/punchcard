@@ -14,6 +14,27 @@ import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
 import { DependencyType, EventType, Stream } from './stream';
 
+/**
+ * Add a utility method `toQueue` for `Stream` which uses the `QueueCollector` to produce SQS `Queues`.
+ */
+declare module './stream' {
+  interface Stream<E, T, D extends any[], C extends Stream.Config> {
+    /**
+     * Collect data to a SQS Queue (as messages).
+     *
+     * @param scope
+     * @param id
+     * @param queueProps properties of the created queue
+     * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
+     * @typeparam T concrete type of data flowing to queue
+     */
+    toSQSQueue<DataType extends Type<T>>(scope: core.Construct, id: string, queueProps: SQS.QueueProps<DataType>, runtimeProps?: C): SQS.CollectedQueue<DataType, this>;
+  }
+}
+Stream.prototype.toSQSQueue = function(scope: core.Construct, id: string, props: SQS.QueueProps<any>): any {
+  return this.collect(scope, id, new SQS.QueueCollector(props));
+};
+
 export namespace SQS {
   export type Config = Stream.Config & events.SqsEventSourceProps;
 
@@ -38,16 +59,16 @@ export namespace SQS {
       this.mapper = Json.forType(props.type);
     }
 
-    public stream(): StreamQueue<RuntimeType<T>, []> {
+    public stream(): QueueStream<RuntimeType<T>, []> {
       const mapper = this.mapper;
-      class Root extends StreamQueue<RuntimeType<T>, []> {
+      class Root extends QueueStream<RuntimeType<T>, []> {
         /**
          * Bottom of the recursive async generator - returns the records
          * parsed and validated out of the SQSEvent.
          *
          * @param event payload of SQS event
          */
-        public async *run(event: SQSEvent) {
+        public async *run(event: Event) {
           for (const record of event.Records.map(record => mapper.read(record.body))) {
             yield record;
           }
@@ -114,8 +135,8 @@ export namespace SQS {
     }
   }
 
-  export class StreamQueue<T, D extends any[]> extends Stream<SQSEvent, T, D, Config>  {
-    constructor(public readonly queue: Queue<any>, previous: StreamQueue<any, any>, input: {
+  export class QueueStream<T, D extends any[]> extends Stream<Event, T, D, Config>  {
+    constructor(public readonly queue: Queue<any>, previous: QueueStream<any, any>, input: {
       depends: D;
       handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
     }) {
@@ -129,8 +150,8 @@ export namespace SQS {
     public chain<U, D2 extends any[]>(input: {
       depends: D2;
       handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
-    }): StreamQueue<U, D2> {
-      return new StreamQueue<U, D2>(this.queue, this, input);
+    }): QueueStream<U, D2> {
+      return new QueueStream<U, D2>(this.queue, this, input);
     }
   }
 
@@ -219,7 +240,7 @@ export namespace SQS {
    *
    * @see https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
    */
-  export interface SQSEvent {
+  export interface Event {
     Records: Array<{
       messageId: string;
       receiptHandle: string;
@@ -277,24 +298,3 @@ export namespace SQS {
     }
   }
 }
-
-/**
- * Add a utility method `toQueue` for `Stream` which uses the `QueueCollector` to produce SQS `Queues`.
- */
-declare module './stream' {
-  interface Stream<E, T, D extends any[], R extends Stream.Config> {
-    /**
-     * Collect data to a SQS Queue (as messages).
-     *
-     * @param scope
-     * @param id
-     * @param queueProps properties of the created queue
-     * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
-     * @typeparam T concrete type of data flowing to queue
-     */
-    toSQSQueue<DataType extends Type<T>>(scope: core.Construct, id: string, queueProps: SQS.QueueProps<DataType>, runtimeProps?: R): SQS.CollectedQueue<DataType, this>;
-  }
-}
-Stream.prototype.toSQSQueue = function(scope: core.Construct, id: string, props: SQS.QueueProps<any>): any {
-  return this.collect(scope, id, new SQS.QueueCollector(props));
-};

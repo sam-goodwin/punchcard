@@ -22,7 +22,7 @@ describe('run', () => {
       }))
     };
 
-    const stream = new Firehose.S3DeliveryStream(stack, 'Queue', {
+    const stream = new Firehose.DeliveryStream(stack, 'Queue', {
       codec: Codec.Json,
       compression: Compression.None,
       type: struct({key: string()})
@@ -59,7 +59,7 @@ describe('run', () => {
       getObject: sinon.fake.returns(Promise.reject(new Error('fail')))
     };
 
-    const stream = new Firehose.S3DeliveryStream(stack, 'Queue', {
+    const stream = new Firehose.DeliveryStream(stack, 'Queue', {
       codec: Codec.Json,
       compression: Compression.None,
       type: struct({key: string()})

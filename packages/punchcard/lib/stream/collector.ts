@@ -1,7 +1,7 @@
 import core = require('@aws-cdk/core');
 
 import { Type } from '../shape/types/type';
-import { Firehose } from './delivery-stream';
+import { Firehose } from './firehose';
 import { Kinesis } from './kinesis';
 import { SNS } from './sns';
 import { SQS } from './sqs';
@@ -47,8 +47,8 @@ export namespace Collectors {
    *
    * @param props stream properties
    */
-  export function toS3DeliveryStream<T extends Type<any>>(props: Firehose.S3DeliveryStreamForType<T>): Firehose.S3DeliveryStreamCollector<T, any> {
-    return new Firehose.S3DeliveryStreamCollector<T, any>(props);
+  export function toFirehoseDeliveryStream<T extends Type<any>>(props: Firehose.DeliveryStreamDirectPut<T>): Firehose.DeliveryStreamCollector<T, any> {
+    return new Firehose.DeliveryStreamCollector<T, any>(props);
   }
 
   /**

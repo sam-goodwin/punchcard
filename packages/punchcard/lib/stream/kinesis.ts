@@ -14,10 +14,31 @@ import { BufferMapper, Json, Mapper, RuntimeType, Type } from '../shape';
 import { Codec } from '../storage';
 import { Compression } from '../storage/compression';
 import { Collector } from './collector';
-import { Firehose } from './delivery-stream';
+import { Firehose } from './firehose';
 import { Resource } from './resource';
 import { sink, Sink, SinkProps } from './sink';
 import { DependencyType, EventType, Stream as SStream } from './stream';
+
+/**
+ * Add a utility method `toStream` for `Stream` which uses the `StreamCollector` to produce Kinesis `Streams`.
+ */
+declare module './stream' {
+  interface Stream<E, T, D extends any[], C extends Stream.Config> {
+    /**
+     * Collect data to a Kinesis Stream.
+     *
+     * @param scope
+     * @param id
+     * @param streamProps properties of the created stream
+     * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
+     * @typeparam T concrete type of data flowing to stream
+     */
+    toKinesisStream<DataType extends Type<T>>(scope: core.Construct, id: string, streamProps: Kinesis.StreamProps<DataType>, runtimeProps?: C): Kinesis.CollectedStream<DataType, this>;
+  }
+}
+SStream.prototype.toKinesisStream = function(scope: core.Construct, id: string, props: Kinesis.StreamProps<any>): any {
+  return this.collect(scope, id, new Kinesis.StreamCollector(props));
+};
 
 export namespace Kinesis {
   export type Config = SStream.Config & events.KinesisEventSourceProps;
@@ -60,7 +81,7 @@ export namespace Kinesis {
          * Return an iterator of records parsed from the raw data in the event.
          * @param event kinesis event sent to lambda
          */
-        public async *run(event: KinesisEvent) {
+        public async *run(event: Event) {
           for (const record of event.Records.map(record => mapper.read(Buffer.from(record.kinesis.data, 'base64')))) {
             yield record;
           }
@@ -79,15 +100,15 @@ export namespace Kinesis {
      */
     public toS3DeliveryStream(scope: core.Construct, id: string, props: {
       codec: Codec;
-      comression: Compression;
+      compression: Compression;
     } = {
       codec: Codec.Json,
-      comression: Compression.Gzip
-    }): Firehose.S3DeliveryStream<T> {
-      return new Firehose.S3DeliveryStream(scope, id, {
+      compression: Compression.Gzip
+    }): Firehose.DeliveryStream<T> {
+      return new Firehose.DeliveryStream(scope, id, {
         stream: this,
         codec: props.codec,
-        compression: props.comression
+        compression: props.compression
       });
     }
 
@@ -144,7 +165,7 @@ export namespace Kinesis {
   /**
    * An enumerable Kinesis Stream.
    */
-  export class StreamStream<T, D extends any[]> extends SStream<KinesisEvent, T, D, Config>  {
+  export class StreamStream<T, D extends any[]> extends SStream<Event, T, D, Config>  {
     constructor(public readonly stream: Stream<any>, previous: StreamStream<any, any>, input: {
       depends: D;
       handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
@@ -268,7 +289,7 @@ export namespace Kinesis {
    *
    * @see https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis.html
    */
-  export interface KinesisEvent {
+  export interface Event {
     Records: Array<{
       kinesis: {
         kinesisSchemaVersion: string;
@@ -328,24 +349,3 @@ export namespace Kinesis {
     }
   }
 }
-
-/**
- * Add a utility method `toStream` for `Stream` which uses the `StreamCollector` to produce Kinesis `Streams`.
- */
-declare module './stream' {
-  interface Stream<E, T, D extends any[], R extends Stream.Config> {
-    /**
-     * Collect data to a Kinesis Stream.
-     *
-     * @param scope
-     * @param id
-     * @param streamProps properties of the created stream
-     * @param runtimeProps optional runtime properties to configure the function processing the enumerable's data.
-     * @typeparam T concrete type of data flowing to stream
-     */
-    toKinesisStream<DataType extends Type<T>>(scope: core.Construct, id: string, streamProps: Kinesis.StreamProps<DataType>, runtimeProps?: R): Kinesis.CollectedStream<DataType, this>;
-  }
-}
-SStream.prototype.toKinesisStream = function(scope: core.Construct, id: string, props: Kinesis.StreamProps<any>): any {
-  return this.collect(scope, id, new Kinesis.StreamCollector(props));
-};

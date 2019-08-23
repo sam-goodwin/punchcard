@@ -1,5 +1,5 @@
 export * from './collector';
-export * from './delivery-stream';
+export * from './firehose';
 export * from './glue';
 export * from './kinesis';
 export * from './sink';

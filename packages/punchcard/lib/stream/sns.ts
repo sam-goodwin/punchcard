@@ -16,6 +16,27 @@ import { Sink, sink, SinkProps } from './sink';
 import { SQS } from './sqs';
 import { DependencyType, EventType, Stream } from './stream';
 
+/**
+ * Add a utility method `toTopic` for `Stream` which uses the `TopicCollector` to produce SNS `Topics`.
+ */
+declare module './stream' {
+  interface Stream<E, T, D extends any[], C extends Stream.Config> {
+    /**
+     * Collect data to a SNS Topic (as notification messages).
+     *
+     * @param scope
+     * @param id
+     * @param topicProps properties of the created topic
+     * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
+     * @typeparam T concrete type of data flowing to topic
+     */
+    toSNSTopic<DataType extends Type<T>>(scope: core.Construct, id: string, topicProps: SNS.TopicProps<DataType>, runtimeProps?: C): SNS.CollectedTopic<DataType, this>;
+  }
+}
+Stream.prototype.toSNSTopic = function(scope: core.Construct, id: string, props: SNS.TopicProps<any>): any {
+  return this.collect(scope, id, new SNS.TopicCollector(props));
+};
+
 export namespace SNS {
   export type TopicProps<T extends Type<any>> = {
     /**
@@ -44,14 +65,14 @@ export namespace SNS {
     /**
      * Create a `Stream` for this topic's notifications - chainable computations (map, flatMap, filter, etc.)
      */
-    public stream(): StreamTopic<RuntimeType<T>, []> {
+    public stream(): TopicStream<RuntimeType<T>, []> {
       const mapper = this.mapper;
-      class Root extends StreamTopic<RuntimeType<T>, []> {
+      class Root extends TopicStream<RuntimeType<T>, []> {
         /**
          * Return an iterator of records parsed from the raw data in the event.
          * @param event kinesis event sent to lambda
          */
-        public async *run(event: SNSEvent) {
+        public async *run(event: Event) {
           for (const record of event.Records) {
             yield mapper.read(record.Sns.Message);
           }
@@ -113,10 +134,10 @@ export namespace SNS {
   }
 
   /**
-   * An stream SNS `Topic`.
+   * A stream of notifications from a SNS `Topic`.
    */
-  export class StreamTopic<T, D extends any[]> extends Stream<SNSEvent, T, D, Stream.Config>  {
-    constructor(public readonly topic: Topic<any>, previous: StreamTopic<any, any>, input: {
+  export class TopicStream<T, D extends any[]> extends Stream<Event, T, D, Stream.Config>  {
+    constructor(public readonly topic: Topic<any>, previous: TopicStream<any, any>, input: {
       depends: D;
       handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
     }) {
@@ -137,8 +158,8 @@ export namespace SNS {
     public chain<U, D2 extends any[]>(input: {
       depends: D2;
       handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
-    }): StreamTopic<U, D2> {
-      return new StreamTopic<U, D2>(this.topic, this, input);
+    }): TopicStream<U, D2> {
+      return new TopicStream<U, D2>(this.topic, this, input);
     }
   }
 
@@ -195,7 +216,7 @@ export namespace SNS {
   /**
    * @see https://docs.aws.amazon.com/lambda/latest/dg/with-sns.html
    */
-  export interface SNSEvent {
+  export interface Event {
     Records: Array<{
       EventVersion: string;
       EventSubscriptionArn: string;
@@ -265,24 +286,3 @@ export namespace SNS {
     }
   }
 }
-
-/**
- * Add a utility method `toTopic` for `Stream` which uses the `TopicCollector` to produce SNS `Topics`.
- */
-declare module './stream' {
-  interface Stream<E, T, D extends any[], R extends Stream.Config> {
-    /**
-     * Collect data to a SNS Topic (as notification messages).
-     *
-     * @param scope
-     * @param id
-     * @param topicProps properties of the created topic
-     * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
-     * @typeparam T concrete type of data flowing to topic
-     */
-    toSNSTopic<DataType extends Type<T>>(scope: core.Construct, id: string, topicProps: SNS.TopicProps<DataType>, runtimeProps?: R): SNS.CollectedTopic<DataType, this>;
-  }
-}
-Stream.prototype.toSNSTopic = function(scope: core.Construct, id: string, props: SNS.TopicProps<any>): any {
-  return this.collect(scope, id, new SNS.TopicCollector(props));
-};

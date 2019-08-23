@@ -5,10 +5,29 @@ import { Cons } from '../compute/hlist';
 import { Function } from '../compute/lambda';
 import { RuntimeShape, Shape } from '../shape/shape';
 import { StructType } from '../shape/types/struct';
-import { Type } from '../shape/types/type';
 import { Glue } from '../storage';
 import { Collector } from './collector';
 import { DependencyType, EventType, Stream } from './stream';
+
+/**
+ * Add a utility method `toGlueTable` for `Stream` which uses the `TableCollector` to produce Glue `Tables`.
+ */
+declare module './stream' {
+  interface Stream<E, T, D extends any[], C extends Stream.Config> {
+    /**
+     * Collect data to S3 via a Firehose Delivery Stream.
+     *
+     * @param scope
+     * @param id
+     * @param tableProps properties of the created s3 delivery stream
+     * @param runtimeConfig optional runtime properties to configure the function processing the stream's data.
+     */
+    toGlueTable<S extends Shape, T extends StructType<S>, P extends Glue.Partition>(scope: core.Construct, id: string, tableProps: Glue.TableProps<S, P>, runtimeConfig?: C): CollectedGlueTable<S, P, this>;
+  }
+}
+Stream.prototype.toGlueTable = function(scope: core.Construct, id: string, tableProps: any, runtimeProps?: any): any {
+  return this.collect(scope, id, new GlueTableCollector(tableProps));
+};
 
 /**
  * Creates a new Glue `Table` and publishes data from a `Stream` to it.
@@ -56,23 +75,3 @@ export class CollectedGlueTable<T extends Shape, P extends Glue.Partition, S ext
     }) as any;
   }
 }
-
-/**
- * Add a utility method `toGlueTable` for `Stream` which uses the `TableCollector` to produce Glue `Tables`.
- */
-declare module './stream' {
-  interface Stream<E, T, D extends any[], R extends Stream.Config> {
-    /**
-     * Collect data to S3 via a Firehose Delivery Stream.
-     *
-     * @param scope
-     * @param id
-     * @param tableProps properties of the created s3 delivery stream
-     * @param runtimeConfig optional runtime properties to configure the function processing the stream's data.
-     */
-    toGlueTable<S extends Shape, T extends StructType<S>, P extends Glue.Partition>(scope: core.Construct, id: string, tableProps: Glue.TableProps<S, P>, runtimeConfig?: R): CollectedGlueTable<S, P, this>;
-  }
-}
-Stream.prototype.toGlueTable = function(scope: core.Construct, id: string, tableProps: any, runtimeProps?: any): any {
-  return this.collect(scope, id, new GlueTableCollector(tableProps));
-};
