@@ -21,15 +21,19 @@ export class DynamicType<T extends any | unknown> implements Type<T> {
   public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<T> {
     throw new Error('Method not implemented.');
   }
+
   public toDynamoPath(parent: DynamoPath, name: string): AnyDynamoPath {
     return new AnyDynamoPath(parent, name);
   }
+
   public toJsonSchema(): { [key: string]: any; } {
     return {};
   }
+
   public toGlueType(): { inputString: string; isPrimitive: boolean; } {
     throw new Error(`any is not supported with Glue`);
   }
+
   public hashCode(value: unknown): number {
     return hashCode(value);
 
@@ -103,7 +107,7 @@ export class DynamicType<T extends any | unknown> implements Type<T> {
           }
           return true;
         default:
-            throw new Error(`unsupported value in any type: '${type}'`);
+          throw new Error(`unsupported value in any type: '${type}'`);
       }
     }
   }

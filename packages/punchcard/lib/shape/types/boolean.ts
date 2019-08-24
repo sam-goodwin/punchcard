@@ -9,7 +9,7 @@ export class BooleanType extends PrimitiveType<boolean> {
     return value;
   }
 
-  public toDynamoPath(parent: DynamoPath, name: string): BaseDynamoPath<BooleanType, boolean> {
+  public toDynamoPath(parent: DynamoPath, name: string): BaseDynamoPath<this> {
     return new BaseDynamoPath(parent, name, this);
   }
 

@@ -15,7 +15,7 @@ export class BinaryType extends PrimitiveType<Buffer> {
     super(Kind.Binary);
   }
 
-  public toDynamoPath(parent: DynamoPath, name: string): StringDynamoPath<BinaryType, Buffer> {
+  public toDynamoPath(parent: DynamoPath, name: string): StringDynamoPath<this> {
     return new StringDynamoPath(parent, name, this);
   }
 
