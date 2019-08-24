@@ -1,4 +1,4 @@
-import { BaseDynamoPath, DynamoPath } from '../../dynamodb';
+import { BaseDynamoPath, DynamoPath } from '../../dynamodb/expression/path';
 import { Kind } from './kind';
 import { PrimitiveType } from './primitive';
 

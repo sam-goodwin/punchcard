@@ -1,4 +1,4 @@
-import { BaseDynamoPath, DynamoPath, Facade, MapKeyParent } from '../../dynamodb';
+import { BaseDynamoPath, DynamoPath, Facade, MapKeyParent } from '../../dynamodb/expression/path';
 import { InferJsonPathType, JsonPath } from '../json/path';
 import { RuntimeShape, Shape } from '../shape';
 import { hashCode } from './hash';

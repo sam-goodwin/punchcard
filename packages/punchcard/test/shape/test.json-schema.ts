@@ -1,6 +1,6 @@
 import 'jest';
 
-import { Core, DynamoDB, Shape, Util } from '../../lib';
+import { DynamoDB, Shape, Util } from '../../lib';
 
 export function custom(): Custom {
   return new Custom();
@@ -182,7 +182,7 @@ describe('json', () => {
 
     it('Shape.boolean', () => {
       expect(Shape.boolean.toJsonSchema()).toEqual({
-        type: 'Shape.boolean'
+        type: 'boolean'
       });
     });
 
