@@ -1,9 +1,8 @@
-import { Shape } from '../../../shape/shape';
+import { RuntimeType, Shape } from '../../../shape/shape';
+import { ArrayType } from '../../../shape/types/array';
 import { Type } from '../../../shape/types/type';
-
-import { Compilable, CompileContext, CompiledExpression } from './compile-context';
-
 import { Tree, TreeFields } from '../../../tree';
+import { Compilable, CompileContext, CompiledExpression } from './compile-context';
 
 // tslint:disable: no-shadowed-variable
 // tslint:disable: max-line-length
@@ -62,7 +61,7 @@ export class IndexParent extends DynamoPath {
 /**
  * Represents a path to an attribute within a Dynamo Item.
  */
-export class BaseDynamoPath<T extends Type<V>, V> extends DynamoPath implements Operand<T, V> {
+export class BaseDynamoPath<T extends Type<any>> extends DynamoPath implements Operand<T> {
   public readonly [operand]: 'operand' = 'operand';
 
   constructor(parent: DynamoPath, name: string, public readonly type: T) {
@@ -77,67 +76,67 @@ export class BaseDynamoPath<T extends Type<V>, V> extends DynamoPath implements 
     return attribute_not_exists(this);
   }
 
-  public eq(value: ConditionValue<T, V>): Equals<T, V> {
+  public eq(value: ConditionValue<T>): Equals<T> {
     return new Equals(this.type, this, value);
   }
 
-  public equals(value: ConditionValue<T, V>): Equals<T, V> {
+  public equals(value: ConditionValue<T>): Equals<T> {
     return this.eq(value);
   }
 
-  public ne(value: ConditionValue<T, V>): NotEquals<T, V> {
+  public ne(value: ConditionValue<T>): NotEquals<T> {
     return new NotEquals(this.type, this, value);
   }
 
-  public notEquals(value: ConditionValue<T, V>): NotEquals<T, V> {
+  public notEquals(value: ConditionValue<T>): NotEquals<T> {
     return this.ne(value);
   }
 
-  public set(value: UpdateValue<T, V>): SetAction<T, V> {
+  public set(value: UpdateValue<T>): SetAction<T> {
     return new SetAction(this, value);
   }
 }
 
-export class OrdPath<T extends Type<V>, V> extends BaseDynamoPath<T, V> {
-  public gt(value: ConditionValue<T, V>): Gt<T, V> {
+export class OrdPath<T extends Type<any>> extends BaseDynamoPath<T> {
+  public gt(value: ConditionValue<T>): Gt<T> {
     return new Gt(this.type, this, value);
   }
 
-  public greaterThan(value: ConditionValue<T, V>): Gt<T, V> {
+  public greaterThan(value: ConditionValue<T>): Gt<T> {
     return this.gt(value);
   }
 
-  public gte(value: ConditionValue<T, V>): Gte<T, V> {
+  public gte(value: ConditionValue<T>): Gte<T> {
     return new Gte(this.type, this, value);
   }
 
-  public greaterThanOrEqual(value: ConditionValue<T, V>): Gte<T, V> {
+  public greaterThanOrEqual(value: ConditionValue<T>): Gte<T> {
     return this.gte(value);
   }
 
-  public lt(value: ConditionValue<T, V>): Lt<T, V> {
+  public lt(value: ConditionValue<T>): Lt<T> {
     return new Lt(this.type, this, value);
   }
 
-  public lessThan(value: ConditionValue<T, V>): Lt<T, V> {
+  public lessThan(value: ConditionValue<T>): Lt<T> {
     return this.lt(value);
   }
 
-  public lte(value: ConditionValue<T, V>): Lte<T, V> {
+  public lte(value: ConditionValue<T>): Lte<T> {
     return new Lte(this.type, this, value);
   }
 
-  public lessThanOrEqual(value: ConditionValue<T, V>): Lte<T, V> {
+  public lessThanOrEqual(value: ConditionValue<T>): Lte<T> {
     return this.lte(value);
   }
 
   // TODO: Do all data types support an IN check? Documentation hints at no: https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Condition.html
   // .. but they all support equality, so why not IN? Performance constraints?
-  public in(...operands: Array<ConditionValue<T, V>>): In<T, V> {
+  public in(...operands: Array<ConditionValue<T>>): In<T> {
     return new In(this.type, this, operands);
   }
 
-  public between(lower: ConditionValue<T, V>, upper: ConditionValue<T, V>) {
+  public between(lower: ConditionValue<T>, upper: ConditionValue<T>) {
     return new Between(this.type, this, lower, upper);
   }
 }
@@ -161,15 +160,15 @@ value ::=
   | operand '+' operand
   | operand '-' operand
  */
-export type UpdateValue<T extends Type<V>, V> = V | UpdateOperand<T, V> | BaseDynamoPath<T, V>;
+export type UpdateValue<T extends Type<any>> = RuntimeType<T> | UpdateOperand<T> | BaseDynamoPath<T>;
 
-export type ConditionValue<T extends Type<V>, V> = V | ConditionOperand<T, V> | BaseDynamoPath<T, V>;
+export type ConditionValue<T extends Type<any>> = RuntimeType<T> | ConditionOperand<T> | BaseDynamoPath<T>;
 
 /*
 operand ::=
   path | function
 */
-export abstract class Operand<T extends Type<V>, V> implements Compilable {
+export abstract class Operand<T extends Type<any>> implements Compilable {
   public readonly [operand]: 'operand' = 'operand';
 
   constructor(public readonly type: T) {}
@@ -177,17 +176,17 @@ export abstract class Operand<T extends Type<V>, V> implements Compilable {
   public abstract compile(context: CompileContext): string;
 }
 
-export interface UpdateOperand<_T extends Type<V>, V> {
+export interface UpdateOperand<T extends Type<any>> extends Operand<T> {
   readonly [update]: 'update'
 }
 
-export interface ConditionOperand<_T extends Type<V>, V> {
+export interface ConditionOperand<T extends Type<any>> extends Operand<T> {
   readonly [condition]: 'condition'
 }
 
-export function compileValue<T extends Type<V>, V>(type: T, value: V | Operand<T, V>, context: CompileContext): string {
+export function compileValue<T extends Type<any>>(type: T, value: RuntimeType<T> | Operand<T>, context: CompileContext): string {
   if ((value as any)[operand] === 'operand') {
-    return ( value as Operand<any, any>).compile(context);
+    return ( value as Operand<any>).compile(context);
   } else {
     return context.value(type, value);
   }
@@ -254,10 +253,10 @@ function ::=
  * Comparators
  */
 
-abstract class ComparisonOperator<T extends Type<V>, V> extends Condition {
+abstract class ComparisonOperator<T extends Type<any>> extends Condition {
   protected readonly abstract operator: string;
 
-  constructor(private readonly type: T, private readonly lhs: ConditionValue<T, V>, private readonly rhs: ConditionValue<T, V>) {
+  constructor(private readonly type: T, private readonly lhs: ConditionValue<T>, private readonly rhs: ConditionValue<T>) {
     super();
   }
 
@@ -269,33 +268,33 @@ abstract class ComparisonOperator<T extends Type<V>, V> extends Condition {
   }
 }
 
-export class Equals<T extends Type<V>, V> extends ComparisonOperator<T, V> {
+export class Equals<T extends Type<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '=';
 }
 
-export class NotEquals<T extends Type<V>, V> extends ComparisonOperator<T, V> {
+export class NotEquals<T extends Type<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '<>';
 }
 
-export class Gt<T extends Type<V>, V> extends ComparisonOperator<T, V> {
+export class Gt<T extends Type<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '>';
 }
 
-export class Gte<T extends Type<V>, V> extends ComparisonOperator<T, V> {
+export class Gte<T extends Type<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '>=';
 }
 
-export class Lt<T extends Type<V>, V> extends ComparisonOperator<T, V> {
+export class Lt<T extends Type<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '<';
 }
 
-export class Lte<T extends Type<V>, V> extends ComparisonOperator<T, V> {
+export class Lte<T extends Type<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '<=';
 }
 
-export class Between<T extends Type<V>, V> extends Condition {
-  constructor(private readonly type: T, private readonly value: ConditionValue<T, V>,
-              private readonly lower: ConditionValue<T, V>, private readonly upper: ConditionValue<T, V>) {
+export class Between<T extends Type<any>> extends Condition {
+  constructor(private readonly type: T, private readonly value: ConditionValue<T>,
+              private readonly lower: ConditionValue<T>, private readonly upper: ConditionValue<T>) {
     super();
   }
 
@@ -308,8 +307,8 @@ export class Between<T extends Type<V>, V> extends Condition {
   }
 }
 
-export class In<T extends Type<V>, V> extends Condition {
-  constructor(private readonly type: T, private readonly value: ConditionValue<T, V>, private readonly operands: Array<ConditionValue<T, V>>) {
+export class In<T extends Type<any>> extends Condition {
+  constructor(private readonly type: T, private readonly value: ConditionValue<T>, private readonly operands: Array<ConditionValue<T>>) {
     super();
   }
 
@@ -352,8 +351,8 @@ export class AttributeExists extends Condition {
   }
 }
 
-export class BeginsWith<T extends Type<V>, V> extends Condition {
-  constructor(private readonly attribute: BaseDynamoPath<T, V>, private readonly substring: ConditionValue<T, V>) {
+export class BeginsWith<T extends Type<any>> extends Condition {
+  constructor(private readonly attribute: BaseDynamoPath<T>, private readonly substring: ConditionValue<T>) {
     super();
   }
 
@@ -364,8 +363,8 @@ export class BeginsWith<T extends Type<V>, V> extends Condition {
   }
 }
 
-export class Contains<T extends Type<V>, V> extends Condition {
-  constructor(private readonly path: DynamoPath, private readonly type: T, private readonly value: ConditionValue<T, V>) {
+export class Contains<T extends Type<any>> extends Condition {
+  constructor(private readonly path: DynamoPath, private readonly type: T, private readonly value: ConditionValue<T>) {
     super();
   }
 
@@ -471,8 +470,8 @@ export abstract class UpdateAction implements Compilable {
 set-action ::=
   path = value
 */
-export class SetAction<T extends Type<V>, V> extends UpdateAction {
-  constructor(private readonly path: BaseDynamoPath<T, V>, private readonly value: UpdateValue<T, V>) {
+export class SetAction<T extends Type<any>> extends UpdateAction {
+  constructor(private readonly path: BaseDynamoPath<T>, private readonly value: UpdateValue<T>) {
     super(ActionType.SET);
   }
 
@@ -483,7 +482,7 @@ export class SetAction<T extends Type<V>, V> extends UpdateAction {
   }
 }
 
-export function remove<T extends Type<V>, V>(path: BaseDynamoPath<T, V>): RemoveAction<T, V> {
+export function remove<T extends Type<any>>(path: BaseDynamoPath<T>): RemoveAction<T> {
   return new RemoveAction(path);
 }
 
@@ -491,8 +490,8 @@ export function remove<T extends Type<V>, V>(path: BaseDynamoPath<T, V>): Remove
 remove-action ::=
   path
 */
-export class RemoveAction<T extends Type<V>, V> extends UpdateAction {
-  constructor(private readonly path: BaseDynamoPath<T, V>) {
+export class RemoveAction<T extends Type<any>> extends UpdateAction {
+  constructor(private readonly path: BaseDynamoPath<T>) {
     super(ActionType.REMOVE);
   }
 
@@ -505,8 +504,8 @@ export class RemoveAction<T extends Type<V>, V> extends UpdateAction {
 add-action ::=
   path value
 */
-export class AddAction<T extends Type<V>, V> extends UpdateAction {
-  constructor(private readonly attribute: BaseDynamoPath<T, V>, private readonly value: V) {
+export class AddAction<T extends Type<any>> extends UpdateAction {
+  constructor(private readonly attribute: BaseDynamoPath<T>, private readonly value: RuntimeType<T>) {
     super(ActionType.ADD);
   }
 
@@ -522,7 +521,7 @@ export class AddAction<T extends Type<V>, V> extends UpdateAction {
   path value
 */
 export class DeleteAction<V> extends UpdateAction {
-  constructor(private readonly path: BaseDynamoPath<Type<Set<V>>, Set<V>>, private readonly subset: Set<V>) {
+  constructor(private readonly path: BaseDynamoPath<Type<Set<V>>>, private readonly subset: Set<V>) {
     super(ActionType.DELETE);
   }
 
@@ -533,22 +532,22 @@ export class DeleteAction<V> extends UpdateAction {
   }
 }
 
-export class IfNotExists<T extends Type<V>, V> implements Compilable {
-  constructor(private readonly path: BaseDynamoPath<T, V>, private readonly value: UpdateValue<T, V>) {}
+export class IfNotExists<T extends Type<any>> implements Compilable {
+  constructor(private readonly path: BaseDynamoPath<T>, private readonly value: UpdateValue<T>) {}
 
   public compile(context: CompileContext): string {
     return `if_not_exists(${this.path.compile(context)}, ${compileValue(this.path.type, this.value, context)})`;
   }
 }
 
-export function list_append<T extends Type<V>, V>(type: Type<V[]>, lhs: UpdateValue<Type<V[]>, V[]>, rhs: UpdateValue<Type<V[]>, V[]>): ListAppend<T, V> {
+export function list_append<T extends Type<any>>(type: ArrayType<T>, lhs: UpdateValue<ArrayType<T>>, rhs: UpdateValue<ArrayType<T>>): ListAppend<T> {
   return new ListAppend(type, lhs, rhs);
 }
 
-export class ListAppend<T extends Type<V>, V> extends Operand<Type<V[]>, V[]> implements UpdateOperand<T, V> {
+export class ListAppend<T extends Type<any>> extends Operand<ArrayType<T>> implements UpdateOperand<ArrayType<T>> {
   public readonly [update]: 'update' = 'update';
 
-  constructor(type: Type<V[]>, private readonly lhs: UpdateValue<Type<V[]>, V[]>, private readonly rhs: UpdateValue<Type<V[]>, V[]>) {
+  constructor(type: ArrayType<T>, private readonly lhs: UpdateValue<ArrayType<T>>, private readonly rhs: UpdateValue<ArrayType<T>>) {
     super(type);
   }
 
@@ -557,12 +556,12 @@ export class ListAppend<T extends Type<V>, V> extends Operand<Type<V[]>, V[]> im
   }
 }
 
-abstract class NumericComputation<T extends Type<V>, V> extends Operand<T, V> implements UpdateOperand<T, V> {
+abstract class NumericComputation<T extends Type<any>> extends Operand<T> implements UpdateOperand<T> {
   public readonly [update]: 'update' = 'update';
 
   protected abstract readonly operator: string;
 
-  constructor(type: T, private readonly lhs: UpdateValue<T, V>, private readonly rhs: UpdateValue<T, V>) {
+  constructor(type: T, private readonly lhs: UpdateValue<T>, private readonly rhs: UpdateValue<T>) {
     super(type);
   }
 
@@ -571,10 +570,10 @@ abstract class NumericComputation<T extends Type<V>, V> extends Operand<T, V> im
   }
 }
 
-export class Plus<T extends Type<V>, V> extends NumericComputation<T, V> {
+export class Plus<T extends Type<any>> extends NumericComputation<T> {
   protected readonly operator: string = '+';
 }
 
-export class Minus<T extends Type<V>, V> extends NumericComputation<T, V> {
+export class Minus<T extends Type<any>> extends NumericComputation<T> {
   protected readonly operator: string = '-';
 }

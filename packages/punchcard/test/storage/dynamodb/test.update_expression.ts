@@ -59,7 +59,7 @@ const table = {
 
 const facade = DynamoDB.toFacade(table);
 
-function render(u: DynamoDB.SetAction<any, any>) {
+function render(u: DynamoDB.SetAction<any>) {
   const context = new CompileContextImpl();
   const s = u.compile(context);
   return {

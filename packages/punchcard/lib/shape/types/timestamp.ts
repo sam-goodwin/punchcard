@@ -51,20 +51,20 @@ export class TimestampType implements Type<Date> {
 
 export const timestamp = new TimestampType();
 
-export class TimestampDynamoPath extends NumericDynamoPath<TimestampType, Date> {
-  public plusMs(ms: number): Plus<TimestampType, Date> {
+export class TimestampDynamoPath extends NumericDynamoPath<TimestampType> {
+  public plusMs(ms: number): Plus<TimestampType> {
     return this.plus(new Date(ms));
   }
 
-  public minusMs(ms: number): Minus<TimestampType, Date> {
+  public minusMs(ms: number): Minus<TimestampType> {
     return this.minus(new Date(ms));
   }
 
-  public incrementMs(ms: number): SetAction<TimestampType, Date> {
+  public incrementMs(ms: number): SetAction<TimestampType> {
     return this.increment(new Date(ms));
   }
 
-  public decrementMs(ms: number): SetAction<TimestampType, Date> {
+  public decrementMs(ms: number): SetAction<TimestampType> {
     return this.decrement(new Date(ms));
   }
 }

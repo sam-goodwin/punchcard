@@ -21,7 +21,7 @@ abstract class BaseNumberType extends PrimitiveType<number> {
     }
   }
 
-  public toDynamoPath(parent: DynamoPath, name: string): NumericDynamoPath<this, number> {
+  public toDynamoPath(parent: DynamoPath, name: string): NumericDynamoPath<this> {
     return new NumericDynamoPath(parent, name, this);
   }
 
@@ -71,6 +71,7 @@ class WholeNumberType extends BaseNumberType {
       throw new Error('integer must be a whole number');
     }
   }
+
 }
 
 export class BigIntType extends WholeNumberType {
@@ -159,20 +160,20 @@ export function tinyint(constraints?: NumberConstraints) {
   }
 }
 
-export class NumericDynamoPath<T extends Type<V>, V> extends OrdPath<T, V> {
-  public plus(value: UpdateValue<T, V>): Plus<T, V> {
+export class NumericDynamoPath<T extends Type<any>> extends OrdPath<T> {
+  public plus(value: UpdateValue<T>): Plus<T> {
     return new Plus(this.type, this, value);
   }
 
-  public minus(value: UpdateValue<T, V>): Minus<T, V> {
+  public minus(value: UpdateValue<T>): Minus<T> {
     return new Minus(this.type, this, value);
   }
 
-  public increment(value: UpdateValue<T, V>): SetAction<T, V> {
-    return new SetAction<T, V>(this, this.plus(value));
+  public increment(value: UpdateValue<T>): SetAction<T> {
+    return new SetAction<T>(this, this.plus(value));
   }
 
-  public decrement(value: UpdateValue<T, V>): SetAction<T, V> {
-    return new SetAction<T, V>(this, this.minus(value));
+  public decrement(value: UpdateValue<T>): SetAction<T> {
+    return new SetAction<T>(this, this.minus(value));
   }
 }
