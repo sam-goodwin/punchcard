@@ -247,10 +247,10 @@ export namespace SNS {
    *
    * @typeparam T type of notififcations sent to (and emitted from) the SNS Topic.
    */
-  export class TopicCollector<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedTopic<T, E>, E> {
+  export class TopicCollector<T extends Type<any>, S extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedTopic<T, S>, S> {
     constructor(private readonly props: TopicProps<T>) { }
 
-    public collect(scope: core.Construct, id: string, stream: E): CollectedTopic<T, E> {
+    public collect(scope: core.Construct, id: string, stream: S): CollectedTopic<T, S> {
       return new CollectedTopic(scope, id, {
         ...this.props,
         stream
@@ -261,21 +261,21 @@ export namespace SNS {
   /**
    * Properties for creating a collected `Topic`.
    */
-  export interface CollectedTopicProps<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> extends TopicProps<T> {
+  export interface CollectedTopicProps<T extends Type<any>, S extends Stream<any, RuntimeType<T>, any, any>> extends TopicProps<T> {
     /**
      * Source of the data; a `Stream`.
      */
-    readonly stream: E;
+    readonly stream: S;
   }
 
   /**
    * A SNS `Topic` produced by collecting data from an `Stream`.
    * @typeparam T type of notififcations sent to, and emitted from, the SNS Topic.
    */
-  export class CollectedTopic<T extends Type<any>, E extends Stream<any, any, any, any>> extends Topic<T> {
-    public readonly sender: Lambda.Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Topic.Client<T>>>>>;
+  export class CollectedTopic<T extends Type<any>, S extends Stream<any, any, any, any>> extends Topic<T> {
+    public readonly sender: Lambda.Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Topic.Client<T>>>>>;
 
-    constructor(scope: core.Construct, id: string, props: CollectedTopicProps<T, E>) {
+    constructor(scope: core.Construct, id: string, props: CollectedTopicProps<T, S>) {
       super(scope, id, props);
       this.sender = props.stream.forBatch(this.resource, 'ToTopic', {
         depends: this,

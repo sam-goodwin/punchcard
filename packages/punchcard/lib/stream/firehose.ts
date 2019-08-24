@@ -279,10 +279,10 @@ export namespace Firehose {
    *
    * @typeparam T type of notififcations sent to (and emitted from) the DeliveryStream.
    */
-  export class DeliveryStreamCollector<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedDeliveryStream<T, E>, E> {
+  export class DeliveryStreamCollector<T extends Type<any>, S extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedDeliveryStream<T, S>, S> {
     constructor(private readonly props: Firehose.DeliveryStreamDirectPut<T>) { }
 
-    public collect(scope: core.Construct, id: string, stream: E): CollectedDeliveryStream<T, E> {
+    public collect(scope: core.Construct, id: string, stream: S): CollectedDeliveryStream<T, S> {
       return new CollectedDeliveryStream(scope, id, {
         ...this.props,
         stream
@@ -293,21 +293,21 @@ export namespace Firehose {
   /**
    * Properties for creating a collected `DeliveryStream`.
    */
-  export interface CollectedDeliveryStreamProps<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> extends Firehose.DeliveryStreamDirectPut<T> {
+  export interface CollectedDeliveryStreamProps<T extends Type<any>, S extends Stream<any, RuntimeType<T>, any, any>> extends Firehose.DeliveryStreamDirectPut<T> {
     /**
      * Source of the data; an stream.
      */
-    readonly stream: E;
+    readonly stream: S;
   }
 
   /**
    * A `DeliveryStream` produced by collecting data from an `Stream`.
    * @typeparam T type of notififcations sent to, and emitted from, the DeliveryStream.
    */
-  export class CollectedDeliveryStream<T extends Type<any>, E extends Stream<any, any, any, any>> extends Firehose.DeliveryStream<T> {
-    public readonly sender: Lambda.Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Firehose.DeliveryStream.Client<T>>>>>;
+  export class CollectedDeliveryStream<T extends Type<any>, S extends Stream<any, any, any, any>> extends Firehose.DeliveryStream<T> {
+    public readonly sender: Lambda.Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Firehose.DeliveryStream.Client<T>>>>>;
 
-    constructor(scope: core.Construct, id: string, props: CollectedDeliveryStreamProps<T, E>) {
+    constructor(scope: core.Construct, id: string, props: CollectedDeliveryStreamProps<T, S>) {
       super(scope, id, props);
       this.sender = props.stream.forBatch(this.resource, 'ToDeliveryStream', {
         depends: this,

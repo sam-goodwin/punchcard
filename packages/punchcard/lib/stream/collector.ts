@@ -10,8 +10,8 @@ import { Stream } from './stream';
 /**
  * Collects data from an `Stream`.
  *
- * @param T type of collected result
- * @param E source Stream
+ * @typeparam T type of collected result
+ * @typeparam S source Stream
  */
 export interface Collector<T, S extends Stream<any, any, any, any>> {
   /**

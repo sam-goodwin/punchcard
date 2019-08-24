@@ -259,10 +259,10 @@ export namespace SQS {
    *
    * @typeparam T type of messages in the SQS Queue.
    */
-  export class QueueCollector<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedQueue<T, E>, E> {
+  export class QueueCollector<T extends Type<any>, S extends Stream<any, RuntimeType<T>, any, any>> implements Collector<CollectedQueue<T, S>, S> {
     constructor(private readonly props: QueueProps<T>) { }
 
-    public collect(scope: core.Construct, id: string, stream: E): CollectedQueue<T, E> {
+    public collect(scope: core.Construct, id: string, stream: S): CollectedQueue<T, S> {
       return new CollectedQueue(scope, id, {
         ...this.props,
         stream
@@ -273,21 +273,21 @@ export namespace SQS {
   /**
    * Properties for creating a collected `Queue`.
    */
-  export interface CollectedQueueProps<T extends Type<any>, E extends Stream<any, RuntimeType<T>, any, any>> extends QueueProps<T> {
+  export interface CollectedQueueProps<T extends Type<any>, S extends Stream<any, RuntimeType<T>, any, any>> extends QueueProps<T> {
     /**
      * Source of the data; a `Stream`.
      */
-    readonly stream: E;
+    readonly stream: S;
   }
 
   /**
    * A SQS `Queue` produced by collecting data from an `Stream`.
    * @typeparam T type of notififcations sent to, and emitted from, the SQS Queue.
    */
-  export class CollectedQueue<T extends Type<any>, E extends Stream<any, any, any, any>> extends Queue<T> {
-    public readonly sender: Lambda.Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Queue.Client<T>>>>>;
+  export class CollectedQueue<T extends Type<any>, S extends Stream<any, any, any, any>> extends Queue<T> {
+    public readonly sender: Lambda.Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Queue.Client<T>>>>>;
 
-    constructor(scope: core.Construct, id: string, props: CollectedQueueProps<T, E>) {
+    constructor(scope: core.Construct, id: string, props: CollectedQueueProps<T, S>) {
       super(scope, id, props);
       this.sender = props.stream.forBatch(this.resource, 'ToQueue', {
         depends: this,

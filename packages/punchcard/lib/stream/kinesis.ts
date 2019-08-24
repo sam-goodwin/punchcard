@@ -311,10 +311,10 @@ export namespace Kinesis {
   /**
    * Creates a new Kineis stream and sends data from an enumerable to it.
    */
-  export class StreamCollector<T extends Type<any>, E extends SStream<any, RuntimeType<T>, any, any>> implements Collector<CollectedStream<T, E>, E> {
+  export class StreamCollector<T extends Type<any>, S extends SStream<any, RuntimeType<T>, any, any>> implements Collector<CollectedStream<T, S>, S> {
     constructor(private readonly props: StreamProps<T>) { }
 
-    public collect(scope: core.Construct, id: string, enumerable: E): CollectedStream<T, E> {
+    public collect(scope: core.Construct, id: string, enumerable: S): CollectedStream<T, S> {
       return new CollectedStream(scope, id, {
         ...this.props,
         enumerable
@@ -335,10 +335,10 @@ export namespace Kinesis {
    * A Kinesis `Stream` produced by collecting data from an `Stream`.
    * @typeparam
    */
-  export class CollectedStream<T extends Type<any>, E extends SStream<any, any, any, any>> extends Stream<T> {
-    public readonly sender: Lambda.Function<EventType<E>, void, Dependency.List<Cons<DependencyType<E>, Dependency<Stream.Client<T>>>>>;
+  export class CollectedStream<T extends Type<any>, S extends SStream<any, any, any, any>> extends Stream<T> {
+    public readonly sender: Lambda.Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Stream.Client<T>>>>>;
 
-    constructor(scope: core.Construct, id: string, props: CollectedStreamProps<T, E>) {
+    constructor(scope: core.Construct, id: string, props: CollectedStreamProps<T, S>) {
       super(scope, id, props);
       this.sender = props.enumerable.forBatch(this.resource, 'ToStream', {
         depends: this.writeAccess(),
