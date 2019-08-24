@@ -34,10 +34,10 @@ Stream.prototype.toGlueTable = function(scope: core.Construct, id: string, table
  *
  * @typeparam T type of notififcations sent to (and emitted from) the Glue Table.
  */
-export class GlueTableCollector<S extends Shape, P extends Glue.Partition, E extends Stream<any, RuntimeShape<S>, any, any>> implements Collector<CollectedGlueTable<S, P, E>, E> {
-  constructor(private readonly props: Glue.TableProps<S, P>) { }
+export class GlueTableCollector<Cols extends Shape, P extends Glue.Partition, S extends Stream<any, RuntimeShape<Cols>, any, any>> implements Collector<CollectedGlueTable<Cols, P, S>, S> {
+  constructor(private readonly props: Glue.TableProps<Cols, P>) { }
 
-  public collect(scope: core.Construct, id: string, stream: E): CollectedGlueTable<S, P, E> {
+  public collect(scope: core.Construct, id: string, stream: S): CollectedGlueTable<Cols, P, S> {
     return new CollectedGlueTable(scope, id, {
       ...this.props,
       stream
