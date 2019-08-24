@@ -1,17 +1,17 @@
 import core = require('@aws-cdk/core');
 
-import { Collector } from '../collector';
-import { Dependency } from '../dependency';
-import { Cons } from '../hlist';
+import { Collector } from '../core/collector';
+import { Dependency } from '../core/dependency';
+import { DependencyType, EventType, Stream as SStream } from '../core/stream';
 import { Function } from '../lambda/function';
 import { RuntimeType, Type } from '../shape';
-import { DependencyType, EventType, Stream as SStream } from '../stream';
+import { Cons } from '../util/hlist';
 import { Stream, StreamProps } from './stream';
 
 /**
  * Add a utility method `toStream` for `Stream` which uses the `StreamCollector` to produce Kinesis `Streams`.
  */
-declare module '../stream' {
+declare module '../core/stream' {
   interface Stream<E, T, D extends any[], C extends Stream.Config> {
     /**
      * Collect data to a Kinesis Stream.

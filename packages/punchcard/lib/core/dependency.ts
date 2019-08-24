@@ -1,19 +1,9 @@
 import iam = require('@aws-cdk/aws-iam');
 
-import { Assembly, Cache, Namespace } from '../assembly';
-import { HList } from '../hlist';
-
-/**
- * Maps a `Dependency` to its runtime representation.
- *
- * i.e. the result of boostrapping a `Client` at runtime.
- */
-export type Client<D> =
-  D extends Dependency<infer C> ? C :
-  D extends undefined ? undefined :
-  never;
-
-export type Clients<D extends any[]> = { [K in keyof D]: Client<D[K]>; };
+import { Assembly, Namespace } from '../core/assembly';
+import { Cache } from '../core/cache';
+import { HList } from '../util/hlist';
+import { Client, Clients } from './client';
 
 /**
  * A dependency that may be installed into a `Runtime`.

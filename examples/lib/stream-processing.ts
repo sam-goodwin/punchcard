@@ -1,6 +1,8 @@
 import glue = require('@aws-cdk/aws-glue')
 import cdk = require('@aws-cdk/core');
-import { integer, string, struct, SNS, Lambda, DynamoDB, array, timestamp, Dependency } from 'punchcard';
+import { Core, SNS, Lambda, DynamoDB, Shape } from 'punchcard';
+
+const { integer, string, struct, array, timestamp, } = Shape;
 
 import uuid = require('uuid');
 import { Duration } from '@aws-cdk/core';
@@ -57,7 +59,7 @@ new Lambda.ExecutorService().schedule(stack, 'DummyData', {
    *
    * We want to *publish* to the SNS `topic` and *write* to the DynamoDB `table`.
    */
-  depends: Dependency.list(topic, enrichments.writeAccess()),
+  depends: Core.Dependency.list(topic, enrichments.writeAccess()),
 
   /**
    * Impement the Lambda Function.

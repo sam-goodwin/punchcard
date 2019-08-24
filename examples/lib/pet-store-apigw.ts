@@ -1,8 +1,9 @@
 import core = require('@aws-cdk/core');
-import punchcard = require('punchcard');
 import uuid = require('uuid');
 
-import { $input, array, DynamoDB, Lambda, double, response, StatusCode, string, struct } from 'punchcard';
+import { ApiGateway, Shape, DynamoDB, Lambda } from 'punchcard';
+
+const { array, double, string, struct } = Shape;
 
 const app = new core.App();
 export default app;
@@ -29,7 +30,7 @@ const endpoint = executorService.apiIntegration(stack, 'MyEndpoint', {
   depends: petStore
 });
 
-const api = new punchcard.Api(stack, 'PetApi');
+const api = new ApiGateway.Api(stack, 'PetApi');
 const pets = api.addResource('pets');
 const pet = pets.addResource('{id}');
 
@@ -40,13 +41,13 @@ pets.setGetMethod({
     shape: {}
   },
   responses: {
-    [StatusCode.Ok]: array(struct(petStore.shape)),
-    [StatusCode.InternalError]: struct({
+    [ApiGateway.StatusCode.Ok]: array(struct(petStore.shape)),
+    [ApiGateway.StatusCode.InternalError]: struct({
       errorMessage: string()
     })
   },
   handle: async (_, petStore) => {
-    return response(StatusCode.Ok, await petStore.scan());
+    return ApiGateway.response(ApiGateway.StatusCode.Ok, await petStore.scan());
   }
 });
 
@@ -58,13 +59,13 @@ pet.setGetMethod({
       id: string()
     },
     mappings: {
-      id: $input.params('id')
+      id: ApiGateway.$input.params('id')
     }
   },
   responses: {
-    [StatusCode.Ok]: struct(petStore.shape),
-    [StatusCode.NotFound]: string(),
-    [StatusCode.InternalError]: struct({
+    [ApiGateway.StatusCode.Ok]: struct(petStore.shape),
+    [ApiGateway.StatusCode.NotFound]: string(),
+    [ApiGateway.StatusCode.InternalError]: struct({
       errorMessage: string()
     })
   },
@@ -73,9 +74,9 @@ pet.setGetMethod({
       id
     });
     if (item === undefined) {
-      return response(StatusCode.NotFound, id);
+      return ApiGateway.response(ApiGateway.StatusCode.NotFound, id);
     }
-    return response(StatusCode.Ok, item);
+    return ApiGateway.response(ApiGateway.StatusCode.Ok, item);
   }
 });
 
@@ -89,11 +90,11 @@ pets.setPostMethod({
     }
   },
   responses: {
-    [StatusCode.Ok]: struct({
+    [ApiGateway.StatusCode.Ok]: struct({
       id: string()
     }),
-    [StatusCode.Conflict]: string(),
-    [StatusCode.InternalError]: struct({
+    [ApiGateway.StatusCode.Conflict]: string(),
+    [ApiGateway.StatusCode.InternalError]: struct({
       errorMessage: string()
     })
   },
@@ -107,15 +108,15 @@ pets.setPostMethod({
         },
         if: item => DynamoDB.attribute_not_exists(item.id)
       });
-      return response(StatusCode.Ok, {
+      return ApiGateway.response(ApiGateway.StatusCode.Ok, {
         id
       });
     } catch (err) {
       const e = err as AWS.AWSError;
       if (e.code === 'ConditionalCheckFailedException') {
-        return response(StatusCode.Conflict, `item with id ${id} already exists`);
+        return ApiGateway.response(ApiGateway.StatusCode.Conflict, `item with id ${id} already exists`);
       } else {
-        return response(StatusCode.InternalError, {
+        return ApiGateway.response(ApiGateway.StatusCode.InternalError, {
           errorMessage: e.message
         });
       }

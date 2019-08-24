@@ -3,12 +3,13 @@ import sqs = require('@aws-cdk/aws-sqs');
 import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 
-import { Cache, Namespace } from '../assembly';
-import { Dependency } from '../dependency';
-import { Resource } from '../resource';
+import { Namespace } from '../core/assembly';
+import { Cache } from '../core/cache';
+import { Dependency } from '../core/dependency';
+import { Resource } from '../core/resource';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
-import { sink, Sink, SinkProps } from '../sink';
-import { Omit } from '../utils';
+import { sink, Sink, SinkProps } from '../util/sink';
+import { Omit } from '../util/utils';
 import { Event } from './event';
 import { QueueStream } from './stream';
 

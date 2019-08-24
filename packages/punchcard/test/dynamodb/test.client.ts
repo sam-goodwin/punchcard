@@ -1,10 +1,10 @@
 import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import 'jest';
-import { DynamoDB, Shape, string } from '../../../lib';
+import { DynamoDB, Shape, } from '../../lib';
 
 describe('HashTable', () => {
-  function makeTable<S extends Shape, P extends keyof S>(shape: S, partitionKey: P, mock: AWS.DynamoDB): DynamoDB.Table.Client<S, P, undefined> {
+  function makeTable<S extends Shape.Shape, P extends keyof S>(shape: S, partitionKey: P, mock: AWS.DynamoDB): DynamoDB.Table.Client<S, P, undefined> {
     const app = new core.App();
     const stack = new core.Stack(app, 'stack');
     return new DynamoDB.Table.Client(new DynamoDB.Table(stack, 'table', {
@@ -29,8 +29,8 @@ describe('HashTable', () => {
       }
     };
     const table = makeTable({
-      key: string(),
-      value: string(),
+      key: Shape.string(),
+      value: Shape.string(),
     }, 'key', mock as any);
 
     const result = await table.get({
@@ -75,8 +75,8 @@ describe('HashTable', () => {
       }
     };
     const table = makeTable({
-      key: string(),
-      value: string()
+      key: Shape.string(),
+      value: Shape.string()
     }, 'key', mock as any);
 
     const result = await table.batchGet([{
@@ -127,8 +127,8 @@ describe('HashTable', () => {
       }
     };
     const table = makeTable({
-      key: string(),
-      value: string()
+      key: Shape.string(),
+      value: Shape.string()
     }, 'key', mock as any);
 
     const result = await table.scan();
@@ -161,8 +161,8 @@ describe('HashTable', () => {
         }
       };
       const table = makeTable({
-        key: string(),
-        value: string()
+        key: Shape.string(),
+        value: Shape.string()
       }, 'key', mock as any);
 
       expect(await table.put({
@@ -190,8 +190,8 @@ describe('HashTable', () => {
         }
       };
       const table = makeTable({
-        key: string(),
-        value: string()
+        key: Shape.string(),
+        value: Shape.string()
       }, 'key', mock as any);
 
       expect(await table.put({
@@ -233,8 +233,8 @@ describe('HashTable', () => {
         }
       };
       const table = makeTable({
-        key: string(),
-        value: string()
+        key: Shape.string(),
+        value: Shape.string()
       }, 'key', mock as any);
 
       expect(await table.update({
@@ -270,8 +270,8 @@ describe('HashTable', () => {
         }
       };
       const table = makeTable({
-        key: string(),
-        value: string()
+        key: Shape.string(),
+        value: Shape.string()
       }, 'key', mock as any);
 
       expect(await table.update({
@@ -304,7 +304,7 @@ describe('HashTable', () => {
 
 describe('SortedTable', () => {
 // tslint:disable-next-line: max-line-length
-  function makeTable<S extends Shape, P extends keyof S, SK extends keyof S>(shape: S, partitionKey: P, sortKey: SK, mock: AWS.DynamoDB): DynamoDB.Table.Client<S, P, SK> {
+  function makeTable<S extends Shape.Shape, P extends keyof S, SK extends keyof S>(shape: S, partitionKey: P, sortKey: SK, mock: AWS.DynamoDB): DynamoDB.Table.Client<S, P, SK> {
     const app = new core.App();
     const stack = new core.Stack(app, 'stack');
     return new DynamoDB.Table.Client(new DynamoDB.Table(stack, 'table', {
@@ -314,9 +314,9 @@ describe('SortedTable', () => {
     }), 'tableName', mock);
   }
   const shape = {
-    key: string(),
-    sortKey: string(),
-    value: string()
+    key: Shape.string(),
+    sortKey: Shape.string(),
+    value: Shape.string()
   };
   const response: AWS.DynamoDB.QueryOutput = {
     Items: [{

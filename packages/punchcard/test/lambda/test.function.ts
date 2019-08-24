@@ -2,17 +2,16 @@ import core = require('@aws-cdk/core');
 import 'jest';
 import sinon = require('sinon');
 
-import { Dependency, Lambda } from '../../../lib';
-import { setRuntime } from '../../../lib/constants';
+import { Core, Lambda, Util } from '../../lib';
 
 // stop web-pack from running
 // TODO: gross as fuck - every user will have to do this
-setRuntime();
+Util.setRuntime();
 
 describe('Function', () => {
   it('should install clients in context', () => {
     const stack = new core.Stack(new core.App(), 'stack');
-    const client: Dependency<any> = {
+    const client: Core.Dependency<any> = {
       install: (namespace, grantable) => namespace.set('test', 'value'),
       bootstrap: async () => null
     };
@@ -24,7 +23,7 @@ describe('Function', () => {
   });
   it('should bootstrap all clients on boot and pass to handler', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
-    const client: Dependency<any> = {
+    const client: Core.Dependency<any> = {
       install: (namespace, grantable) => namespace.set('test', 'value'),
       bootstrap: async () => 'client'
     };
@@ -156,7 +155,7 @@ it('should install and bootstrap nested dependencies', async () => {
   };
 
   const f = Lambda.L().spawn(new core.Stack(new core.App(), 'stack'), 'f', {
-    depends: Dependency.list(dependency, dependency),
+    depends: Core.Dependency.list(dependency, dependency),
     async handle(_, [d1, d2]) {
       return (d1 as any).toString() + (d2 as any).toString(); // expect '11' as result
     }
@@ -173,7 +172,7 @@ it('should install and bootstrap nested dependencies', async () => {
 //   };
 
 //   const f = Lambda.L().spawn(new cdk.Stack(new cdk.App(), 'stack'), 'f', {
-//     depends: Dependency.list({
+//     depends: Core.Dependency.list({
 //       d1: dependency,
 //       d2: dependency
 //     }),

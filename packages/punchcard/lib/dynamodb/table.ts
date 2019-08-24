@@ -4,10 +4,11 @@ import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 
-import { Cache, Namespace } from '../assembly';
-import { Dependency } from '../dependency';
+import { Namespace } from '../core/assembly';
+import { Cache } from '../core/cache';
+import { Dependency } from '../core/dependency';
 import { Mapper, RuntimeShape, Shape, struct } from "../shape";
-import { Omit } from '../utils';
+import { Omit } from '../util/omit';
 import { CompiledExpression } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';
 import { ActionType, Condition, Facade, toFacade, UpdateAction } from './expression/path';

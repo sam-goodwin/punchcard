@@ -2,11 +2,9 @@ import 'jest';
 import sinon = require('sinon');
 
 import core = require('@aws-cdk/core');
-import { Codec, Firehose, string, struct } from '../../lib';
-import { setRuntime } from '../../lib/constants';
-import { Compression } from '../../lib/storage/compression';
+import { Firehose, Shape, Util } from '../../lib';
 
-setRuntime();
+Util.setRuntime();
 
 describe('run', () => {
   it('should get object amnd parse lines into records', async () => {
@@ -23,9 +21,9 @@ describe('run', () => {
     };
 
     const stream = new Firehose.DeliveryStream(stack, 'Queue', {
-      codec: Codec.Json,
-      compression: Compression.None,
-      type: struct({key: string()})
+      codec: Util.Codec.Json,
+      compression: Util.Compression.None,
+      type: Shape.struct({key: Shape.string()})
     });
 
     const results: Array<{key: string}> = [];
@@ -60,9 +58,9 @@ describe('run', () => {
     };
 
     const stream = new Firehose.DeliveryStream(stack, 'Queue', {
-      codec: Codec.Json,
-      compression: Compression.None,
-      type: struct({key: string()})
+      codec: Util.Codec.Json,
+      compression: Util.Compression.None,
+      type: Shape.struct({key: Shape.string()})
     });
 
     expect((stream.stream().forEach(stack, 'id', {

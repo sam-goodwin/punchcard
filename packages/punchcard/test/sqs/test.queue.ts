@@ -2,17 +2,16 @@ import 'jest';
 import sinon = require('sinon');
 
 import core = require('@aws-cdk/core');
-import { Collectors, Dependency, integer, SQS, string } from '../../lib';
-import { setRuntime } from '../../lib/constants';
+import { Core, Shape, SQS, Util } from '../../lib';
 
-setRuntime();
+Util.setRuntime();
 
 describe('run', () => {
   it('should parse event into records', async () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: string()
+      type: Shape.string()
     });
 
     const results: string[] = [];
@@ -32,7 +31,7 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: string()
+      type: Shape.string()
     });
 
     const results: string[] = [];
@@ -52,14 +51,14 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: string()
+      type: Shape.string()
     });
 
-    const d1: Dependency<string> = {
+    const d1: Core.Dependency<string> = {
       bootstrap: async () => 'd1',
       install: () => undefined
     };
-    const d2: Dependency<string> = {
+    const d2: Core.Dependency<string> = {
       bootstrap: async () => 'd2',
       install: () => undefined
     };
@@ -92,10 +91,10 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: string()
+      type: Shape.string()
     });
 
-    const d1: Dependency<string> = {
+    const d1: Core.Dependency<string> = {
       bootstrap: async () => 'd1',
       install: () => undefined
     };
@@ -108,8 +107,8 @@ describe('run', () => {
           return v.length;
         }
       })
-      .collect(stack, 'Stream', Collectors.toKinesisStream({
-        type: integer()
+      .collect(stack, 'Stream', Core.Collectors.toKinesisStream({
+        type: Shape.integer()
       }));
 
     const sink = {
@@ -128,10 +127,10 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: string()
+      type: Shape.string()
     });
 
-    const d1: Dependency<string> = {
+    const d1: Core.Dependency<string> = {
       bootstrap: async () => 'd1',
       install: () => undefined
     };
@@ -145,7 +144,7 @@ describe('run', () => {
         }
       })
       .toKinesisStream(stack, 'Stream', {
-        type: integer()
+        type: Shape.integer()
       });
 
     const sink = {

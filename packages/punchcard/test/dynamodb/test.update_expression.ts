@@ -1,66 +1,52 @@
 import 'jest';
 
-import {
-  array,
-  binary,
-  boolean,
-  dynamic,
-  DynamoDB,
-  float,
-  integer,
-  map,
-  set,
-  string,
-  struct,
-  timestamp,
-} from '../../../lib';
-import { CompileContextImpl } from '../../../lib/storage/dynamodb/expression/compiler';
+import { DynamoDB, Shape } from '../../lib';
 
 /**
  * TODO: Tests for optional attributes
  */
 const table = {
-  anyAttribute: dynamic,
-  stringAttribute: string(),
-  intAttribute: integer(),
-  floatAttribute: float(),
-  binaryAttribute: binary(),
-  timestampAttribute: timestamp,
-  boolAttribute: boolean,
-  struct: struct({
-    nested_id: integer()
+  anyAttribute: Shape.dynamic,
+  stringAttribute: Shape.string(),
+  intAttribute: Shape.integer(),
+  floatAttribute: Shape.float(),
+  binaryAttribute: Shape.binary(),
+  timestampAttribute: Shape.timestamp,
+  boolAttribute: Shape.boolean,
+  struct: Shape.struct({
+    nested_id: Shape.integer()
   }),
-  list: array(integer()),
-  map: map(string()),
-  intMap: map(integer()),
-  stringSetAttribute: set(string()),
-  intSetAttribute: set(integer()),
-  floatSetAttribute: set(float()),
-  binarySetAttribute: set(binary()),
+  list: Shape.array(Shape.integer()),
+  map: Shape.map(Shape.string()),
+  intMap: Shape.map(Shape.integer()),
+  stringSetAttribute: Shape.set(Shape.string()),
+  intSetAttribute: Shape.set(Shape.integer()),
+  floatSetAttribute: Shape.set(Shape.float()),
+  binarySetAttribute: Shape.set(Shape.binary()),
 
   // for referencing other attributes in toPath
-  other_stringAttribute: string(),
-  other_intAttribute: integer(),
-  other_floatAttribute: float(),
-  other_binaryAttribute: binary(),
-  other_timestampAttribute: timestamp,
-  other_boolAttribute: boolean,
-  other_struct: struct({
-    nested_id: integer()
+  other_stringAttribute: Shape.string(),
+  other_intAttribute: Shape.integer(),
+  other_floatAttribute: Shape.float(),
+  other_binaryAttribute: Shape.binary(),
+  other_timestampAttribute: Shape.timestamp,
+  other_boolAttribute: Shape.boolean,
+  other_struct: Shape.struct({
+    nested_id: Shape.integer()
   }),
-  other_list: array(integer()),
-  other_map: map(string()),
-  other_intMap: map(integer()),
-  other_stringSetAttribute: set(string()),
-  other_intSetAttribute: set(integer()),
-  other_floatSetAttribute: set(float()),
-  other_binarySetAttribute: set(binary()),
+  other_list: Shape.array(Shape.integer()),
+  other_map: Shape.map(Shape.string()),
+  other_intMap: Shape.map(Shape.integer()),
+  other_stringSetAttribute: Shape.set(Shape.string()),
+  other_intSetAttribute: Shape.set(Shape.integer()),
+  other_floatSetAttribute: Shape.set(Shape.float()),
+  other_binarySetAttribute: Shape.set(Shape.binary()),
 };
 
 const facade = DynamoDB.toFacade(table);
 
 function render(u: DynamoDB.SetAction<any>) {
-  const context = new CompileContextImpl();
+  const context = new DynamoDB.CompileContextImpl();
   const s = u.compile(context);
   return {
     UpdateExpression: s,
@@ -73,7 +59,7 @@ describe('update-expression', () => {
   describe('set', () => {
     describe('value', () => {
       it('dynamic', () => {
-        expect(render(facade.anyAttribute.as(boolean).set(true))).toEqual({
+        expect(render(facade.anyAttribute.as(Shape.boolean).set(true))).toEqual({
           UpdateExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute'
@@ -255,7 +241,7 @@ describe('update-expression', () => {
 
     describe('to another attribute', () => {
       it('dynamic', () => {
-        expect(render(facade.anyAttribute.as(boolean).set(facade.other_boolAttribute))).toEqual({
+        expect(render(facade.anyAttribute.as(Shape.boolean).set(facade.other_boolAttribute))).toEqual({
           UpdateExpression: '#0 = #1',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute',
@@ -402,7 +388,7 @@ describe('update-expression', () => {
 
     describe('to another computation', () => {
       it('dynamic', () => {
-        expect(render(facade.anyAttribute.as(integer()).set(facade.other_intAttribute.plus(1)))).toEqual({
+        expect(render(facade.anyAttribute.as(Shape.integer()).set(facade.other_intAttribute.plus(1)))).toEqual({
           UpdateExpression: '#0 = #1 + :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute',

@@ -1,4 +1,4 @@
-import { dynamic } from "../../lib";
+import { dynamic } from "../../lib/shape";
 
 it('any.equals should work for all types', () => {
   expect(dynamic.equals(true, true)).toBe(true);

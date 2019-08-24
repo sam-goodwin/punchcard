@@ -1,7 +1,7 @@
 import { RuntimeType, Shape } from '../../shape/shape';
 import { ArrayType } from '../../shape/types/array';
 import { Type } from '../../shape/types/type';
-import { Tree, TreeFields } from '../../tree';
+import { Tree, TreeFields } from '../../util/tree';
 import { Compilable, CompileContext, CompiledExpression } from './compile-context';
 
 // tslint:disable: no-shadowed-variable

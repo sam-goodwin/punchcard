@@ -3,15 +3,18 @@ import AWS = require('aws-sdk');
 import iam = require('@aws-cdk/aws-iam');
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/core');
-import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../constants';
-import { Json, Mapper, Raw, Type } from '../shape';
-import { Omit } from '../utils';
 
 import fs = require('fs');
 import path = require('path');
-import { Assembly, Cache, Namespace } from '../assembly';
-import { Client, Dependency } from '../dependency';
-import { Entrypoint, entrypoint } from '../entrypoint';
+
+import { Assembly, Namespace } from '../core/assembly';
+import { Cache } from '../core/cache';
+import { Client } from '../core/client';
+import { Dependency } from '../core/dependency';
+import { Entrypoint, entrypoint } from '../core/entrypoint';
+import { Json, Mapper, Raw, Type } from '../shape';
+import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../util/constants';
+import { Omit } from '../util/omit';
 
 export type FunctionProps<T, U, D extends Dependency<any>> = {
   /**

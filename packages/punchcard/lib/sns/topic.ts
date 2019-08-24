@@ -5,12 +5,13 @@ import sns = require('@aws-cdk/aws-sns');
 import snsSubs = require('@aws-cdk/aws-sns-subscriptions');
 import core = require('@aws-cdk/core');
 
-import { Cache, Namespace } from '../assembly';
-import { Dependency } from '../dependency';
-import { Resource } from '../resource';
+import { Namespace } from '../core/assembly';
+import { Cache } from '../core/cache';
+import { Dependency } from '../core/dependency';
+import { Resource } from '../core/resource';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
-import { Sink, sink, SinkProps } from '../sink';
 import { Queue } from '../sqs/queue';
+import { Sink, sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 import { TopicStream } from './stream';
 

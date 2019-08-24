@@ -1,19 +1,19 @@
 import core = require('@aws-cdk/core');
 
-import { Collector } from '../collector';
-import { Dependency } from '../dependency';
-import { Cons } from '../hlist';
+import { Collector } from '../core/collector';
+import { Dependency } from '../core/dependency';
+import { DependencyType, EventType, Stream } from '../core/stream';
 import { Function } from '../lambda/function';
 import { RuntimeType } from '../shape/shape';
 import { Type } from '../shape/types/type';
-import { DependencyType, EventType, Stream } from '../stream';
+import { Cons } from '../util/hlist';
 import { DeliveryStream, DeliveryStreamDirectPut } from './delivery-stream';
 
 /**
  * Add a utility method `toFirehoseDeliveryStream` for `Stream` which uses the `DeliveryStreamCollector` to collect
  * data to S3 via a Kinesis Firehose Delivery Stream.
  */
-declare module '../stream' {
+declare module '../core/stream' {
   interface Stream<E, T, D extends any[], C extends Stream.Config> {
     /**
      * Collect data to S3 via a Firehose Delivery Stream.

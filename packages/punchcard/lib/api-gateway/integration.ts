@@ -1,8 +1,8 @@
 import api = require('@aws-cdk/aws-apigateway');
 
-import { Dependency } from '../dependency';
+import { Dependency } from '../core/dependency';
 import * as Lambda from '../lambda';
-import { Omit } from '../utils';
+import { Omit } from '../util/omit';
 import { Resource } from './resource';
 
 type ResourceMappings = {[key: string]: Resource};

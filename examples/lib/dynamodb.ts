@@ -3,7 +3,9 @@ import cdk = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
 
-import { dynamic, DynamoDB, integer, Lambda, string, struct, array, Dependency } from 'punchcard';
+import { Core, Shape, DynamoDB, Lambda } from 'punchcard';
+
+const { array, dynamic, string, integer, struct } = Shape;
 
 const app = new cdk.App();
 export default app;
@@ -47,7 +49,7 @@ const sortedTable = new DynamoDB.Table(stack, 'my-table', {
 
 // call the incrementer function from another Lambda Function
 executorService.schedule(stack, 'Caller', {
-  depends: Dependency.list(table, sortedTable),
+  depends: Core.Dependency.list(table, sortedTable),
   schedule: Schedule.rate(Duration.minutes(1)),
   handle: async (_, [table, sortedTable]) => {
     await table.get({

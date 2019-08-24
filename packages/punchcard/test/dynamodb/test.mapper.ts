@@ -1,18 +1,18 @@
 import 'jest';
 
-import { array, binary, boolean, double, dynamic, DynamoDB, integer, set, Shape, string, struct } from '../../../lib';
+import { DynamoDB, Shape } from '../../lib';
 
 const shape = {
-  dynamic,
-  string: string(),
-  binary: binary(),
-  int: integer(),
-  num: double(),
-  bool: boolean,
-  array: array(string()),
-  set: set(string()),
-  struct: struct({
-    key: string()
+  dynamic: Shape.dynamic,
+  string: Shape.string(),
+  binary: Shape.binary(),
+  int: Shape.integer(),
+  num: Shape.double(),
+  bool: Shape.boolean,
+  array: Shape.array(Shape.string()),
+  set: Shape.set(Shape.string()),
+  struct: Shape.struct({
+    key: Shape.string()
   })
 };
 

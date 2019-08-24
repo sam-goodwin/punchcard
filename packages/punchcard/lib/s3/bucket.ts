@@ -2,9 +2,10 @@ import AWS = require('aws-sdk');
 
 import iam = require('@aws-cdk/aws-iam');
 import s3 = require('@aws-cdk/aws-s3');
-import { Cache, Namespace } from '../assembly';
-import { Dependency } from '../dependency';
-import { Omit } from '../utils';
+import { Namespace } from '../core/assembly';
+import { Cache } from '../core/cache';
+import { Dependency } from '../core/dependency';
+import { Omit } from '../util/omit';
 
 export class Bucket implements Dependency<Bucket.ReadWriteClient> {
   constructor(public readonly bucket: s3.IBucket) {}

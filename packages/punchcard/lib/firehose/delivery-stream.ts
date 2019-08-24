@@ -6,19 +6,21 @@ import events = require('@aws-cdk/aws-lambda-event-sources');
 import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
 
-import { Assembly, Cache, Namespace } from '../assembly';
-import { Codec } from '../codec';
-import { Compression } from '../compression';
 import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from '../analytics/delivery-stream';
-import { Clients, Dependency } from '../dependency';
+import { Assembly, Namespace } from '../core/assembly';
+import { Cache } from '../core/cache';
+import { Clients } from '../core/client';
+import { Dependency } from '../core/dependency';
+import { Resource } from '../core/resource';
+import { Stream } from '../core/stream';
 import * as Kinesis from '../kinesis';
 import { ExecutorService } from '../lambda/executor';
 import { Function } from '../lambda/function';
-import { Resource } from '../resource';
 import { Bucket } from '../s3/bucket';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
-import { Sink, sink, SinkProps } from '../sink';
-import { Stream } from '../stream';
+import { Codec } from '../util/codec';
+import { Compression } from '../util/compression';
+import { Sink, sink, SinkProps } from '../util/sink';
 import { FirehoseEvent, FirehoseResponse, S3Event, ValidationResult } from './event';
 
 export type DeliveryStreamProps<T extends Type<any>> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;

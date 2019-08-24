@@ -3,7 +3,9 @@ import cdk = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
 
-import { DynamoDB, integer, Lambda, string, struct, dynamic, unsafeDynamic } from 'punchcard';
+import { Shape, DynamoDB, Lambda } from 'punchcard';
+
+const { dynamic, string, integer, struct } = Shape;
 
 const app = new cdk.App();
 export default app;

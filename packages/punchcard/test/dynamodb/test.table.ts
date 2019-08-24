@@ -5,7 +5,7 @@ import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import 'jest';
 // tslint:disable-next-line: max-line-length
-import { array, Assembly, bigint, binary, Cache, Dependency, double, DynamoDB, float, integer, map, optional, set, smallint, string, struct, timestamp, tinyint, Type } from '../../../lib';
+import { Core, DynamoDB, Shape } from '../../lib';
 
 const scope: any = {
   node: {
@@ -13,63 +13,63 @@ const scope: any = {
   }
 };
 
-function keyTypeTests(makeTable: (type: Type<any>) => void) {
+function keyTypeTests(makeTable: (type: Shape.Type<any>) => void) {
   it('should accept string partition key type', () => {
-    makeTable(string());
+    makeTable(Shape.string());
   });
   it('should accept integer partition key type', () => {
-    makeTable(integer());
+    makeTable(Shape.integer());
   });
   it('should accept bigint partition key type', () => {
-    makeTable(bigint());
+    makeTable(Shape.bigint());
   });
   it('should accept smallint partition key type', () => {
-    makeTable(smallint());
+    makeTable(Shape.smallint());
   });
   it('should accept tinyint partition key type', () => {
-    makeTable(tinyint());
+    makeTable(Shape.tinyint());
   });
   it('should accept float partition key type', () => {
-    makeTable(float());
+    makeTable(Shape.float());
   });
   it('should accept double partition key type', () => {
-    makeTable(double());
+    makeTable(Shape.double());
   });
   it('should accept timestamp partition key type', () => {
-    makeTable(timestamp);
+    makeTable(Shape.timestamp);
   });
   it('should accept binary partition key type', () => {
-    makeTable(binary());
+    makeTable(Shape.binary());
   });
   it('should not accept optional type', () => {
-    expect(() =>  makeTable(optional(string()))).toThrow();
+    expect(() =>  makeTable(Shape.optional(Shape.string()))).toThrow();
   });
   it('should not accept array type', () => {
-    expect(() =>  makeTable(array(string()))).toThrow();
+    expect(() =>  makeTable(Shape.array(Shape.string()))).toThrow();
   });
   it('should not accept set type', () => {
-    expect(() =>  makeTable(set(string()))).toThrow();
+    expect(() =>  makeTable(Shape.set(Shape.string()))).toThrow();
   });
   it('should not accept map type', () => {
-    expect(() =>  makeTable(map(string()))).toThrow();
+    expect(() =>  makeTable(Shape.map(Shape.string()))).toThrow();
   });
   it('should not accept struct type', () => {
-    expect(() =>  makeTable(struct({
-      key: string()
+    expect(() =>  makeTable(Shape.struct({
+      key: Shape.string()
     }))).toThrow();
   });
 }
 
 // tests for installing the table into an RunTarget
 function installTests(makeTable: (stack: core.Stack) => DynamoDB.Table<any, any, any>) {
-  function installTest(getRun: (t: DynamoDB.Table<any, any, any>) => Dependency<any>, expectedGrant: keyof DynamoDB.Table<any, any, any>) {
+  function installTest(getRun: (t: DynamoDB.Table<any, any, any>) => Core.Dependency<any>, expectedGrant: keyof DynamoDB.Table<any, any, any>) {
     const stack = new core.Stack(new core.App(), 'stack');
     const table = makeTable(stack);
     const tableSpy = sinon.spy(table, expectedGrant);
     const role = new iam.Role(stack, 'Role', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com')
     });
-    const assembly = new Assembly(scope, {});
+    const assembly = new Core.Assembly(scope, {});
     getRun(table).install(assembly, role);
     expect(assembly.get('tableName')).toEqual(table.tableName);
     expect(tableSpy.calledWith(role)).toEqual(true);
@@ -96,16 +96,16 @@ function installTests(makeTable: (stack: core.Stack) => DynamoDB.Table<any, any,
 function bootstrapTests(makeTable: (stack: core.Stack) => DynamoDB.Table<any, any, any>) {
   it('should lookup tableName from properties', async () => {
     const table = makeTable(new core.Stack(new core.App(), 'hello'));
-    const bag = new Assembly(scope, {});
-    const cache = new Cache();
+    const bag = new Core.Assembly(scope, {});
+    const cache = new Core.Cache();
     bag.set('tableName', 'table-name');
     const client = await table.bootstrap(bag, cache);
     expect((client as any).tableName).toEqual('table-name');
   });
   it('should create and cache dynamo client', async () => {
     const table = makeTable(new core.Stack(new core.App(), 'hello'));
-    const bag = new Assembly(scope, {});
-    const cache = new Cache();
+    const bag = new Core.Assembly(scope, {});
+    const cache = new Core.Cache();
     bag.set('tableName', 'table-name');
     await table.bootstrap(bag, cache);
     expect(cache.has('aws:dynamodb')).toBe(true);
@@ -114,8 +114,8 @@ function bootstrapTests(makeTable: (stack: core.Stack) => DynamoDB.Table<any, an
     const ddbClientConstructor = sinon.spy(AWS, 'DynamoDB');
 
     const table = makeTable(new core.Stack(new core.App(), 'hello'));
-    const bag = new Assembly(scope, {});
-    const cache = new Cache();
+    const bag = new Core.Assembly(scope, {});
+    const cache = new Core.Cache();
     bag.set('tableName', 'table-name');
     await table.bootstrap(bag, cache);
     await table.bootstrap(bag, cache);
@@ -145,7 +145,7 @@ describe('DynamoDB.Table', () => {
     stack = stack || new core.Stack(new core.App(), 'stack');
     return new DynamoDB.Table(stack, 'table', {
       shape: {
-        key: string()
+        key: Shape.string()
       },
       partitionKey: 'key',
       sortKey: undefined
@@ -179,8 +179,8 @@ describe('SortedTable', () => {
   function boringTable(stack: core.Stack) {
     return new DynamoDB.Table(stack, 'table', {
       shape: {
-        key: string(),
-        sortKey: string()
+        key: Shape.string(),
+        sortKey: Shape.string()
       },
       partitionKey: 'key',
       sortKey: 'sortKey'

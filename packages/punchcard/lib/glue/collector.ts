@@ -1,19 +1,19 @@
 import core = require('@aws-cdk/core');
 
-import { Collector } from '../collector';
-import { Dependency } from '../dependency';
+import { Collector } from '../core/collector';
+import { Dependency } from '../core/dependency';
+import { DependencyType, EventType, Stream } from '../core/stream';
 import { Table, TableProps } from '../glue/table';
-import { Cons } from '../hlist';
 import { Function } from '../lambda/function';
 import { RuntimeShape, Shape } from '../shape/shape';
 import { StructType } from '../shape/types/struct';
-import { DependencyType, EventType, Stream } from '../stream';
+import { Cons } from '../util/hlist';
 import { Partition } from './partition';
 
 /**
  * Add a utility method `toGlueTable` for `Stream` which uses the `TableCollector` to produce Glue `Tables`.
  */
-declare module '../stream' {
+declare module '../core/stream' {
   interface Stream<E, T, D extends any[], C extends Stream.Config> {
     /**
      * Collect data to S3 via a Firehose Delivery Stream.

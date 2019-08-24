@@ -1,7 +1,8 @@
 import { RuntimeShape, RuntimeType, Shape } from '../shape/shape';
 import { StructType, Type } from '../shape/types';
 
-import { Client, Dependency } from '../dependency';
+import { Client,  } from '../core/client';
+import { Dependency } from '../core/dependency';
 import { Integration } from './integration';
 import { StatusCode, } from './request-response';
 import { TypedMapping } from './variable';

@@ -1,4 +1,4 @@
-import { ENTRYPOINT_SYMBOL_NAME } from '../constants';
+import { ENTRYPOINT_SYMBOL_NAME } from '../util/constants';
 
 export const entrypoint = Symbol.for(ENTRYPOINT_SYMBOL_NAME);
 /**

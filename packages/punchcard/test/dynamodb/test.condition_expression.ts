@@ -1,20 +1,6 @@
 import 'jest';
 
-import {
-  array,
-  binary,
-  boolean,
-  dynamic,
-  DynamoDB,
-  float,
-  integer,
-  map,
-  set,
-  string,
-  struct,
-  timestamp,
-} from '../../../lib';
-import { CompileContextImpl } from '../../../lib/storage/dynamodb';
+import { DynamoDB, Shape } from '../../lib';
 
 const _ = DynamoDB._;
 const and = DynamoDB.and;
@@ -30,22 +16,22 @@ const toFacade = DynamoDB.toFacade;
  * TODO: Tests for optional attributes
  */
 const table = {
-  anyAttribute: dynamic,
-  stringAttribute: string(),
-  intAttribute: integer(),
-  floatAttribute: float(),
-  timestampAttribute: timestamp,
-  binaryAttribute: binary(),
-  boolAttribute: boolean,
-  struct: struct({
-    nested_id: integer()
+  anyAttribute: Shape.dynamic,
+  stringAttribute: Shape.string(),
+  intAttribute: Shape.integer(),
+  floatAttribute: Shape.float(),
+  timestampAttribute: Shape.timestamp,
+  binaryAttribute: Shape.binary(),
+  boolAttribute: Shape.boolean,
+  struct: Shape.struct({
+    nested_id: Shape.integer()
   }),
-  list: array(integer()),
-  map: map(string()),
-  stringSetAttribute: set(string()),
-  intSetAttribute: set(integer()),
-  floatSetAttribute: set(float()),
-  binarySetAttribute: set(binary())
+  list: Shape.array(Shape.integer()),
+  map: Shape.map(Shape.string()),
+  stringSetAttribute: Shape.set(Shape.string()),
+  intSetAttribute: Shape.set(Shape.integer()),
+  floatSetAttribute: Shape.set(Shape.float()),
+  binarySetAttribute: Shape.set(Shape.binary())
 };
 
 const facade = toFacade(table);
@@ -57,7 +43,7 @@ describe('condition-expression', () => {
   describe('operand comparator operand', () => {
     describe('=', () => {
       it('dynamic', () => {
-        expect(facade.anyAttribute.as(boolean).equals(true).render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.boolean).equals(true).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute'
@@ -71,7 +57,7 @@ describe('condition-expression', () => {
       });
 
       it('boolean', () => {
-        expect(facade.boolAttribute.equals(true).render(new CompileContextImpl())).toEqual({
+        expect(facade.boolAttribute.equals(true).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'boolAttribute'
@@ -85,7 +71,7 @@ describe('condition-expression', () => {
       });
 
       it('string', () => {
-        expect(facade.stringAttribute.equals('test').render(new CompileContextImpl())).toEqual({
+        expect(facade.stringAttribute.equals('test').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'stringAttribute'
@@ -99,7 +85,7 @@ describe('condition-expression', () => {
       });
 
       it('int', () => {
-        expect(facade.intAttribute.equals(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.intAttribute.equals(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'intAttribute'
@@ -113,7 +99,7 @@ describe('condition-expression', () => {
       });
 
       it('float', () => {
-        expect(facade.floatAttribute.equals(1.2).render(new CompileContextImpl())).toEqual({
+        expect(facade.floatAttribute.equals(1.2).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'floatAttribute'
@@ -127,7 +113,7 @@ describe('condition-expression', () => {
       });
 
       it('timestamp', () => {
-        expect(facade.timestampAttribute.equals(new Date(1)).render(new CompileContextImpl())).toEqual({
+        expect(facade.timestampAttribute.equals(new Date(1)).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'timestampAttribute'
@@ -141,7 +127,7 @@ describe('condition-expression', () => {
       });
 
       it('binary', () => {
-        expect(facade.binaryAttribute.equals(new Buffer('string')).render(new CompileContextImpl())).toEqual({
+        expect(facade.binaryAttribute.equals(new Buffer('string')).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'binaryAttribute'
@@ -159,7 +145,7 @@ describe('condition-expression', () => {
           nested_id: 1
         });
 
-        expect(expression.render(new CompileContextImpl())).toEqual({
+        expect(expression.render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'struct'
@@ -177,7 +163,7 @@ describe('condition-expression', () => {
       });
 
       it('struct attribute', () => {
-        expect(facade.struct.fields.nested_id.equals(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.struct.fields.nested_id.equals(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 = :0',
           ExpressionAttributeNames: {
             '#0': 'struct',
@@ -192,9 +178,9 @@ describe('condition-expression', () => {
       });
 
       it('struct as any', () => {
-        expect(facade.anyAttribute.as(struct({
-          nested_id: integer()
-        })).fields.nested_id.equals(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.struct({
+          nested_id: Shape.integer()
+        })).fields.nested_id.equals(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 = :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute',
@@ -209,7 +195,7 @@ describe('condition-expression', () => {
       });
 
       it ('list', () => {
-        expect(facade.list.equals([1]).render(new CompileContextImpl())).toEqual({
+        expect(facade.list.equals([1]).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -225,7 +211,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).equals(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.list.get(0).equals(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] = :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -239,7 +225,7 @@ describe('condition-expression', () => {
       });
 
       it ('map', () => {
-        expect(facade.map.equals({ key: 'value' }).render(new CompileContextImpl())).toEqual({
+        expect(facade.map.equals({ key: 'value' }).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 = :0',
           ExpressionAttributeNames: {
             '#0': 'map'
@@ -255,7 +241,7 @@ describe('condition-expression', () => {
       });
 
       it ('map key', () => {
-        expect(facade.map.get('key').equals('value').render(new CompileContextImpl())).toEqual({
+        expect(facade.map.get('key').equals('value').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 = :0',
           ExpressionAttributeNames: {
             '#0': 'map',
@@ -272,7 +258,7 @@ describe('condition-expression', () => {
 
     describe('<>', () => {
       it('dynamic', () => {
-        expect(facade.anyAttribute.as(boolean).notEquals(true).render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.boolean).notEquals(true).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute'
@@ -286,7 +272,7 @@ describe('condition-expression', () => {
       });
 
       it('boolean', () => {
-        expect(facade.boolAttribute.ne(true).render(new CompileContextImpl())).toEqual({
+        expect(facade.boolAttribute.ne(true).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
             '#0': 'boolAttribute'
@@ -300,7 +286,7 @@ describe('condition-expression', () => {
       });
 
       it('string', () => {
-        expect(facade.stringAttribute.ne('test').render(new CompileContextImpl())).toEqual({
+        expect(facade.stringAttribute.ne('test').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
             '#0': 'stringAttribute'
@@ -314,7 +300,7 @@ describe('condition-expression', () => {
       });
 
       it('int', () => {
-        expect(facade.intAttribute.ne(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.intAttribute.ne(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
             '#0': 'intAttribute'
@@ -328,7 +314,7 @@ describe('condition-expression', () => {
       });
 
       it('float', () => {
-        expect(facade.floatAttribute.ne(1.2).render(new CompileContextImpl())).toEqual({
+        expect(facade.floatAttribute.ne(1.2).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
             '#0': 'floatAttribute'
@@ -342,7 +328,7 @@ describe('condition-expression', () => {
       });
 
       it('timestamp', () => {
-        expect(facade.timestampAttribute.ne(new Date(1)).render(new CompileContextImpl())).toEqual({
+        expect(facade.timestampAttribute.ne(new Date(1)).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
             '#0': 'timestampAttribute'
@@ -356,7 +342,7 @@ describe('condition-expression', () => {
       });
 
       it('binary', () => {
-        expect(facade.binaryAttribute.ne(new Buffer('string')).render(new CompileContextImpl())).toEqual({
+        expect(facade.binaryAttribute.ne(new Buffer('string')).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
             '#0': 'binaryAttribute'
@@ -374,7 +360,7 @@ describe('condition-expression', () => {
           nested_id: 1
         });
 
-        expect(expression.render(new CompileContextImpl())).toEqual({
+        expect(expression.render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
             '#0': 'struct'
@@ -392,7 +378,7 @@ describe('condition-expression', () => {
       });
 
       it('struct attribute', () => {
-        expect(facade.struct.fields.nested_id.ne(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.struct.fields.nested_id.ne(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 <> :0',
           ExpressionAttributeNames: {
             '#0': 'struct',
@@ -407,9 +393,9 @@ describe('condition-expression', () => {
       });
 
       it('struct as any', () => {
-        expect(facade.anyAttribute.as(struct({
-          nested_id: integer()
-        })).fields.nested_id.ne(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.struct({
+          nested_id: Shape.integer()
+        })).fields.nested_id.ne(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 <> :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute',
@@ -424,7 +410,7 @@ describe('condition-expression', () => {
       });
 
       it ('list', () => {
-        expect(facade.list.ne([1]).render(new CompileContextImpl())).toEqual({
+        expect(facade.list.ne([1]).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -440,7 +426,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).ne(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.list.get(0).ne(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] <> :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -454,7 +440,7 @@ describe('condition-expression', () => {
       });
 
       it ('map', () => {
-        expect(facade.map.ne({ key: 'value' }).render(new CompileContextImpl())).toEqual({
+        expect(facade.map.ne({ key: 'value' }).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <> :0',
           ExpressionAttributeNames: {
             '#0': 'map'
@@ -470,7 +456,7 @@ describe('condition-expression', () => {
       });
 
       it ('map key', () => {
-        expect(facade.map.get('key').ne('value').render(new CompileContextImpl())).toEqual({
+        expect(facade.map.get('key').ne('value').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 <> :0',
           ExpressionAttributeNames: {
             '#0': 'map',
@@ -487,7 +473,7 @@ describe('condition-expression', () => {
 
     describe('>', () => {
       it('dynamic', () => {
-        expect(facade.anyAttribute.as(string()).greaterThan('test').render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.string()).greaterThan('test').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 > :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute'
@@ -501,7 +487,7 @@ describe('condition-expression', () => {
       });
 
       it('string', () => {
-        expect(facade.stringAttribute.gt('test').render(new CompileContextImpl())).toEqual({
+        expect(facade.stringAttribute.gt('test').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 > :0',
           ExpressionAttributeNames: {
             '#0': 'stringAttribute'
@@ -515,7 +501,7 @@ describe('condition-expression', () => {
       });
 
       it('int', () => {
-        expect(facade.intAttribute.gt(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.intAttribute.gt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 > :0',
           ExpressionAttributeNames: {
             '#0': 'intAttribute'
@@ -529,7 +515,7 @@ describe('condition-expression', () => {
       });
 
       it('float', () => {
-        expect(facade.floatAttribute.gt(1.2).render(new CompileContextImpl())).toEqual({
+        expect(facade.floatAttribute.gt(1.2).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 > :0',
           ExpressionAttributeNames: {
             '#0': 'floatAttribute'
@@ -543,7 +529,7 @@ describe('condition-expression', () => {
       });
 
       it('timestamp', () => {
-        expect(facade.timestampAttribute.gt(new Date(1)).render(new CompileContextImpl())).toEqual({
+        expect(facade.timestampAttribute.gt(new Date(1)).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 > :0',
           ExpressionAttributeNames: {
             '#0': 'timestampAttribute'
@@ -557,7 +543,7 @@ describe('condition-expression', () => {
       });
 
       it('binary', () => {
-        expect(facade.binaryAttribute.gt(new Buffer('string')).render(new CompileContextImpl())).toEqual({
+        expect(facade.binaryAttribute.gt(new Buffer('string')).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 > :0',
           ExpressionAttributeNames: {
             '#0': 'binaryAttribute'
@@ -571,7 +557,7 @@ describe('condition-expression', () => {
       });
 
       it('struct attribute', () => {
-        expect(facade.struct.fields.nested_id.gt(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.struct.fields.nested_id.gt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 > :0',
           ExpressionAttributeNames: {
             '#0': 'struct',
@@ -586,9 +572,9 @@ describe('condition-expression', () => {
       });
 
       it('struct as any', () => {
-        expect(facade.anyAttribute.as(struct({
-          nested_id: integer()
-        })).fields.nested_id.gt(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.struct({
+          nested_id: Shape.integer()
+        })).fields.nested_id.gt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 > :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute',
@@ -603,7 +589,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).gt(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.list.get(0).gt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] > :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -617,7 +603,7 @@ describe('condition-expression', () => {
       });
 
       it ('map key', () => {
-        expect(facade.map.get('key').gt('value').render(new CompileContextImpl())).toEqual({
+        expect(facade.map.get('key').gt('value').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 > :0',
           ExpressionAttributeNames: {
             '#0': 'map',
@@ -634,7 +620,7 @@ describe('condition-expression', () => {
 
     describe('>=', () => {
       it('dynamic', () => {
-        expect(facade.anyAttribute.as(string()).greaterThanOrEqual('test').render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.string()).greaterThanOrEqual('test').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 >= :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute'
@@ -648,7 +634,7 @@ describe('condition-expression', () => {
       });
 
       it('string', () => {
-        expect(facade.stringAttribute.gte('test').render(new CompileContextImpl())).toEqual({
+        expect(facade.stringAttribute.gte('test').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 >= :0',
           ExpressionAttributeNames: {
             '#0': 'stringAttribute'
@@ -662,7 +648,7 @@ describe('condition-expression', () => {
       });
 
       it('int', () => {
-        expect(facade.intAttribute.gte(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.intAttribute.gte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 >= :0',
           ExpressionAttributeNames: {
             '#0': 'intAttribute'
@@ -676,7 +662,7 @@ describe('condition-expression', () => {
       });
 
       it('float', () => {
-        expect(facade.floatAttribute.gte(1.2).render(new CompileContextImpl())).toEqual({
+        expect(facade.floatAttribute.gte(1.2).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 >= :0',
           ExpressionAttributeNames: {
             '#0': 'floatAttribute'
@@ -690,7 +676,7 @@ describe('condition-expression', () => {
       });
 
       it('timestamp', () => {
-        expect(facade.timestampAttribute.gte(new Date(1)).render(new CompileContextImpl())).toEqual({
+        expect(facade.timestampAttribute.gte(new Date(1)).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 >= :0',
           ExpressionAttributeNames: {
             '#0': 'timestampAttribute'
@@ -704,7 +690,7 @@ describe('condition-expression', () => {
       });
 
       it('binary', () => {
-        expect(facade.binaryAttribute.gte(new Buffer('string')).render(new CompileContextImpl())).toEqual({
+        expect(facade.binaryAttribute.gte(new Buffer('string')).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 >= :0',
           ExpressionAttributeNames: {
             '#0': 'binaryAttribute'
@@ -718,7 +704,7 @@ describe('condition-expression', () => {
       });
 
       it('struct attribute', () => {
-        expect(facade.struct.fields.nested_id.gte(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.struct.fields.nested_id.gte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 >= :0',
           ExpressionAttributeNames: {
             '#0': 'struct',
@@ -733,9 +719,9 @@ describe('condition-expression', () => {
       });
 
       it('struct as any', () => {
-        expect(facade.anyAttribute.as(struct({
-          nested_id: integer()
-        })).fields.nested_id.gte(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.struct({
+          nested_id: Shape.integer()
+        })).fields.nested_id.gte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 >= :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute',
@@ -750,7 +736,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).gte(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.list.get(0).gte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] >= :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -764,7 +750,7 @@ describe('condition-expression', () => {
       });
 
       it ('map key', () => {
-        expect(facade.map.get('key').gte('value').render(new CompileContextImpl())).toEqual({
+        expect(facade.map.get('key').gte('value').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 >= :0',
           ExpressionAttributeNames: {
             '#0': 'map',
@@ -781,7 +767,7 @@ describe('condition-expression', () => {
 
     describe('<', () => {
       it('dynamic', () => {
-        expect(facade.anyAttribute.as(string()).lessThan('test').render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.string()).lessThan('test').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 < :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute'
@@ -795,7 +781,7 @@ describe('condition-expression', () => {
       });
 
       it('string', () => {
-        expect(facade.stringAttribute.lt('test').render(new CompileContextImpl())).toEqual({
+        expect(facade.stringAttribute.lt('test').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 < :0',
           ExpressionAttributeNames: {
             '#0': 'stringAttribute'
@@ -809,7 +795,7 @@ describe('condition-expression', () => {
       });
 
       it('int', () => {
-        expect(facade.intAttribute.lt(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.intAttribute.lt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 < :0',
           ExpressionAttributeNames: {
             '#0': 'intAttribute'
@@ -823,7 +809,7 @@ describe('condition-expression', () => {
       });
 
       it('float', () => {
-        expect(facade.floatAttribute.lt(1.2).render(new CompileContextImpl())).toEqual({
+        expect(facade.floatAttribute.lt(1.2).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 < :0',
           ExpressionAttributeNames: {
             '#0': 'floatAttribute'
@@ -837,7 +823,7 @@ describe('condition-expression', () => {
       });
 
       it('timestamp', () => {
-        expect(facade.timestampAttribute.lt(new Date(1)).render(new CompileContextImpl())).toEqual({
+        expect(facade.timestampAttribute.lt(new Date(1)).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 < :0',
           ExpressionAttributeNames: {
             '#0': 'timestampAttribute'
@@ -851,7 +837,7 @@ describe('condition-expression', () => {
       });
 
       it('binary', () => {
-        expect(facade.binaryAttribute.lt(new Buffer('string')).render(new CompileContextImpl())).toEqual({
+        expect(facade.binaryAttribute.lt(new Buffer('string')).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 < :0',
           ExpressionAttributeNames: {
             '#0': 'binaryAttribute'
@@ -865,7 +851,7 @@ describe('condition-expression', () => {
       });
 
       it('struct attribute', () => {
-        expect(facade.struct.fields.nested_id.lt(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.struct.fields.nested_id.lt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 < :0',
           ExpressionAttributeNames: {
             '#0': 'struct',
@@ -880,9 +866,9 @@ describe('condition-expression', () => {
       });
 
       it('struct as any', () => {
-        expect(facade.anyAttribute.as(struct({
-          nested_id: integer()
-        })).fields.nested_id.lt(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.struct({
+          nested_id: Shape.integer()
+        })).fields.nested_id.lt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 < :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute',
@@ -897,7 +883,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).lt(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.list.get(0).lt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] < :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -911,7 +897,7 @@ describe('condition-expression', () => {
       });
 
       it ('map key', () => {
-        expect(facade.map.get('key').lt('value').render(new CompileContextImpl())).toEqual({
+        expect(facade.map.get('key').lt('value').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 < :0',
           ExpressionAttributeNames: {
             '#0': 'map',
@@ -928,7 +914,7 @@ describe('condition-expression', () => {
 
     describe('<=', () => {
       it('dynamic', () => {
-        expect(facade.anyAttribute.as(string()).lessThanOrEqual('test').render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.string()).lessThanOrEqual('test').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <= :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute'
@@ -942,7 +928,7 @@ describe('condition-expression', () => {
       });
 
       it('string', () => {
-        expect(facade.stringAttribute.lte('test').render(new CompileContextImpl())).toEqual({
+        expect(facade.stringAttribute.lte('test').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <= :0',
           ExpressionAttributeNames: {
             '#0': 'stringAttribute'
@@ -956,7 +942,7 @@ describe('condition-expression', () => {
       });
 
       it('int', () => {
-        expect(facade.intAttribute.lte(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.intAttribute.lte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <= :0',
           ExpressionAttributeNames: {
             '#0': 'intAttribute'
@@ -970,7 +956,7 @@ describe('condition-expression', () => {
       });
 
       it('float', () => {
-        expect(facade.floatAttribute.lte(1.2).render(new CompileContextImpl())).toEqual({
+        expect(facade.floatAttribute.lte(1.2).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <= :0',
           ExpressionAttributeNames: {
             '#0': 'floatAttribute'
@@ -984,7 +970,7 @@ describe('condition-expression', () => {
       });
 
       it('timestamp', () => {
-        expect(facade.timestampAttribute.lte(new Date(1)).render(new CompileContextImpl())).toEqual({
+        expect(facade.timestampAttribute.lte(new Date(1)).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <= :0',
           ExpressionAttributeNames: {
             '#0': 'timestampAttribute'
@@ -998,7 +984,7 @@ describe('condition-expression', () => {
       });
 
       it('binary', () => {
-        expect(facade.binaryAttribute.lte(new Buffer('string')).render(new CompileContextImpl())).toEqual({
+        expect(facade.binaryAttribute.lte(new Buffer('string')).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0 <= :0',
           ExpressionAttributeNames: {
             '#0': 'binaryAttribute'
@@ -1012,7 +998,7 @@ describe('condition-expression', () => {
       });
 
       it('struct attribute', () => {
-        expect(facade.struct.fields.nested_id.lte(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.struct.fields.nested_id.lte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 <= :0',
           ExpressionAttributeNames: {
             '#0': 'struct',
@@ -1027,9 +1013,9 @@ describe('condition-expression', () => {
       });
 
       it('struct as any', () => {
-        expect(facade.anyAttribute.as(struct({
-          nested_id: integer()
-        })).fields.nested_id.lte(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.struct({
+          nested_id: Shape.integer()
+        })).fields.nested_id.lte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 <= :0',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute',
@@ -1044,7 +1030,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).lte(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.list.get(0).lte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] <= :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -1058,7 +1044,7 @@ describe('condition-expression', () => {
       });
 
       it ('map key', () => {
-        expect(facade.map.get('key').lte('value').render(new CompileContextImpl())).toEqual({
+        expect(facade.map.get('key').lte('value').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0.#1 <= :0',
           ExpressionAttributeNames: {
             '#0': 'map',
@@ -1076,7 +1062,7 @@ describe('condition-expression', () => {
 
   describe('operand BETWEEN operand AND operand', () => {
     it('dynamic', () => {
-      expect(facade.anyAttribute.as(string()).between('a', 'b').render(new CompileContextImpl())).toEqual({
+      expect(facade.anyAttribute.as(Shape.string()).between('a', 'b').render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 BETWEEN :0 AND :1',
         ExpressionAttributeNames: {
           '#0': 'anyAttribute'
@@ -1089,7 +1075,7 @@ describe('condition-expression', () => {
     });
 
     it('string', () => {
-      expect(facade.stringAttribute.between('a', 'b').render(new CompileContextImpl())).toEqual({
+      expect(facade.stringAttribute.between('a', 'b').render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 BETWEEN :0 AND :1',
         ExpressionAttributeNames: {
           '#0': 'stringAttribute'
@@ -1102,7 +1088,7 @@ describe('condition-expression', () => {
     });
 
     it('int', () => {
-      expect(facade.intAttribute.between(1, 2).render(new CompileContextImpl())).toEqual({
+      expect(facade.intAttribute.between(1, 2).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 BETWEEN :0 AND :1',
         ExpressionAttributeNames: {
           '#0': 'intAttribute'
@@ -1115,7 +1101,7 @@ describe('condition-expression', () => {
     });
 
     it('float', () => {
-      expect(facade.floatAttribute.between(1.1, 2.2).render(new CompileContextImpl())).toEqual({
+      expect(facade.floatAttribute.between(1.1, 2.2).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 BETWEEN :0 AND :1',
         ExpressionAttributeNames: {
           '#0': 'floatAttribute'
@@ -1128,7 +1114,7 @@ describe('condition-expression', () => {
     });
 
     it('timestamp', () => {
-      expect(facade.timestampAttribute.between(new Date(1), new Date(2)).render(new CompileContextImpl())).toEqual({
+      expect(facade.timestampAttribute.between(new Date(1), new Date(2)).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 BETWEEN :0 AND :1',
         ExpressionAttributeNames: {
           '#0': 'timestampAttribute'
@@ -1141,7 +1127,7 @@ describe('condition-expression', () => {
     });
 
     it('binary', () => {
-      expect(facade.binaryAttribute.between(new Buffer('a'), new Buffer('b')).render(new CompileContextImpl())).toEqual({
+      expect(facade.binaryAttribute.between(new Buffer('a'), new Buffer('b')).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 BETWEEN :0 AND :1',
         ExpressionAttributeNames: {
           '#0': 'binaryAttribute'
@@ -1154,7 +1140,7 @@ describe('condition-expression', () => {
     });
 
     it('struct attribute', () => {
-      expect(facade.struct.fields.nested_id.between(1, 2).render(new CompileContextImpl())).toEqual({
+      expect(facade.struct.fields.nested_id.between(1, 2).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0.#1 BETWEEN :0 AND :1',
         ExpressionAttributeNames: {
           '#0': 'struct',
@@ -1168,7 +1154,7 @@ describe('condition-expression', () => {
     });
 
     it('list item', () => {
-      expect(facade.list.get(0).between(1, 2).render(new CompileContextImpl())).toEqual({
+      expect(facade.list.get(0).between(1, 2).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0[0] BETWEEN :0 AND :1',
         ExpressionAttributeNames: {
           '#0': 'list'
@@ -1181,7 +1167,7 @@ describe('condition-expression', () => {
     });
 
     it('map key', () => {
-      expect(facade.map.get('key').between('a', 'b').render(new CompileContextImpl())).toEqual({
+      expect(facade.map.get('key').between('a', 'b').render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0.#1 BETWEEN :0 AND :1',
         ExpressionAttributeNames: {
           '#0': 'map',
@@ -1197,7 +1183,7 @@ describe('condition-expression', () => {
 
   describe("operand IN operand (',' operand (, ...) ))", () => {
     it('string', () => {
-      expect(facade.anyAttribute.as(string()).in('a', 'b', 'c').render(new CompileContextImpl())).toEqual({
+      expect(facade.anyAttribute.as(Shape.string()).in('a', 'b', 'c').render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 IN (:0,:1,:2)',
         ExpressionAttributeNames: {
           '#0': 'anyAttribute'
@@ -1211,7 +1197,7 @@ describe('condition-expression', () => {
     });
 
     it('string', () => {
-      expect(facade.stringAttribute.in('a', 'b', 'c').render(new CompileContextImpl())).toEqual({
+      expect(facade.stringAttribute.in('a', 'b', 'c').render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 IN (:0,:1,:2)',
         ExpressionAttributeNames: {
           '#0': 'stringAttribute'
@@ -1225,7 +1211,7 @@ describe('condition-expression', () => {
     });
 
     it('int', () => {
-      expect(facade.intAttribute.in(1, 2, 3).render(new CompileContextImpl())).toEqual({
+      expect(facade.intAttribute.in(1, 2, 3).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 IN (:0,:1,:2)',
         ExpressionAttributeNames: {
           '#0': 'intAttribute'
@@ -1239,7 +1225,7 @@ describe('condition-expression', () => {
     });
 
     it('float', () => {
-      expect(facade.floatAttribute.in(1.1, 2.2, 3.3).render(new CompileContextImpl())).toEqual({
+      expect(facade.floatAttribute.in(1.1, 2.2, 3.3).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 IN (:0,:1,:2)',
         ExpressionAttributeNames: {
           '#0': 'floatAttribute'
@@ -1253,7 +1239,7 @@ describe('condition-expression', () => {
     });
 
     it('timestamp', () => {
-      expect(facade.timestampAttribute.in(new Date(1), new Date(2), new Date(3)).render(new CompileContextImpl())).toEqual({
+      expect(facade.timestampAttribute.in(new Date(1), new Date(2), new Date(3)).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 IN (:0,:1,:2)',
         ExpressionAttributeNames: {
           '#0': 'timestampAttribute'
@@ -1267,7 +1253,7 @@ describe('condition-expression', () => {
     });
 
     it('binary', () => {
-      expect(facade.binaryAttribute.in(new Buffer('a'), new Buffer('b'), new Buffer('c')).render(new CompileContextImpl())).toEqual({
+      expect(facade.binaryAttribute.in(new Buffer('a'), new Buffer('b'), new Buffer('c')).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 IN (:0,:1,:2)',
         ExpressionAttributeNames: {
           '#0': 'binaryAttribute'
@@ -1281,7 +1267,7 @@ describe('condition-expression', () => {
     });
 
     it('struct attribute', () => {
-      expect(facade.struct.fields.nested_id.in(1, 2, 3).render(new CompileContextImpl())).toEqual({
+      expect(facade.struct.fields.nested_id.in(1, 2, 3).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0.#1 IN (:0,:1,:2)',
         ExpressionAttributeNames: {
           '#0': 'struct',
@@ -1296,7 +1282,7 @@ describe('condition-expression', () => {
     });
 
     it('list item', () => {
-      expect(facade.list.get(0).in(1, 2, 3).render(new CompileContextImpl())).toEqual({
+      expect(facade.list.get(0).in(1, 2, 3).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0[0] IN (:0,:1,:2)',
         ExpressionAttributeNames: {
           '#0': 'list'
@@ -1310,7 +1296,7 @@ describe('condition-expression', () => {
     });
 
     it('map key', () => {
-      expect(facade.map.get('key').in('a', 'b', 'c').render(new CompileContextImpl())).toEqual({
+      expect(facade.map.get('key').in('a', 'b', 'c').render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0.#1 IN (:0,:1,:2)',
         ExpressionAttributeNames: {
           '#0': 'map',
@@ -1327,7 +1313,7 @@ describe('condition-expression', () => {
 
   describe('function', () => {
     it('attribute_exists', () => {
-      expect(attribute_exists(facade.stringAttribute).render(new CompileContextImpl())).toEqual({
+      expect(attribute_exists(facade.stringAttribute).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: 'attribute_exists(#0)',
         ExpressionAttributeNames: {
           '#0': 'stringAttribute'
@@ -1336,7 +1322,7 @@ describe('condition-expression', () => {
     });
 
     it('attribute_not_exists', () => {
-      expect(attribute_not_exists(facade.stringAttribute).render(new CompileContextImpl())).toEqual({
+      expect(attribute_not_exists(facade.stringAttribute).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: 'attribute_not_exists(#0)',
         ExpressionAttributeNames: {
           '#0': 'stringAttribute'
@@ -1346,7 +1332,7 @@ describe('condition-expression', () => {
 
     describe('begins_with', () => {
       it('string', () => {
-        expect(facade.anyAttribute.as(string()).beginsWith('string').render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.string()).beginsWith('string').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: 'begins_with(#0,:0)',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute'
@@ -1358,7 +1344,7 @@ describe('condition-expression', () => {
       });
 
       it('string', () => {
-        expect(facade.stringAttribute.beginsWith('string').render(new CompileContextImpl())).toEqual({
+        expect(facade.stringAttribute.beginsWith('string').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: 'begins_with(#0,:0)',
           ExpressionAttributeNames: {
             '#0': 'stringAttribute'
@@ -1370,7 +1356,7 @@ describe('condition-expression', () => {
       });
 
       it('binary', () => {
-        expect(facade.binaryAttribute.beginsWith(new Buffer('string')).render(new CompileContextImpl())).toEqual({
+        expect(facade.binaryAttribute.beginsWith(new Buffer('string')).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: 'begins_with(#0,:0)',
           ExpressionAttributeNames: {
             '#0': 'binaryAttribute'
@@ -1384,7 +1370,7 @@ describe('condition-expression', () => {
 
     describe('contains', () => {
       it('any attribute', () => {
-        expect(facade.anyAttribute.as(string()).contains('string').render(new CompileContextImpl())).toEqual({
+        expect(facade.anyAttribute.as(Shape.string()).contains('string').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: 'contains(#0,:0)',
           ExpressionAttributeNames: {
             '#0': 'anyAttribute'
@@ -1398,7 +1384,7 @@ describe('condition-expression', () => {
       });
 
       it('string attribute', () => {
-        expect(facade.stringAttribute.contains('string').render(new CompileContextImpl())).toEqual({
+        expect(facade.stringAttribute.contains('string').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: 'contains(#0,:0)',
           ExpressionAttributeNames: {
             '#0': 'stringAttribute'
@@ -1412,7 +1398,7 @@ describe('condition-expression', () => {
       });
 
       it ('stringSet attribute', () => {
-        expect(facade.stringSetAttribute.contains('string').render(new CompileContextImpl())).toEqual({
+        expect(facade.stringSetAttribute.contains('string').render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: 'contains(#0,:0)',
           ExpressionAttributeNames: {
             '#0': 'stringSetAttribute'
@@ -1426,7 +1412,7 @@ describe('condition-expression', () => {
       });
 
       it ('intSet attribute', () => {
-        expect(facade.intSetAttribute.contains(1).render(new CompileContextImpl())).toEqual({
+        expect(facade.intSetAttribute.contains(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: 'contains(#0,:0)',
           ExpressionAttributeNames: {
             '#0': 'intSetAttribute'
@@ -1440,7 +1426,7 @@ describe('condition-expression', () => {
       });
 
       it ('floatSet attribute', () => {
-        expect(facade.floatSetAttribute.contains(1.1).render(new CompileContextImpl())).toEqual({
+        expect(facade.floatSetAttribute.contains(1.1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: 'contains(#0,:0)',
           ExpressionAttributeNames: {
             '#0': 'floatSetAttribute'
@@ -1454,7 +1440,7 @@ describe('condition-expression', () => {
       });
 
       it ('binarySet attribute', () => {
-        expect(facade.binarySetAttribute.contains(new Buffer('string')).render(new CompileContextImpl())).toEqual({
+        expect(facade.binarySetAttribute.contains(new Buffer('string')).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: 'contains(#0,:0)',
           ExpressionAttributeNames: {
             '#0': 'binarySetAttribute'
@@ -1468,7 +1454,7 @@ describe('condition-expression', () => {
       });
 
       it('path', () => {
-        const expression = facade.intSetAttribute.contains(facade.intAttribute).render(new CompileContextImpl());
+        const expression = facade.intSetAttribute.contains(facade.intAttribute).render(new DynamoDB.CompileContextImpl());
 
         expect(expression).toEqual({
           ConditionExpression: 'contains(#0,#1)',
@@ -1481,7 +1467,7 @@ describe('condition-expression', () => {
     });
 
     it('size', () => {
-      expect(facade.intAttribute.gt(size(facade.list)).render(new CompileContextImpl())).toEqual({
+      expect(facade.intAttribute.gt(size(facade.list)).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0 > size(#1)',
         ExpressionAttributeNames: {
           '#0': 'intAttribute',
@@ -1489,7 +1475,7 @@ describe('condition-expression', () => {
         }
       });
 
-      expect(size(facade.list).gt(facade.intAttribute).render(new CompileContextImpl())).toEqual({
+      expect(size(facade.list).gt(facade.intAttribute).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: 'size(#0) > #1',
         ExpressionAttributeNames: {
           '#0': 'list',
@@ -1517,8 +1503,8 @@ describe('condition-expression', () => {
         }
       };
 
-      expect(and(facade.stringAttribute.equals('string'), facade.intAttribute.equals(1)).render(new CompileContextImpl())).toEqual(expected);
-      expect(facade.stringAttribute.equals('string').and(facade.intAttribute.equals(1)).render(new CompileContextImpl())).toEqual(expected);
+      expect(and(facade.stringAttribute.equals('string'), facade.intAttribute.equals(1)).render(new DynamoDB.CompileContextImpl())).toEqual(expected);
+      expect(facade.stringAttribute.equals('string').and(facade.intAttribute.equals(1)).render(new DynamoDB.CompileContextImpl())).toEqual(expected);
     });
 
     it('condition OR condition', () => {
@@ -1538,12 +1524,12 @@ describe('condition-expression', () => {
         }
       };
 
-      expect(or(facade.stringAttribute.equals('string'), facade.intAttribute.equals(1)).render(new CompileContextImpl())).toEqual(expected);
-      expect(facade.stringAttribute.equals('string').or(facade.intAttribute.equals(1)).render(new CompileContextImpl())).toEqual(expected);
+      expect(or(facade.stringAttribute.equals('string'), facade.intAttribute.equals(1)).render(new DynamoDB.CompileContextImpl())).toEqual(expected);
+      expect(facade.stringAttribute.equals('string').or(facade.intAttribute.equals(1)).render(new DynamoDB.CompileContextImpl())).toEqual(expected);
     });
 
     it('NOT condition', () => {
-      expect(not(facade.stringAttribute.equals('string')).render(new CompileContextImpl()))
+      expect(not(facade.stringAttribute.equals('string')).render(new DynamoDB.CompileContextImpl()))
       .toEqual({
         ConditionExpression: 'NOT #0 = :0',
         ExpressionAttributeNames: {
@@ -1560,7 +1546,7 @@ describe('condition-expression', () => {
     it('parenthesis', () => {
       const expression = _(facade.stringAttribute.eq('test').or(facade.intAttribute.between(1, 10))).and(facade.struct.fields.nested_id.eq(1));
 
-      expect(expression.render(new CompileContextImpl())).toEqual({
+      expect(expression.render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '(#0 = :0 OR #1 BETWEEN :1 AND :2) AND #2.#3 = :3',
           ExpressionAttributeNames: {
             '#0': 'stringAttribute',

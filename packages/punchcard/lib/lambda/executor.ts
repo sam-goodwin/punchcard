@@ -4,9 +4,10 @@ import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/core');
 
 import { Integration, LambdaIntegration, Resource } from '../api-gateway';
-import { Client, Dependency } from '../dependency';
+import { Client } from '../core/client';
+import { Dependency } from '../core/dependency';
 import { Type } from '../shape/types/type';
-import { Omit } from '../utils';
+import { Omit } from '../util/omit';
 import { Function } from './function';
 
 /**

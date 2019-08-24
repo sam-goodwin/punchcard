@@ -3,8 +3,8 @@ import core = require('@aws-cdk/core');
 
 import 'jest';
 import sinon = require('sinon');
-import { Codec, Glue, smallint, timestamp } from '../../../lib';
-import { S3 } from '../../../lib/storage/s3';
+import { Glue, S3, Shape, Util } from '../../lib';
+const { timestamp } = Shape;
 
 const stack = new core.Stack(new core.App(), 'stack');
 const database = new glue.Database(stack, 'Database', {
@@ -13,15 +13,15 @@ const database = new glue.Database(stack, 'Database', {
 
 const table = new Glue.Table(stack, 'Table', {
   database,
-  codec: Codec.Json,
+  codec: Util.Codec.Json,
   tableName: 'table_name',
   columns: {
     timestamp,
   },
   partition: {
     keys: {
-      year: smallint(),
-      month: smallint()
+      year: Shape.smallint(),
+      month: Shape.smallint()
     },
     get: ({timestamp}) => ({
       year: timestamp.getUTCFullYear(),

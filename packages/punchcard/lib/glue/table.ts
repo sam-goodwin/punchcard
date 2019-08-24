@@ -7,15 +7,16 @@ import glue = require('@aws-cdk/aws-glue');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 
-import { Cache, Namespace } from '../assembly';
-import { Codec } from '../codec';
-import { Compression } from '../compression';
-import { Dependency } from '../dependency';
-import { Resource } from '../resource';
+import { Namespace } from '../core/assembly';
+import { Cache } from '../core/cache';
+import { Dependency } from '../core/dependency';
+import { Resource } from '../core/resource';
 import * as S3 from '../s3';
 import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, struct, Type } from '../shape';
-import { Sink } from '../sink';
-import { Omit } from '../utils';
+import { Codec } from '../util/codec';
+import { Compression } from '../util/compression';
+import { Omit } from '../util/omit';
+import { Sink } from '../util/sink';
 import { Partition } from './partition';
 
 /**

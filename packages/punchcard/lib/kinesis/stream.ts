@@ -6,15 +6,17 @@ import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
-import { Cache, Namespace } from '../assembly';
-import { Codec } from '../codec';
-import { Compression } from '../compression';
-import { Clients, Dependency } from '../dependency';
+import { Namespace } from '../core/assembly';
+import { Cache } from '../core/cache';
+import { Clients } from '../core/client';
+import { Dependency } from '../core/dependency';
+import { Resource } from '../core/resource';
+import { Stream as SStream } from '../core/stream';
 import { DeliveryStream } from '../firehose/delivery-stream';
-import { Resource } from '../resource';
 import { BufferMapper, Json, Mapper, RuntimeType, Type } from '../shape';
-import { sink, Sink, SinkProps } from '../sink';
-import { Stream as SStream } from '../stream';
+import { Codec } from '../util/codec';
+import { Compression } from '../util/compression';
+import { sink, Sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 
 export type Config = SStream.Config & events.KinesisEventSourceProps;

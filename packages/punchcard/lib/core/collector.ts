@@ -5,7 +5,7 @@ import * as Kinesis from '../kinesis';
 import { Type } from '../shape/types/type';
 import * as SNS from '../sns';
 import * as SQS from '../sqs';
-import { Stream } from '../stream';
+import { Stream } from './stream';
 
 /**
  * Collects data from an `Stream`.
