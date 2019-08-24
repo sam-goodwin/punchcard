@@ -107,7 +107,7 @@ describe('run', () => {
           return v.length;
         }
       })
-      .collect(stack, 'Stream', Core.Collectors.toKinesisStream({
+      .collect(stack, 'Stream', Util.Collectors.toKinesisStream({
         type: Shape.integer()
       }));
 

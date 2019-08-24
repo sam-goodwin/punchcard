@@ -12,7 +12,6 @@ import { Cache } from '../core/cache';
 import { Clients } from '../core/client';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
-import { Stream } from '../core/stream';
 import * as Kinesis from '../kinesis';
 import { ExecutorService } from '../lambda/executor';
 import { Function } from '../lambda/function';
@@ -21,6 +20,7 @@ import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Sink, sink, SinkProps } from '../util/sink';
+import { Stream } from '../util/stream';
 import { FirehoseEvent, FirehoseResponse, S3Event, ValidationResult } from './event';
 
 export type DeliveryStreamProps<T extends Type<any>> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;

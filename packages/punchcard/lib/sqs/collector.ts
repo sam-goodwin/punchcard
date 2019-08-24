@@ -1,17 +1,17 @@
 import core = require('@aws-cdk/core');
 
-import { Collector } from '../core/collector';
 import { Dependency } from '../core/dependency';
-import { DependencyType, EventType, Stream } from '../core/stream';
 import { Function } from '../lambda/function';
 import { RuntimeType, Type } from '../shape';
+import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
+import { DependencyType, EventType, Stream } from '../util/stream';
 import { Queue, QueueProps } from './queue';
 
 /**
  * Add a utility method `toQueue` for `Stream` which uses the `QueueCollector` to produce SQS `Queues`.
  */
-declare module '../core/stream' {
+declare module '../util/stream' {
   interface Stream<E, T, D extends any[], C extends Stream.Config> {
     /**
      * Collect data to a SQS Queue (as messages).

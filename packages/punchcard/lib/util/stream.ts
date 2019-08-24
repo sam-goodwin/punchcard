@@ -1,10 +1,10 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import core = require('@aws-cdk/core');
+import { Client, Clients } from '../core/client';
+import { Dependency } from '../core/dependency';
 import * as Lambda from '../lambda';
-import { Cons } from '../util/hlist';
-import { Client, Clients } from './client';
 import { Collector } from './collector';
-import { Dependency } from './dependency';
+import { Cons } from './hlist';
 
 export type EventType<E extends Stream<any, any, any, any>> = E extends Stream<infer E, any, any, any> ? E : never;
 export type DataType<E extends Stream<any, any, any, any>> = E extends Stream<any, infer I, any, any> ? I : never;

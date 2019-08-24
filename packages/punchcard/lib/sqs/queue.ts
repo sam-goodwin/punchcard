@@ -8,8 +8,8 @@ import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Json, Mapper, RuntimeType, Type } from '../shape';
+import { Omit } from '../util/omit';
 import { sink, Sink, SinkProps } from '../util/sink';
-import { Omit } from '../util/utils';
 import { Event } from './event';
 import { QueueStream } from './stream';
 

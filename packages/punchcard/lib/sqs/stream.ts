@@ -1,7 +1,7 @@
 import events = require('@aws-cdk/aws-lambda-event-sources');
 
 import { Clients } from '../core/client';
-import { Stream } from '../core/stream';
+import { Stream } from '../util/stream';
 import { Event } from './event';
 import { Queue } from './queue';
 

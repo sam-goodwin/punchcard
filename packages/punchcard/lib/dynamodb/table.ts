@@ -23,7 +23,7 @@ export type TableProps<S extends Shape, PKey extends keyof S, SKey extends keyof
 } & Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'>;
 
 /**
- * Base class for both a `HashTable` and `SortedTable`.
+ * A DynamoDB Table.
  *
  * @typeparam S shape of data in the table.
  * @typeparam PKey name of partition key

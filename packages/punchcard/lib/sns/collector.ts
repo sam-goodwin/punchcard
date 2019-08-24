@@ -1,17 +1,17 @@
 import core = require('@aws-cdk/core');
 
-import { Collector } from '../core/collector';
 import { Dependency } from '../core/dependency';
-import { DependencyType, EventType, Stream } from '../core/stream';
 import { Function } from '../lambda/function';
 import { RuntimeType, Type } from '../shape';
+import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
+import { DependencyType, EventType, Stream } from '../util/stream';
 import { Topic, TopicProps } from './topic';
 
 /**
  * Add a utility method `toTopic` for `Stream` which uses the `TopicCollector` to produce SNS `Topics`.
  */
-declare module '../core/stream' {
+declare module '../util/stream' {
   interface Stream<E, T, D extends any[], C extends Stream.Config> {
     /**
      * Collect data to a SNS Topic (as notification messages).
