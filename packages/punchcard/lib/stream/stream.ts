@@ -9,16 +9,6 @@ export type DataType<E extends Stream<any, any, any, any>> = E extends Stream<an
 export type DependencyType<E extends Stream<any, any, any, any>> = E extends Stream<any, any, infer D, any> ? D : never;
 
 /**
- * Props to configure an `Enumerable's` evaluation runtime properties.
- */
-export interface StreamRuntime {
-  /**
-   * The executor service of a `Enumerable` can always be customized.
-   */
-  executorService?: Lambda.ExecutorService;
-}
-
-/**
  * Represents chainable async operations on a cloud data structure.
  *
  * @typeparam E type of event that triggers the computation, i.e. SQSEvent to a Lambda Function
@@ -26,9 +16,9 @@ export interface StreamRuntime {
  * @typeparam D runtime dependencies
  * @typeparam R runtime configuration
  */
-export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
+export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
   constructor(
-      protected readonly previous: Stream<E, any, any, R>,
+      protected readonly previous: Stream<E, any, any, C>,
       protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,
       public readonly dependencies: D) {
     // do nothing
@@ -39,7 +29,7 @@ export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
    *
    * @param props optional properties - must implement sensible defaults
    */
-  public abstract eventSource(props?: R): lambda.IEventSource;
+  public abstract eventSource(props?: C): lambda.IEventSource;
 
   /**
    * Describe a transformation of values.
@@ -52,7 +42,7 @@ export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
   public map<U, D2 extends Dependency<any> | undefined>(input: {
     depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<U>
-  }): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, R> {
+  }): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C> {
     return this.flatMap({
       depends: input.depends,
       handle: async (v, c) => [await input.handle(v, c)]
@@ -70,7 +60,7 @@ export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
   public flatMap<U, D2 extends Dependency<any> | undefined>(input: {
     depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>
-  }): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, R> {
+  }): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C> {
     return this.chain({
       depends: (input.depends === undefined ? this.dependencies : [input.depends].concat(this.dependencies)) as any,
       handle: (async function*(values: AsyncIterableIterator<T>, clients: any) {
@@ -94,7 +84,7 @@ export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
   public abstract chain<U, D2 extends any[]>(input: {
     depends: D2;
     handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>
-  }): Stream<E, U, D2, R>;
+  }): Stream<E, U, D2, C>;
 
   /**
    * Asynchronously process an event and yield values.
@@ -124,9 +114,9 @@ export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
   public forEach<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
     depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<any>;
-    props?: R;
+    props?: C;
   }): Lambda.Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
-    // TODO: let the enumerable type determine default executor service
+    // TODO: let the stream type determine default executor service
     const executorService = (input.props && input.props.executorService) || new Lambda.ExecutorService({
       memorySize: 128,
       timeout: core.Duration.seconds(10)
@@ -162,7 +152,7 @@ export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
   public forBatch<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
     depends?: D2;
     handle: (value: T[], deps: Client<D2>) => Promise<any>;
-    props?: R;
+    props?: C;
   }): Lambda.Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
     return this.batched().forEach(scope, id, input);
   }
@@ -172,7 +162,7 @@ export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
    *
    * @param size maximum number of records in the batch (defaults to all)
    */
-  public batched(size?: number): Stream<E, T[], D, R> {
+  public batched(size?: number): Stream<E, T[], D, C> {
     return this.chain({
       depends: this.dependencies,
       async *handle(it) {
@@ -201,5 +191,17 @@ export abstract class Stream<E, T, D extends any[], R extends StreamRuntime> {
    */
   public collect<T>(scope: core.Construct, id: string, collector: Collector<T, this>): T {
     return collector.collect(scope, id, this);
+  }
+}
+
+export namespace Stream {
+  /**
+   * Props to configure a `Stream's` evaluation runtime properties.
+   */
+  export interface Config {
+    /**
+     * The executor service of a `Stream` can always be customized.
+     */
+    executorService?: Lambda.ExecutorService;
   }
 }

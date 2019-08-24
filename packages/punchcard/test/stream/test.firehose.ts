@@ -2,7 +2,7 @@ import 'jest';
 import sinon = require('sinon');
 
 import core = require('@aws-cdk/core');
-import { Codec, S3DeliveryStream, string, struct } from '../../lib';
+import { Codec, Firehose, string, struct } from '../../lib';
 import { setRuntime } from '../../lib/constants';
 import { Compression } from '../../lib/storage/compression';
 
@@ -22,7 +22,7 @@ describe('run', () => {
       }))
     };
 
-    const stream = new S3DeliveryStream(stack, 'Queue', {
+    const stream = new Firehose.DeliveryStream(stack, 'Queue', {
       codec: Codec.Json,
       compression: Compression.None,
       type: struct({key: string()})
@@ -59,7 +59,7 @@ describe('run', () => {
       getObject: sinon.fake.returns(Promise.reject(new Error('fail')))
     };
 
-    const stream = new S3DeliveryStream(stack, 'Queue', {
+    const stream = new Firehose.DeliveryStream(stack, 'Queue', {
       codec: Codec.Json,
       compression: Compression.None,
       type: struct({key: string()})
