@@ -1,4 +1,4 @@
-import { DynamoPath, Minus, OrdPath, Plus, SetAction, UpdateValue } from '../../storage/dynamodb/expression/path';
+import { DynamoPath, Minus, OrdPath, Plus, SetAction, UpdateValue } from '../../dynamodb';
 import { Kind } from './kind';
 import { PrimitiveType } from './primitive';
 import { Type } from './type';

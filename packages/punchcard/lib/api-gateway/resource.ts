@@ -1,8 +1,8 @@
 import apigateway = require('@aws-cdk/aws-apigateway');
 import cdk = require('@aws-cdk/core');
 
-import { Dependency } from '../compute/dependency';
 import { isRuntime } from '../constants';
+import { Dependency } from '../dependency';
 import { jsonSchema, Kind, Mapper, Raw, Shape, StructType, Type } from '../shape';
 import { Tree } from '../tree';
 import { Method, MethodName, RequestMappings, Response, Responses } from './method';

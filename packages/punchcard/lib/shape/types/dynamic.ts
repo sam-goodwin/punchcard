@@ -1,4 +1,4 @@
-import { DynamoPath, InferDynamoPathType } from '../../storage/dynamodb/expression/path';
+import { DynamoPath, InferDynamoPathType } from '../../dynamodb';
 import { TreeFields } from '../../tree';
 import { InferJsonPathType, JsonPath } from '../json/path';
 import { hashCode as strHashCode } from './hash';

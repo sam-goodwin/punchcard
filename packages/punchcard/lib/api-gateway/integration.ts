@@ -1,6 +1,7 @@
 import api = require('@aws-cdk/aws-apigateway');
 
-import { Dependency, Lambda } from '../compute';
+import { Dependency } from '../dependency';
+import * as Lambda from '../lambda';
 import { Omit } from '../utils';
 import { Resource } from './resource';
 

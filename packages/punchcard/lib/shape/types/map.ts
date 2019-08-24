@@ -1,5 +1,5 @@
 import { BaseDynamoPath, ConditionValue, DynamoPath, InferDynamoPathType,
-  MapKeyParent, remove, RemoveAction, SetAction } from '../../storage/dynamodb/expression/path';
+  MapKeyParent, remove, RemoveAction, SetAction } from '../../dynamodb';
 import { InferJsonPathType, JsonPath } from '../json/path';
 import { RuntimeType } from '../shape';
 import { hashCode } from './hash';

@@ -152,7 +152,7 @@ const database = new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
 });
 stream
-  .toS3DeliveryStream(stack, 'ToS3').stream()
+  .toFirehoseDeliveryStream(stack, 'ToS3').stream()
   .toGlueTable(stack, 'ToGlue', {
     database,
     tableName: 'my_table',

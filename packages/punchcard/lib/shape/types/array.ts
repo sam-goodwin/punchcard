@@ -1,5 +1,5 @@
 // tslint:disable-next-line: max-line-length
-import { BaseDynamoPath, ConditionValue, DynamoPath, IndexParent, InferDynamoPathType, list_append, remove, RemoveAction, SetAction, UpdateValue } from '../../storage/dynamodb/expression/path';
+import { BaseDynamoPath, ConditionValue, DynamoPath, IndexParent, InferDynamoPathType, list_append, remove, RemoveAction, SetAction, UpdateValue } from '../../dynamodb';
 import { InferJsonPathType, JsonPath } from '../json/path';
 import { RuntimeType } from '../shape';
 import { Kind } from './kind';
