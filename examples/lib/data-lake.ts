@@ -29,7 +29,7 @@ const dataPoints = new Analytics.Schema({
  * Kinesis -> Firehose -> S3 -> Lambda -> S3
  *                                     -> Glue Table
  */
-const lake = new Analytics.Lake(stack, 'Lake', {
+const lake = new Analytics.DataLake(stack, 'Lake', {
   lakeName: 'my_lake',
   schemas: {
     dataPoints

@@ -15,7 +15,7 @@ export interface DataPipelineProps<S extends Shape, T extends keyof S> {
   database: Database;
   schema: Schema<S, T>;
 }
-export class Pipeline<S extends Shape, T extends keyof S> extends core.Construct {
+export class DataPipeline<S extends Shape, T extends keyof S> extends core.Construct {
   public readonly stream: Kinesis.Stream<StructType<S>>;
   public readonly deliveryStream: DeliveryStream;
   public readonly stagingBucket: s3.Bucket;

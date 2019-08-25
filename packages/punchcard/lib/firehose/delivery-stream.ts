@@ -1,15 +1,11 @@
 import AWS = require('aws-sdk');
 
 import iam = require('@aws-cdk/aws-iam');
-import lambda = require('@aws-cdk/aws-lambda');
-import events = require('@aws-cdk/aws-lambda-event-sources');
-import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
 
 import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from '../analytics/delivery-stream';
 import { Assembly, Namespace } from '../core/assembly';
 import { Cache } from '../core/cache';
-import { Clients } from '../core/client';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import * as Kinesis from '../kinesis';
@@ -20,8 +16,8 @@ import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Sink, sink, SinkProps } from '../util/sink';
-import { Stream } from '../util/stream';
 import { FirehoseEvent, FirehoseResponse, S3Event, ValidationResult } from './event';
+import { DeliveryStreamStream } from './stream';
 
 export type DeliveryStreamProps<T extends Type<any>> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 
@@ -149,25 +145,6 @@ export class DeliveryStream<T extends Type<any>> extends core.Construct implemen
     return new DeliveryStream.Client(this,
       properties.get('deliveryStreamName'),
       cache.getOrCreate('aws:firehose', () => new AWS.Firehose()));
-  }
-}
-
-export class DeliveryStreamStream<T, D extends any[]> extends Stream<S3Event, T, D, Stream.Config> {
-  constructor(public readonly s3Stream: DeliveryStream<any>, previous: DeliveryStreamStream<any, any>, input: {
-    depends: D;
-    handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>
-  }) {
-    super(previous, input.handle, input.depends);
-  }
-
-  public eventSource(): lambda.IEventSource {
-    return new events.S3EventSource(this.s3Stream.resource.s3Bucket!, {
-      events: [s3.EventType.OBJECT_CREATED]
-    });
-  }
-
-  public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): DeliveryStreamStream<U, D2> {
-    return new DeliveryStreamStream(this.s3Stream, this, input);
   }
 }
 

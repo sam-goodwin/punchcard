@@ -58,7 +58,7 @@ export class Function<T, U, D extends Dependency<any>>
   public readonly filePath: string;
 
   /**
-   * Function to handle the event of type `T`, given initialized client instances `Clients<C>`.
+   * Function to handle the event of type `T`, given initialized client instances `Clients<D>`.
    *
    * @param event the parsed request
    * @param clients initialized clients to dependency resources

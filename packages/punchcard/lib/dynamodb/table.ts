@@ -10,7 +10,6 @@ import { Dependency } from '../core/dependency';
 import { Mapper } from '../shape/mapper/mapper';
 import { RuntimeShape, Shape } from '../shape/shape';
 import { struct } from '../shape/types/struct';
-// import { Mapper, RuntimeShape, Shape, struct } from "../shape";
 import { Omit } from '../util/omit';
 import { CompiledExpression } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';
@@ -343,6 +342,6 @@ export interface Update<S extends Shape, K> {
 
 export type Query<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined> =
   SKey extends keyof S ? {
-  key: KeyConditionExpression<S, PKey, SKey>;
-  filter?: (item: Facade<S>) => Condition;
-} : never;
+    key: KeyConditionExpression<S, PKey, SKey>;
+    filter?: (item: Facade<S>) => Condition;
+  } : never;
