@@ -1,7 +1,9 @@
 import core = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
-import { integer, string, Lambda, Schema, timestamp, char, array, DataLake } from 'punchcard';
+import { Lambda, Shape, Analytics } from 'punchcard';
+
+const { integer, string, timestamp, char, array, } = Shape;
 
 const app = new core.App();
 export default app;
@@ -9,7 +11,7 @@ export default app;
 const stack = new core.Stack(app, 'data-lake');
 
 // create a schema to describe our data
-const dataPoints = new Schema({
+const dataPoints = new Analytics.Schema({
   schemaName: 'data_points',
   shape: {
     key: string(),
@@ -27,7 +29,7 @@ const dataPoints = new Schema({
  * Kinesis -> Firehose -> S3 -> Lambda -> S3
  *                                     -> Glue Table
  */
-const lake = new DataLake(stack, 'Lake', {
+const lake = new Analytics.DataLake(stack, 'Lake', {
   lakeName: 'my_lake',
   schemas: {
     dataPoints

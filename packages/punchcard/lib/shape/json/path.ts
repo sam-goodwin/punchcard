@@ -1,4 +1,4 @@
-import { Tree, TreeFields } from '../../tree';
+import { Tree, TreeFields } from '../../util/tree';
 import { Kind, Type } from '../types';
 
 export class JsonPath<V> extends Tree<JsonPath<any>> {

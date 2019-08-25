@@ -2,7 +2,10 @@ import core = require('@aws-cdk/core');
 import 'jest';
 import sinon = require('sinon');
 
-import { Kinesis, string } from '../../lib';
+import { Kinesis, Shape } from '../../lib';
+
+// tslint:disable-next-line: variable-name
+const { string } = Shape;
 
 describe('client', () => {
   describe('sink', () => {
