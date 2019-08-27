@@ -247,16 +247,15 @@ export namespace Stream {
           Data: value
         })));
 
+        const redrive: Array<RuntimeType<T>> = [];
         if (result.FailedRecordCount) {
-          return result.Records.map((r, i) => {
-            if (r.SequenceNumber) {
-              return [i];
-            } else {
-              return [];
+          result.Records.forEach((r, i) => {
+            if (!r.SequenceNumber) {
+              redrive.push(values[i]);
             }
-          }).reduce((a, b) => a.concat(b)).map(i => values[i]);
+          });
         }
-        return [];
+        return redrive;
       }, props, 500);
     }
   }
