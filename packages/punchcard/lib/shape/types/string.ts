@@ -1,4 +1,5 @@
 import { BeginsWith, ConditionValue, Contains, DynamoPath, OrdPath } from '../../dynamodb/expression/path';
+import { Size } from '../../dynamodb/expression/size';
 import { hashCode } from './hash';
 import { Kind } from './kind';
 import { PrimitiveType } from './primitive';
@@ -106,6 +107,13 @@ export function varchar(length: number, constraints?: FixedLengthConstraints) {
 }
 
 export class StringDynamoPath<T extends Type<any>> extends OrdPath<T> {
+  /**
+   * Returns a value that represents the size of this array in DynamODB.
+   */
+  public get length(): Size {
+    return new Size(this);
+  }
+
   public beginsWith(value: ConditionValue<T>): BeginsWith<T> {
     return new BeginsWith(this, value);
   }

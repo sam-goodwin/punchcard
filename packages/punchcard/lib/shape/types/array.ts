@@ -1,5 +1,6 @@
 // tslint:disable-next-line: max-line-length
 import { BaseDynamoPath, ConditionValue, DynamoPath, IndexParent, InferDynamoPathType, list_append, remove, RemoveAction, SetAction, UpdateValue } from '../../dynamodb/expression/path';
+import { Size } from '../../dynamodb/expression/size';
 import { InferJsonPathType, JsonPath } from '../json/path';
 import { RuntimeType } from '../shape';
 import { Kind } from './kind';
@@ -125,20 +126,27 @@ export class ArrayPath<T extends Type<any>> extends JsonPath<Array<RuntimeType<T
  */
 export class ArrayDynamoPath<T extends Type<any>> extends BaseDynamoPath<ArrayType<T>> {
   /**
-   * Get a path to an item in the list by position.
+   * Returns a value that represents the size of this array in DynamODB.
+   */
+  public get length(): Size {
+    return new Size(this);
+  }
+
+  /**
+   * Reference an element of this list.
    *
    * @param index position in the list to point to
    */
-  public get(index: number): InferDynamoPathType<T> {
+  public at(index: number): InferDynamoPathType<T> {
     return this.type.itemType.toDynamoPath(new IndexParent(this, index), index.toString()) as InferDynamoPathType<T>;
   }
 
   public insert(index: number, value: ConditionValue<T>): SetAction<T> {
-    return ( this.get(index) as any).set(value);
+    return ( this.at(index) as any).set(value);
   }
 
   public remove(index: number): RemoveAction<T> {
-    return remove(( this.get(index) as any));
+    return remove(( this.at(index) as any));
   }
 
   public append(values: UpdateValue<ArrayType<T>>): SetAction<ArrayType<T>> {

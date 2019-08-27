@@ -39,6 +39,7 @@ new Lambda.Function(stack, 'MyFunction', {
 });
 ```
 
+### Type-Safety
 Furthermore, its interface is higher-level than what would normally be expected when using the `aws-sdk`, and it's also type-safe: the argument to the `publish` method is not an opaque `string` or `Buffer`, it is an `object` with keys and rich types such as `Date`. This is because data structures in punchcard, such as `Topic`, `Queue`, `Stream`, etc. are generic with statically declared types (like an `Array<T>`):
 
 ```ts
@@ -49,30 +50,40 @@ const topic = new SNS.Topic(stack, 'Topic', {
   type: struct({
     key: string(),
     count: integer(),
-    timestamp
+    timestamp,
+    tags: array(string())
   })
 });
 ```
 
-This `Topic` is now of type:
+This `Topic` has an infrastructure type of:
 ```ts
 Topic<{
-  key: string;
-  count: number;
-  timestamp: Date;
+  key: StringType;
+  count: IntegerType;
+  timestamp: TimestampType;
+  tags: ArrayType<StringType>;
 }>
 ```
 
-This feature in punchcard becomes even more evident when using DynamoDB. To demonstrate, let's create a DynamoDB `Table` and use it in a `Function`:
-
+Which has a runtime type of:
+```ts
+Topic.Client<{
+  key: string;
+  count: number;
+  timestamp: Date;
+  tags: string[];
+}>
+```
+### Service-aware Runtime DSLs
+Punchcard makes use of the explicitly 
+ feature in punchcard becomes even more evident when using DynamoDB. To demonstrate, let's create a DynamoDB `Table` and use it in a `Function`:
 ```ts
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
   shape: {
     id: string(),
-    count: integer({
-      minimum: 0
-    })
+    count: integer()
   },
   billingMode: BillingMode.PAY_PER_REQUEST
 });

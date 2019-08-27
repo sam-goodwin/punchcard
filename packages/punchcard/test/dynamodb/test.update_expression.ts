@@ -225,7 +225,7 @@ describe('update-expression', () => {
       });
 
       it('list item', () => {
-        expect(render(facade.list.get(1).set(1))).toEqual({
+        expect(render(facade.list.at(1).set(1))).toEqual({
           UpdateExpression: '#0[1] = :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -375,7 +375,7 @@ describe('update-expression', () => {
       });
 
       it('list item', () => {
-        expect(render(facade.list.get(1).set(facade.other_list.get(1)))).toEqual({
+        expect(render(facade.list.at(1).set(facade.other_list.at(1)))).toEqual({
           UpdateExpression: '#0[1] = #1[1]',
           ExpressionAttributeNames: {
             '#0': 'list',
@@ -454,7 +454,7 @@ describe('update-expression', () => {
       });
 
       it('list item', () => {
-        expect(render(facade.list.get(1).set(facade.other_list.get(1).plus(1)))).toEqual({
+        expect(render(facade.list.at(1).set(facade.other_list.at(1).plus(1)))).toEqual({
           UpdateExpression: '#0[1] = #1[1] + :0',
           ExpressionAttributeNames: {
             '#0': 'list',
