@@ -18,7 +18,7 @@ import { Key, keyType } from './key';
 import * as Dynamo from './mapper';
 import { compileQuery, KeyConditionExpression } from './query';
 
-export type TableProps<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined> = {
+export type TableProps<PKey extends keyof S, SKey extends keyof S | undefined, S extends Shape> = {
   partitionKey: PKey;
   sortKey?: SKey;
   shape: S;
@@ -31,9 +31,9 @@ export type TableProps<S extends Shape, PKey extends keyof S, SKey extends keyof
  * @typeparam PKey name of partition key
  * @typeparam SKey name of sort key (if this table has one)
  */
-export class Table<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined>
+export class Table<PKey extends keyof S, SKey extends keyof S | undefined, S extends Shape>
     extends dynamodb.Table
-    implements Dependency<Table.Client<S, PKey, SKey>> {
+    implements Dependency<Table.Client<PKey, SKey, S>> {
   /**
    * Shape of data in the table.
    */
@@ -69,7 +69,7 @@ export class Table<S extends Shape, PKey extends keyof S, SKey extends keyof S |
    */
   public readonly keyMapper: Mapper<RuntimeShape<Key<S, PKey, SKey>>, AWS.DynamoDB.AttributeMap>;
 
-  constructor(scope: core.Construct, id: string, props: TableProps<S, PKey, SKey>) {
+  constructor(scope: core.Construct, id: string, props: TableProps<PKey, SKey, S>) {
     super(scope, id, toTableProps(props));
 
     function toTableProps(props: TableProps<any, any, any>): dynamodb.TableProps {
@@ -110,10 +110,10 @@ export class Table<S extends Shape, PKey extends keyof S, SKey extends keyof S |
    * @param namespace local properties set by this table by `install`
    * @param cache global cache shared by all clients
    */
-  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Table.Client<S, PKey, SKey>> {
+  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Table.Client<PKey, SKey, S>> {
     return new Table.Client(this,
       namespace.get('tableName'),
-      cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())) as Table.Client<S, PKey, SKey>;
+      cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())) as Table.Client<PKey, SKey, S>;
   }
 
   /**
@@ -127,7 +127,7 @@ export class Table<S extends Shape, PKey extends keyof S, SKey extends keyof S |
     this.readWriteAccess().install(namespace, grantable);
   }
 
-  private _install(grant: (grantable: iam.IGrantable) => void): Dependency<Table.Client<S, PKey, SKey>> {
+  private _install(grant: (grantable: iam.IGrantable) => void): Dependency<Table.Client<PKey, SKey, S>> {
     return {
       install: (namespace: Namespace, grantable: iam.IGrantable) => {
         namespace.set('tableName', this.tableName);
@@ -140,36 +140,36 @@ export class Table<S extends Shape, PKey extends keyof S, SKey extends keyof S |
   /**
    * Take a *read-only* dependency on this table.
    */
-  public readAccess(): Dependency<Table.Client<S, PKey, SKey>> {
+  public readAccess(): Dependency<Table.Client<PKey, SKey, S>> {
     return this._install(this.grantReadData.bind(this));
   }
 
   /**
    * Take a *read-write* dependency on this table.
    */
-  public readWriteAccess(): Dependency<Table.Client<S, PKey, SKey>> {
+  public readWriteAccess(): Dependency<Table.Client<PKey, SKey, S>> {
     return this._install(this.grantReadWriteData.bind(this));
   }
 
   /**
    * Take a *write-only* dependency on this table.
    */
-  public writeAccess(): Dependency<Table.Client<S, PKey, SKey>> {
+  public writeAccess(): Dependency<Table.Client<PKey, SKey, S>> {
     return this._install(this.grantWriteData.bind(this));
   }
 
   /**
    * Take a *full-access* dependency on this table.
    */
-  public fullAccess(): Dependency<Table.Client<S, PKey, SKey>> {
+  public fullAccess(): Dependency<Table.Client<PKey, SKey, S>> {
     return this._install(this.grantFullAccess.bind(this));
   }
 }
 
 export namespace Table {
-  export class Client<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined> {
+  export class Client<PKey extends keyof S, SKey extends keyof S | undefined, S extends Shape> {
     constructor(
-      public readonly table: Table<S, PKey, SKey>,
+      public readonly table: Table<PKey, SKey, S>,
       public readonly tableName: string,
       public readonly client: AWS.DynamoDB) {}
 

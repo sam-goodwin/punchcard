@@ -31,19 +31,21 @@ const Item = {
   any: dynamic
 }
 
-const table: DynamoDB.Table<Item, 'id', undefined> = new DynamoDB.Table(stack, 'my-table', {
+// the type can be inferred, but we explicitly define them to illustrate how it works
+// 'id' is the partitionKey, undefined is the sortKey (no sort key), and Item is the shape of data in the table
+const table: DynamoDB.Table<'id', undefined, Item> = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
   shape: Item,
   billingMode: BillingMode.PAY_PER_REQUEST
 });
 
-const sortedTable = new DynamoDB.Table(stack, 'my-table', {
+// 'count' is the sortKey in this case
+const sortedTable: DynamoDB.Table<'id', 'count', Item> = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
   sortKey: 'count',
   shape: Item,
   billingMode: BillingMode.PAY_PER_REQUEST
 });
-
 
 // call the incrementer function from another Lambda Function
 executorService.schedule(stack, 'Caller', {
