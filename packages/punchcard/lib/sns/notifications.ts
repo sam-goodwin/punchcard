@@ -6,10 +6,10 @@ import { Event } from './event';
 import { Topic } from './topic';
 
 /**
- * A stream of notifications from a SNS `Topic`.
+ * A `Stream` of Notifications from a SNS Topic.
  */
-export class TopicStream<T, D extends any[]> extends Stream<Event, T, D, Stream.Config>  {
-  constructor(public readonly topic: Topic<any>, previous: TopicStream<any, any>, input: {
+export class Notifications<T, D extends any[]> extends Stream<Event, T, D, Stream.Config>  {
+  constructor(public readonly topic: Topic<any>, previous: Notifications<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
   }) {
@@ -30,7 +30,7 @@ export class TopicStream<T, D extends any[]> extends Stream<Event, T, D, Stream.
   public chain<U, D2 extends any[]>(input: {
     depends: D2;
     handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>;
-  }): TopicStream<U, D2> {
-    return new TopicStream<U, D2>(this.topic, this, input);
+  }): Notifications<U, D2> {
+    return new Notifications<U, D2>(this.topic, this, input);
   }
 }

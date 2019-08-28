@@ -4,9 +4,9 @@ import events = require('@aws-cdk/aws-lambda-event-sources');
 import s3 = require('@aws-cdk/aws-s3');
 
 import { Clients } from '../core/client';
+import { Event as S3Event } from '../s3/event';
 import { Stream } from '../util/stream';
 import { DeliveryStream } from './delivery-stream';
-import { S3Event } from './event';
 
 export class DeliveryStreamStream<T, D extends any[]> extends Stream<S3Event, T, D, Stream.Config> {
   constructor(public readonly s3Stream: DeliveryStream<any>, previous: DeliveryStreamStream<any, any>, input: {

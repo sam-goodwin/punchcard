@@ -4,6 +4,7 @@ import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
 import * as Glue from '../glue';
 import * as Kinesis from '../kinesis';
+import * as S3 from '../s3';
 import { RuntimeShape, Shape, struct, StructType, TimestampType } from '../shape';
 import { DeliveryStream } from './delivery-stream';
 import { Period } from './period';
@@ -15,13 +16,14 @@ export interface DataPipelineProps<S extends Shape, T extends keyof S> {
   database: Database;
   schema: Schema<S, T>;
 }
-export class DataPipeline<S extends Shape, T extends keyof S> extends core.Construct {
-  public readonly stream: Kinesis.Stream<StructType<S>>;
+export class DataPipeline<T extends Shape, TS extends keyof T> extends core.Construct {
+  public readonly bucket: S3.Bucket;
+  public readonly stream: Kinesis.Stream<StructType<T>>;
   public readonly deliveryStream: DeliveryStream;
   public readonly stagingBucket: s3.Bucket;
-  public readonly table: Glue.Table<S, Period.PT1M>;
+  public readonly table: Glue.Table<T, Period.PT1M>;
 
-  constructor(scope: core.Construct, id: string, props: DataPipelineProps<S, T>) {
+  constructor(scope: core.Construct, id: string, props: DataPipelineProps<T, TS>) {
     super(scope, id);
 
     this.stream = new Kinesis.Stream(this, 'Stream', {
@@ -29,9 +31,14 @@ export class DataPipeline<S extends Shape, T extends keyof S> extends core.Const
       encryption: StreamEncryption.KMS
     });
 
+    this.bucket = new S3.Bucket(new s3.Bucket(this, 'Bucket', {
+      encryption: s3.BucketEncryption.KMS_MANAGED,
+    }));
+
     this.table = this.stream
       .toFirehoseDeliveryStream(this, 'ToS3').stream()
       .toGlueTable(this, 'ToGlue', {
+        bucket: this.bucket.bucket,
         database: props.database,
         tableName: props.schema.schemaName,
         columns: props.schema.shape,

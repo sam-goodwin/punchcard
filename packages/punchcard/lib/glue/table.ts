@@ -61,7 +61,10 @@ export type TableProps<T extends Shape, P extends Partition> = {
    * @default None
    */
   compression?: Compression;
-} & Omit<glue.TableProps, 'columns' | 'partitionKeys' | 'dataFormat' | 'compressed'>;
+} & Omit<glue.TableProps, 's3Prefix' | 'columns' | 'partitionKeys' | 'dataFormat' | 'compressed'>;
+
+export type Columns<T extends Table<any, any>> = T extends Table<infer C, any> ? C : never;
+export type Partitions<T extends Table<any, any>> = T extends Table<any, infer P> ? P : never;
 
 /**
  * Represents a partitioned Glue Table.
@@ -118,6 +121,7 @@ export class Table<T extends Shape, P extends Partition> implements Resource<glu
       ...props,
       dataFormat: codec.format,
       compressed: compression.isCompressed,
+      s3Prefix: props.tableName + '/',
       columns: Object.entries(props.columns).map(([name, schema]) => ({
         name,
         type: schema.toGlueType()

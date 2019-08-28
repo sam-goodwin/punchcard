@@ -15,7 +15,7 @@ describe('run', () => {
     });
 
     const results: string[] = [];
-    await (queue.stream().forEach(stack, 'od', {
+    await (queue.messages().forEach(stack, 'od', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -35,7 +35,7 @@ describe('run', () => {
     });
 
     const results: string[] = [];
-    await (queue.stream().forEach(stack, 'od', {
+    await (queue.messages().forEach(stack, 'od', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -64,7 +64,7 @@ describe('run', () => {
     };
 
     const results: number[] = [];
-    const f = await (queue.stream().map({
+    const f = await (queue.messages().map({
       depends: d1,
       handle: async (v, d1) => {
         expect(d1).toEqual('d1');
@@ -99,7 +99,7 @@ describe('run', () => {
       install: () => undefined
     };
 
-    const stream = queue.stream()
+    const stream = queue.messages()
       .map({
         depends: d1,
         handle: async (v, d1) => {
@@ -135,7 +135,7 @@ describe('run', () => {
       install: () => undefined
     };
 
-    const stream = queue.stream()
+    const stream = queue.messages()
       .map({
         depends: d1,
         handle: async (v, d1) => {

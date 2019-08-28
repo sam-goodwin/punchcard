@@ -11,7 +11,7 @@ import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Omit } from '../util/omit';
 import { sink, Sink, SinkProps } from '../util/sink';
 import { Event } from './event';
-import { QueueStream } from './stream';
+import { Messages } from './messages';
 
 /**
  * Props for constructing a Queue.
@@ -34,9 +34,14 @@ export class Queue<T extends Type<any>> implements Resource<sqs.Queue>, Dependen
     this.mapper = Json.forType(props.type);
   }
 
-  public stream(): QueueStream<RuntimeType<T>, []> {
+  /**
+   * Get a Lazy `Stream` of notifications Queue's messages.
+   *
+   * Warning: do not consume from the Queue twice - it does not have fan-out.
+   */
+  public messages(): Messages<RuntimeType<T>, []> {
     const mapper = this.mapper;
-    class Root extends QueueStream<RuntimeType<T>, []> {
+    class Root extends Messages<RuntimeType<T>, []> {
       /**
        * Bottom of the recursive async generator - returns the records
        * parsed and validated out of the SQSEvent.

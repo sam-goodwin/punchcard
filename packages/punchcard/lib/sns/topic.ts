@@ -13,7 +13,7 @@ import { Json, Mapper, RuntimeType, Type } from '../shape';
 import { Queue } from '../sqs/queue';
 import { Sink, sink, SinkProps } from '../util/sink';
 import { Event } from './event';
-import { TopicStream } from './stream';
+import { NotificationStream } from './stream';
 
 export type TopicProps<T extends Type<any>> = {
   /**
@@ -42,9 +42,9 @@ export class Topic<T extends Type<any>> implements Resource<sns.Topic>, Dependen
   /**
    * Create a `Stream` for this topic's notifications - chainable computations (map, flatMap, filter, etc.)
    */
-  public stream(): TopicStream<RuntimeType<T>, []> {
+  public notifications(): NotificationStream<RuntimeType<T>, []> {
     const mapper = this.mapper;
-    class Root extends TopicStream<RuntimeType<T>, []> {
+    class Root extends NotificationStream<RuntimeType<T>, []> {
       /**
        * Return an iterator of records parsed from the raw data in the event.
        * @param event kinesis event sent to lambda

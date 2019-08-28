@@ -116,10 +116,10 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
   public forEach<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
     depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<any>;
-    props?: C;
+    config?: C;
   }): Lambda.Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
     // TODO: let the stream type determine default executor service
-    const executorService = (input.props && input.props.executorService) || new Lambda.ExecutorService({
+    const executorService = (input.config && input.config.executorService) || new Lambda.ExecutorService({
       memorySize: 128,
       timeout: core.Duration.seconds(10)
     });
@@ -139,7 +139,7 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
         }
       }
     });
-    l.addEventSource(this.eventSource(input.props));
+    l.addEventSource(this.eventSource(input.config));
     return l as any;
   }
 
@@ -154,7 +154,7 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
   public forBatch<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
     depends?: D2;
     handle: (value: T[], deps: Client<D2>) => Promise<any>;
-    props?: C;
+    config?: C;
   }): Lambda.Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
     return this.batched().forEach(scope, id, input);
   }

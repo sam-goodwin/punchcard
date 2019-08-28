@@ -1,4 +1,4 @@
 export * from './collector';
 export * from './event';
-export * from './stream';
+export * from './notifications';
 export * from './topic';
