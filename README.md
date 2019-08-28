@@ -8,7 +8,7 @@ Punchcard is a TypeScript framework for building cloud applications with the [AW
 
 If you'd like to learn more about the philosophy behind this project, check out [Punchcard: Imagining the future of cloud programming](https://bit.ly/punchcard-cdk).
 
-Let's walk through some punchcard features to demonstrate:
+Let's walk through some punchcard features to demonstrate.
 
 ### Runtime Code and Dependencies
 
@@ -47,7 +47,7 @@ new Lambda.Function(stack, 'MyFunction', {
 });
 ```
 
-### Shapes and Type-Safety
+### Type-Safe DDLs with Punchcard "Shapes"
 
 Notice how the `topic` interface is type-safe:
 
@@ -60,7 +60,7 @@ await topic.publish({
 });
 ```
 
-The notification passed to the `publish` method is not an opaque `string` or `Buffer` (like it would be in the `aws-sdk`) it is an `object` with rich types such as `Date` and `Array`. This is because data structures in punchcard are like ordinary generic collections (e.g. `Array<T>`), except the type of the `SNS.Topic`'s notifications is explicitly defined with *data*:
+The notification passed to the `publish` method is not an opaque `string` or `Buffer` (like it would be in the `aws-sdk`) it is an `object` with rich types such as `Date` and `Array` known at compile-time. This is because data structures in punchcard are like ordinary generic collections (e.g. `Array<T>`), except their type is explicitly defined with *data*:
 
 ```ts
 const topic = new SNS.Topic(stack, 'Topic', {
@@ -73,7 +73,9 @@ const topic = new SNS.Topic(stack, 'Topic', {
 });
 ```
 
-The core of this machinery is a "virtual type-system" for defining data, called **Shapes**. Shapes are an in-code abstraction for DDLs such as JSON Schema, Avro, Protobuf, Hive Tables, Parquet, etc.
+This is an example of how Punchcard deploys TypeScript's [Advanced Types](https://www.typescriptlang.org/docs/handbook/advanced-types.html) to abstract both the CloudFormation Resource and Runtime API of an AWS service. At the core of this machinery is a "virtual type-system" for defining data, called **Shapes**.
+
+Shapes are an in-code abstraction for (and agnostic to) DDLs such as JSON Schema, Avro, Protobuf, Hive Tables, Parquet, etc. with the following types:
 
 | Punchcard Type    | Runtime Type | Example    |
 |-------------------|--------------|------------|
@@ -90,7 +92,6 @@ The core of this machinery is a "virtual type-system" for defining data, called 
 | `SetType<T>`      | `Set<T>`     | `set(string())`  |
 | `MapType<T>`      | `{[K: string]: T}` | `map(string())`|
 | `StructType<T>`   | `{[K in keyof T]: T[K]}` | `struct({name: string()})`|
-
 
 That `SNS.Topic` we created has the following type (with the Shape encoded within it):
 ```ts
@@ -112,11 +113,11 @@ public publish(notification: {
 }): Promise<AWS.SNS.PublishOutput>;
 ```
 
-The framework makes use of the Topic's Shape to automatically (and safely) serialize rich objects to and from JSON. Your application code is only concerned with the deserialized and validated object - and the system is protected from bad data at both *compile time* and *runtime*.
+The framework makes use of the Topic's Shape to automatically (and safely) serialize rich objects to and from JSON. Your application code is only concerned with the deserialized and validated object, so the system is protected from bad data at both *compile time* and *runtime*.
 
-### Runtime DSLs
+### Service API Domain-Specific-Languages
 
-The Shape system also drives various runtime DSLs which provide high-level and type-safe interfaces for interacting with AWS services. We briefly showed this with an SNS Topic, but it is especially powerful for services like AWS DynamoDB.
+The Shape system drives various runtime DSLs which provide high-level and type-safe interfaces for interacting with AWS services. We briefly showed this with an SNS Topic, but it is especially powerful for services like AWS DynamoDB.
 
 To demonstrate, let's create a `DynamoDB.Table`:
 ```ts
@@ -130,7 +131,7 @@ const table = new DynamoDB.Table(stack, 'my-table', {
 });
 ```
 
-Now, when getting an item from DynamoDB, there is no need to use `AttributeValues` such as `{ S: 'my string' }` (like you would when using the low-level `aws-sdk`). You simply use ordinary javascript types:
+Now, when getting an item from DynamoDB, there is no need to use `AttributeValues` such as `{ S: 'my string' }`. You simply use ordinary javascript types:
 
 ```ts
 const item = await table.get({
@@ -145,7 +146,6 @@ The interface is statically typed and derived from the definition of the `Table`
 
 A **Condition Expression** is defined with `if` when putting an item:
 ```ts
-// put an item if it doesn't already exist
 await table.put({
   item: {
     id: 'state',
@@ -155,7 +155,7 @@ await table.put({
 });
 ```
 
-Which automatically (and safely) renders the following Condition Expression:
+Which automatically (and safely) renders the following expression:
 ```js
 {
   ConditionExpression: '#0 = :0',
@@ -170,9 +170,8 @@ Which automatically (and safely) renders the following Condition Expression:
 }
 ```
 
-**Update Expressions** are similarly created - you assemble an array of `actions` when updating an item:
+**Update Expressions** are similar - you assemble an array of `actions` when updating an item:
 ```ts
-// increment the count property by 1
 await table.update({
   key: {
     id: 'state'
@@ -183,7 +182,7 @@ await table.update({
 });
 ```
 
-Which automaticlaly (and safely) renders the following Update Expression:
+Which automaticlaly (and safely) renders the following expression:
 ```js
 {
   UpdateExpression: '#0 = #0 + :0',
@@ -198,15 +197,6 @@ Which automaticlaly (and safely) renders the following Update Expression:
 }
 ```
 
-To clarify this machinery, note how the `DynamoDB.Table`'s type defintion encodes the partition key (`'id'`), sort key (`undefined`) and the `Shape` of an item:
-
-```ts
-DynamoDB.Table<'id', undefined, {
-  id: StringType,
-  count: IntegerType
-}>
-```
-
 If you also specify a `sortKey`:
 ```ts
 const table = new DynamoDB.Table(stack, 'my-table', {
@@ -216,15 +206,7 @@ const table = new DynamoDB.Table(stack, 'my-table', {
 });
 ```
 
-Then, the `DynamoDB.Table` would be of this type:
-```ts
-DynamoDB.Table<'id', 'count' /* sort key is now defined */, {
-  id: StringType,
-  count: IntegerType
-}>
-```
-
-Allowing you to build typesafe **Query Expressions**:
+Then you can build typesafe **Query Expressions**:
 
 ```ts
 await table.query({
@@ -235,7 +217,7 @@ await table.query({
 })
 ```
 
-Which automatically (and safely) renders the following low-level Query Expression:
+Which automatically (and safely) renders the following low-level expression:
 ```js
 {
   KeyConditionExpression: '#0 = :0 AND #1 > :1',
@@ -254,13 +236,29 @@ Which automatically (and safely) renders the following low-level Query Expressio
 }
 ```
 
-Punchcard abstracts both the *CloudFormation Resource* and *Runtime API* of a DynamoDB with a unified and type-safe model. Check out the [DynamoDB example](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/dynamodb.ts#L74) to learn more.
+To clarify this type machinery, note how the `DynamoDB.Table`'s type defintion encodes the partition key (`'id'`), sort key (`undefined`) and the `Shape` of an item:
 
-### Infrastructure DSLs (Streams)
+```ts
+DynamoDB.Table<'id', undefined, {
+  id: StringType,
+  count: IntegerType
+}>
+```
 
-Punchcard also has the concept of `Stream` data structures, which feel similar to in-memory streams/arrays/lists because of its chainable API, including operations such as `map`, `flatMap`, `filter` and `collect`. Data structures that implement `Stream` are: `SNS.Topic`, `SQS.Queue`, `Kinesis.Stream`, `Firehose.DeliveryStream` and `Glue.Table`.
+And, how a table with a definded sort key (`count`) has this type:
+```ts
+DynamoDB.Table<'id', 'count' /* sort key is now defined */, { .. }>
+```
 
-Let's look at some examples of how powerful this flow can be. Given an `SNS.Topic`:
+Check out the [DynamoDB example](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/dynamodb.ts#L74) for more magic.
+
+### Stream Processing and Event Sources
+
+Punchcard also has the concept of `Stream` data structures, which feel like in-memory streams/arrays/lists because of its chainable API, including operations such as `map`, `flatMap`, `filter` and `collect`. These operations fluidly create chains of Lambda Functions and [Event Sources](https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventsourcemapping.html).
+
+Data structures that implement `Stream` are: `SNS.Topic`, `SQS.Queue`, `Kinesis.Stream`, `Firehose.DeliveryStream` and `Glue.Table`. Let's look at some examples of how powerful this flow can be.
+
+Given an `SNS.Topic`:
 ```ts
 const topic = new SNS.Topic(stack, 'Topic', {
   type: struct({
@@ -285,7 +283,7 @@ Or, create a new SQS Queue and subscribe notifications to it:
 *(Messages in the `Queue` are of the same type as the notifications in the `Topic`.)*
 
 ```ts
-const queue = topic.toSQS(stack, 'MyNewQueue');
+const queue = topic.toSQSQueue(stack, 'MyNewQueue');
 ```
 
 We can then, perhaps, `map` over each message in the `Queue` and collect the results into a new AWS Kinesis `Stream`:
@@ -317,7 +315,7 @@ const stream = queue.stream()
 With data in a `Stream`, we might want to write out all records to a new S3 `Bucket` by attaching a new Firehose `DeliveryStream` to it:
 
 ```ts
-const s3DeliveryStream = stream.toS3DeliveryStream(stack, 'ToS3');
+const s3DeliveryStream = stream.toFirehoseDeliveryStream(stack, 'ToS3');
 ```
 
 With data now flowing to S3, let's partition and catalog it in a Glue `Table` (backed by a new S3 `Bucket`) so we can easily query it with AWS Athena, AWS EMR and AWS Glue:
