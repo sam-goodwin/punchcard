@@ -61,7 +61,7 @@ await topic.publish({
 
 The notification passed to the `publish` method is not an opaque `string` or `Buffer` (like it would be in the `aws-sdk`) it is an `object` with rich types such as `Date` and `Array`. This is because data structures in punchcard are generic with statically declared types (like an ordinary `Array<T>`).
 
-The type of data in the `SNS.Topic` is explicitly defined with data:
+The type of the `SNS.Topic`'s notifications is explicitly defined with data:
 
 ```ts
 const topic = new SNS.Topic(stack, 'Topic', {
@@ -74,9 +74,9 @@ const topic = new SNS.Topic(stack, 'Topic', {
 });
 ```
 
-This `Topic` now has a type of:
+This `SNS.Topic` now has a type of:
 ```ts
-Topic<{
+SNS.Topic<{
   key: StringType;
   count: IntegerType;
   timestamp: TimestampType;
@@ -97,6 +97,7 @@ public publish(notification: {
 ### Data Types
 
 Punchcard supports the following Data Types:
+
 | Punchcard Type    | Runtime Type | Example
 |-------------------|--------------|----------------
 | `BooleanType`     | `boolean`    | `boolean`
