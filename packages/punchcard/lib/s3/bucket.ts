@@ -5,8 +5,8 @@ import AWS = require('aws-sdk');
 import { Namespace } from '../core/assembly';
 import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
-import { Notifications } from './bucket-notifications';
 import { Client, DeleteClient, PutClient, ReadClient, ReadWriteClient, WriteClient } from './client';
+import { Notifications } from './notifications';
 
 export class Bucket implements Dependency<ReadWriteClient> {
   constructor(public readonly bucket: s3.Bucket) {}

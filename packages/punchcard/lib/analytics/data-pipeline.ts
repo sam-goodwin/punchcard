@@ -36,7 +36,7 @@ export class DataPipeline<T extends Shape, TS extends keyof T> extends core.Cons
     }));
 
     this.table = this.stream
-      .toFirehoseDeliveryStream(this, 'ToS3').stream()
+      .toFirehoseDeliveryStream(this, 'ToS3').batches()
       .toGlueTable(this, 'ToGlue', {
         bucket: this.bucket.bucket,
         database: props.database,

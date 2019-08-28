@@ -11,13 +11,14 @@ import { Resource } from '../core/resource';
 import * as Kinesis from '../kinesis';
 import { ExecutorService } from '../lambda/executor';
 import { Function } from '../lambda/function';
+import * as S3 from '../s3';
 import { Bucket } from '../s3/bucket';
-import { Json, Mapper, RuntimeType, Type } from '../shape';
+import { Mapper, RuntimeType, Type } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
-import { Sink, sink, SinkProps } from '../util/sink';
-import { FirehoseEvent, FirehoseResponse, S3Event, ValidationResult } from './event';
-import { DeliveryStreamStream } from './stream';
+import { Batches } from './batches';
+import { Client } from './client';
+import { FirehoseEvent, FirehoseResponse, ValidationResult } from './event';
 
 export type DeliveryStreamProps<T extends Type<any>> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 
@@ -64,7 +65,7 @@ export interface DeliveryStreamFromKinesis<T extends Type<any>> extends BaseDeli
  *
  * It may or may not be consuming from a Kinesis Stream.
  */
-export class DeliveryStream<T extends Type<any>> extends core.Construct implements Dependency<DeliveryStream.Client<RuntimeType<T>>>, Resource<DeliveryStreamConstruct> {
+export class DeliveryStream<T extends Type<any>> extends core.Construct implements Dependency<Client<RuntimeType<T>>>, Resource<DeliveryStreamConstruct> {
   public readonly resource: DeliveryStreamConstruct;
   public readonly type: T;
 
@@ -109,12 +110,12 @@ export class DeliveryStream<T extends Type<any>> extends core.Construct implemen
     }
   }
 
-  public stream(): DeliveryStreamStream<RuntimeType<T>, [Dependency<Bucket.ReadClient>]> {
+  public batches(): Batches<RuntimeType<T>, [Dependency<S3.ReadClient>]> {
     const codec = this.codec;
     const compression = this.compression;
     const mapper = this.mapper;
-    class Root extends DeliveryStreamStream<RuntimeType<T>, [Dependency<Bucket.ReadClient>]> {
-      public async *run(event: S3Event, [bucket]: [Bucket.ReadClient]) {
+    class Root extends Batches<RuntimeType<T>, [Dependency<S3.ReadClient>]> {
+      public async *run(event: S3.Event, [bucket]: [S3.ReadClient]) {
         for (const record of event.Records) {
           // TODO: parallelism
           // TODO: streaming I/O
@@ -141,59 +142,10 @@ export class DeliveryStream<T extends Type<any>> extends core.Construct implemen
     this.resource.grantWrite(grantable);
   }
 
-  public async bootstrap(properties: Assembly, cache: Cache): Promise<DeliveryStream.Client<RuntimeType<T>>> {
-    return new DeliveryStream.Client(this,
+  public async bootstrap(properties: Assembly, cache: Cache): Promise<Client<RuntimeType<T>>> {
+    return new Client(this,
       properties.get('deliveryStreamName'),
       cache.getOrCreate('aws:firehose', () => new AWS.Firehose()));
-  }
-}
-
-export namespace DeliveryStream {
-  export type PutRecordInput<T> = { Record: T; };
-
-  export class Client<T> implements Sink<T> {
-    public readonly mapper: Mapper<T, string>;
-
-    constructor(
-        public readonly stream: DeliveryStream<Type<T>>,
-        public readonly deliveryStreamName: string,
-        public readonly client: AWS.Firehose) {
-      this.mapper = Json.jsonLine(this.stream.type);
-    }
-
-    public putRecord(record: T): Promise<AWS.Firehose.PutRecordOutput> {
-      return this.client.putRecord({
-        DeliveryStreamName: this.deliveryStreamName,
-        Record: {
-          Data: this.mapper.write(record)
-        }
-      }).promise();
-    }
-
-    public putRecordBatch(records: T[]): Promise<AWS.Firehose.PutRecordBatchOutput> {
-      return this.client.putRecordBatch({
-        DeliveryStreamName: this.deliveryStreamName,
-        Records: records.map(record => ({
-          Data: this.mapper.write(record)
-        }))
-      }).promise();
-    }
-
-    public async sink(records: T[], props?: SinkProps): Promise<void> {
-      await sink(records, async values => {
-        const res = await this.putRecordBatch(values);
-        if (res.FailedPutCount) {
-          const redrive: T[] = [];
-          res.RequestResponses.forEach((v, i) => {
-            if (v.ErrorCode !== undefined) {
-              redrive.push(values[i]);
-            }
-          });
-          return redrive;
-        }
-        return [];
-      }, props, 500);
-    }
   }
 }
 

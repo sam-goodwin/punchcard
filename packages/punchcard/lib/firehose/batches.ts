@@ -8,8 +8,11 @@ import { Event as S3Event } from '../s3/event';
 import { Stream } from '../util/stream';
 import { DeliveryStream } from './delivery-stream';
 
-export class DeliveryStreamStream<T, D extends any[]> extends Stream<S3Event, T, D, Stream.Config> {
-  constructor(public readonly s3Stream: DeliveryStream<any>, previous: DeliveryStreamStream<any, any>, input: {
+/**
+ * A `Stream` of Batches of Records flowing from a Firehose Delivery Stream.
+ */
+export class Batches<T, D extends any[]> extends Stream<S3Event, T, D, Stream.Config> {
+  constructor(public readonly s3Stream: DeliveryStream<any>, previous: Batches<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>
   }) {
@@ -22,7 +25,7 @@ export class DeliveryStreamStream<T, D extends any[]> extends Stream<S3Event, T,
     });
   }
 
-  public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): DeliveryStreamStream<U, D2> {
-    return new DeliveryStreamStream(this.s3Stream, this, input);
+  public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): Batches<U, D2> {
+    return new Batches(this.s3Stream, this, input);
   }
 }
