@@ -98,21 +98,21 @@ public publish(notification: {
 
 Punchcard supports the following Data Types:
 
-| Punchcard Type    | Runtime Type | Example
-|-------------------|--------------|----------------
-| `BooleanType`     | `boolean`    | `boolean`
-| `BinaryType`      | `Buffer`     | `binary()`
-| `StringType`      | `string`     | `string()`
-| `IntegerType`     | `number`     | `integer()`
-| `BigIntType`      | `number`     | `bigint()`
-| `SmallIntType`    | `number`     | `smallint()`
-| `TinyInt`         | `number`     | `tinyint()`
-| `FloatType`       | `number`     | `float()`
-| `DoubleType`      | `number`     | `double()`
-| `ArrayType<T>`    | `Array<T>`   | `array(string())`
-| `SetType<T>`      | `Set<T>`     | `set(string())`
-| `MapType<T>`      | `{[K: string]: T}` | `map(string())`
-| `StructType<T>`   | `{[K in keyof T]: T[K]}` | `struct({name: string()})`
+| Punchcard Type    | Runtime Type | Example    |
+|-------------------|--------------|------------|
+| `BooleanType`     | `boolean`    | `boolean`  |
+| `BinaryType`      | `Buffer`     | `binary()` |
+| `StringType`      | `string`     | `string()` |
+| `IntegerType`     | `number`     | `integer()`|
+| `BigIntType`      | `number`     | `bigint()` |
+| `SmallIntType`    | `number`     | `smallint()`|
+| `TinyInt`         | `number`     | `tinyint()` |
+| `FloatType`       | `number`     | `float()`   |
+| `DoubleType`      | `number`     | `double()`  |
+| `ArrayType<T>`    | `Array<T>`   | `array(string())`|
+| `SetType<T>`      | `Set<T>`     | `set(string())`  |
+| `MapType<T>`      | `{[K: string]: T}` | `map(string())`|
+| `StructType<T>`   | `{[K in keyof T]: T[K]}` | `struct({name: string()})`|
 
 ### Runtime DSLs
 
