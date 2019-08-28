@@ -22,7 +22,7 @@ new Lambda.Function(stack, 'MyFunction', {
 });
 ```
 
-To contact other services in your Function, data structures such as `SNS.Topic`, `SQS.Queue`, `DynamoDB.Table`, etc. are declared as a runtime `Dependency`. This will create the required IAM policies for your Function's IAM Role, add any environment variables for details such as a SNS Topic's ARN, and automatically create a client for accessing the `Construct` at runtime.
+To contact other services in your Function, data structures such as `SNS.Topic`, `SQS.Queue`, `DynamoDB.Table`, etc. are declared as a runtime `Dependency`.
 
 ```ts
 new Lambda.Function(stack, 'MyFunction', {
@@ -31,7 +31,7 @@ new Lambda.Function(stack, 'MyFunction', {
 });
 ```
 
-The result is that your `handle` function is now passed a `topic` instance which you can interact with:
+This will create the required IAM policies for your Function's IAM Role, add any environment variables for details such as a SNS Topic's ARN, and automatically create a client for accessing the `Construct` at runtime. The result is that your `handle` function is now passed a `topic` instance which you can interact with:
 
 ```ts
 new Lambda.Function(stack, 'MyFunction', {
@@ -40,13 +40,14 @@ new Lambda.Function(stack, 'MyFunction', {
     await topic.publish({
       key: 'some key',
       count: 1,
-      timestamp: new Date()
+      timestamp: new Date(),
+      tags : ['some', 'tags']
     });
   }
 });
 ```
 
-### Type-Safety
+### Shapes and Type-Safety
 
 Notice how the `topic` interface is type-safe:
 
@@ -59,9 +60,7 @@ await topic.publish({
 });
 ```
 
-The notification passed to the `publish` method is not an opaque `string` or `Buffer` (like it would be in the `aws-sdk`) it is an `object` with rich types such as `Date` and `Array`. This is because data structures in punchcard are generic with statically declared types (like an ordinary `Array<T>`).
-
-The type of the `SNS.Topic`'s notifications is explicitly defined with data:
+The notification passed to the `publish` method is not an opaque `string` or `Buffer` (like it would be in the `aws-sdk`) it is an `object` with rich types such as `Date` and `Array`. This is because data structures in punchcard are like ordinary generic collections (e.g. `Array<T>`), except the type of the `SNS.Topic`'s notifications is explicitly defined with *data*:
 
 ```ts
 const topic = new SNS.Topic(stack, 'Topic', {
@@ -74,29 +73,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
 });
 ```
 
-This `SNS.Topic` now has a type of:
-```ts
-SNS.Topic<{
-  key: StringType;
-  count: IntegerType;
-  timestamp: TimestampType;
-  tags: ArrayType<StringType>;
-}>
-```
-
-So, the `topic` client's `publish` function has this signature:
-```ts
-public publish(notification: {
-  key: string;
-  count: number;
-  timestamp: Date;
-  tags: string[];
-}): Promise<AWS.SNS.PublishOutput>;
-```
-
-### Data Types
-
-Punchcard supports the following Data Types:
+The core of this machinery is a "virtual type-system" for defining data, called **Shapes**. Shapes are an in-code abstraction for DDLs such as JSON Schema, Avro, Protobuf, Hive Tables, Parquet, etc.
 
 | Punchcard Type    | Runtime Type | Example    |
 |-------------------|--------------|------------|
@@ -114,9 +91,32 @@ Punchcard supports the following Data Types:
 | `MapType<T>`      | `{[K: string]: T}` | `map(string())`|
 | `StructType<T>`   | `{[K in keyof T]: T[K]}` | `struct({name: string()})`|
 
+
+That `SNS.Topic` we created has the following type (with the Shape encoded within it):
+```ts
+SNS.Topic<{
+  key: StringType;
+  count: IntegerType;
+  timestamp: TimestampType;
+  tags: ArrayType<StringType>;
+}>
+```
+
+So, the `topic` client (passed to `handle` at runtime) has a `publish` function with this signature:
+```ts
+public publish(notification: {
+  key: string;
+  count: number;
+  timestamp: Date;
+  tags: string[];
+}): Promise<AWS.SNS.PublishOutput>;
+```
+
+The framework makes use of the Topic's Shape to automatically (and safely) serialize rich objects to and from JSON. Your application code is only concerned with the deserialized and validated object - and the system is protected from bad data at both *compile time* and *runtime*.
+
 ### Runtime DSLs
 
-This "virtual type-system" drives various runtime DSLs that provide high-level and type-safe interfaces for interacting with AWS services. This is especially useful for services like AWS DynamoDB.
+The Shape system also drives various runtime DSLs which provide high-level and type-safe interfaces for interacting with AWS services. We briefly showed this with an SNS Topic, but it is especially powerful for services like AWS DynamoDB.
 
 To demonstrate, let's create a `DynamoDB.Table`:
 ```ts
@@ -130,26 +130,20 @@ const table = new DynamoDB.Table(stack, 'my-table', {
 });
 ```
 
-The table has type. *Note how the partition key (`'id'`) and sort key (`undefined`) is encoded in the `DynamoDB.Table`*.
-```ts
-DynamoDB.Table<'id', undefined, {
-  id: StringType,
-  count: IntegerType
-}>
-```
-
 Now, when getting an item from DynamoDB, there is no need to use `AttributeValues` such as `{ S: 'my string' }` (like you would when using the low-level `aws-sdk`). You simply use ordinary javascript types:
 
 ```ts
 const item = await table.get({
   id: 'state'
 });
+item.id; // string
+item.count; // number
+//item.missing // does not compile
 ```
 
-The interface is statically typed and derived from the definition of the `Table` - we specified the `partitionKey` as the `id` field which has type `string`, and so the object passed to the `get` method must correspond.
+The interface is statically typed and derived from the definition of the `Table` - we specified the `partitionKey` as the `id` field which has type `string`, and so the object passed to the `get` method must correspond. More interestingly, a type-safe DSL is also generated for building [Condition Expressions](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ConditionExpressions.html), [Update Expressions](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.UpdateExpressions.html) and [Query Expressions](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html):
 
-More interestingly, condition and update expressions are built with helpers derived (again) from the table definition:
-
+A **Condition Expression** is defined with `if` when putting an item:
 ```ts
 // put an item if it doesn't already exist
 await table.put({
@@ -157,9 +151,27 @@ await table.put({
     id: 'state',
     count: 1
   },
-  if: item => DynamoDB.attribute_not_exists(item.id)
+  if: item => item.count.equals(0)
 });
+```
 
+Which automatically (and safely) renders the following Condition Expression:
+```js
+{
+  ConditionExpression: '#0 = :0',
+  ExpressionAttributeNames: {
+    '#0': 'count'
+  },
+  ExpressionAttributeValues: {
+    ':0': {
+      N: '0'
+    }
+  }
+}
+```
+
+**Update Expressions** are similarly created - you assemble an array of `actions` when updating an item:
+```ts
 // increment the count property by 1
 await table.update({
   key: {
@@ -171,7 +183,31 @@ await table.update({
 });
 ```
 
-If you specified a `sortKey`:
+Which automaticlaly (and safely) renders the following Update Expression:
+```js
+{
+  UpdateExpression: '#0 = #0 + :0',
+  ExpressionAttributeNames: {
+    '#0': 'count'
+  },
+  ExpressionAttributeValues: {
+    ':0': {
+      N: '1'
+    }
+  }
+}
+```
+
+To clarify this machinery, note how the `DynamoDB.Table`'s type defintion encodes the partition key (`'id'`), sort key (`undefined`) and the `Shape` of an item:
+
+```ts
+DynamoDB.Table<'id', undefined, {
+  id: StringType,
+  count: IntegerType
+}>
+```
+
+If you also specify a `sortKey`:
 ```ts
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
@@ -180,7 +216,7 @@ const table = new DynamoDB.Table(stack, 'my-table', {
 });
 ```
 
-Then, the `DynamoDB.Table` has this type:
+Then, the `DynamoDB.Table` would be of this type:
 ```ts
 DynamoDB.Table<'id', 'count' /* sort key is now defined */, {
   id: StringType,
@@ -188,7 +224,7 @@ DynamoDB.Table<'id', 'count' /* sort key is now defined */, {
 }>
 ```
 
-So, you can also build typesafe query expressions:
+Allowing you to build typesafe **Query Expressions**:
 
 ```ts
 await table.query({
@@ -199,11 +235,30 @@ await table.query({
 })
 ```
 
-Check out the [DynamoDB example](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/dynamodb.ts#L74) to learn more about how to use DynamoDB.
+Which automatically (and safely) renders the following low-level Query Expression:
+```js
+{
+  KeyConditionExpression: '#0 = :0 AND #1 > :1',
+  ExpressionAttributeNames: {
+    '#0': 'id',
+    '#1': 'count'
+  },
+  ExpressionAttributeValues: {
+    ':0': {
+      S: 'id'
+    },
+    ':1': {
+      N: '1'
+    }
+  }
+}
+```
+
+Punchcard abstracts both the *CloudFormation Resource* and *Runtime API* of a DynamoDB with a unified and type-safe model. Check out the [DynamoDB example](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/dynamodb.ts#L74) to learn more.
 
 ### Infrastructure DSLs (Streams)
 
-Punchcard also has the concept of `Stream` data structures, which should feel similar to in-memory streams/arrays/lists because of its chainable API, including operations such as `map`, `flatMap`, `filter` and `collect`. Data structures that implement `Stream` are: `SNS.Topic`, `SQS.Queue`, `Kinesis.Stream`, `Firehose.DeliveryStream` and `Glue.Table`.
+Punchcard also has the concept of `Stream` data structures, which feel similar to in-memory streams/arrays/lists because of its chainable API, including operations such as `map`, `flatMap`, `filter` and `collect`. Data structures that implement `Stream` are: `SNS.Topic`, `SQS.Queue`, `Kinesis.Stream`, `Firehose.DeliveryStream` and `Glue.Table`.
 
 Let's look at some examples of how powerful this flow can be. Given an `SNS.Topic`:
 ```ts

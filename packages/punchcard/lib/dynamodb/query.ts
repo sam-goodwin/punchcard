@@ -11,7 +11,7 @@ export interface CompiledQuery {
 }
 
 export function compileQuery<S extends Shape, PKey extends keyof S, SKey extends keyof S>(
-  table: Table<S, PKey, SKey>, query: Query<S, PKey, SKey>): CompiledQuery {
+  table: Table<PKey, SKey, S>, query: Query<S, PKey, SKey>): CompiledQuery {
 
   const context = new CompileContextImpl();
   const pName = context.name(table.partitionKey.toString());
