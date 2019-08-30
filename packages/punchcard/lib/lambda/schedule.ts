@@ -13,7 +13,7 @@ export type ScheduleProps<D extends Dependency<any>> = FunctionProps<CloudWatch.
 
 /**
  * Create a new Lambda Function and trigger it to run on some schedule.
- * 
+ *
  * @param scope construct scope to create Function under
  * @param id id of the Function construct.
  * @param props function and schedule props.

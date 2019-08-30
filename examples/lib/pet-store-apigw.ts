@@ -1,9 +1,9 @@
 import core = require('@aws-cdk/core');
 import uuid = require('uuid');
 
-import { ApiGateway, Shape, DynamoDB, Lambda } from 'punchcard';
+import { ApiGateway, DynamoDB, Lambda } from 'punchcard';
 
-const { array, double, string, struct } = Shape;
+import { array, double, string, struct } from 'punchcard/lib/shape';
 
 const app = new core.App();
 export default app;

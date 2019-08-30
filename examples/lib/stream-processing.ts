@@ -2,7 +2,7 @@ import glue = require('@aws-cdk/aws-glue')
 import cdk = require('@aws-cdk/core');
 import { Core, SNS, Lambda, DynamoDB, Shape } from 'punchcard';
 
-const { integer, string, struct, array, timestamp, } = Shape;
+import { integer, string, struct, array, timestamp, } from 'punchcard/lib/shape';
 
 import uuid = require('uuid');
 import { Duration } from '@aws-cdk/core';
@@ -47,7 +47,7 @@ const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
  * CloudWatch Event --(minutely)--> Lambda --(send)-> SNS Topic
  *                                         --(put)--> Dynamo Table
  **/ 
-new Lambda.ExecutorService().schedule(stack, 'DummyData', {
+Lambda.schedule(stack, 'DummyData', {
   /**
    * Trigger the function every minute.
    */

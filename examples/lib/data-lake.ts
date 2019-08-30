@@ -1,9 +1,9 @@
 import core = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
-import { Lambda, Shape, Analytics } from 'punchcard';
+import { Lambda, Analytics } from 'punchcard';
 
-const { integer, string, timestamp, char, array, } = Shape;
+import { integer, string, timestamp, char, array, } from 'punchcard/lib/shape';
 
 const app = new core.App();
 export default app;
@@ -40,7 +40,7 @@ const lake = new Analytics.DataLake(stack, 'Lake', {
 // Kinesis -> Lambda
 // Note: the type-safety of the `record`
 lake.pipelines.dataPoints.stream
-  .stream()
+  .records()
   .forEach(stack, 'ForEachDataPoint', {
     async handle(record) {
       console.log('key', record.key);
@@ -52,7 +52,7 @@ lake.pipelines.dataPoints.stream
   });
 
 // send some dumy data to the dataPoints schema
-new Lambda.ExecutorService().schedule(stack, 'DummyDataPoints', {
+Lambda.schedule(stack, 'DummyDataPoints', {
   depends: lake.pipelines.dataPoints.stream.writeAccess(),
   schedule: Schedule.rate(Duration.minutes(1)),
   handle: async (_, stream) => {
