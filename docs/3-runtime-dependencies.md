@@ -1,5 +1,5 @@
 
-# Runtime Code and Dependencies
+# Runtime Dependencies
 
 Creating a `Lambda.Function` is super simple - just instantiate it and implement `handle`:
 
@@ -40,3 +40,5 @@ new Lambda.Function(stack, 'MyFunction', {
 ## Permission Boundaries
 
 TODO: convention for permission boundary names
+
+Next: [Shapes: Type-Safe Schemas](4-shapes.md)

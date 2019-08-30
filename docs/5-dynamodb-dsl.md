@@ -154,3 +154,5 @@ Which automatically (and safely) renders the following low-level expression:
 ```
 
 Check out the [DynamoDB example](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/dynamodb.ts#L74) for more magic.
+
+Next: [Stream Processing](6-stream-processing.md)

@@ -23,7 +23,7 @@ const stack = new cdk.Stack(app, 'MyStack');
 // NOTE: make sure you export the app as default, or else your code won't run at runtime.
 export default app;
 
-new Lambda.ExecutorService().schedule(stack, 'MyFunction', {
+Lambda.schedule(stack, 'MyFunction', {
   schedule: Schedule.rate(cdk.Duration.minutes(1)),
   handle: async() => console.log('Hello, World!')
 });
@@ -34,3 +34,6 @@ This app schedules a Lambda Function to log out `"Hello, World"` every minute. T
 ```shell
 ./node_modules/.bin/tsc
 ./node_modules/aws-cdk/bin/cdk deploy -a ./index.js
+```
+
+Next: [Creating Functions](2-creating-functions.md)
