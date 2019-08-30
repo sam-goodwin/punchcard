@@ -9,7 +9,6 @@ const {
   attribute_not_exists,
   not,
   or,
-  size,
   toFacade,
 } = DynamoDB;
 

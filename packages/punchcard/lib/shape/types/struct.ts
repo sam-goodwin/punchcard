@@ -10,7 +10,7 @@ export function struct<S extends Shape>(schema: S): StructType<S> {
   return new StructType(schema);
 }
 
-export abstract class BaseStructType<S extends Shape> implements Type<RuntimeShape<S>> {
+export class StructType<S extends Shape> implements Type<RuntimeShape<S>> {
   public readonly kind: Kind.Struct = Kind.Struct;
 
   constructor(public readonly shape: S) {}
@@ -28,9 +28,13 @@ export abstract class BaseStructType<S extends Shape> implements Type<RuntimeSha
     });
   }
 
-  public abstract toDynamoPath(parent: DynamoPath, name: string): DynamoPath;
+  public toDynamoPath(parent: DynamoPath, name: string): StructDynamoPath<S> {
+    return new StructDynamoPath(parent, name, this);
+  }
 
-  public abstract toJsonPath(parent: JsonPath<any>, name: string): JsonPath<RuntimeShape<S>>;
+  public toJsonPath(parent: JsonPath<any>, name: string): StructPath<S> {
+    return new StructPath(parent, name, this);
+  }
 
   public toJsonSchema(): object {
     const properties: any = {};
@@ -90,24 +94,14 @@ export abstract class BaseStructType<S extends Shape> implements Type<RuntimeSha
   }
 }
 
-export class StructType<S extends Shape> extends BaseStructType<S> {
-  public toDynamoPath(parent: DynamoPath, name: string): StructDynamoPath<S> {
-    return new StructDynamoPath(parent, name, this);
-  }
-
-  public toJsonPath(parent: JsonPath<any>, name: string): StructPath<S> {
-    return new StructPath(parent, name, this);
-  }
-}
-
 export type StructFields<S extends Shape> = {
   [K in keyof S]: InferJsonPathType<S[K]>;
 };
 
-export class BaseStructPath<S extends Shape, T extends BaseStructType<S>> extends JsonPath<RuntimeShape<S>> {
+export class StructPath<S extends Shape> extends JsonPath<RuntimeShape<S>> {
   public readonly fields: StructFields<S>;
 
-  constructor(parent: JsonPath<any>, name: string, type: T) {
+  constructor(parent: JsonPath<any>, name: string, type: StructType<S>) {
     super(parent, name, type);
     this.fields = {} as StructFields<S>;
 
@@ -116,10 +110,6 @@ export class BaseStructPath<S extends Shape, T extends BaseStructType<S>> extend
     });
   }
 }
-
-export class StructPath<S extends Shape> extends BaseStructPath<S, StructType<S>> {}
-export abstract class CustomType<S extends Shape> extends BaseStructType<S> {}
-export abstract class CustomPath<S extends Shape, T extends CustomType<S>> extends BaseStructPath<S, T> {}
 
 /**
  * Path to a struct attribute (represented as a Map internally).

@@ -1,40 +1,6 @@
 import 'jest';
 
-import { DynamoDB, Shape, Util } from '../../lib';
-
-export function custom(): Custom {
-  return new Custom();
-}
-export class Custom extends Shape.CustomType<Custom.Shape> {
-  constructor() {
-    super(Custom.shape);
-  }
-
-  public toDynamoPath(parent: DynamoDB.DynamoPath, name: string): any {
-    return new DynamoDB.BaseDynamoPath(parent, name, this);
-  }
-
-  public toJsonPath(parent: Shape.JsonPath<any>, name: string): Custom.Path {
-    return new Custom.Path(parent, name, this);
-  }
-}
-export namespace Custom {
-  export type Shape = typeof shape;
-  export const shape = {
-    id: Shape.string(),
-    arr: Shape.array(Shape.string())
-  };
-  export class Path extends Shape.CustomPath<Shape, Custom> {
-    public customOperation() {
-      return this.fields.arr.slice(0, 1);
-    }
-  }
-  // export class DynamoPath extends CustomPath<Shape, Custom> {
-  //   public customOperation() {
-  //     return this.fields.arr.slice(0, 1);
-  //   }
-  // }
-}
+import {  Shape, Util } from '../../lib';
 
 const tree = {
   stringField: Shape.string(),
@@ -53,8 +19,6 @@ const tree = {
   })),
 
   optionalArray: Shape.optional(Shape.array(Shape.string())),
-
-  custom: custom(),
 
   struct: Shape.struct({
     stringField: Shape.string(),
@@ -400,12 +364,6 @@ describe('json', () => {
         Shape.map(Shape.string(), {maxProperties: 1}).validate({key: 'value'});
         Shape.map(Shape.string(), {maxProperties: 1}).validate({});
       });
-    });
-  });
-
-  describe('custom types', () => {
-    it('custom path', () => {
-      expect(Shape.jsonPath(tree).custom.customOperation()[Util.TreeFields.path]).toEqual("$['custom']['arr'][0:1]");
     });
   });
 });
