@@ -30,7 +30,7 @@ const table = new Glue.Table(stack, 'Table', {
   }
 });
 
-function makeClient(glue: AWS.Glue, mockBucket?: S3.Bucket.Client) {
+function makeClient(glue: AWS.Glue, mockBucket?: S3.Client) {
   return new Glue.Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, mockBucket as any);
 }
 
@@ -262,12 +262,12 @@ describe('write', () => {
       Body: Buffer.from(JSON.stringify({
         timestamp: '2019-01-01 00:00:00.000'
       }) + '\n', 'utf8'),
-      Key: 'data/year=2019/month=0/af89373106045921d3c17f182d5669a34660100fa47eabd24fd3cd25751933e8.json'
+      Key: 'table_name/year=2019/month=0/af89373106045921d3c17f182d5669a34660100fa47eabd24fd3cd25751933e8.json'
     });
 
     expect(createPartitionSpy.calledOnce).toBe(true);
     expect(createPartitionSpy.args[0][0]).toEqual({
-      Location: 's3://bucketName/data/year=2019/month=0/',
+      Location: 's3://bucketName/table_name/year=2019/month=0/',
       Partition: {
         year: 2019,
         month: 0

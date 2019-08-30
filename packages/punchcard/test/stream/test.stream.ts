@@ -21,7 +21,7 @@ describe('client', () => {
           })
         })
       };
-      const client = new Kinesis.Stream.Client(stream, 'streamName', mockClient as any);
+      const client = new Kinesis.Client(stream, 'streamName', mockClient as any);
 
       await client.sink(['1']);
 
@@ -46,7 +46,7 @@ describe('client', () => {
           })
         })
       };
-      const client = new Kinesis.Stream.Client(stream, 'streamName', mockClient as any);
+      const client = new Kinesis.Client(stream, 'streamName', mockClient as any);
 
       await client.sink(Array(600).fill('1'));
 
@@ -78,7 +78,7 @@ describe('client', () => {
           })
         })
       };
-      const client = new Kinesis.Stream.Client(stream, 'streamName', mockClient as any);
+      const client = new Kinesis.Client(stream, 'streamName', mockClient as any);
 
       await client.sink(Array(599).fill('1'));
 

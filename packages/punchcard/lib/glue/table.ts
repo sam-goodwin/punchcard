@@ -5,6 +5,7 @@ import path = require('path');
 
 import glue = require('@aws-cdk/aws-glue');
 import iam = require('@aws-cdk/aws-iam');
+import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
 
 import { Namespace } from '../core/assembly';
@@ -184,21 +185,21 @@ export class Table<T extends Shape, P extends Partition> implements Resource<glu
    * Runtime dependency with read/write access to the Table and S3 Bucket.
    */
   public readWriteAccess(): Dependency<Table.ReadWriteClient<T, P>> {
-    return this.client(g => this.resource.grantReadWrite(g), new S3.Bucket(this.resource.bucket).readWriteAccess());
+    return this.client(g => this.resource.grantReadWrite(g), new S3.Bucket(this.resource.bucket as any).readWriteAccess());
   }
 
   /**
    * Runtime dependency with read access to the Table and S3 Bucket.
    */
   public readAccess(): Dependency<Table.ReadClient<T, P>> {
-    return this.client(g => this.resource.grantRead(g), new S3.Bucket(this.resource.bucket).readAccess());
+    return this.client(g => this.resource.grantRead(g), new S3.Bucket(this.resource.bucket as any).readAccess());
   }
 
   /**
    * Runtime dependency with write access to the Table and S3 Bucket.
    */
   public writeAccess(): Dependency<Table.WriteClient<T, P>> {
-    return this.client(g => this.resource.grantWrite(g), new S3.Bucket(this.resource.bucket).writeAccess());
+    return this.client(g => this.resource.grantWrite(g), new S3.Bucket(this.resource.bucket as any).writeAccess());
   }
 
   private client<C>(grant: (grantable: iam.IGrantable) => void, bucket: Dependency<any>): Dependency<C> {
@@ -221,7 +222,7 @@ export class Table<T extends Shape, P extends Partition> implements Resource<glu
       namespace.get('databaseName'),
       namespace.get('tableName'),
       this,
-      await new S3.Bucket(this.resource.bucket).bootstrap(namespace.namespace('bucket'), cache)
+      await new S3.Bucket(this.resource.bucket as any).bootstrap(namespace.namespace('bucket'), cache)
     );
   }
 }
@@ -261,7 +262,7 @@ export namespace Table {
       public readonly databaseName: string,
       public readonly tableName: string,
       public readonly table: Table<T, P>,
-      public readonly bucket: S3.Bucket.Client
+      public readonly bucket: S3.Client
     ) {
       this.partitions = Object.keys(table.shape.partitions);
     }

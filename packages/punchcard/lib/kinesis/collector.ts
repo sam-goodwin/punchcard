@@ -6,6 +6,7 @@ import { RuntimeType, Type } from '../shape';
 import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
 import { DependencyType, EventType, Stream as SStream } from '../util/stream';
+import { Client } from './client';
 import { Stream, StreamProps } from './stream';
 
 /**
@@ -56,7 +57,7 @@ export interface CollectedStreamProps<T extends Type<any>, S extends SStream<any
  * A Kinesis `Stream` produced by collecting data from an `Stream`.
  */
 export class CollectedStream<T extends Type<any>, S extends SStream<any, any, any, any>> extends Stream<T> {
-  public readonly sender: Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Stream.Client<T>>>>>;
+  public readonly sender: Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Client<T>>>>>;
 
   constructor(scope: core.Construct, id: string, props: CollectedStreamProps<T, S>) {
     super(scope, id, props);

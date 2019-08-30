@@ -2,7 +2,7 @@ import glue = require('@aws-cdk/aws-glue');
 import core = require('@aws-cdk/core');
 
 import 'jest';
-import { Core, Glue, Shape, Util } from '../../lib';
+import { Glue, Shape, Util } from '../../lib';
 
 it('should map columns and partition keys to their respective types', () => {
   const stack = new core.Stack(new core.App(), 'stack');

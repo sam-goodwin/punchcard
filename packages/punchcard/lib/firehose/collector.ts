@@ -7,6 +7,7 @@ import { Type } from '../shape/types/type';
 import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
 import { DependencyType, EventType, Stream } from '../util/stream';
+import { Client } from './client';
 import { DeliveryStream, DeliveryStreamDirectPut } from './delivery-stream';
 
 /**
@@ -62,7 +63,7 @@ export interface CollectedDeliveryStreamProps<T extends Type<any>, S extends Str
  * @typeparam T type of notififcations sent to, and emitted from, the DeliveryStream.
  */
 export class CollectedDeliveryStream<T extends Type<any>, S extends Stream<any, any, any, any>> extends DeliveryStream<T> {
-  public readonly sender: Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<DeliveryStream.Client<T>>>>>;
+  public readonly sender: Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Client<T>>>>>;
 
   constructor(scope: core.Construct, id: string, props: CollectedDeliveryStreamProps<T, S>) {
     super(scope, id, props);
