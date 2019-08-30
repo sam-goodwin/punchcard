@@ -36,4 +36,4 @@ This app schedules a Lambda Function to log out `"Hello, World"` every minute. T
 ./node_modules/aws-cdk/bin/cdk deploy -a ./index.js
 ```
 
-Next: [Creating Functions](2-creating-functions.md)
+**Next**: [Creating Functions](2-creating-functions.md)

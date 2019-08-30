@@ -8,7 +8,7 @@ Punchcard is a TypeScript framework for building cloud applications atop the [AW
 
 ## Resources 
 
-* [Punchcard Concepts](docs/index.md) - dives deep into concepts and use-cases.
+* [Punchcard Guide](docs/index.md) - dives deep into concepts and use-cases.
 * [Punchcard: Imagining the future of cloud programming](https://bit.ly/punchcard-cdk) - blog series exploring the philosophy behind this project.
 
 ## Hello, World!
@@ -28,7 +28,7 @@ export class HelloPunchcardStack extends cdk.Stack {
     Lambda.schedule(this, 'SendNotification', {
       rate: Schedule.rate(Duration.minutes(1)),
       depends: topic,
-      handle: async(topic) => {
+      handle: async(event, topic) => {
         await topic.publish('Hello, World!');
       }
     });
@@ -36,7 +36,7 @@ export class HelloPunchcardStack extends cdk.Stack {
     const queue = topic.toSQSQueue(this, 'Queue');
 
     queue.messages().forEach(this, 'ForEachMessge', {
-      handle: async(message) => console.log('message length' + message.length)
+      handle: async(message) => console.log(`message '${message}' has length ${message.length}`);
     });
   }
 }
@@ -49,51 +49,6 @@ export class HelloPunchcardStack extends cdk.Stack {
 * [Real-Time Data Lake](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/data-lake.ts) - collects data with Kinesis and persists to S3, exposed as a Glue Table in a Glue Database.
 * [Scheduled Lambda Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/scheduled-function.ts) - runs a Lambda Function every minute and stores data in a DynamoDB Table.
 * [Pet Store API Gateway](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/pet-store-apigw.ts) - implementation of the [Pet Store API Gateway canonical example](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-from-example.html).
-
-# Getting Started 
-
-This library is built with (and relies on) the AWS CDK, so you'll want to be familiar with the [CDK Concepts](https://docs.aws.amazon.com/cdk/latest/guide/what-is.html) and [Punchcard Concepts]().
-
-Init a new NPM package.
-```bash
-npm init
-```
-
-Install `punchcard` and the `aws-cdk`:
-
-```bash
-npm install --save-dev typescript
-npm install --save-dev aws-cdk
-npm install @aws-cdk/core
-npm install @aws-cdk/aws-events
-npm install punchcard
-```
-
-Create an `index.ts` file to contain your application's entrypoint.
-
-```ts
-import cdk = require('@aws-cdk/core');
-import { Schedule } from '@aws-cdk/aws-events';
-import { Lambda } from 'punchcard';
-
-const app = new cdk.App();
-const stack = new cdk.Stack(app, 'MyStack');
-
-// NOTE: make sure you export the app as default, or else your code won't run at runtime.
-export default app;
-
-Lambda.schedule(stack, 'MyFunction', {
-  schedule: Schedule.rate(cdk.Duration.minutes(1)),
-  handle: async() => console.log('Hello, World!')
-});
-```
-
-This app schedules a Lambda Function to print `"Hello, World"` every minute. To deploy it to CloudFormation, compile the code and run `cdk deploy`:
-
-```bash
-./node_modules/.bin/tsc
-./node_modules/aws-cdk/bin/cdk deploy -a ./index.js
-```
 
 ## License
 
