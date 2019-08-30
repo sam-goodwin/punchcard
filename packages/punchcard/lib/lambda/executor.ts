@@ -38,7 +38,7 @@ export class ExecutorService {
 
   public schedule<D extends Dependency<any>>(scope: cdk.Construct, id: string, props: {
     schedule: events.Schedule;
-    depends: D;
+    depends?: D;
     handle: (event: CloudwatchEvent, run: Client<D>, context: any) => Promise<any>;
   }): Function<CloudwatchEvent, any, D> {
     scope = new cdk.Construct(scope, id);
