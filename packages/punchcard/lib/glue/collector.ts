@@ -64,7 +64,7 @@ export interface CollectedGlueTableProps<T extends Shape, P extends Partition, S
  * @typeparam S stream of data to ingest into the table
  */
 export class CollectedGlueTable<T extends Shape, P extends Partition, S extends Stream<any, any, any, any>> extends Table<T, P> {
-  public readonly sender: Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Table.Client<T, P>>>>>;
+  public readonly sender: Function<EventType<S>, void, Dependency.Tuple<Cons<DependencyType<S>, Dependency<Table.Client<T, P>>>>>;
 
   constructor(scope: core.Construct, id: string, props: CollectedGlueTableProps<T, P, S>) {
     super(scope, id, props);

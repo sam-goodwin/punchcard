@@ -58,7 +58,7 @@ Lambda.schedule(stack, 'DummyData', {
    *
    * We want to *publish* to the SNS `topic` and *write* to the DynamoDB `table`.
    */
-  depends: Core.Dependency.list(topic, enrichments.writeAccess()),
+  depends: Core.Dependency.tuple(topic, enrichments.writeAccess()),
 
   /**
    * Impement the Lambda Function.

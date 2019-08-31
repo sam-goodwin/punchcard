@@ -45,7 +45,7 @@ const sortedTable: DynamoDB.Table<'id', 'count', Item> = new DynamoDB.Table(stac
 
 // call the incrementer function from another Lambda Function
 Lambda.schedule(stack, 'Caller', {
-  depends: Core.Dependency.list(table, sortedTable),
+  depends: Core.Dependency.tuple(table, sortedTable),
   schedule: Schedule.rate(Duration.minutes(1)),
   handle: async (event, [table, sortedTable]) => {
     await table.get({

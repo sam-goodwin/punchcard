@@ -60,7 +60,7 @@ export interface CollectedTopicProps<T extends Type<any>, S extends Stream<any, 
  * @typeparam T type of notififcations sent to, and emitted from, the SNS Topic.
  */
 export class CollectedTopic<T extends Type<any>, S extends Stream<any, any, any, any>> extends Topic<T> {
-  public readonly sender: Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Topic.Client<T>>>>>;
+  public readonly sender: Function<EventType<S>, void, Dependency.Tuple<Cons<DependencyType<S>, Dependency<Topic.Client<T>>>>>;
 
   constructor(scope: core.Construct, id: string, props: CollectedTopicProps<T, S>) {
     super(scope, id, props);

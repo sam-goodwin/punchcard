@@ -117,7 +117,7 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
     depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<any>;
     config?: C;
-  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
+  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.Tuple<D> : Dependency.Tuple<Cons<D, D2>>> {
     // TODO: let the stream type determine default executor service
     const executorService = (input.config && input.config.executorService) || new Lambda.ExecutorService({
       memorySize: 128,
@@ -125,8 +125,8 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
     });
     const l = executorService.spawn(scope, id, {
       depends: input.depends === undefined
-        ? Dependency.list(...this.dependencies)
-        : Dependency.list(input.depends, ...this.dependencies),
+        ? Dependency.tuple(...this.dependencies)
+        : Dependency.tuple(input.depends, ...this.dependencies),
       handle: async (event: E, deps) => {
         if (input.depends === undefined) {
           for await (const value of this.run(event, deps as any)) {
@@ -155,7 +155,7 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
     depends?: D2;
     handle: (value: T[], deps: Client<D2>) => Promise<any>;
     config?: C;
-  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
+  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.Tuple<D> : Dependency.Tuple<Cons<D, D2>>> {
     return this.batched().forEach(scope, id, input);
   }
 

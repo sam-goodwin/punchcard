@@ -37,11 +37,11 @@ export namespace Dependency {
     install: () => undefined
   };
 
-  export function list<T extends any[]>(...deps: T): List<T> {
-    return new List(deps);
+  export function tuple<T extends any[]>(...deps: T): Tuple<T> {
+    return new Tuple(deps);
   }
 
-  export class List<T extends any[]> implements Dependency<Clients<HList<T>>> {
+  export class Tuple<T extends any[]> implements Dependency<Clients<HList<T>>> {
     constructor(private readonly deps: T) {}
 
     public install(namespace: Namespace, grantable: iam.IGrantable): void {

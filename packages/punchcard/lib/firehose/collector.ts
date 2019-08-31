@@ -63,7 +63,7 @@ export interface CollectedDeliveryStreamProps<T extends Type<any>, S extends Str
  * @typeparam T type of notififcations sent to, and emitted from, the DeliveryStream.
  */
 export class CollectedDeliveryStream<T extends Type<any>, S extends Stream<any, any, any, any>> extends DeliveryStream<T> {
-  public readonly sender: Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Client<T>>>>>;
+  public readonly sender: Function<EventType<S>, void, Dependency.Tuple<Cons<DependencyType<S>, Dependency<Client<T>>>>>;
 
   constructor(scope: core.Construct, id: string, props: CollectedDeliveryStreamProps<T, S>) {
     super(scope, id, props);

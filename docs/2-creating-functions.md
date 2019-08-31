@@ -7,7 +7,7 @@ new Lambda.Function(stack, 'MyFunction', {
   handle: async() => console.log('Hello, World!')
 });
 ```
-It supports all the same properties as the AWS CDK's [`@aws-cdk/aws-lamnda.Function`](https://github.com/aws/aws-cdk/tree/master/packages/%40aws-cdk/aws-lambda), so you can configure things such as memory:
+It supports all the same properties as the AWS CDK's [`@aws-cdk/aws-lambda.Function`](https://github.com/aws/aws-cdk/tree/master/packages/%40aws-cdk/aws-lambda), so you can configure things such as memory:
 
 ```ts
 new Lambda.Function(stack, 'MyFunction', {
@@ -25,4 +25,4 @@ Lambda.schedule(stack, 'MyFunction', {
 });
 ```
 
-**Next**: wel'l explore how to interact with other Resources from your Function by declaring [Runtime Dependencies](3-runtime-dependencies.md)
+**Next**: we'll explore how to interact with other Constructs from your Function by declaring [Runtime Dependencies](3-runtime-dependencies.md)
