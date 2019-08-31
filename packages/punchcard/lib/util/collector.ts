@@ -2,7 +2,7 @@ import core = require('@aws-cdk/core');
 
 import * as Firehose from '../firehose';
 import * as Kinesis from '../kinesis';
-import { Type } from '../shape/types/type';
+import { Type } from '../shape/type';
 import * as SNS from '../sns';
 import * as SQS from '../sqs';
 import { Stream } from './stream';

@@ -1,5 +1,5 @@
-import { RuntimeType } from "../shape";
 import { Kind } from "./kind";
+import { RuntimeType } from "./shape";
 import { Type } from "./type";
 
 export interface TypeSet<T extends Type<any>> extends Set<RuntimeType<T>> {

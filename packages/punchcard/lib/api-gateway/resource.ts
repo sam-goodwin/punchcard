@@ -2,7 +2,7 @@ import apigateway = require('@aws-cdk/aws-apigateway');
 import cdk = require('@aws-cdk/core');
 
 import { Dependency } from '../core/dependency';
-import { jsonSchema, Kind, Mapper, Raw, Shape, StructType, Type } from '../shape';
+import { Kind, Mapper, Raw, Shape, struct, StructType, Type } from '../shape';
 import { isRuntime } from '../util/constants';
 import { Tree } from '../util/tree';
 import { Method, MethodName, RequestMappings, Response, Responses } from './method';
@@ -158,7 +158,7 @@ export class Resource extends Tree<Resource> {
       'application/json': new apigateway.CfnModel(methodResource, 'Request', {
         restApiId: this.restApiId,
         contentType: 'application/json',
-        schema: jsonSchema(requestShape)
+        schema: struct(requestShape).toJsonSchema()
       }).ref
     });
     const responses = new cdk.Construct(methodResource, 'Response');

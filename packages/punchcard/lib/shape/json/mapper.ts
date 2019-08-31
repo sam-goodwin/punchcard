@@ -2,7 +2,8 @@ import { RuntimeShape, RuntimeType, Shape } from '../shape';
 
 import { Mapper as IMapper, Reader, Writer } from '../mapper/mapper';
 import { Raw } from '../mapper/raw';
-import { struct, Type } from '../types';
+import { struct } from '../struct';
+import { Type } from '../type';
 
 export namespace Json {
   export interface Configuration {

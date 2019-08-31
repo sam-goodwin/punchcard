@@ -1,7 +1,7 @@
-import { DynamoPath, InferDynamoPathType } from '../../dynamodb/expression/path';
-import { InferJsonPathType, JsonPath } from '../json/path';
-import { RuntimeType } from '../shape';
+import { DynamoPath, InferDynamoPathType } from '../dynamodb/expression/path';
+import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
+import { RuntimeType } from './shape';
 import { Type } from './type';
 
 export function optional<T extends Type<any>>(type: T): OptionalType<T> {

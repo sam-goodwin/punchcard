@@ -1,9 +1,9 @@
 // tslint:disable-next-line: max-line-length
-import { BaseDynamoPath, ConditionValue, DynamoPath, IndexParent, InferDynamoPathType, list_append, remove, RemoveAction, SetAction, UpdateValue } from '../../dynamodb/expression/path';
-import { Size } from '../../dynamodb/expression/size';
-import { InferJsonPathType, JsonPath } from '../json/path';
-import { RuntimeType } from '../shape';
+import { BaseDynamoPath, ConditionValue, DynamoPath, IndexParent, InferDynamoPathType, list_append, remove, RemoveAction, SetAction, UpdateValue } from '../dynamodb/expression/path';
+import { Size } from '../dynamodb/expression/size';
+import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
+import { RuntimeType } from './shape';
 import { Type } from './type';
 
 export function array<T extends Type<any>>(itemType: T, constraints: ArrayTypeConstraints = {}): ArrayType<T> {

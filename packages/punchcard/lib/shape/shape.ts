@@ -1,4 +1,5 @@
-import { OptionalType, Type } from './types';
+import { OptionalType } from './optional';
+import { Type } from './type';
 
 export type Shape = {
   [key: string]: Type<any>;

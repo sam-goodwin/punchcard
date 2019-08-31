@@ -3,7 +3,7 @@ import core = require('@aws-cdk/core');
 import { Dependency } from '../core/dependency';
 import { Function } from '../lambda/function';
 import { RuntimeType } from '../shape/shape';
-import { Type } from '../shape/types/type';
+import { Type } from '../shape/type';
 import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
 import { DependencyType, EventType, Stream } from '../util/stream';

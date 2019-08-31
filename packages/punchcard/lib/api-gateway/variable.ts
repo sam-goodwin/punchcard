@@ -1,4 +1,4 @@
-import { integer, Kind, MapType, string, StringType, timestamp, Type } from '../shape/types';
+import { integer, Kind, MapType, string, StringType, timestamp, Type } from '../shape';
 
 export const isMapping = Symbol.for('stdlib.isMapping');
 

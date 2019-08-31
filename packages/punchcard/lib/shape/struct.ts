@@ -1,9 +1,9 @@
-import { BaseDynamoPath, DynamoPath, Facade, MapKeyParent } from '../../dynamodb/expression/path';
-import { InferJsonPathType, JsonPath } from '../json/path';
-import { RuntimeShape, Shape } from '../shape';
+import { BaseDynamoPath, DynamoPath, Facade, MapKeyParent } from '../dynamodb/expression/path';
 import { hashCode } from './hash';
+import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
 import { OptionalType } from './optional';
+import { RuntimeShape, Shape } from './shape';
 import { Type } from './type';
 
 export function struct<S extends Shape>(schema: S): StructType<S> {

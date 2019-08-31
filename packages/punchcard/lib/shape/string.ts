@@ -1,5 +1,5 @@
-import { BeginsWith, ConditionValue, Contains, DynamoPath, OrdPath } from '../../dynamodb/expression/path';
-import { Size } from '../../dynamodb/expression/size';
+import { BeginsWith, ConditionValue, Contains, DynamoPath, OrdPath } from '../dynamodb/expression/path';
+import { Size } from '../dynamodb/expression/size';
 import { hashCode } from './hash';
 import { Kind } from './kind';
 import { PrimitiveType } from './primitive';

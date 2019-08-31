@@ -1,8 +1,8 @@
-import { BaseDynamoPath, ConditionValue, DynamoPath, InferDynamoPathType, MapKeyParent, remove, RemoveAction, SetAction } from '../../dynamodb/expression/path';
-import { InferJsonPathType, JsonPath } from '../json/path';
-import { RuntimeType } from '../shape';
+import { BaseDynamoPath, ConditionValue, DynamoPath, InferDynamoPathType, MapKeyParent, remove, RemoveAction, SetAction } from '../dynamodb/expression/path';
 import { hashCode } from './hash';
+import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
+import { RuntimeType } from './shape';
 import { Type } from './type';
 
 type RuntimeMap<T extends Type<any>> = {[key: string]: RuntimeType<T>};

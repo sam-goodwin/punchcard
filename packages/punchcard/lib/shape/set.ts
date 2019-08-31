@@ -1,7 +1,7 @@
-import { AddAction, BaseDynamoPath, ConditionValue, Contains, DeleteAction, DynamoPath } from '../../dynamodb/expression/path';
-import { InferJsonPathType, JsonPath } from '../json/path';
-import { RuntimeType } from '../shape';
+import { AddAction, BaseDynamoPath, ConditionValue, Contains, DeleteAction, DynamoPath } from '../dynamodb/expression/path';
+import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
+import { RuntimeType } from './shape';
 import { Type } from './type';
 import { TypeSet } from './typed-set';
 

@@ -1,18 +1,18 @@
 import AWS = require('aws-sdk');
 
-import { RuntimeShape, Shape } from '../shape/shape';
-
 import {
   ArrayType,
   Kind,
   MapType,
   OptionalType,
+  RuntimeShape,
   SetType,
+  Shape,
   struct,
   StructType,
   Type,
   TypeSet
-} from '../shape/types';
+} from '../shape';
 
 import {
   Mapper as IMapper,

@@ -1,5 +1,12 @@
+import { ArrayType } from '../array';
+import { Kind } from '../kind';
+import { MapType } from '../map';
+import { OptionalType } from '../optional';
+import { SetType } from '../set';
 import { RuntimeShape, RuntimeType, Shape } from '../shape';
-import { ArrayType, Kind, MapType, OptionalType, SetType, struct, StructType, Type, TypeSet } from '../types';
+import { struct, StructType } from '../struct';
+import { Type } from '../type';
+import { TypeSet } from '../typed-set';
 import { Mapper as IMapper, Reader as IReader, Writer as IWriter } from './mapper';
 import { TimestampFormat } from './timestamp';
 

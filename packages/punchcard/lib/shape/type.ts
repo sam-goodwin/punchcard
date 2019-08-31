@@ -1,5 +1,5 @@
-import { DynamoPath } from '../../dynamodb/expression/path';
-import { JsonPath } from '../json/path';
+import { DynamoPath } from '../dynamodb/expression/path';
+import { JsonPath } from './json/path';
 import { Kind } from './kind';
 
 export interface Type<V> {

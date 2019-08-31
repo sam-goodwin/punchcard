@@ -13,7 +13,7 @@ import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import * as S3 from '../s3';
-import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, struct, Type } from '../shape';
+import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, struct } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Omit } from '../util/omit';

@@ -1,5 +1,6 @@
 import { Tree, TreeFields } from '../../util/tree';
-import { Kind, Type } from '../types';
+import { Kind } from '../kind';
+import { Type } from '../type';
 
 export class JsonPath<V> extends Tree<JsonPath<any>> {
   public readonly kind: Kind;

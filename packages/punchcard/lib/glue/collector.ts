@@ -4,7 +4,7 @@ import { Dependency } from '../core/dependency';
 import { Table, TableProps } from '../glue/table';
 import { Function } from '../lambda/function';
 import { RuntimeShape, Shape } from '../shape/shape';
-import { StructType } from '../shape/types/struct';
+import { StructType } from '../shape/struct';
 import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
 import { DependencyType, EventType, Stream } from '../util/stream';

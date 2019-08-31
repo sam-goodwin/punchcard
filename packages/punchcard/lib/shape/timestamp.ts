@@ -1,5 +1,5 @@
-import { DynamoPath, Minus, Plus, SetAction } from '../../dynamodb/expression/path';
-import { JsonPath } from '../json/path';
+import { DynamoPath, Minus, Plus, SetAction } from '../dynamodb/expression/path';
+import { JsonPath } from './json/path';
 import { Kind } from './kind';
 import { NumericDynamoPath } from './number';
 import { Type } from './type';

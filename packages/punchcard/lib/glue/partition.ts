@@ -1,4 +1,4 @@
-import { Type } from "../shape/types/type";
+import { Type } from "../shape/type";
 
 /**
  * Glue partition shape must be of only string, date or numeric types.

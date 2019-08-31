@@ -1,7 +1,7 @@
 import AWS = require('aws-sdk');
 import { Writer } from '../../shape/mapper';
 import { RuntimeType } from '../../shape/shape';
-import { Type } from '../../shape/types';
+import { Type } from '../../shape/type';
 import * as Dynamo from '../mapper';
 import { CompileContext } from './compile-context';
 

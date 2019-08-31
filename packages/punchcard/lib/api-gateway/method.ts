@@ -1,5 +1,6 @@
 import { RuntimeShape, RuntimeType, Shape } from '../shape/shape';
-import { StructType, Type } from '../shape/types';
+import { StructType } from '../shape/struct';
+import { Type } from '../shape/type';
 
 import { Client,  } from '../core/client';
 import { Dependency } from '../core/dependency';

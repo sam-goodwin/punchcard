@@ -1,5 +1,5 @@
 import { RuntimeType } from '../shape';
-import { Type } from '../types';
+import { Type } from '../type';
 
 export interface Mapper<De, Ser> {
   read(raw: Ser): De;

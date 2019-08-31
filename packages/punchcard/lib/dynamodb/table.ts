@@ -9,7 +9,7 @@ import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Mapper } from '../shape/mapper/mapper';
 import { RuntimeShape, Shape } from '../shape/shape';
-import { struct } from '../shape/types/struct';
+import { struct } from '../shape/struct';
 import { Omit } from '../util/omit';
 import { Client } from './client';
 import { Facade, toFacade } from './expression/path';

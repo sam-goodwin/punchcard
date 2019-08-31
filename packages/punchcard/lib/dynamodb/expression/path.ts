@@ -1,6 +1,6 @@
+import { ArrayType } from '../../shape/array';
 import { RuntimeType, Shape } from '../../shape/shape';
-import { ArrayType } from '../../shape/types/array';
-import { Type } from '../../shape/types/type';
+import { Type } from '../../shape/type';
 import { Tree, TreeFields } from '../../util/tree';
 import { Compilable, CompileContext, CompiledExpression } from './compile-context';
 
