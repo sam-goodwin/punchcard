@@ -1,4 +1,4 @@
-import { integer, Kind, MapType, string, StringType, timestamp, Type } from '../shape';
+import { integer, Kind, MapShape, string, StringShape, timestamp, Type } from '../shape';
 
 export const isMapping = Symbol.for('stdlib.isMapping');
 
@@ -17,7 +17,7 @@ export class TypedMapping<T extends Type<any>> extends Mapping {
       : path);
   }
 }
-export type StringMapping = TypedMapping<StringType>;
+export type StringMapping = TypedMapping<StringShape>;
 function stringMapping(name: string) {
   return new TypedMapping(string(), name);
 }
@@ -34,8 +34,8 @@ export class Input {
   public readonly body = stringMapping('$input.body');
 
   private readonly _params = stringMapping('$input.params()');
-  public params(): TypedMapping<MapType<StringType>>;
-  public params(name: string): TypedMapping<StringType>;
+  public params(): TypedMapping<MapShape<StringShape>>;
+  public params(name: string): TypedMapping<StringShape>;
   public params<T extends Type<any>>(name: string, type: T): TypedMapping<T>;
   public params(name?: any, type?: any) {
     if (name !== undefined) {

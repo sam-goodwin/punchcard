@@ -1,4 +1,4 @@
-import { BinaryType, RuntimeType, Shape, StringType, Type } from '../shape';
+import { BinaryShape, RuntimeType, Shape, StringShape, Type } from '../shape';
 import { Query } from './client';
 import { CompileContext } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';
@@ -44,7 +44,7 @@ export type KeyConditionExpression<S extends Shape, PKey extends keyof S, SKey e
   { [K in SKey]?: SortKeyComparator<S, K> };
 
 type SortKeyComparator<S extends Shape, K extends keyof S> =
-  S[K] extends (StringType | BinaryType) ?
+  S[K] extends (StringShape | BinaryShape) ?
     StringComparators<S, K> :
     GeneralComparators<S, K>;
 

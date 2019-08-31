@@ -1,7 +1,7 @@
 import 'jest';
 // tslint:disable-next-line: max-line-length
 
-import { Core, Shape } from '../../lib';
+import { Shape } from '../../lib';
 
 it('any should pass through', () => {
   const mapper = Shape.Raw.forType(Shape.dynamic);
@@ -79,14 +79,14 @@ describe('binary', () => {
   it('should write binary as base64 encoded string', () =>
     expect(Shape.Raw.forType(Shape.binary()).write(Buffer.from('string'))).toEqual(Buffer.from('string').toString('base64')));
 
-  function shouldRead(desc: string, value: string, constraints?: Shape.BinaryTypeConstraints) {
+  function shouldRead(desc: string, value: string, constraints?: Shape.BinaryShapeConstraints) {
     const buf = Buffer.from(value);
     it(`should read if ${desc}`, () => {
       expect(Shape.Raw.forType(Shape.binary(constraints)).read(buf.toString('base64'))).toEqual(buf);
     });
   }
 
-  function shouldThrow(desc: string, value: string, constraints?: Shape.BinaryTypeConstraints) {
+  function shouldThrow(desc: string, value: string, constraints?: Shape.BinaryShapeConstraints) {
     it(`should throw if ${desc}`, () => {
       expect(() => Shape.Raw.forType(Shape.binary(constraints)).read(Buffer.from(value).toString('base64'))).toThrow();
     });
@@ -202,7 +202,7 @@ describe('set', () => {
     expect(Shape.Raw.forType(Shape.set(Shape.string())).write(new Set('a'))).toEqual(['a']);
   });
 
-  function shouldRead(desc: string, a: string[], constraints?: Shape.SetTypeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
+  function shouldRead(desc: string, a: string[], constraints?: Shape.SetShapeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
     it(`should read ${desc}`, () => {
       const v: Set<string> = Shape.Raw.forType(Shape.set(Shape.string(stringConstraints), constraints)).read(a) as Set<string>;
       expect(Array.from(v.values())).toEqual(a);
@@ -215,7 +215,7 @@ describe('set', () => {
   shouldRead('if length is greater than minItems', ['a'], {minItems: 0});
   shouldRead('if items match constraints', ['a'], undefined, {maxLength: 2});
 
-  function shouldThrow(desc: string, a: string[], constraints?: Shape.SetTypeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
+  function shouldThrow(desc: string, a: string[], constraints?: Shape.SetShapeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
     it(`should throw ${desc}`, () => {
       expect(() => Shape.Raw.forType(Shape.set(Shape.string(stringConstraints), constraints)).read(a)).toThrow();
     });
@@ -231,7 +231,7 @@ describe('array', () => {
     expect(Shape.Raw.forType(Shape.array(Shape.string())).write(['a'])).toEqual(['a']);
   });
 
-  function shouldRead(desc: string, a: string[], constraints?: Shape.ArrayTypeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
+  function shouldRead(desc: string, a: string[], constraints?: Shape.ArrayShapeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
     it(`should read ${desc}`, () => {
       expect(Shape.Raw.forType(Shape.array(Shape.string(stringConstraints), constraints)).read(a)).toEqual(a);
     });
@@ -251,7 +251,7 @@ describe('array', () => {
     ]);
   });
 
-  function shouldThrow(desc: string, a: string[], constraints?: Shape.ArrayTypeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
+  function shouldThrow(desc: string, a: string[], constraints?: Shape.ArrayShapeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
     it(`should throw ${desc}`, () => {
       expect(() => Shape.Raw.forType(Shape.array(Shape.string(stringConstraints), constraints)).read(a)).toThrow();
     });
@@ -272,7 +272,7 @@ describe('map', () => {
     expect(Shape.Raw.forType(Shape.map(Shape.string())).write({a: 'a'})).toEqual({a: 'a'});
   });
 
-  function shouldRead(desc: string, a: {[key: string]: string}, constraints?: Shape.MapTypeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
+  function shouldRead(desc: string, a: {[key: string]: string}, constraints?: Shape.MapShapeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
     it(`should read ${desc}`, () => {
       expect(Shape.Raw.forType(Shape.map(Shape.string(stringConstraints), constraints)).read(a)).toEqual(a);
     });
@@ -286,7 +286,7 @@ describe('map', () => {
   shouldRead('if more keys than minProperties', {a: 'a'}, {minProperties: 0});
   shouldRead('if no. of keys equal minProperties', {a: 'a'}, {minProperties: 1});
 
-  function shouldThrow(desc: string, a: {[key: string]: string}, constraints?: Shape.MapTypeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
+  function shouldThrow(desc: string, a: {[key: string]: string}, constraints?: Shape.MapShapeConstraints, stringConstraints?: Shape.StringTypeConstraints) {
     it(`should throw ${desc}`, () => {
       expect(() => Shape.Raw.forType(Shape.map(Shape.string(stringConstraints), constraints)).read(a)).toThrow();
     });

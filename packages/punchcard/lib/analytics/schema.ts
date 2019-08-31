@@ -1,6 +1,6 @@
-import { RuntimeShape, Shape, TimestampType } from '../shape';
+import { RuntimeShape, Shape, TimestampShape } from '../shape';
 
-type IsTimestamp<S extends Shape, T extends keyof S> = S[T] extends TimestampType ? T : never;
+type IsTimestamp<S extends Shape, T extends keyof S> = S[T] extends TimestampShape ? T : never;
 export class Schema<S extends Shape, T extends keyof S> {
   public readonly schemaName: string;
   public readonly shape: S;

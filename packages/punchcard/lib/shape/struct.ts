@@ -2,15 +2,15 @@ import { BaseDynamoPath, DynamoPath, Facade, MapKeyParent } from '../dynamodb/ex
 import { hashCode } from './hash';
 import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
-import { OptionalType } from './optional';
+import { OptionalShape } from './optional';
 import { RuntimeShape, Shape } from './shape';
 import { Type } from './type';
 
-export function struct<S extends Shape>(schema: S): StructType<S> {
-  return new StructType(schema);
+export function struct<S extends Shape>(schema: S): StructShape<S> {
+  return new StructShape(schema);
 }
 
-export class StructType<S extends Shape> implements Type<RuntimeShape<S>> {
+export class StructShape<S extends Shape> implements Type<RuntimeShape<S>> {
   public readonly kind: Kind.Struct = Kind.Struct;
 
   constructor(public readonly shape: S) {}
@@ -20,7 +20,7 @@ export class StructType<S extends Shape> implements Type<RuntimeShape<S>> {
       const item = (value as any)[field];
       const schema = this.shape[field];
 
-      if (item === undefined && !( schema as OptionalType<any>).isOptional) {
+      if (item === undefined && !( schema as OptionalShape<any>).isOptional) {
         throw new Error(`required field ${field} is mising from object`);
       } else {
         schema.validate(item);
@@ -101,7 +101,7 @@ export type StructFields<S extends Shape> = {
 export class StructPath<S extends Shape> extends JsonPath<RuntimeShape<S>> {
   public readonly fields: StructFields<S>;
 
-  constructor(parent: JsonPath<any>, name: string, type: StructType<S>) {
+  constructor(parent: JsonPath<any>, name: string, type: StructShape<S>) {
     super(parent, name, type);
     this.fields = {} as StructFields<S>;
 
@@ -116,10 +116,10 @@ export class StructPath<S extends Shape> extends JsonPath<RuntimeShape<S>> {
  *
  * Recursively creates an attribute for each key in the schema and assigns it to 'fields'.
  */
-export class StructDynamoPath<S extends Shape> extends BaseDynamoPath<StructType<S>> {
+export class StructDynamoPath<S extends Shape> extends BaseDynamoPath<StructShape<S>> {
   public readonly fields: Facade<S> = {} as Facade<S>;
 
-  constructor(parent: DynamoPath, name: string, type: StructType<S>) {
+  constructor(parent: DynamoPath, name: string, type: StructShape<S>) {
     super(parent, name, type);
     for (const [key, schema] of Object.entries(type.shape)) {
       this.fields[key as keyof S] = schema.toDynamoPath(new MapKeyParent(this, key), key) as any;

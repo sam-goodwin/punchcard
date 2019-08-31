@@ -1,17 +1,17 @@
 import { DynamoPath } from '../dynamodb/expression/path';
 import { Kind } from './kind';
-import { PrimitiveType } from './primitive';
+import { PrimitiveShape } from './primitive';
 import { StringDynamoPath } from './string';
 
-export interface BinaryTypeConstraints {
+export interface BinaryShapeConstraints {
   minLength?: number;
   maxLength?: number;
 }
 /**
  * https://json-schema.org/latest/json-schema-validation.html#rfc.section.8
  */
-export class BinaryType extends PrimitiveType<Buffer> {
-  constructor(private readonly constraints: BinaryTypeConstraints = {}) {
+export class BinaryShape extends PrimitiveShape<Buffer> {
+  constructor(private readonly constraints: BinaryShapeConstraints = {}) {
     super(Kind.Binary);
   }
 
@@ -62,10 +62,10 @@ function hashCode(value: Buffer): number {
   return hash;
 }
 
-const standardBinary = new BinaryType();
-export function binary(constraints?: BinaryTypeConstraints) {
+const standardBinary = new BinaryShape();
+export function binary(constraints?: BinaryShapeConstraints) {
   if (constraints) {
-    return new BinaryType(constraints);
+    return new BinaryShape(constraints);
   } else {
     return standardBinary;
   }

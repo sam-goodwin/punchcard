@@ -1,6 +1,6 @@
 import { DynamoPath, Minus, OrdPath, Plus, SetAction, UpdateValue } from '../dynamodb/expression/path';
 import { Kind } from './kind';
-import { PrimitiveType } from './primitive';
+import { PrimitiveShape } from './primitive';
 import { Type } from './type';
 
 export interface NumberConstraints {
@@ -11,7 +11,7 @@ export interface NumberConstraints {
   multipleOf?: number;
 }
 
-abstract class BaseNumberType extends PrimitiveType<number> {
+abstract class BaseNumberShape extends PrimitiveShape<number> {
   public readonly constraints?: NumberConstraints;
 
   constructor(kind: Kind, constraints: NumberConstraints, private readonly jsonType: string, private readonly glueType: string) {
@@ -64,7 +64,7 @@ abstract class BaseNumberType extends PrimitiveType<number> {
   }
 }
 
-class WholeNumberType extends BaseNumberType {
+class WholeNumberShape extends BaseNumberShape {
   public validate(value: number): void {
     super.validate(value);
     if (value % 1 !== 0) {
@@ -74,87 +74,87 @@ class WholeNumberType extends BaseNumberType {
 
 }
 
-export class BigIntType extends WholeNumberType {
+export class BigIntShape extends WholeNumberShape {
   constructor(constraints: NumberConstraints = {}) {
     super(Kind.Number, constraints, 'integer', 'bigint');
   }
 }
 
-export class DoubleType extends BaseNumberType {
+export class DoubleShape extends BaseNumberShape {
   constructor(constraints: NumberConstraints = {}) {
     super(Kind.Number, constraints, 'number', 'double');
   }
 }
 
-export class FloatType extends BaseNumberType {
+export class FloatShape extends BaseNumberShape {
   constructor(constraints: NumberConstraints = {}) {
     super(Kind.Number, constraints, 'number', 'float');
   }
 }
 
-export class IntegerType extends WholeNumberType {
+export class IntegerShape extends WholeNumberShape {
   constructor(constraints: NumberConstraints = {}) {
     super(Kind.Integer, constraints, 'integer', 'int');
   }
 }
 
-export class SmallIntType extends WholeNumberType {
+export class SmallIntShape extends WholeNumberShape {
   constructor(constraints: NumberConstraints = {}) {
     super(Kind.Number, constraints, 'integer', 'smallint');
   }
 }
 
-export class TinyIntType extends WholeNumberType {
+export class TinyIntShape extends WholeNumberShape {
   constructor(constraints: NumberConstraints = {}) {
     super(Kind.Number, constraints, 'integer', 'tinyint');
   }
 }
 
-const defaultInteger = new IntegerType();
-const defaultBigInt = new BigIntType();
-const defaultFloat = new FloatType();
-const defaultDouble = new DoubleType();
-const defaultSmallInt = new SmallIntType();
-const defaultTinyInt = new TinyIntType();
+const defaultInteger = new IntegerShape();
+const defaultBigInt = new BigIntShape();
+const defaultFloat = new FloatShape();
+const defaultDouble = new DoubleShape();
+const defaultSmallInt = new SmallIntShape();
+const defaultTinyInt = new TinyIntShape();
 
 export function bigint(constraints?: NumberConstraints) {
   if (constraints) {
-    return new BigIntType(constraints);
+    return new BigIntShape(constraints);
   } else {
     return defaultBigInt;
   }
 }
 export function double(constraints?: NumberConstraints) {
   if (constraints) {
-    return new DoubleType(constraints);
+    return new DoubleShape(constraints);
   } else {
     return defaultDouble;
   }
 }
 export function float(constraints?: NumberConstraints) {
   if (constraints) {
-    return new FloatType(constraints);
+    return new FloatShape(constraints);
   } else {
     return defaultFloat;
   }
 }
 export function integer(constraints?: NumberConstraints) {
   if (constraints) {
-    return new IntegerType(constraints);
+    return new IntegerShape(constraints);
   } else {
     return defaultInteger;
   }
 }
 export function smallint(constraints?: NumberConstraints) {
   if (constraints) {
-    return new SmallIntType(constraints);
+    return new SmallIntShape(constraints);
   } else {
     return defaultSmallInt;
   }
 }
 export function tinyint(constraints?: NumberConstraints) {
   if (constraints) {
-    return new TinyIntType(constraints);
+    return new TinyIntShape(constraints);
   } else {
     return defaultTinyInt;
   }

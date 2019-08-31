@@ -1,5 +1,5 @@
 import { RuntimeShape, RuntimeType, Shape } from '../shape/shape';
-import { StructType } from '../shape/struct';
+import { StructShape } from '../shape/struct';
 import { Type } from '../shape/type';
 
 import { Client,  } from '../core/client';
@@ -23,7 +23,7 @@ export interface Method<R extends Dependency<any>, T extends Shape, U extends Re
 }
 
 export type MappingType<T extends Type<any>> =
-  T extends StructType<infer S> ? {
+  T extends StructShape<infer S> ? {
     [K in keyof S]: MappingType<S[K]>;
   } :
   T extends Type<any> ? TypedMapping<T> : never;

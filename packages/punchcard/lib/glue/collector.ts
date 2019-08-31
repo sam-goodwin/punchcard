@@ -4,7 +4,7 @@ import { Dependency } from '../core/dependency';
 import { Table, TableProps } from '../glue/table';
 import { Function } from '../lambda/function';
 import { RuntimeShape, Shape } from '../shape/shape';
-import { StructType } from '../shape/struct';
+import { StructShape } from '../shape/struct';
 import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
 import { DependencyType, EventType, Stream } from '../util/stream';
@@ -23,7 +23,7 @@ declare module '../util/stream' {
      * @param tableProps properties of the created s3 delivery stream
      * @param runtimeConfig optional runtime properties to configure the function processing the stream's data.
      */
-    toGlueTable<S extends Shape, T extends StructType<S>, P extends Partition>(scope: core.Construct, id: string, tableProps: TableProps<S, P>, runtimeConfig?: C): CollectedGlueTable<S, P, this>;
+    toGlueTable<S extends Shape, T extends StructShape<S>, P extends Partition>(scope: core.Construct, id: string, tableProps: TableProps<S, P>, runtimeConfig?: C): CollectedGlueTable<S, P, this>;
   }
 }
 Stream.prototype.toGlueTable = function(scope: core.Construct, id: string, tableProps: any): any {

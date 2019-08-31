@@ -6,19 +6,19 @@ import { Kind } from './kind';
 import { RuntimeType } from './shape';
 import { Type } from './type';
 
-export function array<T extends Type<any>>(itemType: T, constraints: ArrayTypeConstraints = {}): ArrayType<T> {
-  return new ArrayType(itemType, constraints);
+export function array<T extends Type<any>>(itemType: T, constraints: ArrayShapeConstraints = {}): ArrayShape<T> {
+  return new ArrayShape(itemType, constraints);
 }
 
-export interface ArrayTypeConstraints {
+export interface ArrayShapeConstraints {
   minItems?: number;
   maxItems?: number;
   uniqueItems?: boolean;
 }
 
-export class ArrayType<T extends Type<any>> implements Type<Array<RuntimeType<T>>> {
+export class ArrayShape<T extends Type<any>> implements Type<Array<RuntimeType<T>>> {
   public readonly kind = Kind.Array;
-  constructor(public readonly itemType: T, private readonly constraints?: ArrayTypeConstraints) {}
+  constructor(public readonly itemType: T, private readonly constraints?: ArrayShapeConstraints) {}
 
   public validate(value: Array<RuntimeType<T>>): void {
     value.forEach(v => this.itemType.validate(v));
@@ -103,7 +103,7 @@ export class ArrayType<T extends Type<any>> implements Type<Array<RuntimeType<T>
 export class ArrayPath<T extends Type<any>> extends JsonPath<Array<RuntimeType<T>>> {
   public readonly items: InferJsonPathType<T>;
 
-  constructor(parent: JsonPath<any>, name: string, public readonly type: ArrayType<T>) {
+  constructor(parent: JsonPath<any>, name: string, public readonly type: ArrayShape<T>) {
     super(parent, name, type);
     this.items = this.type.itemType.toJsonPath(this, '[:0]') as InferJsonPathType<T>;
   }
@@ -124,7 +124,7 @@ export class ArrayPath<T extends Type<any>> extends JsonPath<Array<RuntimeType<T
 /**
  * Represents a path to a List attribute.
  */
-export class ArrayDynamoPath<T extends Type<any>> extends BaseDynamoPath<ArrayType<T>> {
+export class ArrayDynamoPath<T extends Type<any>> extends BaseDynamoPath<ArrayShape<T>> {
   /**
    * Returns a value that represents the size of this array in DynamODB.
    */
@@ -149,11 +149,11 @@ export class ArrayDynamoPath<T extends Type<any>> extends BaseDynamoPath<ArrayTy
     return remove(( this.at(index) as any));
   }
 
-  public append(values: UpdateValue<ArrayType<T>>): SetAction<ArrayType<T>> {
+  public append(values: UpdateValue<ArrayShape<T>>): SetAction<ArrayShape<T>> {
     return this.set(list_append(this.type, this, values));
   }
 
-  public prepend(values: UpdateValue<ArrayType<T>>): SetAction<ArrayType<T>> {
+  public prepend(values: UpdateValue<ArrayShape<T>>): SetAction<ArrayShape<T>> {
     return this.set(list_append(this.type, values, this));
   }
 }

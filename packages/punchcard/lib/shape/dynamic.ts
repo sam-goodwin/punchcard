@@ -11,7 +11,7 @@ import { Type } from './type';
  * @see dynamic
  * @see unsafeDynamic
  */
-export class DynamicType<T extends any | unknown> implements Type<T> {
+export class DynamicShape<T extends any | unknown> implements Type<T> {
   public readonly kind: Kind = Kind.Dynamic;
 
   public validate(value: unknown): void {
@@ -116,12 +116,12 @@ export class DynamicType<T extends any | unknown> implements Type<T> {
 /**
  * A safe dynamic value. Resolves to `unknown` at runtime.
  */
-export const dynamic = new DynamicType<unknown>();
+export const dynamic = new DynamicShape<unknown>();
 
 /**
  * An un-safe dynamic value value. Resolves to `any` at runtime.
  */
-export const unsafeDynamic = new DynamicType<any>();
+export const unsafeDynamic = new DynamicShape<any>();
 
 export class AnyDynamoPath extends DynamoPath {
   public as<T extends Type<any>>(type: T): InferDynamoPathType<T> {

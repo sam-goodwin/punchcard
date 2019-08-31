@@ -9,7 +9,7 @@ import { Type } from './type';
  *
  * https://tools.ietf.org/html/rfc3339#section-5.6
  */
-export class TimestampType implements Type<Date> {
+export class TimestampShape implements Type<Date> {
   private static readonly schema = {
     type: 'string',
     format: 'date-time'
@@ -30,7 +30,7 @@ export class TimestampType implements Type<Date> {
   }
 
   public toJsonSchema(): { [key: string]: any; } {
-    return TimestampType.schema;
+    return TimestampShape.schema;
   }
 
   public toGlueType() {
@@ -49,22 +49,22 @@ export class TimestampType implements Type<Date> {
   }
 }
 
-export const timestamp = new TimestampType();
+export const timestamp = new TimestampShape();
 
-export class TimestampDynamoPath extends NumericDynamoPath<TimestampType> {
-  public plusMs(ms: number): Plus<TimestampType> {
+export class TimestampDynamoPath extends NumericDynamoPath<TimestampShape> {
+  public plusMs(ms: number): Plus<TimestampShape> {
     return this.plus(new Date(ms));
   }
 
-  public minusMs(ms: number): Minus<TimestampType> {
+  public minusMs(ms: number): Minus<TimestampShape> {
     return this.minus(new Date(ms));
   }
 
-  public incrementMs(ms: number): SetAction<TimestampType> {
+  public incrementMs(ms: number): SetAction<TimestampShape> {
     return this.increment(new Date(ms));
   }
 
-  public decrementMs(ms: number): SetAction<TimestampType> {
+  public decrementMs(ms: number): SetAction<TimestampShape> {
     return this.decrement(new Date(ms));
   }
 }

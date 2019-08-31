@@ -4,11 +4,11 @@ import { Kind } from './kind';
 import { RuntimeType } from './shape';
 import { Type } from './type';
 
-export function optional<T extends Type<any>>(type: T): OptionalType<T> {
-  return new OptionalType(type);
+export function optional<T extends Type<any>>(type: T): OptionalShape<T> {
+  return new OptionalShape(type);
 }
 
-export class OptionalType<T extends Type<any>> implements Type<RuntimeType<T> | undefined> {
+export class OptionalShape<T extends Type<any>> implements Type<RuntimeType<T> | undefined> {
   public readonly kind: Kind = Kind.Optional;
   public readonly isOptional: boolean = true;
 

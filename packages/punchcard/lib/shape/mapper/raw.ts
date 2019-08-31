@@ -1,10 +1,10 @@
-import { ArrayType } from '../array';
+import { ArrayShape } from '../array';
 import { Kind } from '../kind';
-import { MapType } from '../map';
-import { OptionalType } from '../optional';
-import { SetType } from '../set';
+import { MapShape } from '../map';
+import { OptionalShape } from '../optional';
+import { SetShape } from '../set';
 import { RuntimeShape, RuntimeType, Shape } from '../shape';
-import { struct, StructType } from '../struct';
+import { struct, StructShape } from '../struct';
 import { Type } from '../type';
 import { TypeSet } from '../typed-set';
 import { Mapper as IMapper, Reader as IReader, Writer as IWriter } from './mapper';
@@ -116,7 +116,7 @@ export namespace Raw {
         if (parsed === undefined || parsed === null) {
           return undefined;
         } else {
-          const optional = type as any as OptionalType<any>;
+          const optional = type as any as OptionalShape<any>;
           return this.read(optional.type, parsed);
         }
       } else if (type.kind === Kind.Struct) {
@@ -124,7 +124,7 @@ export namespace Raw {
           Reader.throwError(type.kind, parsed, 'object');
         }
 
-        const struct = type as any as StructType<any>;
+        const struct = type as any as StructShape<any>;
         const result: any = {};
         Object.keys(struct.shape).forEach(name => {
           const field = struct.shape[name];
@@ -137,7 +137,7 @@ export namespace Raw {
           Reader.throwError(type.kind, parsed, 'array');
         }
 
-        const array = type as any as ArrayType<any>;
+        const array = type as any as ArrayShape<any>;
         const itemType: any = array.itemType;
         return parsed.map((p: any) => this.read(itemType, p)) as any;
       } else if (type.kind === Kind.Set) {
@@ -145,7 +145,7 @@ export namespace Raw {
           Reader.throwError(type.kind, parsed, 'array');
         }
 
-        const set = type as any as SetType<any>;
+        const set = type as any as SetShape<any>;
         const itemType: any = set.itemType;
         const typedSet = TypeSet.forType(itemType);
         parsed.forEach((p: any) => typedSet.add(this.read(itemType, p)));
@@ -154,7 +154,7 @@ export namespace Raw {
         if (typeof parsed !== 'object') {
           Reader.throwError(type.kind, parsed, 'object');
         }
-        const map = type as any as MapType<any>;
+        const map = type as any as MapShape<any>;
         const result: any = {};
         Object.keys(parsed).forEach(name => {
           const value = parsed[name];
@@ -200,11 +200,11 @@ export namespace Raw {
         if (value === undefined || value === null) {
           return this.writeNulls ? null : undefined;
         } else {
-          const optional = type as any as OptionalType<any>;
+          const optional = type as any as OptionalShape<any>;
           return this.write(optional.type, value);
         }
       } else if (type.kind === Kind.Struct) {
-        const s = type as any as StructType<any>;
+        const s = type as any as StructShape<any>;
         const result: any = {};
         Object.keys(s.shape).forEach(name => {
           const field = s.shape[name];
@@ -214,11 +214,11 @@ export namespace Raw {
         return result;
 
       } else if (type.kind === Kind.Array) {
-        const array = type as any as ArrayType<any>;
+        const array = type as any as ArrayShape<any>;
         const itemType: any = array.itemType;
         return value.map((p: any) => this.write(itemType, p));
       } else if (type.kind === Kind.Set) {
-        const setType = type as any as SetType<any>;
+        const setType = type as any as SetShape<any>;
         const setValue: TypeSet<any> = value;
         const itemType: any = setType.itemType;
         const result = [];
@@ -227,7 +227,7 @@ export namespace Raw {
         }
         return result;
       } else if (type.kind === Kind.Map) {
-        const map = type as any as MapType<any>;
+        const map = type as any as MapShape<any>;
         const result: any = {};
         Object.keys(value).forEach(name => {
           const v = value[name];

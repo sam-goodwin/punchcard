@@ -3,7 +3,7 @@ import { JsonPath } from './json/path';
 import { Kind } from './kind';
 import { Type } from './type';
 
-export abstract class PrimitiveType<V> implements Type<V> {
+export abstract class PrimitiveShape<V> implements Type<V> {
   constructor(public readonly kind: Kind) {}
 
   public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<V> {

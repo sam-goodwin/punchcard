@@ -2,7 +2,7 @@ import apigateway = require('@aws-cdk/aws-apigateway');
 import cdk = require('@aws-cdk/core');
 
 import { Dependency } from '../core/dependency';
-import { Kind, Mapper, Raw, Shape, struct, StructType, Type } from '../shape';
+import { Kind, Mapper, Raw, Shape, struct, StructShape, Type } from '../shape';
 import { isRuntime } from '../util/constants';
 import { Tree } from '../util/tree';
 import { Method, MethodName, RequestMappings, Response, Responses } from './method';
@@ -208,7 +208,7 @@ function velocityTemplate<S extends Shape>(
       } else if (typeof mapping === 'object') {
         template += `"${name}": {\n`;
         Object.keys(mapping).forEach((childName, i) => {
-          const childShape = (shape[childName] as StructType<any>).shape;
+          const childShape = (shape[childName] as StructShape<any>).shape;
           walk(childShape, childName, (mapping as any)[childName], depth + 1);
           if (i + 1 < Object.keys(mapping).length) {
             template += ',\n';

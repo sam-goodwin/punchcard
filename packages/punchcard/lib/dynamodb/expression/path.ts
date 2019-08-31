@@ -1,4 +1,4 @@
-import { ArrayType } from '../../shape/array';
+import { ArrayShape } from '../../shape/array';
 import { RuntimeType, Shape } from '../../shape/shape';
 import { Type } from '../../shape/type';
 import { Tree, TreeFields } from '../../util/tree';
@@ -540,14 +540,14 @@ export class IfNotExists<T extends Type<any>> implements Compilable {
   }
 }
 
-export function list_append<T extends Type<any>>(type: ArrayType<T>, lhs: UpdateValue<ArrayType<T>>, rhs: UpdateValue<ArrayType<T>>): ListAppend<T> {
+export function list_append<T extends Type<any>>(type: ArrayShape<T>, lhs: UpdateValue<ArrayShape<T>>, rhs: UpdateValue<ArrayShape<T>>): ListAppend<T> {
   return new ListAppend(type, lhs, rhs);
 }
 
-export class ListAppend<T extends Type<any>> extends Operand<ArrayType<T>> implements UpdateOperand<ArrayType<T>> {
+export class ListAppend<T extends Type<any>> extends Operand<ArrayShape<T>> implements UpdateOperand<ArrayShape<T>> {
   public readonly [update]: 'update' = 'update';
 
-  constructor(type: ArrayType<T>, private readonly lhs: UpdateValue<ArrayType<T>>, private readonly rhs: UpdateValue<ArrayType<T>>) {
+  constructor(type: ArrayShape<T>, private readonly lhs: UpdateValue<ArrayShape<T>>, private readonly rhs: UpdateValue<ArrayShape<T>>) {
     super(type);
   }
 

@@ -5,12 +5,12 @@ import core = require('@aws-cdk/core');
 import * as Glue from '../glue';
 import * as Kinesis from '../kinesis';
 import * as S3 from '../s3';
-import { RuntimeShape, Shape, struct, StructType, TimestampType } from '../shape';
+import { RuntimeShape, Shape, struct, StructShape, TimestampShape } from '../shape';
 import { DeliveryStream } from './delivery-stream';
 import { Period } from './period';
 import { Schema } from './schema';
 
-export type TimeSeriesData = Shape & { timestamp: TimestampType; };
+export type TimeSeriesData = Shape & { timestamp: TimestampShape; };
 
 export interface DataPipelineProps<S extends Shape, T extends keyof S> {
   database: Database;
@@ -18,7 +18,7 @@ export interface DataPipelineProps<S extends Shape, T extends keyof S> {
 }
 export class DataPipeline<T extends Shape, TS extends keyof T> extends core.Construct {
   public readonly bucket: S3.Bucket;
-  public readonly stream: Kinesis.Stream<StructType<T>>;
+  public readonly stream: Kinesis.Stream<StructShape<T>>;
   public readonly deliveryStream: DeliveryStream;
   public readonly stagingBucket: s3.Bucket;
   public readonly table: Glue.Table<T, Period.PT1M>;

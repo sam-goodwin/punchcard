@@ -5,19 +5,19 @@ import { RuntimeType } from './shape';
 import { Type } from './type';
 import { TypeSet } from './typed-set';
 
-export function set<T extends Type<any>>(itemType: T, constraints: SetTypeConstraints = {}): SetType<T> {
-  return new SetType(itemType, constraints) as SetType<T>;
+export function set<T extends Type<any>>(itemType: T, constraints: SetShapeConstraints = {}): SetShape<T> {
+  return new SetShape(itemType, constraints) as SetShape<T>;
 }
 
-export interface SetTypeConstraints {
+export interface SetShapeConstraints {
   minItems?: number;
   maxItems?: number;
 }
 
-export class SetType<T extends Type<any>> implements Type<Set<RuntimeType<T>>> {
+export class SetShape<T extends Type<any>> implements Type<Set<RuntimeType<T>>> {
   public readonly kind = Kind.Set;
 
-  constructor(public readonly itemType: T, private readonly constraints?: SetTypeConstraints) {}
+  constructor(public readonly itemType: T, private readonly constraints?: SetShapeConstraints) {}
 
   public validate(value: Set<RuntimeType<T>>): void {
     value.forEach(v => this.itemType.validate(v));
@@ -89,7 +89,7 @@ export class SetType<T extends Type<any>> implements Type<Set<RuntimeType<T>>> {
 export class SetPath<T extends Type<any>> extends JsonPath<Set<RuntimeType<T>>> {
   public readonly items: InferJsonPathType<T>;
 
-  constructor(parent: JsonPath<any>, name: string, public readonly type: SetType<T>) {
+  constructor(parent: JsonPath<any>, name: string, public readonly type: SetShape<T>) {
     super(parent, name, type);
     this.items = this.type.itemType.toJsonPath(this, '[:0]') as InferJsonPathType<T>;
   }
@@ -110,8 +110,8 @@ export class SetPath<T extends Type<any>> extends JsonPath<Set<RuntimeType<T>>> 
 /**
  * Represents a path to a Set attribute (NumberSet, StringSet, BinarySet).
  */
-export class SetDynamoPath<T extends Type<any>> extends BaseDynamoPath<SetType<T>> {
-  public add(...values: Array<RuntimeType<T>>): AddAction<SetType<T>> {
+export class SetDynamoPath<T extends Type<any>> extends BaseDynamoPath<SetShape<T>> {
+  public add(...values: Array<RuntimeType<T>>): AddAction<SetShape<T>> {
     const s: Set<RuntimeType<T>> = TypeSet.forType(this.type.itemType);
     values.forEach(v => s.add(v));
     return new AddAction(this, s);

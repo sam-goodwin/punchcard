@@ -2,7 +2,7 @@ import { BeginsWith, ConditionValue, Contains, DynamoPath, OrdPath } from '../dy
 import { Size } from '../dynamodb/expression/size';
 import { hashCode } from './hash';
 import { Kind } from './kind';
-import { PrimitiveType } from './primitive';
+import { PrimitiveShape } from './primitive';
 import { Type } from './type';
 
 export interface StringTypeConstraints {
@@ -11,7 +11,7 @@ export interface StringTypeConstraints {
   pattern?: RegExp;
 }
 
-export abstract class BaseStringType extends PrimitiveType<string> {
+export abstract class BaseStringShape extends PrimitiveShape<string> {
   constructor(private readonly constraints: StringTypeConstraints = {}) {
     super(Kind.String);
   }
@@ -55,7 +55,7 @@ export abstract class BaseStringType extends PrimitiveType<string> {
   }
 }
 
-export class StringType extends BaseStringType {
+export class StringShape extends BaseStringShape {
   public toGlueType() {
     return {
       inputString: 'string',
@@ -68,7 +68,7 @@ export interface FixedLengthConstraints {
   minLength?: number;
   pattern?: RegExp;
 }
-class FixedLength extends BaseStringType {
+class FixedLength extends BaseStringShape {
   constructor(private readonly name: string, private readonly length: number, props: FixedLengthConstraints = {}) {
     super({
       maxLength: length,
@@ -83,10 +83,10 @@ class FixedLength extends BaseStringType {
   }
 }
 
-const standardString = new StringType();
+const standardString = new StringShape();
 export function string(constraints?: StringTypeConstraints) {
   if (constraints) {
-    return new StringType(constraints);
+    return new StringShape(constraints);
   } else {
     return standardString;
   }
