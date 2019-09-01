@@ -1,7 +1,7 @@
 import { DynamoPath, Minus, OrdPath, Plus, SetAction, UpdateValue } from '../dynamodb/expression/path';
 import { Kind } from './kind';
 import { PrimitiveShape } from './primitive';
-import { Type } from './type';
+import { Shape } from './shape';
 
 export interface NumberConstraints {
   minimum?: number;
@@ -160,7 +160,7 @@ export function tinyint(constraints?: NumberConstraints) {
   }
 }
 
-export class NumericDynamoPath<T extends Type<any>> extends OrdPath<T> {
+export class NumericDynamoPath<T extends Shape<any>> extends OrdPath<T> {
   public plus(value: UpdateValue<T>): Plus<T> {
     return new Plus(this.type, this, value);
   }

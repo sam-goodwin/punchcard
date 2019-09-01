@@ -13,16 +13,16 @@ import { ExecutorService } from '../lambda/executor';
 import { Function } from '../lambda/function';
 import * as S3 from '../s3';
 import { Bucket } from '../s3/bucket';
-import { Mapper, RuntimeType, Type } from '../shape';
+import { Mapper, RuntimeShape, Shape } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Batches } from './batches';
 import { Client } from './client';
 import { FirehoseEvent, FirehoseResponse, ValidationResult } from './event';
 
-export type DeliveryStreamProps<T extends Type<any>> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
+export type DeliveryStreamProps<T extends Shape<any>> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 
-interface BaseDeliveryStreamProps<T extends Type<any>> {
+interface BaseDeliveryStreamProps<T extends Shape<any>> {
   /**
    * Codec with which to read files.
    */
@@ -43,17 +43,17 @@ interface BaseDeliveryStreamProps<T extends Type<any>> {
    *
    * @default no validation
    */
-  validate?: (record: RuntimeType<T>) => ValidationResult;
+  validate?: (record: RuntimeShape<T>) => ValidationResult;
 }
 
-export interface DeliveryStreamDirectPut<T extends Type<any>> extends BaseDeliveryStreamProps<T> {
+export interface DeliveryStreamDirectPut<T extends Shape<any>> extends BaseDeliveryStreamProps<T> {
   /**
    * Type of data in the stream.
    */
   type: T;
 }
 
-export interface DeliveryStreamFromKinesis<T extends Type<any>> extends BaseDeliveryStreamProps<T> {
+export interface DeliveryStreamFromKinesis<T extends Shape<any>> extends BaseDeliveryStreamProps<T> {
   /**
    * Kinesis stream to persist in S3.
    */
@@ -65,11 +65,11 @@ export interface DeliveryStreamFromKinesis<T extends Type<any>> extends BaseDeli
  *
  * It may or may not be consuming from a Kinesis Stream.
  */
-export class DeliveryStream<T extends Type<any>> extends core.Construct implements Dependency<Client<RuntimeType<T>>>, Resource<DeliveryStreamConstruct> {
+export class DeliveryStream<T extends Shape<any>> extends core.Construct implements Dependency<Client<RuntimeShape<T>>>, Resource<DeliveryStreamConstruct> {
   public readonly resource: DeliveryStreamConstruct;
   public readonly type: T;
 
-  private readonly mapper: Mapper<RuntimeType<T>, Buffer>;
+  private readonly mapper: Mapper<RuntimeShape<T>, Buffer>;
   private readonly codec: Codec;
   private readonly compression: Compression;
   public readonly processor: Validator<T>;
@@ -110,11 +110,11 @@ export class DeliveryStream<T extends Type<any>> extends core.Construct implemen
     }
   }
 
-  public batches(): Batches<RuntimeType<T>, [Dependency<S3.ReadClient>]> {
+  public batches(): Batches<RuntimeShape<T>, [Dependency<S3.ReadClient>]> {
     const codec = this.codec;
     const compression = this.compression;
     const mapper = this.mapper;
-    class Root extends Batches<RuntimeType<T>, [Dependency<S3.ReadClient>]> {
+    class Root extends Batches<RuntimeShape<T>, [Dependency<S3.ReadClient>]> {
       public async *run(event: S3.Event, [bucket]: [S3.ReadClient]) {
         for (const record of event.Records) {
           // TODO: parallelism
@@ -142,7 +142,7 @@ export class DeliveryStream<T extends Type<any>> extends core.Construct implemen
     this.resource.grantWrite(grantable);
   }
 
-  public async bootstrap(properties: Assembly, cache: Cache): Promise<Client<RuntimeType<T>>> {
+  public async bootstrap(properties: Assembly, cache: Cache): Promise<Client<RuntimeShape<T>>> {
     return new Client(this,
       properties.get('deliveryStreamName'),
       cache.getOrCreate('aws:firehose', () => new AWS.Firehose()));
@@ -152,8 +152,8 @@ export class DeliveryStream<T extends Type<any>> extends core.Construct implemen
 /**
  * Properties for creating a Validator.
  */
-interface ValidatorProps<T extends Type<any>> {
-  mapper: Mapper<RuntimeType<T>, Buffer>;
+interface ValidatorProps<T extends Shape<any>> {
+  mapper: Mapper<RuntimeShape<T>, Buffer>;
 
   /**
    * Optionally provide an executorService to override the properties
@@ -168,13 +168,13 @@ interface ValidatorProps<T extends Type<any>> {
    *
    * @default no extra validation
    */
-  validate?: (record: RuntimeType<T>) => ValidationResult;
+  validate?: (record: RuntimeShape<T>) => ValidationResult;
 }
 
 /**
  * Validates and formats records flowing from Firehose so that they match the format of a Glue Table.
  */
-class Validator<T extends Type<any>> extends core.Construct {
+class Validator<T extends Shape<any>> extends core.Construct {
   public readonly processor: Function<FirehoseEvent, FirehoseResponse, Dependency.None>;
 
   constructor(scope: core.Construct, id: string, props: ValidatorProps<T>) {

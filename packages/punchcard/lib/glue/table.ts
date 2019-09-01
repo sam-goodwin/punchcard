@@ -13,7 +13,7 @@ import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import * as S3 from '../s3';
-import { Json, Kind, Mapper, RuntimeShape, RuntimeType, Shape, struct } from '../shape';
+import { Json, Kind, Mapper, RuntimeShape, Shape, struct, StructShape } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Omit } from '../util/omit';
@@ -24,7 +24,7 @@ import { Partition } from './partition';
  * Augmentation of `glue.TableProps`, using a `Shape` to define the
  * schema and partitionKeys.
  */
-export type TableProps<T extends Shape, P extends Partition> = {
+export type TableProps<T extends StructShape<any>, P extends Partition> = {
   /**
    * Data columns of the data stored in the table.
    */
@@ -70,7 +70,7 @@ export type Partitions<T extends Table<any, any>> = T extends Table<any, infer P
 /**
  * Represents a partitioned Glue Table.
  */
-export class Table<T extends Shape, P extends Partition> implements Resource<glue.Table>, Dependency<Table.ReadWriteClient<T, P>> {
+export class Table<T extends StructShape<any>, P extends Partition> implements Resource<glue.Table>, Dependency<Table.ReadWriteClient<T, P>> {
   /**
    * Type of compression.
    */
@@ -96,7 +96,7 @@ export class Table<T extends Shape, P extends Partition> implements Resource<glu
    * Mappers for reading and writing partition keys to/from strings.
    */
   public readonly partitionMappers: {
-    [K in keyof P]: Mapper<RuntimeType<P[K]>, string>
+    [K in keyof P['shape']]: Mapper<RuntimeShape<P['shape'][K]>, string>
   };
   /**
    * Codec for reading and writing records (in a queue/stream/topic/etc.) and blobs (s3 objects).
@@ -154,9 +154,11 @@ export class Table<T extends Shape, P extends Partition> implements Resource<glu
 
     this.compression = compression;
     this.codec = codec;
-    this.mapper = this.codec.mapper(struct(this.shape.columns));
+    this.mapper = this.codec.mapper(this.shape.columns);
     this.partitionMappers = {} as any;
-    Object.entries(this.shape.partitions).forEach(([name, type]) => this.partitionMappers[name as keyof P] = Json.forType(type) as any);
+    Object.entries(this.shape.partitions).forEach(([name, shape]) => {
+      this.partitionMappers[name as keyof P['shape']] = Json.forShape(shape) as any;
+    });
 
     // Hack: fix tableArn (fixed in 0.32.0)
     (this.resource as any).tableArn = this.resource.stack.formatArn({
@@ -231,9 +233,9 @@ export namespace Table {
   /**
    * Client type aliaes.
    */
-  export type ReadWriteClient<T extends Shape, P extends Partition> = Table.Client<T, P>;
-  export type ReadClient<T extends Shape, P extends Partition> = Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'>;
-  export type WriteClient<T extends Shape, P extends Partition> = Omit<Table.Client<T, P>, 'getPartitions'>;
+  export type ReadWriteClient<T extends StructShape<any>, P extends Partition> = Table.Client<T, P>;
+  export type ReadClient<T extends StructShape<any>, P extends Partition> = Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'>;
+  export type WriteClient<T extends StructShape<any>, P extends Partition> = Omit<Table.Client<T, P>, 'getPartitions'>;
 
   /**
    * Request and Response aliases.
@@ -253,7 +255,7 @@ export namespace Table {
    * * create, update, delete and query partitions.
    * * write objects to the table (properly partitioned S3 Objects and Glue Partitions).
    */
-  export class Client<T extends Shape, P extends Partition> implements Sink<RuntimeShape<T>> {
+  export class Client<T extends StructShape<any>, P extends Partition> implements Sink<RuntimeShape<T>> {
     private readonly partitions: string[];
 
     constructor(

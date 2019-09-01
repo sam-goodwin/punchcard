@@ -9,14 +9,14 @@ import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Mapper } from '../shape/mapper/mapper';
 import { RuntimeShape, Shape } from '../shape/shape';
-import { struct } from '../shape/struct';
+import { struct, StructShape } from '../shape/struct';
 import { Omit } from '../util/omit';
 import { Client } from './client';
 import { Facade, toFacade } from './expression/path';
 import { Key, keyType } from './key';
 import * as Dynamo from './mapper';
 
-export type TableProps<PKey extends keyof S, SKey extends keyof S | undefined, S extends Shape> = {
+export type TableProps<PKey extends keyof S, SKey extends keyof S | undefined, S extends StructShape<any>> = {
   partitionKey: PKey;
   sortKey?: SKey;
   shape: S;
@@ -29,7 +29,7 @@ export type TableProps<PKey extends keyof S, SKey extends keyof S | undefined, S
  * @typeparam PKey name of partition key
  * @typeparam SKey name of sort key (if this table has one)
  */
-export class Table<PKey extends keyof S, SKey extends keyof S | undefined, S extends Shape>
+export class Table<PKey extends keyof S['shape'], SKey extends keyof S['shape'] | undefined, S extends StructShape<any>>
     extends dynamodb.Table
     implements Dependency<Client<PKey, SKey, S>> {
   /**
@@ -90,14 +90,15 @@ export class Table<PKey extends keyof S, SKey extends keyof S | undefined, S ext
     this.shape = props.shape;
     this.partitionKey = props.partitionKey;
     this.sortKey = props.sortKey!;
-    this.key = {
+    const key: Partial<Key<S, PKey, SKey>['shape']> = {
       [this.partitionKey]: this.shape[this.partitionKey],
     } as any;
     if (this.sortKey) {
-      (this.key as any)[this.sortKey] = this.shape[this.sortKey!];
+      (key as any)[this.sortKey] = this.shape[this.sortKey!];
     }
-    this.mapper = new Dynamo.Mapper(struct(this.shape));
-    this.keyMapper = new Dynamo.Mapper(struct(this.key));
+    this.key = struct(key as any) as any;
+    this.mapper = new Dynamo.Mapper(this.shape);
+    this.keyMapper = new Dynamo.Mapper(this.key) as any;
     this.facade = toFacade(props.shape);
   }
 

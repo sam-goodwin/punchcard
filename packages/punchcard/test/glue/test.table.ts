@@ -178,7 +178,7 @@ it('should default to Json Codec', () => {
   expect(table.resource.dataFormat).toEqual(glue.DataFormat.Json);
 });
 
-function partitionTest(type: Shape.Type<any>) {
+function partitionTest(type: Shape.Shape<any>) {
   const stack = new core.Stack(new core.App(), 'stack');
   const database = new glue.Database(stack, 'Database', {
     databaseName: 'database'

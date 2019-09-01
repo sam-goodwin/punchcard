@@ -10,15 +10,13 @@ import { DeliveryStream } from './delivery-stream';
 import { Period } from './period';
 import { Schema } from './schema';
 
-export type TimeSeriesData = Shape & { timestamp: TimestampShape; };
-
-export interface DataPipelineProps<S extends Shape, T extends keyof S> {
+export interface DataPipelineProps<S extends StructShape<any>, T extends keyof S> {
   database: Database;
   schema: Schema<S, T>;
 }
-export class DataPipeline<T extends Shape, TS extends keyof T> extends core.Construct {
+export class DataPipeline<T extends StructShape<any>, TS extends keyof T> extends core.Construct {
   public readonly bucket: S3.Bucket;
-  public readonly stream: Kinesis.Stream<StructShape<T>>;
+  public readonly stream: Kinesis.Stream<T>;
   public readonly deliveryStream: DeliveryStream;
   public readonly stagingBucket: s3.Bucket;
   public readonly table: Glue.Table<T, Period.PT1M>;
@@ -27,7 +25,7 @@ export class DataPipeline<T extends Shape, TS extends keyof T> extends core.Cons
     super(scope, id);
 
     this.stream = new Kinesis.Stream(this, 'Stream', {
-      type: struct(props.schema.shape),
+      type: props.schema.shape,
       encryption: StreamEncryption.KMS
     });
 

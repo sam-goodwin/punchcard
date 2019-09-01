@@ -1,11 +1,11 @@
 import { AddAction, BaseDynamoPath, ConditionValue, Contains, DeleteAction, DynamoPath } from '../dynamodb/expression/path';
-import { InferJsonPathType, JsonPath } from './json/path';
+import { JsonPath } from './json/path';
+import { InferJsonPathType } from './json/path';
 import { Kind } from './kind';
-import { RuntimeType } from './shape';
-import { Type } from './type';
+import { RuntimeShape, Shape } from './shape';
 import { TypeSet } from './typed-set';
 
-export function set<T extends Type<any>>(itemType: T, constraints: SetShapeConstraints = {}): SetShape<T> {
+export function set<T extends Shape<any>>(itemType: T, constraints: SetShapeConstraints = {}): SetShape<T> {
   return new SetShape(itemType, constraints) as SetShape<T>;
 }
 
@@ -14,12 +14,12 @@ export interface SetShapeConstraints {
   maxItems?: number;
 }
 
-export class SetShape<T extends Type<any>> implements Type<Set<RuntimeType<T>>> {
+export class SetShape<T extends Shape<any>> implements Shape<Set<RuntimeShape<T>>> {
   public readonly kind = Kind.Set;
 
   constructor(public readonly itemType: T, private readonly constraints?: SetShapeConstraints) {}
 
-  public validate(value: Set<RuntimeType<T>>): void {
+  public validate(value: Set<RuntimeShape<T>>): void {
     value.forEach(v => this.itemType.validate(v));
     if (!this.constraints) {
       return;
@@ -64,7 +64,7 @@ export class SetShape<T extends Type<any>> implements Type<Set<RuntimeType<T>>> 
     };
   }
 
-  public hashCode(value: Set<RuntimeType<T>>): number {
+  public hashCode(value: Set<RuntimeShape<T>>): number {
     const prime = 31;
     let result = 1;
     for (const item of value.values()) {
@@ -73,7 +73,7 @@ export class SetShape<T extends Type<any>> implements Type<Set<RuntimeType<T>>> 
     return result;
   }
 
-  public equals(a: Set<RuntimeType<T>>, b: Set<RuntimeType<T>>): boolean {
+  public equals(a: Set<RuntimeShape<T>>, b: Set<RuntimeShape<T>>): boolean {
     if (a.size !== b.size) {
       return false;
     }
@@ -86,23 +86,23 @@ export class SetShape<T extends Type<any>> implements Type<Set<RuntimeType<T>>> 
   }
 }
 
-export class SetPath<T extends Type<any>> extends JsonPath<Set<RuntimeType<T>>> {
+export class SetPath<T extends Shape<any>> extends JsonPath<SetShape<T>> {
   public readonly items: InferJsonPathType<T>;
 
-  constructor(parent: JsonPath<any>, name: string, public readonly type: SetShape<T>) {
-    super(parent, name, type);
-    this.items = this.type.itemType.toJsonPath(this, '[:0]') as InferJsonPathType<T>;
+  constructor(parent: JsonPath<any>, name: string, public readonly shape: SetShape<T>) {
+    super(parent, name, shape);
+    this.items = this.shape.itemType.toJsonPath(this, '[:0]') as InferJsonPathType<T>;
   }
 
   public get(index: number): InferJsonPathType<T> {
-    return this.type.itemType.toJsonPath(this, `[${index}]`) as InferJsonPathType<T>;
+    return this.shape.itemType.toJsonPath(this, `[${index}]`) as InferJsonPathType<T>;
   }
 
   public slice(start: number, end: number, step?: number): InferJsonPathType<T> {
-    return this.type.itemType.toJsonPath(this, `[${start}:${end}${step === undefined ? '' : `:${step}`}]`) as InferJsonPathType<T>;
+    return this.shape.itemType.toJsonPath(this, `[${start}:${end}${step === undefined ? '' : `:${step}`}]`) as InferJsonPathType<T>;
   }
 
-  public map<P2 extends JsonPath<V2>, V2>(fn: (item: InferJsonPathType<T>) => P2): P2 {
+  public map<P2 extends JsonPath<V2>, V2 extends Shape<any>>(fn: (item: InferJsonPathType<T>) => P2): P2 {
     return fn(this.items);
   }
 }
@@ -110,14 +110,14 @@ export class SetPath<T extends Type<any>> extends JsonPath<Set<RuntimeType<T>>> 
 /**
  * Represents a path to a Set attribute (NumberSet, StringSet, BinarySet).
  */
-export class SetDynamoPath<T extends Type<any>> extends BaseDynamoPath<SetShape<T>> {
-  public add(...values: Array<RuntimeType<T>>): AddAction<SetShape<T>> {
-    const s: Set<RuntimeType<T>> = TypeSet.forType(this.type.itemType);
+export class SetDynamoPath<T extends Shape<any>> extends BaseDynamoPath<SetShape<T>> {
+  public add(...values: Array<RuntimeShape<T>>): AddAction<SetShape<T>> {
+    const s: Set<RuntimeShape<T>> = TypeSet.forType(this.type.itemType);
     values.forEach(v => s.add(v));
     return new AddAction(this, s);
   }
 
-  // public addAll(values: Set<V> | Array<RuntimeType<T>>): AddAction<T, Set<V>> {
+  // public addAll(values: Set<V> | Array<RuntimeShape<T>>): AddAction<T, Set<V>> {
   //   if (Array.isArray(values)) {
   //     return new AddAction(this, new Set(values));
   //   } else {
@@ -125,11 +125,11 @@ export class SetDynamoPath<T extends Type<any>> extends BaseDynamoPath<SetShape<
   //   }
   // }
 
-  public remove(...values: Array<RuntimeType<T>>): DeleteAction<T> {
+  public remove(...values: Array<RuntimeShape<T>>): DeleteAction<T> {
     return new DeleteAction(this, new Set(values));
   }
 
-  public removeAll(values: Set<RuntimeType<T>> | Array<RuntimeType<T>>): DeleteAction<T> {
+  public removeAll(values: Set<RuntimeShape<T>> | Array<RuntimeShape<T>>): DeleteAction<T> {
     if (Array.isArray(values)) {
       return new DeleteAction(this, new Set(values));
     } else {

@@ -3,10 +3,9 @@ import { BaseDynamoPath, ConditionValue, DynamoPath, IndexParent, InferDynamoPat
 import { Size } from '../dynamodb/expression/size';
 import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
-import { RuntimeType } from './shape';
-import { Type } from './type';
+import { RuntimeShape, Shape } from './shape';
 
-export function array<T extends Type<any>>(itemType: T, constraints: ArrayShapeConstraints = {}): ArrayShape<T> {
+export function array<T extends Shape<any>>(itemType: T, constraints: ArrayShapeConstraints = {}): ArrayShape<T> {
   return new ArrayShape(itemType, constraints);
 }
 
@@ -16,11 +15,11 @@ export interface ArrayShapeConstraints {
   uniqueItems?: boolean;
 }
 
-export class ArrayShape<T extends Type<any>> implements Type<Array<RuntimeType<T>>> {
+export class ArrayShape<T extends Shape<any>> implements Shape<Array<RuntimeShape<T>>> {
   public readonly kind = Kind.Array;
   constructor(public readonly itemType: T, private readonly constraints?: ArrayShapeConstraints) {}
 
-  public validate(value: Array<RuntimeType<T>>): void {
+  public validate(value: Array<RuntimeShape<T>>): void {
     value.forEach(v => this.itemType.validate(v));
     if (!this.constraints) {
       return;
@@ -32,7 +31,7 @@ export class ArrayShape<T extends Type<any>> implements Type<Array<RuntimeType<T
       throw new Error(`expected maxItems=${this.constraints.maxItems} but array contains ${value.length} items`);
     }
     if (this.constraints.uniqueItems) {
-      const map: Map<number, Array<RuntimeType<T>>> = new Map();
+      const map: Map<number, Array<RuntimeShape<T>>> = new Map();
       value.forEach(item => {
         const hashCode = this.itemType.hashCode(item);
         if (map.has(hashCode)) {
@@ -78,14 +77,14 @@ export class ArrayShape<T extends Type<any>> implements Type<Array<RuntimeType<T
     };
   }
 
-  public hashCode(value: Array<RuntimeType<T>>): number {
+  public hashCode(value: Array<RuntimeShape<T>>): number {
     const prime = 31;
     let result = 1;
     value.forEach(item => result += prime * result + this.itemType.hashCode(item));
     return result;
   }
 
-  public equals(a: Array<RuntimeType<T>>, b: Array<RuntimeType<T>>): boolean {
+  public equals(a: Array<RuntimeShape<T>>, b: Array<RuntimeShape<T>>): boolean {
     if (a.length !== b.length) {
       return false;
     }
@@ -100,23 +99,23 @@ export class ArrayShape<T extends Type<any>> implements Type<Array<RuntimeType<T
   }
 }
 
-export class ArrayPath<T extends Type<any>> extends JsonPath<Array<RuntimeType<T>>> {
+export class ArrayPath<T extends Shape<any>> extends JsonPath<ArrayShape<T>> {
   public readonly items: InferJsonPathType<T>;
 
-  constructor(parent: JsonPath<any>, name: string, public readonly type: ArrayShape<T>) {
-    super(parent, name, type);
-    this.items = this.type.itemType.toJsonPath(this, '[:0]') as InferJsonPathType<T>;
+  constructor(parent: JsonPath<any>, name: string, public readonly shape: ArrayShape<T>) {
+    super(parent, name, shape);
+    this.items = this.shape.itemType.toJsonPath(this, '[:0]') as InferJsonPathType<T>;
   }
 
   public get(index: number): InferJsonPathType<T> {
-    return this.type.itemType.toJsonPath(this, `[${index}]`) as InferJsonPathType<T>;
+    return this.shape.itemType.toJsonPath(this, `[${index}]`) as InferJsonPathType<T>;
   }
 
   public slice(start: number, end: number, step?: number): InferJsonPathType<T> {
-    return this.type.itemType.toJsonPath(this, `[${start}:${end}${step === undefined ? '' : `:${step}`}]`) as InferJsonPathType<T>;
+    return this.shape.itemType.toJsonPath(this, `[${start}:${end}${step === undefined ? '' : `:${step}`}]`) as InferJsonPathType<T>;
   }
 
-  public map<P2 extends JsonPath<V2>, V2>(fn: (item: InferJsonPathType<T>) => P2): P2 {
+  public map<P2 extends JsonPath<V2>, V2 extends Shape<any>>(fn: (item: InferJsonPathType<T>) => P2): P2 {
     return fn(this.items);
   }
 }
@@ -124,7 +123,7 @@ export class ArrayPath<T extends Type<any>> extends JsonPath<Array<RuntimeType<T
 /**
  * Represents a path to a List attribute.
  */
-export class ArrayDynamoPath<T extends Type<any>> extends BaseDynamoPath<ArrayShape<T>> {
+export class ArrayDynamoPath<T extends Shape<any>> extends BaseDynamoPath<ArrayShape<T>> {
   /**
    * Returns a value that represents the size of this array in DynamODB.
    */

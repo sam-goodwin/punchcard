@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { Json, Mapper, Type } from '../shape';
+import { Json, Mapper, Shape } from '../shape';
 import { Sink, sink, SinkProps } from '../util/sink';
 import { DeliveryStream } from './delivery-stream';
 
@@ -10,7 +10,7 @@ export class Client<T> implements Sink<T> {
   public readonly mapper: Mapper<T, string>;
 
   constructor(
-      public readonly stream: DeliveryStream<Type<T>>,
+      public readonly stream: DeliveryStream<Shape<T>>,
       public readonly deliveryStreamName: string,
       public readonly client: AWS.Firehose) {
     this.mapper = Json.jsonLine(this.stream.type);

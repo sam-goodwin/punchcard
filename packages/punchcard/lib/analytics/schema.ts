@@ -1,7 +1,7 @@
-import { RuntimeShape, Shape, TimestampShape } from '../shape';
+import { RuntimeShape, StructShape, TimestampShape } from '../shape';
 
-type IsTimestamp<S extends Shape, T extends keyof S> = S[T] extends TimestampShape ? T : never;
-export class Schema<S extends Shape, T extends keyof S> {
+type IsTimestamp<S extends StructShape<any>, T extends keyof S> = S[T] extends TimestampShape ? T : never;
+export class Schema<S extends StructShape<any>, T extends keyof S> {
   public readonly schemaName: string;
   public readonly shape: S;
   public readonly timestampField: T;

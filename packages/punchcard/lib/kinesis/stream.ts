@@ -9,14 +9,14 @@ import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { DeliveryStream } from '../firehose/delivery-stream';
-import { BufferMapper, Json, Mapper, RuntimeType, Type } from '../shape';
+import { BufferMapper, Json, Mapper, RuntimeShape, Shape } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Client } from './client';
 import { Event } from './event';
 import { Records } from './records';
 
-export interface StreamProps<T extends Type<any>> extends kinesis.StreamProps {
+export interface StreamProps<T extends Shape<any>> extends kinesis.StreamProps {
   /**
    * Type of data in the stream.
    */
@@ -25,16 +25,16 @@ export interface StreamProps<T extends Type<any>> extends kinesis.StreamProps {
   /**
    * @default - uuid
    */
-  partitionBy?: (record: RuntimeType<T>) => string;
+  partitionBy?: (record: RuntimeShape<T>) => string;
 }
 
 /**
  * A Kinesis stream.
  */
-export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, Dependency<Client<T>> {
+export class Stream<T extends Shape<any>> implements Resource<kinesis.Stream>, Dependency<Client<T>> {
   public readonly type: T;
-  public readonly mapper: Mapper<RuntimeType<T>, Buffer>;
-  public readonly partitionBy: (record: RuntimeType<T>) => string;
+  public readonly mapper: Mapper<RuntimeShape<T>, Buffer>;
+  public readonly partitionBy: (record: RuntimeShape<T>) => string;
   public readonly resource: kinesis.Stream;
 
   constructor(scope: core.Construct, id: string, props: StreamProps<T>) {
@@ -47,9 +47,9 @@ export class Stream<T extends Type<any>> implements Resource<kinesis.Stream>, De
   /**
    * Create an stream for this stream to perform chainable computations (map, flatMap, filter, etc.)
    */
-  public records(): Records<RuntimeType<T>, []> {
+  public records(): Records<RuntimeShape<T>, []> {
     const mapper = this.mapper;
-    class Root extends Records<RuntimeType<T>, []> {
+    class Root extends Records<RuntimeShape<T>, []> {
       /**
        * Return an iterator of records parsed from the raw data in the event.
        * @param event kinesis event sent to lambda

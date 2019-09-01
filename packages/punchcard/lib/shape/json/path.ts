@@ -1,13 +1,13 @@
 import { Tree, TreeFields } from '../../util/tree';
 import { Kind } from '../kind';
-import { Type } from '../type';
+import { Shape } from '../shape';
 
-export class JsonPath<V> extends Tree<JsonPath<any>> {
+export class JsonPath<S extends Shape<any>> extends Tree<JsonPath<any>> {
   public readonly kind: Kind;
 
-  constructor(parent: JsonPath<any>, name: string, public readonly type: Type<V>) {
+  constructor(parent: JsonPath<any>, name: string, public readonly shape: S) {
     super(parent, name);
-    this.kind = type.kind;
+    this.kind = shape.kind;
   }
 
   protected [TreeFields.join](left: string, right: string): string {
@@ -15,4 +15,4 @@ export class JsonPath<V> extends Tree<JsonPath<any>> {
   }
 }
 
-export type InferJsonPathType<T extends Type<any>> = ReturnType<T['toJsonPath']>;
+export type InferJsonPathType<T extends Shape<any>> = ReturnType<T['toJsonPath']>;

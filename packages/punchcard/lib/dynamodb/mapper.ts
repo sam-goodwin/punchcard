@@ -8,9 +8,7 @@ import {
   RuntimeShape,
   SetShape,
   Shape,
-  struct,
   StructShape,
-  Type,
   TypeSet
 } from '../shape';
 
@@ -28,16 +26,16 @@ export interface Configuration {
   readonly writer?: IWriter<AWS.DynamoDB.AttributeValue>;
 }
 
-export function forShape<S extends Shape>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, AWS.DynamoDB.AttributeMap> {
-  return new Mapper(struct(shape), configuration);
+export function forShape<S extends StructShape<any>>(shape: S, configuration?: Configuration): Mapper<S> {
+  return new Mapper(shape, configuration);
 }
 
-export class Mapper<S extends Shape> implements IMapper<RuntimeShape<S>, AWS.DynamoDB.AttributeMap> {
+export class Mapper<S extends StructShape<any>> implements IMapper<RuntimeShape<S>, AWS.DynamoDB.AttributeMap> {
   private readonly validate: boolean;
   private readonly reader: IReader<AWS.DynamoDB.AttributeValue>;
   private readonly writer: IWriter<AWS.DynamoDB.AttributeValue>;
 
-  constructor(private readonly type: StructShape<S>, props: Configuration = {}) {
+  constructor(private readonly type: S, props: Configuration = {}) {
     this.validate = props.validate === undefined ? false : props.validate;
     this.reader = props.reader || Reader.instance;
     this.writer = props.writer || Writer.instance;
@@ -74,7 +72,7 @@ export class Reader implements IReader<AWS.DynamoDB.AttributeValue> {
     throw new Error(`expected a AttributeValue with type ${expected} for ${kind}, got ${Object.keys(parsed).join(',')}`);
   }
 
-  public read<T extends Type<V>, V>(type: T, value: AWS.DynamoDB.AttributeValue): any {
+  public read<T extends Shape<V>, V>(type: T, value: AWS.DynamoDB.AttributeValue): any {
     if (type.kind === Kind.Dynamic) {
       return AWS.DynamoDB.Converter.output(value);
     } else if (type.kind === Kind.Boolean) {
@@ -191,7 +189,7 @@ export class Writer implements IWriter<AWS.DynamoDB.AttributeValue> {
     this.writeNulls = props.writeNulls === undefined ? false : props.writeNulls;
   }
 
-  public write<T extends Type<V>, V>(type: T, value: any): AWS.DynamoDB.AttributeValue {
+  public write<T extends Shape<V>, V>(type: T, value: any): AWS.DynamoDB.AttributeValue {
     if (type.kind === Kind.Dynamic) {
       return AWS.DynamoDB.Converter.input(value);
     } else if (type.kind === Kind.Boolean) {

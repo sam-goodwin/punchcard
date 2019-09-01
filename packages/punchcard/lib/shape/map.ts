@@ -2,12 +2,11 @@ import { BaseDynamoPath, ConditionValue, DynamoPath, InferDynamoPathType, MapKey
 import { hashCode } from './hash';
 import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
-import { RuntimeType } from './shape';
-import { Type } from './type';
+import { RuntimeShape, Shape } from './shape';
 
-type RuntimeMap<T extends Type<any>> = {[key: string]: RuntimeType<T>};
+type RuntimeMap<T extends Shape<any>> = {[key: string]: RuntimeShape<T>};
 
-export function map<T extends Type<any>>(valueType: T, constraints?: MapShapeConstraints): MapShape<T> {
+export function map<T extends Shape<any>>(valueType: T, constraints?: MapShapeConstraints): MapShape<T> {
   return new MapShape(valueType, constraints) as MapShape<T>;
 }
 
@@ -16,7 +15,7 @@ export interface MapShapeConstraints {
   maxProperties?: number;
 }
 
-export class MapShape<T extends Type<any>> implements Type<RuntimeMap<T>> {
+export class MapShape<T extends Shape<any>> implements Shape<RuntimeMap<T>> {
   public readonly kind = Kind.Map;
 
   constructor(public readonly valueType: T, private readonly constraints?: MapShapeConstraints) {}
@@ -95,20 +94,20 @@ export class MapShape<T extends Type<any>> implements Type<RuntimeMap<T>> {
   }
 }
 
-export class MapPath<T extends Type<any>> extends JsonPath<RuntimeMap<T>> {
-  constructor(parent: JsonPath<any>, name: string, public readonly type: MapShape<T>) {
-    super(parent, name, type);
+export class MapPath<T extends Shape<any>> extends JsonPath<MapShape<T>> {
+  constructor(parent: JsonPath<any>, name: string, public readonly shape: MapShape<T>) {
+    super(parent, name, shape);
   }
 
   public get(key: string): InferJsonPathType<T> {
-    return this.type.valueType.toJsonPath(this, `['${key}']`) as InferJsonPathType<T>;
+    return this.shape.valueType.toJsonPath(this, `['${key}']`) as InferJsonPathType<T>;
   }
 }
 
 /**
  * Represents a path to a Map attribute.
  */
-export class MapDynamoPath<T extends Type<any>> extends BaseDynamoPath<MapShape<T>> {
+export class MapDynamoPath<T extends Shape<any>> extends BaseDynamoPath<MapShape<T>> {
   /**
    * Get a path to an attribute in the map by its name.
    *

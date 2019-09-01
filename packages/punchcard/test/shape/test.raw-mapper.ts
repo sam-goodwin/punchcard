@@ -2,6 +2,7 @@ import 'jest';
 // tslint:disable-next-line: max-line-length
 
 import { Shape } from '../../lib';
+import { struct } from '../../lib/shape';
 
 it('any should pass through', () => {
   const mapper = Shape.Raw.forType(Shape.dynamic);
@@ -104,7 +105,7 @@ describe('binary', () => {
   shouldThrow('< minimum length', '', {minLength: 1});
 });
 
-function wholeNumberTests(f: (constraints?: Shape.NumberConstraints) => Shape.Type<number>) {
+function wholeNumberTests(f: (constraints?: Shape.NumberConstraints) => Shape.Shape<number>) {
   it('should write a whole number', () => {
     expect(Shape.Raw.forType(f()).write(1)).toEqual(1);
   });
@@ -140,7 +141,7 @@ function wholeNumberTests(f: (constraints?: Shape.NumberConstraints) => Shape.Ty
   });
 }
 
-function floatingPointNumberTests(f: (constraints?: Shape.NumberConstraints) => Shape.Type<number>) {
+function floatingPointNumberTests(f: (constraints?: Shape.NumberConstraints) => Shape.Shape<number>) {
   it('should write a floating point number', () => {
     expect(Shape.Raw.forType(f()).write(1.1)).toEqual(1.1);
   });
@@ -301,30 +302,30 @@ describe('map', () => {
 
 describe('optional', () => {
   it('should write undefined as null', () => {
-    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Type<string>).write(undefined as any)).toEqual(null);
+    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Shape<string>).write(undefined as any)).toEqual(null);
   });
   it('should write null as null', () => {
-    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Type<string>).write(null as any)).toEqual(null);
+    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Shape<string>).write(null as any)).toEqual(null);
   });
   it('should not write nulls if configured', () => {
-    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Type<string>, {
+    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Shape<string>, {
       writer: new Shape.Raw.Writer({
         writeNulls: false
       })
     }).write(null as any)).toEqual(undefined);
   });
   it('should write value', () => {
-    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Type<string>).write('string')).toEqual('string');
+    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Shape<string>).write('string')).toEqual('string');
   });
 
   it('should read undefined', () => {
-    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Type<string>).read(undefined)).toEqual(undefined);
+    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Shape<string>).read(undefined)).toEqual(undefined);
   });
   it('should read string', () => {
-    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Type<string>).read('string')).toEqual('string');
+    expect(Shape.Raw.forType(Shape.optional(Shape.string()) as Shape.Shape<string>).read('string')).toEqual('string');
   });
   it('should throw if item constraints do not match', () => {
-    expect(() => Shape.Raw.forType(Shape.optional(Shape.string({maxLength: 1})) as Shape.Type<string>).read('string')).toThrow();
+    expect(() => Shape.Raw.forType(Shape.optional(Shape.string({maxLength: 1})) as Shape.Shape<string>).read('string')).toThrow();
   });
 });
 
@@ -333,22 +334,22 @@ describe('struct', () => {
     expect(Shape.Raw.forShape({a: Shape.string()}).write({a: 'string'})).toEqual({a: 'string'});
   });
 
-  function shouldRead<S extends Shape.Shape>(desc: string, shape: S, a: Shape.RuntimeShape<S>) {
+  function shouldRead<S extends Shape.StructShape<any>>(desc: string, shape: S, a: Shape.RuntimeShape<S>) {
     it(`should read if ${desc}`, () => {
       expect(Shape.Raw.forShape(shape).read(a)).toEqual(a);
     });
   }
-  shouldRead('struct', {a: Shape.string()}, {a: 'a'});
-  shouldRead('nested struct', {a: Shape.struct({a: Shape.string()})}, {a: {a: 'a'}});
-  shouldRead('item constraints match', {a: Shape.string({maxLength: 2})}, {a: '1'});
+  shouldRead('struct', struct({a: Shape.string()}), {a: 'a'});
+  shouldRead('nested struct', struct({a: Shape.struct({a: Shape.string()})}), {a: {a: 'a'}});
+  shouldRead('item constraints match', struct({a: Shape.string({maxLength: 2})}), {a: '1'});
 
-  function shouldThrow<S extends Shape.Shape>(desc: string, shape: S, a: Shape.RuntimeShape<S>) {
+  function shouldThrow<S extends Shape.StructShape<any>>(desc: string, shape: S, a: Shape.RuntimeShape<S>) {
     it(`should throw if ${desc}`, () => {
       expect(() => Shape.Raw.forShape(shape).read(a)).toThrow();
     });
   }
 
-  shouldThrow('not object', {a: Shape.string()}, 'not a struct' as any);
-  shouldThrow('item type does not match', {a: Shape.string()}, {a: 1} as any);
-  shouldThrow('item value invalid', {a: Shape.string({maxLength: 1})}, {a: '12'});
+  shouldThrow('not object', struct({a: Shape.string()}), 'not a struct' as any);
+  shouldThrow('item type does not match', struct({a: Shape.string()}), {a: 1} as any);
+  shouldThrow('item value invalid', struct({a: Shape.string({maxLength: 1})}), {a: '12'});
 });

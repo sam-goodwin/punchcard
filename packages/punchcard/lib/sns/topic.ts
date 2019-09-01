@@ -9,13 +9,13 @@ import { Namespace } from '../core/assembly';
 import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
-import { Json, Mapper, RuntimeType, Type } from '../shape';
+import { Json, Mapper, RuntimeShape, Shape } from '../shape';
 import { Queue } from '../sqs/queue';
 import { Sink, sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 import { Notifications } from './notifications';
 
-export type TopicProps<T extends Type<any>> = {
+export type TopicProps<T extends Shape<any>> = {
   /**
    * Type of messages.
    */
@@ -27,10 +27,10 @@ export type TopicProps<T extends Type<any>> = {
  *
  * @typeparam T type of notifications sent and emitted from the `Topic`.
  */
-export class Topic<T extends Type<any>> implements Resource<sns.Topic>, Dependency<Topic.Client<T>> {
+export class Topic<T extends Shape<any>> implements Resource<sns.Topic>, Dependency<Topic.Client<T>> {
   public readonly context = {};
   public readonly type: T;
-  public readonly mapper: Mapper<RuntimeType<T>, string>;
+  public readonly mapper: Mapper<RuntimeShape<T>, string>;
   public readonly resource: sns.Topic;
 
   constructor(scope: core.Construct, id: string, props: TopicProps<T>) {
@@ -42,9 +42,9 @@ export class Topic<T extends Type<any>> implements Resource<sns.Topic>, Dependen
   /**
    * Create a `Stream` for this topic's notifications - chainable computations (map, flatMap, filter, etc.)
    */
-  public notifications(): Notifications<RuntimeType<T>, []> {
+  public notifications(): Notifications<RuntimeShape<T>, []> {
     const mapper = this.mapper;
-    class Root extends Notifications<RuntimeType<T>, []> {
+    class Root extends Notifications<RuntimeShape<T>, []> {
       /**
        * Return an iterator of records parsed from the raw data in the event.
        * @param event kinesis event sent to lambda
@@ -120,7 +120,7 @@ export namespace Topic {
    * @typeparam T type of messages sent to (and emitted by) the SNS `Topic.
    * @see https://aws.amazon.com/sns/faqs/ (scroll down to limits section)
    */
-  export class Client<T extends Type<any>> implements Sink<T> {
+  export class Client<T extends Shape<any>> implements Sink<T> {
     constructor(
       public readonly mapper: Mapper<T, string>,
       public readonly topicArn: string,
@@ -132,7 +132,7 @@ export namespace Topic {
        * @param message content to send
        * @param messageAttributes optional message attributes
        */
-    public publish(message: RuntimeType<T>, messageAttributes?: {[key: string]: AWS.SNS.MessageAttributeValue}): Promise<PublishResponse> {
+    public publish(message: RuntimeShape<T>, messageAttributes?: {[key: string]: AWS.SNS.MessageAttributeValue}): Promise<PublishResponse> {
       return this.client.publish({
         Message: this.mapper.write(message),
         MessageAttributes: messageAttributes,
@@ -146,7 +146,7 @@ export namespace Topic {
      * @param messages messages to publish
      * @param props optional properties to tune retry and concurrency behavior.
      */
-    public async sink(messages: Array<RuntimeType<T>>, props?: SinkProps): Promise<void> {
+    public async sink(messages: Array<RuntimeShape<T>>, props?: SinkProps): Promise<void> {
       await sink(messages, async ([value]) => {
         try {
           await this.publish(value);

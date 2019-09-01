@@ -1,12 +1,12 @@
 import { DynamoPath } from '../dynamodb/expression/path';
 import { JsonPath } from './json/path';
 import { Kind } from './kind';
-import { Type } from './type';
+import { Shape } from './shape';
 
-export abstract class PrimitiveShape<V> implements Type<V> {
+export abstract class PrimitiveShape<V> implements Shape<V> {
   constructor(public readonly kind: Kind) {}
 
-  public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<V> {
+  public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<this> {
     return new JsonPath(parent, name, this);
   }
 

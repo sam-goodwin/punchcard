@@ -13,7 +13,7 @@ const scope: any = {
   }
 };
 
-function keyTypeTests(makeTable: (type: Shape.Type<any>) => void) {
+function keyTypeTests(makeTable: (type: Shape.Shape<any>) => void) {
   it('should accept string partition key type', () => {
     makeTable(Shape.string());
   });

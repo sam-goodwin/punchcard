@@ -12,7 +12,7 @@ import { Cache } from '../core/cache';
 import { Client } from '../core/client';
 import { Dependency } from '../core/dependency';
 import { Entrypoint, entrypoint } from '../core/entrypoint';
-import { Json, Mapper, Raw, Type } from '../shape';
+import { Json, Mapper, Raw, Shape } from '../shape';
 import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../util/constants';
 import { Omit } from '../util/omit';
 
@@ -22,14 +22,14 @@ export type FunctionProps<T, U, D extends Dependency<any>> = {
    *
    * @default any
    */
-  request?: Type<T>;
+  request?: Shape<T>;
 
   /**
    * Type of the response
    *
    * @default any
    */
-  response?: Type<U>;
+  response?: Shape<U>;
 
   /**
    * Dependency resources which this Function needs clients for.
@@ -65,8 +65,8 @@ export class Function<T, U, D extends Dependency<any>>
    */
   public readonly handle: (event: T, clients: Client<D>, context: any) => Promise<U>;
 
-  private readonly request?: Type<T>;
-  private readonly response?: Type<U>;
+  private readonly request?: Shape<T>;
+  private readonly response?: Shape<U>;
   private readonly dependencies?: D;
 
   constructor(scope: cdk.Construct, id: string, props: FunctionProps<T, U, D>) {

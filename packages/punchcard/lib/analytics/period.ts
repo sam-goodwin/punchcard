@@ -1,19 +1,19 @@
-import { Shape, smallint } from '../shape';
+import { smallint, struct, StructShape } from '../shape';
 
-const PT1H = {
+const PT1H = struct({
   year: smallint(),
   month: smallint(),
   day: smallint(),
   hour: smallint()
-};
+});
 
-const PT1M = {
+const PT1M = struct({
   year: smallint(),
   month: smallint(),
   day: smallint(),
   hour: smallint(),
   minute: smallint()
-};
+});
 
 export namespace Period {
   /**
@@ -30,7 +30,7 @@ export namespace Period {
 /**
  * Represents a `Glue.Partition` partitioned by time.
  */
-export class Period<P extends Shape> {
+export class Period<P extends StructShape<any>> {
   /**
    * Minutely partitions.
    */
