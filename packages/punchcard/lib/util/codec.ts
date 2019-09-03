@@ -37,6 +37,6 @@ export namespace Codec {
         }
       })();
     },
-    join: buffers => Buffer.from(buffers.map(buf => buf.toString('utf8')).join('\n'), 'utf8')
+    join: buffers => Buffer.concat(buffers)
   };
 }

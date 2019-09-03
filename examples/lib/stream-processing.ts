@@ -75,13 +75,15 @@ Lambda.schedule(stack, 'DummyData', {
       }
     });
 
-    // publish a SNS notification
-    await topic.publish({
+    // send 3 SNS notifications
+    await Promise.all([1, 2, 3].map(async (i) => {
       // message is structured and strongly typed (based on our Topic definition above)
-      key,
-      count: 1,
-      timestamp: new Date(),
-    });
+      await topic.publish({
+        key,
+        count: i,
+        timestamp: new Date(),
+      });
+    }));
   }
 });
 
