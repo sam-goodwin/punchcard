@@ -13,7 +13,7 @@ export class Client<T> implements Sink<T> {
       public readonly stream: DeliveryStream<Shape<T>>,
       public readonly deliveryStreamName: string,
       public readonly client: AWS.Firehose) {
-    this.mapper = Json.jsonLine(this.stream.type);
+    this.mapper = Json.jsonLine(this.stream.shape);
   }
 
   public putRecord(record: T): Promise<AWS.Firehose.PutRecordOutput> {

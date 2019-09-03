@@ -32,13 +32,13 @@ export interface StreamProps<S extends Shape<any>> extends kinesis.StreamProps {
  * A Kinesis stream.
  */
 export class Stream<S extends Shape<any>> implements Resource<kinesis.Stream>, Dependency<Client<S>> {
-  public readonly type: S;
+  public readonly shape: S;
   public readonly mapper: Mapper<RuntimeShape<S>, Buffer>;
   public readonly partitionBy: (record: RuntimeShape<S>) => string;
   public readonly resource: kinesis.Stream;
 
   constructor(scope: core.Construct, id: string, props: StreamProps<S>) {
-    this.type = props.shape;
+    this.shape = props.shape;
     this.resource = new kinesis.Stream(scope, id, props);
     this.mapper = BufferMapper.wrap(Json.forShape(props.shape));
     this.partitionBy = props.partitionBy || (_ => uuid());

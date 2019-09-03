@@ -18,21 +18,23 @@ import { Messages } from './messages';
  *
  * It extends the standard `sqs.QueueProps` with a `mapper` instance.
  */
-export interface QueueProps<T extends Shape<any>> extends sqs.QueueProps {
+export interface QueueProps<S extends Shape<any>> extends sqs.QueueProps {
   /**
    * Shape of data in the SQS Queue.
    */
-  shape: T;
+  shape: S;
 }
 /**
  * Represents a SQS Queue containtining messages of type, `T`, serialized with some `Codec`.
  */
-export class Queue<T extends Shape<any>> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAndSendClient<T>> {
+export class Queue<S extends Shape<any>> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAndSendClient<S>> {
   public readonly context = {};
-  public readonly mapper: Mapper<RuntimeShape<T>, string>;
+  public readonly mapper: Mapper<RuntimeShape<S>, string>;
   public readonly resource: sqs.Queue;
+  public readonly shape: S;
 
-  constructor(scope: core.Construct, id: string, props: QueueProps<T>) {
+  constructor(scope: core.Construct, id: string, props: QueueProps<S>) {
+    this.shape = props.shape;
     this.resource = new sqs.Queue(scope, id, props);
     this.mapper = Json.forShape(props.shape);
   }
@@ -42,9 +44,9 @@ export class Queue<T extends Shape<any>> implements Resource<sqs.Queue>, Depende
    *
    * Warning: do not consume from the Queue twice - it does not have fan-out.
    */
-  public messages(): Messages<RuntimeShape<T>, []> {
+  public messages(): Messages<RuntimeShape<S>, []> {
     const mapper = this.mapper;
-    class Root extends Messages<RuntimeShape<T>, []> {
+    class Root extends Messages<RuntimeShape<S>, []> {
       /**
        * Bottom of the recursive async generator - returns the records
        * parsed and validated out of the SQSEvent.
@@ -69,7 +71,7 @@ export class Queue<T extends Shape<any>> implements Resource<sqs.Queue>, Depende
    * @param namespace runtime property bag
    * @param cache of shared runtime state
    */
-  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Queue.Client<T>> {
+  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Queue.Client<S>> {
     return new Queue.Client(
       namespace.get('queueUrl'),
       cache.getOrCreate('aws:sqs', () => new AWS.SQS()),
@@ -86,7 +88,7 @@ export class Queue<T extends Shape<any>> implements Resource<sqs.Queue>, Depende
   /**
    * A client with permission to consume and send messages.
    */
-  public consumeAndSendAccess(): Dependency<Queue.ConsumeAndSendClient<T>> {
+  public consumeAndSendAccess(): Dependency<Queue.ConsumeAndSendClient<S>> {
     return this._client(g => {
       this.resource.grantConsumeMessages(g);
       this.resource.grantSendMessages(g);
@@ -96,18 +98,18 @@ export class Queue<T extends Shape<any>> implements Resource<sqs.Queue>, Depende
   /**
    * A client with only permission to consume messages from this Queue.
    */
-  public consumeAccess(): Dependency<Queue.ConsumeClient<T>> {
+  public consumeAccess(): Dependency<Queue.ConsumeClient<S>> {
     return this._client(g => this.resource.grantConsumeMessages(g));
   }
 
   /**
    * A client with only permission to send messages to this Queue.
    */
-  public sendAccess(): Dependency<Queue.SendClient<T>> {
+  public sendAccess(): Dependency<Queue.SendClient<S>> {
     return this._client(g => this.resource.grantSendMessages(g));
   }
 
-  private _client(grant: (grantable: iam.IGrantable) => void): Dependency<Queue.Client<T>> {
+  private _client(grant: (grantable: iam.IGrantable) => void): Dependency<Queue.Client<S>> {
     return {
       install: (namespace, grantable) => {
         namespace.set('queueUrl', this.resource.queueUrl);

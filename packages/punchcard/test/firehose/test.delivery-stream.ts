@@ -23,7 +23,7 @@ describe('run', () => {
     const stream = new Firehose.DeliveryStream(stack, 'Queue', {
       codec: Util.Codec.Json,
       compression: Util.Compression.None,
-      type: Shape.struct({key: Shape.string()})
+      shape: Shape.struct({key: Shape.string()})
     });
 
     const results: Array<{key: string}> = [];
@@ -60,7 +60,7 @@ describe('run', () => {
     const stream = new Firehose.DeliveryStream(stack, 'Queue', {
       codec: Util.Codec.Json,
       compression: Util.Compression.None,
-      type: Shape.struct({key: Shape.string()})
+      shape: Shape.struct({key: Shape.string()})
     });
 
     expect((stream.objects().forEach(stack, 'id', {

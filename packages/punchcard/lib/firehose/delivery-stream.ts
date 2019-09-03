@@ -20,9 +20,9 @@ import { Client } from './client';
 import { FirehoseEvent, FirehoseResponse, ValidationResult } from './event';
 import { Objects } from './objects';
 
-export type DeliveryStreamProps<T extends Shape<any>> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
+export type DeliveryStreamProps<S extends Shape<any>> = DeliveryStreamDirectPut<S> | DeliveryStreamFromKinesis<S>;
 
-interface BaseDeliveryStreamProps<T extends Shape<any>> {
+interface BaseDeliveryStreamProps<S extends Shape<any>> {
   /**
    * Codec with which to read files.
    */
@@ -43,21 +43,21 @@ interface BaseDeliveryStreamProps<T extends Shape<any>> {
    *
    * @default no validation
    */
-  validate?: (record: RuntimeShape<T>) => ValidationResult;
+  validate?: (record: RuntimeShape<S>) => ValidationResult;
 }
 
-export interface DeliveryStreamDirectPut<T extends Shape<any>> extends BaseDeliveryStreamProps<T> {
+export interface DeliveryStreamDirectPut<S extends Shape<any>> extends BaseDeliveryStreamProps<S> {
   /**
    * Type of data in the stream.
    */
-  type: T;
+  shape: S;
 }
 
-export interface DeliveryStreamFromKinesis<T extends Shape<any>> extends BaseDeliveryStreamProps<T> {
+export interface DeliveryStreamFromKinesis<S extends Shape<any>> extends BaseDeliveryStreamProps<S> {
   /**
    * Kinesis stream to persist in S3.
    */
-  stream: Kinesis.Stream<T>;
+  stream: Kinesis.Stream<S>;
 }
 
 /**
@@ -65,26 +65,26 @@ export interface DeliveryStreamFromKinesis<T extends Shape<any>> extends BaseDel
  *
  * It may or may not be consuming from a Kinesis Stream.
  */
-export class DeliveryStream<T extends Shape<any>> extends core.Construct implements Dependency<Client<RuntimeShape<T>>>, Resource<DeliveryStreamConstruct> {
+export class DeliveryStream<S extends Shape<any>> extends core.Construct implements Dependency<Client<RuntimeShape<S>>>, Resource<DeliveryStreamConstruct> {
   public readonly resource: DeliveryStreamConstruct;
-  public readonly type: T;
+  public readonly shape: S;
 
-  private readonly mapper: Mapper<RuntimeShape<T>, Buffer>;
+  private readonly mapper: Mapper<RuntimeShape<S>, Buffer>;
   private readonly codec: Codec;
   private readonly compression: Compression;
-  public readonly processor: Validator<T>;
+  public readonly processor: Validator<S>;
 
-  constructor(scope: core.Construct, id: string, props: DeliveryStreamProps<T>) {
+  constructor(scope: core.Construct, id: string, props: DeliveryStreamProps<S>) {
     super(scope, id);
-    const fromStream = props as DeliveryStreamFromKinesis<T>;
-    const fromType = props as DeliveryStreamDirectPut<T>;
+    const fromStream = props as DeliveryStreamFromKinesis<S>;
+    const fromType = props as DeliveryStreamDirectPut<S>;
 
     if (fromStream.stream) {
-      this.type = fromStream.stream.type;
+      this.shape = fromStream.stream.shape;
     } else {
-      this.type = fromType.type;
+      this.shape = fromType.shape;
     }
-    this.mapper = props.codec.mapper(this.type);
+    this.mapper = props.codec.mapper(this.shape);
     this.codec = props.codec;
     this.compression = props.compression;
     this.processor = new Validator(this, 'Validator', {
@@ -110,11 +110,11 @@ export class DeliveryStream<T extends Shape<any>> extends core.Construct impleme
     }
   }
 
-  public objects(): Objects<RuntimeShape<T>, [Dependency<S3.ReadClient>]> {
+  public objects(): Objects<RuntimeShape<S>, [Dependency<S3.ReadClient>]> {
     const codec = this.codec;
     const compression = this.compression;
     const mapper = this.mapper;
-    class Root extends Objects<RuntimeShape<T>, [Dependency<S3.ReadClient>]> {
+    class Root extends Objects<RuntimeShape<S>, [Dependency<S3.ReadClient>]> {
       public async *run(event: S3.Event, [bucket]: [S3.ReadClient]) {
         for (const record of event.Records) {
           // TODO: parallelism
@@ -142,7 +142,7 @@ export class DeliveryStream<T extends Shape<any>> extends core.Construct impleme
     this.resource.grantWrite(grantable);
   }
 
-  public async bootstrap(properties: Assembly, cache: Cache): Promise<Client<RuntimeShape<T>>> {
+  public async bootstrap(properties: Assembly, cache: Cache): Promise<Client<RuntimeShape<S>>> {
     return new Client(this,
       properties.get('deliveryStreamName'),
       cache.getOrCreate('aws:firehose', () => new AWS.Firehose()));
@@ -152,8 +152,8 @@ export class DeliveryStream<T extends Shape<any>> extends core.Construct impleme
 /**
  * Properties for creating a Validator.
  */
-interface ValidatorProps<T extends Shape<any>> {
-  mapper: Mapper<RuntimeShape<T>, Buffer>;
+interface ValidatorProps<S extends Shape<any>> {
+  mapper: Mapper<RuntimeShape<S>, Buffer>;
 
   /**
    * Optionally provide an executorService to override the properties
@@ -168,16 +168,16 @@ interface ValidatorProps<T extends Shape<any>> {
    *
    * @default no extra validation
    */
-  validate?: (record: RuntimeShape<T>) => ValidationResult;
+  validate?: (record: RuntimeShape<S>) => ValidationResult;
 }
 
 /**
  * Validates and formats records flowing from Firehose so that they match the format of a Glue Table.
  */
-class Validator<T extends Shape<any>> extends core.Construct {
+class Validator<S extends Shape<any>> extends core.Construct {
   public readonly processor: Function<FirehoseEvent, FirehoseResponse, Dependency.None>;
 
-  constructor(scope: core.Construct, id: string, props: ValidatorProps<T>) {
+  constructor(scope: core.Construct, id: string, props: ValidatorProps<S>) {
     super(scope, id);
     const executorService = props.executorService || new ExecutorService({
       memorySize: 256,
