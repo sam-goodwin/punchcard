@@ -43,7 +43,7 @@ const table = {
   other_binarySetAttribute: Shape.set(Shape.binary()),
 };
 
-const facade = DynamoDB.toFacade(table);
+const facade = DynamoDB.toDSL(table);
 
 function render(u: DynamoDB.SetAction<any>) {
   const context = new DynamoDB.CompileContextImpl();

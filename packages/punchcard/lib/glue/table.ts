@@ -5,7 +5,6 @@ import path = require('path');
 
 import glue = require('@aws-cdk/aws-glue');
 import iam = require('@aws-cdk/aws-iam');
-import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
 
 import { Namespace } from '../core/assembly';
@@ -18,22 +17,35 @@ import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Omit } from '../util/omit';
 import { Sink } from '../util/sink';
-import { Partition } from './partition';
+
+/**
+ * A Glue Table's Columns.
+ */
+export type Columns = {
+  [key: string]: Shape<any>;
+};
+
+/**
+ * A Glue Table's Partition Keys.
+ */
+export type PartitionKeys = {
+  [key: string]: Shape<string> | Shape<number>;
+};
 
 /**
  * Augmentation of `glue.TableProps`, using a `Shape` to define the
  * schema and partitionKeys.
  */
-export type TableProps<T extends StructShape<any>, P extends Partition> = {
+export type TableProps<C extends Columns, P extends PartitionKeys> = {
   /**
    * Data columns of the data stored in the table.
    */
-  columns: T;
+  columns: C;
 
   /**
    * Validate each record before writing to this table.
    */
-  validate?: (record: RuntimeShape<T>) => void;
+  validate?: (record: RuntimeShape<StructShape<C>>) => void;
 
   /**
    * Shape of the partition keys of the table.
@@ -46,7 +58,7 @@ export type TableProps<T extends StructShape<any>, P extends Partition> = {
     /**
      * Get a record's partitition.
      */
-    get: (record: RuntimeShape<T>) => RuntimeShape<P>;
+    get: (record: RuntimeShape<StructShape<C>>) => RuntimeShape<StructShape<P>>;
   };
 
   /**
@@ -64,13 +76,10 @@ export type TableProps<T extends StructShape<any>, P extends Partition> = {
   compression?: Compression;
 } & Omit<glue.TableProps, 's3Prefix' | 'columns' | 'partitionKeys' | 'dataFormat' | 'compressed'>;
 
-export type Columns<T extends Table<any, any>> = T extends Table<infer C, any> ? C : never;
-export type Partitions<T extends Table<any, any>> = T extends Table<any, infer P> ? P : never;
-
 /**
  * Represents a partitioned Glue Table.
  */
-export class Table<T extends StructShape<any>, P extends Partition> implements Resource<glue.Table>, Dependency<Table.ReadWriteClient<T, P>> {
+export class Table<C extends Columns, P extends PartitionKeys> implements Resource<glue.Table>, Dependency<Table.ReadWriteClient<C, P>> {
   /**
    * Type of compression.
    */
@@ -82,7 +91,7 @@ export class Table<T extends StructShape<any>, P extends Partition> implements R
     /**
      * Shape of the table's columns.
      */
-    columns: T;
+    columns: C;
     /**
      * Shape of the table's partition keys.
      */
@@ -91,12 +100,12 @@ export class Table<T extends StructShape<any>, P extends Partition> implements R
   /**
    * Mapper for serializing and deserializing a record.
    */
-  public readonly mapper: Mapper<RuntimeShape<T>, Buffer>;
+  public readonly mapper: Mapper<RuntimeShape<StructShape<C>>, Buffer>;
   /**
    * Mappers for reading and writing partition keys to/from strings.
    */
   public readonly partitionMappers: {
-    [K in keyof P['shape']]: Mapper<RuntimeShape<P['shape'][K]>, string>
+    [K in keyof P]: Mapper<RuntimeShape<P[K]>, string>
   };
   /**
    * Codec for reading and writing records (in a queue/stream/topic/etc.) and blobs (s3 objects).
@@ -105,17 +114,17 @@ export class Table<T extends StructShape<any>, P extends Partition> implements R
   /**
    * Get the partition columns from a record.
    */
-  public readonly partition: (record: RuntimeShape<T>) => RuntimeShape<P>;
+  public readonly partition: (record: RuntimeShape<StructShape<C>>) => RuntimeShape<StructShape<P>>;
   /**
    * Optional function to validate data prior to writing into this table.
    */
-  public readonly validate?: (record: RuntimeShape<T>) => void;
+  public readonly validate?: (record: RuntimeShape<StructShape<C>>) => void;
   /**
    * The underlying `glue.Table` construct.
    */
   public readonly resource: glue.Table;
 
-  constructor(scope: core.Construct, id: string, props: TableProps<T, P>) {
+  constructor(scope: core.Construct, id: string, props: TableProps<C, P>) {
     const compression = (props.compression || Compression.None);
     const codec = (props.codec || Codec.Json);
     this.resource = new glue.Table(scope, id, {
@@ -154,10 +163,10 @@ export class Table<T extends StructShape<any>, P extends Partition> implements R
 
     this.compression = compression;
     this.codec = codec;
-    this.mapper = this.codec.mapper(this.shape.columns);
+    this.mapper = this.codec.mapper(struct(this.shape.columns));
     this.partitionMappers = {} as any;
     Object.entries(this.shape.partitions).forEach(([name, shape]) => {
-      this.partitionMappers[name as keyof P['shape']] = Json.forShape(shape) as any;
+      this.partitionMappers[name as keyof P] = Json.forShape(shape) as any;
     });
 
     // Hack: fix tableArn (fixed in 0.32.0)
@@ -186,21 +195,21 @@ export class Table<T extends StructShape<any>, P extends Partition> implements R
   /**
    * Runtime dependency with read/write access to the Table and S3 Bucket.
    */
-  public readWriteAccess(): Dependency<Table.ReadWriteClient<T, P>> {
+  public readWriteAccess(): Dependency<Table.ReadWriteClient<C, P>> {
     return this.client(g => this.resource.grantReadWrite(g), new S3.Bucket(this.resource.bucket as any).readWriteAccess());
   }
 
   /**
    * Runtime dependency with read access to the Table and S3 Bucket.
    */
-  public readAccess(): Dependency<Table.ReadClient<T, P>> {
+  public readAccess(): Dependency<Table.ReadClient<C, P>> {
     return this.client(g => this.resource.grantRead(g), new S3.Bucket(this.resource.bucket as any).readAccess());
   }
 
   /**
    * Runtime dependency with write access to the Table and S3 Bucket.
    */
-  public writeAccess(): Dependency<Table.WriteClient<T, P>> {
+  public writeAccess(): Dependency<Table.WriteClient<C, P>> {
     return this.client(g => this.resource.grantWrite(g), new S3.Bucket(this.resource.bucket as any).writeAccess());
   }
 
@@ -217,7 +226,7 @@ export class Table<T extends StructShape<any>, P extends Partition> implements R
     };
   }
 
-  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Table.Client<T, P>> {
+  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Table.Client<C, P>> {
     return new Table.Client(
       cache.getOrCreate('aws:glue', () => new AWS.Glue()),
       namespace.get('catalogId'),
@@ -233,29 +242,29 @@ export namespace Table {
   /**
    * Client type aliaes.
    */
-  export type ReadWriteClient<T extends StructShape<any>, P extends Partition> = Table.Client<T, P>;
-  export type ReadClient<T extends StructShape<any>, P extends Partition> = Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'>;
-  export type WriteClient<T extends StructShape<any>, P extends Partition> = Omit<Table.Client<T, P>, 'getPartitions'>;
+  export type ReadWriteClient<C extends Columns, P extends PartitionKeys> = Table.Client<C, P>;
+  export type ReadClient<C extends Columns, P extends PartitionKeys> = Omit<Table.Client<C, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'>;
+  export type WriteClient<C extends Columns, P extends PartitionKeys> = Omit<Table.Client<C, P>, 'getPartitions'>;
 
   /**
    * Request and Response aliases.
    */
   export type GetPartitionsRequest = Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'>;
-  export type GetPartitionsResponse<P extends Partition> = {Partitions: Array<{
-    Values: RuntimeShape<P>;
+  export type GetPartitionsResponse<P extends PartitionKeys> = {Partitions: Array<{
+    Values: RuntimeShape<StructShape<P>>;
   } & Omit<AWS.Glue.Partition, 'Values'>>};
-  export type CreatePartitionRequest<P extends Partition> = {Partition: RuntimeShape<P>, Location: string, LastAccessTime?: Date} &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
+  export type CreatePartitionRequest<P extends PartitionKeys> = {Partition: RuntimeShape<StructShape<P>>, Location: string, LastAccessTime?: Date} &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
   export type CreatePartitionResponse = AWS.Glue.CreatePartitionResponse;
-  export type BatchCreatePartitionRequestEntry<P extends Partition> = CreatePartitionRequest<P>;
-  export type BatchCreatePartitionRequest<P extends Partition> = Array<BatchCreatePartitionRequestEntry<P>>;
-  export type UpdatePartitionRequest<P extends Partition> = {Partition: RuntimeShape<P>, UpdatedPartition: CreatePartitionRequest<P>};
+  export type BatchCreatePartitionRequestEntry<P extends PartitionKeys> = CreatePartitionRequest<P>;
+  export type BatchCreatePartitionRequest<P extends PartitionKeys> = Array<BatchCreatePartitionRequestEntry<P>>;
+  export type UpdatePartitionRequest<P extends PartitionKeys> = {Partition: RuntimeShape<StructShape<P>>, UpdatedPartition: CreatePartitionRequest<P>};
 
   /**
    * Client for interacting with a Glue Table:
    * * create, update, delete and query partitions.
    * * write objects to the table (properly partitioned S3 Objects and Glue Partitions).
    */
-  export class Client<T extends StructShape<any>, P extends Partition> implements Sink<RuntimeShape<T>> {
+  export class Client<C extends Columns, P extends PartitionKeys> implements Sink<RuntimeShape<StructShape<C>>> {
     private readonly partitions: string[];
 
     constructor(
@@ -263,7 +272,7 @@ export namespace Table {
       public readonly catalogId: string,
       public readonly databaseName: string,
       public readonly tableName: string,
-      public readonly table: Table<T, P>,
+      public readonly table: Table<C, P>,
       public readonly bucket: S3.Client
     ) {
       this.partitions = Object.keys(table.shape.partitions);
@@ -280,10 +289,10 @@ export namespace Table {
      *
      * @param records to write to the glue table
      */
-    public async sink(records: Iterable<RuntimeShape<T>>) {
+    public async sink(records: Iterable<RuntimeShape<StructShape<C>>>) {
       const partitions: Map<string, {
-        partition: RuntimeShape<P>;
-        records: Array<RuntimeShape<T>>;
+        partition: RuntimeShape<StructShape<P>>;
+        records: Array<RuntimeShape<StructShape<C>>>;
       }> = new Map();
 
       for (const record of records) {

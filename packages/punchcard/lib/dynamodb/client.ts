@@ -2,20 +2,21 @@
 import AWS = require('aws-sdk');
 
 import { RuntimeShape, Shape } from '../shape/shape';
+import { StructShape } from '../shape/struct';
 import { CompiledExpression } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';
-import { ActionType, Condition, Facade, UpdateAction } from './expression/path';
+import { ActionType, Condition, DSL, UpdateAction } from './expression/path';
 import { Key } from './key';
 import { compileQuery, KeyConditionExpression } from './query';
-import { Table } from './table';
+import { Attributes, Table } from './table';
 
-export class Client<PKey extends keyof S, SKey extends keyof S | undefined, S extends Shape> {
+export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A extends Attributes> {
   constructor(
-    public readonly table: Table<PKey, SKey, S>,
+    public readonly table: Table<PKey, SKey, A>,
     public readonly tableName: string,
     public readonly client: AWS.DynamoDB) {}
 
-  public async get(key: RuntimeShape<Key<S, PKey, SKey>>): Promise<RuntimeShape<S> | undefined> {
+  public async get(key: RuntimeShape<StructShape<Key<A, PKey, SKey>>>): Promise<RuntimeShape<StructShape<A>> | undefined> {
     const result = await this.client.getItem({
       TableName: this.tableName,
       Key: this.table.keyMapper.write(key)
@@ -29,7 +30,7 @@ export class Client<PKey extends keyof S, SKey extends keyof S | undefined, S ex
   }
 
   // TODO: retry behavior/more options/etc.
-  public async batchGet(keys: Array<RuntimeShape<Key<S, PKey, SKey>>>): Promise<Array<RuntimeShape<S> | undefined>> {
+  public async batchGet(keys: Array<RuntimeShape<StructShape<Key<A, PKey, SKey>>>>): Promise<Array<RuntimeShape<StructShape<A>> | undefined>> {
     const result = await this.client.batchGetItem({
       RequestItems: {
         [this.tableName]: {
@@ -48,7 +49,7 @@ export class Client<PKey extends keyof S, SKey extends keyof S | undefined, S ex
   }
 
   // TODO: Support paging, etc.
-  public async scan(): Promise<Array<RuntimeShape<S>>> {
+  public async scan(): Promise<Array<RuntimeShape<StructShape<A>>>> {
     const result = await this.client.scan({
       TableName: this.tableName
     }).promise();
@@ -59,7 +60,7 @@ export class Client<PKey extends keyof S, SKey extends keyof S | undefined, S ex
     }
   }
 
-  public put(put: PutRequest<S>): Promise<AWS.DynamoDB.PutItemOutput> {
+  public put(put: PutRequest<A>): Promise<AWS.DynamoDB.PutItemOutput> {
     let expression: Partial<CompiledExpression> = {};
     if (put.if) {
       expression = put.if(this.table.facade).render(new CompileContextImpl());
@@ -78,7 +79,7 @@ export class Client<PKey extends keyof S, SKey extends keyof S | undefined, S ex
    * @param batch
    * @returns failed PutRequests
    */
-  public async putBatch(batch: Array<RuntimeShape<S>>): Promise<AWS.DynamoDB.WriteRequest[]> {
+  public async putBatch(batch: Array<RuntimeShape<StructShape<A>>>): Promise<AWS.DynamoDB.WriteRequest[]> {
     try {
       const result = await this.client.batchWriteItem({
         RequestItems: {
@@ -103,7 +104,7 @@ export class Client<PKey extends keyof S, SKey extends keyof S | undefined, S ex
     }
   }
 
-  public async update(update: Update<S, RuntimeShape<Key<S, PKey, SKey>>>): Promise<AWS.DynamoDB.UpdateItemOutput> {
+  public async update(update: Update<A, RuntimeShape<StructShape<Key<A, PKey, SKey>>>>): Promise<AWS.DynamoDB.UpdateItemOutput> {
     const actions = update.actions(this.table.facade);
     if (actions.length === 0) {
       throw new Error('must perform at least one update action');
@@ -156,7 +157,7 @@ export class Client<PKey extends keyof S, SKey extends keyof S | undefined, S ex
     return await this.client.updateItem(updateRequest).promise();
   }
 
-  public async query(query: Query<S, PKey, SKey>): Promise<Array<RuntimeShape<S>>> {
+  public async query(query: Query<A, PKey, SKey>): Promise<Array<RuntimeShape<StructShape<A>>>> {
     const result = await this.client.query({
       TableName: this.tableName,
       ...compileQuery(this.table as any, query as any)
@@ -170,19 +171,19 @@ export class Client<PKey extends keyof S, SKey extends keyof S | undefined, S ex
   }
 }
 
-export interface PutRequest<T extends Shape> {
-  item: RuntimeShape<T>;
-  if?: (facade: Facade<T>) => Condition;
+export interface PutRequest<A extends Attributes> {
+  item: RuntimeShape<StructShape<A>>;
+  if?: (facade: DSL<A>) => Condition;
 }
 
-export interface Update<S extends Shape, K> {
+export interface Update<A extends Attributes, K> {
   key: K;
-  actions: (item: Facade<S>) => UpdateAction[];
-  if?: (item: Facade<S>) => Condition;
+  actions: (item: DSL<A>) => UpdateAction[];
+  if?: (item: DSL<A>) => Condition;
 }
 
-export type Query<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined> =
-  SKey extends keyof S ? {
-    key: KeyConditionExpression<S, PKey, SKey>;
-    filter?: (item: Facade<S>) => Condition;
+export type Query<A extends Attributes, P extends keyof A, S extends keyof A | undefined> =
+  S extends keyof A ? {
+    key: KeyConditionExpression<A, P, S>;
+    filter?: (item: DSL<A>) => Condition;
   } : never;

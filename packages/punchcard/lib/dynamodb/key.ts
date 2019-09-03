@@ -1,17 +1,18 @@
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import { Kind } from '../shape/kind';
-import { StructShape } from '../shape/struct';
+import { Attributes } from './table';
 
-export type Key<S extends StructShape<any>, PKey extends keyof S['shape'], SKey extends keyof S['shape'] | undefined> =
-  SKey extends undefined ? HashKey<S, PKey> : CompositeKey<S, PKey, SKey extends keyof S['shape'] ? SKey : never>;
+export type Key<A extends Attributes, P extends keyof A, S extends keyof A | undefined> =
+  S extends undefined ? HashKey<A, P> : CompositeKey<A, P, S extends keyof A ? S : never>;
 
-export type HashKey<T extends StructShape<any>, PKey extends keyof T['shape']> = StructShape<{
-  [K in PKey]: T['shape'][K];
-}>;
-export type CompositeKey<T extends StructShape<any>, PKey extends keyof T['shape'], SKey extends keyof T['shape']> = StructShape<
-  { [K in PKey]: T['shape'][K] } &
-  { [K in SKey]: T['shape'][K] }
->;
+export type HashKey<A extends Attributes, P extends keyof A> = {
+  [K in P]: A[K];
+};
+
+export type CompositeKey<A extends Attributes, P extends keyof A, S extends keyof A> = 
+  { [K in P]: A[K] } &
+  { [K in S]: A[K] };
+
 export function keyType(kind: Kind): dynamodb.AttributeType {
   switch (kind) {
     case Kind.String:

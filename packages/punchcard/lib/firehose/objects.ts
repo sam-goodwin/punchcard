@@ -9,10 +9,10 @@ import { Stream } from '../util/stream';
 import { DeliveryStream } from './delivery-stream';
 
 /**
- * A `Stream` of Batches of Records flowing from a Firehose Delivery Stream.
+ * A `Stream` of Objects of Records flowing from a Firehose Delivery Stream.
  */
-export class Batches<T, D extends any[]> extends Stream<S3Event, T, D, Stream.Config> {
-  constructor(public readonly s3Stream: DeliveryStream<any>, previous: Batches<any, any>, input: {
+export class Objects<T, D extends any[]> extends Stream<S3Event, T, D, Stream.Config> {
+  constructor(public readonly s3Stream: DeliveryStream<any>, previous: Objects<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>
   }) {
@@ -25,7 +25,7 @@ export class Batches<T, D extends any[]> extends Stream<S3Event, T, D, Stream.Co
     });
   }
 
-  public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): Batches<U, D2> {
-    return new Batches(this.s3Stream, this, input);
+  public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): Objects<U, D2> {
+    return new Objects(this.s3Stream, this, input);
   }
 }

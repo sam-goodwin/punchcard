@@ -13,7 +13,7 @@ const table = new DynamoDB.Table(stack, 'my-table', {
   billingMode: BillingMode.PAY_PER_REQUEST
 });
 ```
-## Table Type
+# Table Type
 
 The Table API is derived from the definition encoded within the `DynamoDB.Table` type, containing the partition key (`'id'`), sort key (`undefined`) and the `Shape` of an item.
 
@@ -25,7 +25,7 @@ DynamoDB.Table<'id', undefined, {
 ```
 This model enables a dynamic interface to DynamoDB while also maintaining type-safety.
 
-## Get Item
+# Get Item
 When getting an item from DynamoDB, there is no need to use `AttributeValues` such as `{ S: 'my string' }`. You simply use ordinary javascript types:
 
 ```ts
@@ -37,7 +37,7 @@ item.count; // number
 //item.missing // does not compile
 ```
 
-## Put Item
+# Put Item
 
 Putting an item is as simple as putting to an ordinary `Map`.
 
@@ -78,9 +78,9 @@ Which automatically (and safely) renders the following expression:
 }
 ```
 
-## Update Item
+# Update Item
 
-**Update Expressions** are similar - you assemble an array of `actions` when updating an item:
+Build **Update Expressions** by assembling an array of `actions`:
 ```ts
 await table.update({
   key: {
@@ -107,9 +107,9 @@ Which automaticlaly (and safely) renders the following expression:
 }
 ```
 
-## Query
+# Query
 
-If you also specified a `sortKey`:
+If you also specified a `sortKey` for your Table:
 ```ts
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
@@ -153,6 +153,8 @@ Which automatically (and safely) renders the following low-level expression:
 }
 ```
 
-Check out the [DynamoDB example](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/dynamodb.ts#L74) for more magic.
+Check out the [DynamoDB example app](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/dynamodb.ts#L74) for more magic.
+
+# Next
 
 Next: [Stream Processing](6-stream-processing.md)

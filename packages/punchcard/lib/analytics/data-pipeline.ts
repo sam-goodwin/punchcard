@@ -3,29 +3,30 @@ import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
 import * as Glue from '../glue';
+import { Columns } from '../glue';
 import * as Kinesis from '../kinesis';
 import * as S3 from '../s3';
-import { RuntimeShape, Shape, struct, StructShape, TimestampShape } from '../shape';
+import { RuntimeShape, struct, StructShape } from '../shape';
 import { DeliveryStream } from './delivery-stream';
 import { Period } from './period';
 import { Schema } from './schema';
 
-export interface DataPipelineProps<S extends StructShape<any>, T extends keyof S> {
+export interface DataPipelineProps<C extends Columns, TS extends keyof C> {
   database: Database;
-  schema: Schema<S, T>;
+  schema: Schema<C, TS>;
 }
-export class DataPipeline<T extends StructShape<any>, TS extends keyof T> extends core.Construct {
+export class DataPipeline<C extends Columns, TS extends keyof C> extends core.Construct {
   public readonly bucket: S3.Bucket;
-  public readonly stream: Kinesis.Stream<T>;
+  public readonly stream: Kinesis.Stream<StructShape<C>>;
   public readonly deliveryStream: DeliveryStream;
   public readonly stagingBucket: s3.Bucket;
-  public readonly table: Glue.Table<T, Period.PT1M>;
+  public readonly table: Glue.Table<C, Period.PT1M>;
 
-  constructor(scope: core.Construct, id: string, props: DataPipelineProps<T, TS>) {
+  constructor(scope: core.Construct, id: string, props: DataPipelineProps<C, TS>) {
     super(scope, id);
 
     this.stream = new Kinesis.Stream(this, 'Stream', {
-      type: props.schema.shape,
+      shape: struct(props.schema.shape),
       encryption: StreamEncryption.KMS
     });
 
@@ -34,7 +35,7 @@ export class DataPipeline<T extends StructShape<any>, TS extends keyof T> extend
     }));
 
     this.table = this.stream
-      .toFirehoseDeliveryStream(this, 'ToS3').batches()
+      .toFirehoseDeliveryStream(this, 'ToS3').objects()
       .toGlueTable(this, 'ToGlue', {
         bucket: this.bucket.bucket,
         database: props.database,
@@ -42,7 +43,7 @@ export class DataPipeline<T extends StructShape<any>, TS extends keyof T> extend
         columns: props.schema.shape,
         partition: {
           keys: Period.PT1M.schema,
-          get(record): RuntimeShape<Period.PT1M> {
+          get(record): RuntimeShape<StructShape<Period.PT1M>> {
             const ts = props.schema.timestamp(record);
             return {
               year: ts.getUTCFullYear(),

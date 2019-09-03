@@ -27,7 +27,7 @@ describe('run', () => {
     });
 
     const results: Array<{key: string}> = [];
-    await (stream.batches().forEach(stack, 'id', {
+    await (stream.objects().forEach(stack, 'id', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -63,7 +63,7 @@ describe('run', () => {
       type: Shape.struct({key: Shape.string()})
     });
 
-    expect((stream.batches().forEach(stack, 'id', {
+    expect((stream.objects().forEach(stack, 'id', {
       async handle(v) {
         // do nothing
       }

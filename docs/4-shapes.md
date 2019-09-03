@@ -15,7 +15,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
 });
 ```
 
-Remember how the `topic` client interface was type-safe and structured?
+The `topic` client interface is a type-safe and structured interface derived from "its Shape":
 
 ```ts
 await topic.publish({
@@ -26,7 +26,7 @@ await topic.publish({
 });
 ```
 
-As opposed to something opaque like a `string` or `Buffer`, as it would ordinarily be?
+As opposed to the boiler-plate and opaque types when using the low-level AWS SDK:
 
 ```ts
 const sns = new AWS.SNS();
@@ -43,7 +43,7 @@ await sns.publish({
 })
 ```
 
-That type-machinery is achieved by mapping a `Shape` to its `RuntimeShape` (the representation at runtime). The Topic's "Shape" is directly defined as a struct with a string, integer, timestamp and (optionally) an array of strings, and is encoded in the type for type-checking:
+That type-machinery is achieved by mapping a `Shape` to its `RuntimeShape` (the representation at runtime). In this case, the Topic's Shape is directly defined as a `struct` with a `string`, `integer`, `timestamp` and (optionally) an `array` of `strings`, and is encoded in the type for type-checking:
 
 ```ts
 SNS.Topic<StructType<{
@@ -54,7 +54,7 @@ SNS.Topic<StructType<{
 }>>
 ```
 
-Which should look and feel similar to:
+Which should look and feel similar to an in-memory array:
 ```ts
 Array<{
   key: string;
@@ -64,9 +64,24 @@ Array<{
 }>
 ```
 
+# Validation and Serialization
 Shapes are an in-code abstractions for (and agnostic to) data and schema formats such as JSON Schema, Glue Tables, DynamoDB, and (soon) Avro, Protobuf, Parquet, Orc.
 
-This Topic's Shape is the same as this JSON Schema:
+The framework makes use of the Topic's Shape to check your code against its Schema and automatically (and safely) serialize and deserialize values at runtime. The application code is only concerned with a deserialized and validated value, and so the system is protected from bad data at both *compile time* and *runtime*.
+
+For reference, the above Topic's Shape
+```ts
+struct({
+  key: string(),
+  count: integer({
+    maximum: 10
+  }),
+  timestamp,
+  tags: optional(array(string()))
+})
+```
+
+... is the same as this JSON Schema:
 
 ```json
 {
@@ -98,9 +113,9 @@ This Topic's Shape is the same as this JSON Schema:
 }
 ```
 
-The framework makes use of the Topic's Shape to type-check your code against this JSON Schema and automatically (and safely) serialize values to and from JSON at runtime. Your application code is only concerned with the deserialized and validated value, and so the system is protected from bad data at both *compile time* and *runtime*.
+# Data Types
 
-## Data Types
+Shapes do more than schema validation - they provide a common language through which orindary values are mapped to other formats - JSON, DynamoDB Attribute Values and Glue (Hive) Table Schemas.
 
 Below is a table of supported Data Types with their corresponding mappings to different domains:
 
@@ -122,5 +137,8 @@ Below is a table of supported Data Types with their corresponding mappings to di
 | `StructType<T>`   | `{[K in keyof T]: T[K]}` | `object`<br>(additionalProperties: `false`) | `M` | `struct` | `struct({name: string()})`
 | `Dynamic`         | `unknown`    | `{}`      | ([AWS Document Client](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html)) | `Error` | `dynamic`
 | `UnsafeDynamic`     | `any`    | `{}`      | ([AWS Document Client](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html)) | `Error` | `unsafeDynamic`
+
+# Next
+Shapes form the foundation on which DSLs are built for interacting with services. This is best demonstrated with AWS DynamoDB.
 
 Next: [Dynamic (and safe) DynamoDB DSL](5-dynamodb-dsl.md)

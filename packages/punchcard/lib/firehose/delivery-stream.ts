@@ -16,9 +16,9 @@ import { Bucket } from '../s3/bucket';
 import { Mapper, RuntimeShape, Shape } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
-import { Batches } from './batches';
 import { Client } from './client';
 import { FirehoseEvent, FirehoseResponse, ValidationResult } from './event';
+import { Objects } from './objects';
 
 export type DeliveryStreamProps<T extends Shape<any>> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 
@@ -110,11 +110,11 @@ export class DeliveryStream<T extends Shape<any>> extends core.Construct impleme
     }
   }
 
-  public batches(): Batches<RuntimeShape<T>, [Dependency<S3.ReadClient>]> {
+  public objects(): Objects<RuntimeShape<T>, [Dependency<S3.ReadClient>]> {
     const codec = this.codec;
     const compression = this.compression;
     const mapper = this.mapper;
-    class Root extends Batches<RuntimeShape<T>, [Dependency<S3.ReadClient>]> {
+    class Root extends Objects<RuntimeShape<T>, [Dependency<S3.ReadClient>]> {
       public async *run(event: S3.Event, [bucket]: [S3.ReadClient]) {
         for (const record of event.Records) {
           // TODO: parallelism

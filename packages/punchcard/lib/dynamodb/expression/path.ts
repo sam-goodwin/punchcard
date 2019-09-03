@@ -1,7 +1,7 @@
 import { ArrayShape } from '../../shape/array';
 import { RuntimeShape, Shape } from '../../shape/shape';
-import { StructShape } from '../../shape/struct';
 import { Tree, TreeFields } from '../../util/tree';
+import { Attributes } from '../table';
 import { Compilable, CompileContext, CompiledExpression } from './compile-context';
 
 // tslint:disable: no-shadowed-variable
@@ -18,8 +18,8 @@ export type InferDynamoPathType<T extends Shape<any>> = ReturnType<T['toDynamoPa
  *
  * TODO: better name
  */
-export type Facade<S extends StructShape<any>> = {
-  [K in keyof S]: InferDynamoPathType<S['shape'][K]>;
+export type DSL<A extends Attributes> = {
+  [K in keyof A]: InferDynamoPathType<A[K]>;
 };
 
 export abstract class DynamoPath extends Tree<DynamoPath> {
@@ -146,7 +146,7 @@ export class OrdPath<T extends Shape<any>> extends BaseDynamoPath<T> {
  *
  * @param schema of the dynamodb item
  */
-export function toFacade<S extends StructShape<any>>(schema: S): Facade<S> {
+export function toDSL<A extends Attributes>(schema: A): DSL<A> {
   const facade: any = {};
   for (const [name, value] of Object.entries(schema)) {
     facade[name] = value.toDynamoPath(new RootParent(name), name);

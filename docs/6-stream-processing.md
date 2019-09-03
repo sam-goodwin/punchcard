@@ -15,15 +15,18 @@ const topic = new SNS.Topic(stack, 'Topic', {
 });
 ```
 
-You can attach a new Lambda Function to process each notification:
+# For Each
+
+You can attach a new Lambda Function to process each notification with `forEach`:
 ```ts
-topic.stream().forEach(stack, 'ForEachNotification', {
+topic.notifications().forEach(stack, 'ForEachNotification', {
   handle: async (notification) => {
     console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
   }
 })
 ```
 
+# Map
 Or, create a new SQS Queue and subscribe notifications to it:
 
 *(Messages in the `Queue` are of the same type as the notifications in the `Topic`.)*
@@ -35,7 +38,7 @@ const queue = topic.toSQSQueue(stack, 'MyNewQueue');
 We can then, perhaps, `map` over each message in the `Queue` and collect the results into a new AWS Kinesis `Stream`:
 
 ```ts
-const stream = queue.stream()
+const stream = queue.messages()
   .map({
     handle: async(message, e) => {
       return {
@@ -72,7 +75,7 @@ import glue = require('@aws-cdk/aws-glue');
 const database = new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
 });
-s3DeliveryStream.stream().toGlueTable(stack, 'ToGlue', {
+s3DeliveryStream.objects().toGlueTable(stack, 'ToGlue', {
   database,
   tableName: 'my_table',
   columns: stream.type.shape,

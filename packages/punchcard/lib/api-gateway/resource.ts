@@ -182,7 +182,7 @@ export class Resource extends Tree<Resource> {
     const responseMappers: ResponseMappers = {} as ResponseMappers;
     Object.keys(method.responses).forEach(statusCode => {
       // TODO: can we return raw here?
-      (responseMappers as any)[statusCode] = Raw.forType(method.responses[statusCode]);
+      (responseMappers as any)[statusCode] = Raw.forShape(method.responses[statusCode]);
     });
     this.methods[httpMethod.toUpperCase()] = {
       handler: method.handle,

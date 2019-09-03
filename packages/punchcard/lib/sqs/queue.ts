@@ -19,7 +19,10 @@ import { Messages } from './messages';
  * It extends the standard `sqs.QueueProps` with a `mapper` instance.
  */
 export interface QueueProps<T extends Shape<any>> extends sqs.QueueProps {
-  type: T;
+  /**
+   * Shape of data in the SQS Queue.
+   */
+  shape: T;
 }
 /**
  * Represents a SQS Queue containtining messages of type, `T`, serialized with some `Codec`.
@@ -31,7 +34,7 @@ export class Queue<T extends Shape<any>> implements Resource<sqs.Queue>, Depende
 
   constructor(scope: core.Construct, id: string, props: QueueProps<T>) {
     this.resource = new sqs.Queue(scope, id, props);
-    this.mapper = Json.forType(props.type);
+    this.mapper = Json.forShape(props.shape);
   }
 
   /**

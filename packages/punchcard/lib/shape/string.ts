@@ -3,7 +3,7 @@ import { Size } from '../dynamodb/expression/size';
 import { hashCode } from './hash';
 import { Kind } from './kind';
 import { PrimitiveShape } from './primitive';
-import { Type } from './type';
+import { Shape } from './shape';
 
 export interface StringTypeConstraints {
   minLength?: number;
@@ -106,7 +106,7 @@ export function varchar(length: number, constraints?: FixedLengthConstraints) {
   return new FixedLength('varchar', length, constraints);
 }
 
-export class StringDynamoPath<T extends Type<any>> extends OrdPath<T> {
+export class StringDynamoPath<T extends Shape<any>> extends OrdPath<T> {
   /**
    * Returns a value that represents the size of this array in DynamODB.
    */

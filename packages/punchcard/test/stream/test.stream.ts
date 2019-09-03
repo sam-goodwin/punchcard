@@ -11,7 +11,7 @@ describe('client', () => {
   describe('sink', () => {
     it('should sink all messages', async () => {
       const stream = new Kinesis.Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
-        type: string(),
+        shape: string(),
         partitionBy: () => 'p'
       });
       const mockClient = {
@@ -36,7 +36,7 @@ describe('client', () => {
     });
     it('should divide and conquer evenly', async () => {
       const stream = new Kinesis.Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
-        type: string(),
+        shape: string(),
         partitionBy: () => 'p'
       });
       const mockClient = {
@@ -68,7 +68,7 @@ describe('client', () => {
     });
     it('should divide and conquer oddly', async () => {
       const stream = new Kinesis.Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
-        type: string(),
+        shape: string(),
         partitionBy: () => 'p'
       });
       const mockClient = {

@@ -11,7 +11,7 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: Shape.string()
+      shape: Shape.string()
     });
 
     const results: string[] = [];
@@ -31,7 +31,7 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: Shape.string()
+      shape: Shape.string()
     });
 
     const results: string[] = [];
@@ -51,7 +51,7 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: Shape.string()
+      shape: Shape.string()
     });
 
     const d1: Core.Dependency<string> = {
@@ -91,7 +91,7 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: Shape.string()
+      shape: Shape.string()
     });
 
     const d1: Core.Dependency<string> = {
@@ -108,7 +108,7 @@ describe('run', () => {
         }
       })
       .collect(stack, 'Stream', Util.Collectors.toKinesisStream({
-        type: Shape.integer()
+        shape: Shape.integer()
       }));
 
     const sink = {
@@ -127,7 +127,7 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: Shape.string()
+      shape: Shape.string()
     });
 
     const d1: Core.Dependency<string> = {
@@ -144,7 +144,7 @@ describe('run', () => {
         }
       })
       .toKinesisStream(stack, 'Stream', {
-        type: Shape.integer()
+        shape: Shape.integer()
       });
 
     const sink = {

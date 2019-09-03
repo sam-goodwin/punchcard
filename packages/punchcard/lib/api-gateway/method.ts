@@ -39,15 +39,17 @@ export type Responses =  {
   [S in StatusCode]?: Shape<any>;
 };
 
+export type ResponseShape<R extends Responses, S extends keyof R> = R[S] extends Shape<any> ? R[S] : never;
+
 export interface Response<R extends Responses, S extends keyof R> {
   statusCode: S;
-  payload: RuntimeShape<R[S]>;
+  payload: RuntimeShape<ResponseShape<R, S>>;
 }
 
 // TODO: Why do we need this function to enforce type safety .. ?
 export function response<R extends Responses, S extends keyof R>(
     statusCode: S,
-    payload: RuntimeShape<R[S]>): Response<R, S> {
+    payload: RuntimeShape<ResponseShape<R, S>>): Response<R, S> {
   return {
     statusCode,
     payload

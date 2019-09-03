@@ -16,13 +16,13 @@ Punchcard is a TypeScript framework for building cloud applications atop the [AW
 Running code in AWS is almost as simple as running it locally!
 ```ts
 export class HelloPunchcardStack extends cdk.Stack {
-  public readonly topic: SNS.Topic<StringType>;
+  public readonly topic: SNS.Topic<StringShape>;
 
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
     this.topic = new SNS.Topic(this, 'Topic', {
-      type: string()
+      shape: string()
     });
 
     Lambda.schedule(this, 'SendNotification', {

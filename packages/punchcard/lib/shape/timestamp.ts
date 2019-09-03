@@ -2,14 +2,14 @@ import { DynamoPath, Minus, Plus, SetAction } from '../dynamodb/expression/path'
 import { JsonPath } from './json/path';
 import { Kind } from './kind';
 import { NumericDynamoPath } from './number';
-import { Type } from './type';
+import { Shape } from './shape';
 
 /**
  * Represents a timestamp JSON string
  *
  * https://tools.ietf.org/html/rfc3339#section-5.6
  */
-export class TimestampShape implements Type<Date> {
+export class TimestampShape implements Shape<Date> {
   private static readonly schema = {
     type: 'string',
     format: 'date-time'
@@ -25,7 +25,7 @@ export class TimestampShape implements Type<Date> {
     return new TimestampDynamoPath(parent, name, this);
   }
 
-  public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<Date> {
+  public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<this> {
     return new JsonPath(parent, name, this);
   }
 

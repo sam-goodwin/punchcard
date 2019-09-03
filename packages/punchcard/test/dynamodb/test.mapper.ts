@@ -16,7 +16,7 @@ const shape = {
   })
 };
 
-const mapper = DynamoDB.forShape(shape);
+const mapper = DynamoDB.forShape(Shape.struct(shape));
 
 const richValue = {
   dynamic: {

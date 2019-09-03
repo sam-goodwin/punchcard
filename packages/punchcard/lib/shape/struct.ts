@@ -1,4 +1,4 @@
-import { BaseDynamoPath, DynamoPath, Facade, MapKeyParent } from '../dynamodb/expression/path';
+import { BaseDynamoPath, DSL, DynamoPath, MapKeyParent } from '../dynamodb/expression/path';
 import { hashCode } from './hash';
 import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
@@ -130,7 +130,7 @@ export class StructPath<S extends StructShape<any>> extends JsonPath<S> {
  * Recursively creates an attribute for each key in the schema and assigns it to 'fields'.
  */
 export class StructDynamoPath<S extends StructShape<any>> extends BaseDynamoPath<S> {
-  public readonly fields: Facade<S> = {} as Facade<S>;
+  public readonly fields: DSL<S['shape']> = {} as DSL<S['shape']>;
 
   constructor(parent: DynamoPath, name: string, shape: S) {
     super(parent, name, shape);

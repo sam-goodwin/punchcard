@@ -107,8 +107,8 @@ export class Function<T, U, D extends Dependency<any>>
       const runtimeProperties = new Assembly(this, bag);
       client = await this.dependencies.bootstrap(runtimeProperties, cache);
     }
-    const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forType(this.request);
-    const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forType(this.response);
+    const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forShape(this.request);
+    const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forShape(this.response);
     return (async (event: any, context) => {
       const parsed = requestMapper.read(event);
       try {
@@ -138,8 +138,8 @@ export class Function<T, U, D extends Dependency<any>>
    * @param cache global cache shared by the runtime
    */
   public async bootstrap(properties: Assembly, cache: Cache): Promise<Function.Client<T, U>> {
-    const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forType(this.request);
-    const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forType(this.response);
+    const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forShape(this.request);
+    const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forShape(this.response);
     return new Function.Client(
       cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
       properties.get('functionArn'),

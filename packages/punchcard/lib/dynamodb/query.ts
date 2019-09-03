@@ -2,7 +2,7 @@ import { BinaryShape, RuntimeShape, Shape, StringShape, StructShape } from '../s
 import { Query } from './client';
 import { CompileContext } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';
-import { Table } from './table';
+import { Attributes, Table } from './table';
 
 export interface CompiledQuery {
   KeyConditionExpression: string;
@@ -11,17 +11,17 @@ export interface CompiledQuery {
   ExpressionAttributeValues?: AWS.DynamoDB.ExpressionAttributeValueMap;
 }
 
-export function compileQuery<S extends StructShape<any>, PKey extends keyof S, SKey extends keyof S>(
-  table: Table<PKey, SKey, S>, query: Query<S, PKey, SKey>): CompiledQuery {
+export function compileQuery<A extends Attributes, P extends keyof A, S extends keyof A>(
+  table: Table<P, S, A>, query: Query<A, P, S>): CompiledQuery {
 
   const context = new CompileContextImpl();
   const pName = context.name(table.partitionKey.toString());
-  const pValue = context.value(table.shape.shape[table.partitionKey], query.key[table.partitionKey] as any);
+  const pValue = context.value(table.attributes[table.partitionKey], query.key[table.partitionKey] as any);
   let keyConditionExpression: string = `${pName} = ${pValue}`;
   if ((query.key as any)[table.sortKey]) {
     // TODO: why not inferred?
-    const keyComparison = (query.key as any)[table.sortKey] as any as Comparison<S['shape'][SKey]>;
-    keyConditionExpression += ` AND ${(keyComparison.compile(table.sortKey.toString(), table.shape[table.sortKey], context))}`;
+    const keyComparison = (query.key as any)[table.sortKey] as any as Comparison<A[S]>;
+    keyConditionExpression += ` AND ${(keyComparison.compile(table.sortKey.toString(), table.attributes[table.sortKey], context))}`;
   }
 
   const q = {
@@ -39,32 +39,32 @@ export function compileQuery<S extends StructShape<any>, PKey extends keyof S, S
 /**
  * https://docs.aws.amazon.com/amazondynamodb/latest/APIReference/API_Query.html#DDB-Query-request-KeyConditionExpression
  */
-export type KeyConditionExpression<S extends StructShape<any>, PKey extends keyof S, SKey extends keyof S> =
-  { [K in PKey]: RuntimeShape<S['shape'][K]> } &
+export type KeyConditionExpression<S extends Attributes, PKey extends keyof S, SKey extends keyof S> =
+  { [K in PKey]: RuntimeShape<S[K]> } &
   { [K in SKey]?: SortKeyComparator<S, K> };
 
-type SortKeyComparator<S extends StructShape<any>, K extends keyof S> =
+type SortKeyComparator<S extends Attributes, K extends keyof S> =
   S[K] extends (StringShape | BinaryShape) ?
     StringComparators<S, K> :
     GeneralComparators<S, K>;
 
-type GeneralComparators<S extends StructShape<any>, K extends keyof S> =
-  Equals<S['shape'][K]> |
-  GreaterThan<S['shape'][K]> |
-  GreaterThanEqual<S['shape'][K]> |
-  LessThan<S['shape'][K]> |
-  LessThanEqual<S['shape'][K]> |
-  Between<S['shape'][K]>;
+type GeneralComparators<A extends Attributes, K extends keyof A> =
+  Equals<A[K]> |
+  GreaterThan<A[K]> |
+  GreaterThanEqual<A[K]> |
+  LessThan<A[K]> |
+  LessThanEqual<A[K]> |
+  Between<A[K]>;
 
-type StringComparators<S extends StructShape<any>, K extends keyof S> =
+type StringComparators<S extends Attributes, K extends keyof S> =
   GeneralComparators<S, K> |
-  BeginsWith<S['shape'][K]>;
+  BeginsWith<S[K]>;
 
-interface Comparison<T extends StructShape<any>> {
+interface Comparison<T extends Shape<any>> {
   compile(name: string, type: T, context: CompileContext): string;
 }
 
-abstract class QueryOperand<T extends StructShape<any>> implements Comparison<T> {
+abstract class QueryOperand<T extends Shape<any>> implements Comparison<T> {
   protected abstract readonly operand: string;
 
   constructor(private readonly value: RuntimeShape<T>) {}
@@ -75,51 +75,51 @@ abstract class QueryOperand<T extends StructShape<any>> implements Comparison<T>
 }
 
 // Todo: anchor T
-export function equals<T extends StructShape<any>>(value: RuntimeShape<T>): Equals<T> {
+export function equals<T extends Shape<any>>(value: RuntimeShape<T>): Equals<T> {
   return new Equals(value);
 }
 
-class Equals<T extends StructShape<any>> extends QueryOperand<T> {
+class Equals<T extends Shape<any>> extends QueryOperand<T> {
   protected readonly operand = '=';
 }
 
-export function greaterThan<T extends StructShape<any>>(value: RuntimeShape<T>): GreaterThan<T> {
+export function greaterThan<T extends Shape<any>>(value: RuntimeShape<T>): GreaterThan<T> {
   return new GreaterThan(value);
 }
 
-class GreaterThan<T extends StructShape<any>> extends QueryOperand<T> {
+class GreaterThan<T extends Shape<any>> extends QueryOperand<T> {
   protected readonly operand = '>';
 }
 
-export function greaterThanEqual<T extends StructShape<any>>(value: RuntimeShape<T>): GreaterThanEqual<T> {
+export function greaterThanEqual<T extends Shape<any>>(value: RuntimeShape<T>): GreaterThanEqual<T> {
   return new GreaterThanEqual(value);
 }
 
-class GreaterThanEqual<T extends StructShape<any>> extends QueryOperand<T> {
+class GreaterThanEqual<T extends Shape<any>> extends QueryOperand<T> {
   protected readonly operand = '>=';
 }
 
-export function lessThan<T extends StructShape<any>>(value: RuntimeShape<T>): LessThan<T> {
+export function lessThan<T extends Shape<any>>(value: RuntimeShape<T>): LessThan<T> {
   return new LessThan(value);
 }
 
-class LessThan<T extends StructShape<any>> extends QueryOperand<T> {
+class LessThan<T extends Shape<any>> extends QueryOperand<T> {
   protected readonly operand = '<';
 }
 
-export function lessThanEqual<T extends StructShape<any>>(value: RuntimeShape<T>): LessThanEqual<T> {
+export function lessThanEqual<T extends Shape<any>>(value: RuntimeShape<T>): LessThanEqual<T> {
   return new LessThanEqual(value);
 }
 
-class LessThanEqual<T extends StructShape<any>> extends QueryOperand<T> {
+class LessThanEqual<T extends Shape<any>> extends QueryOperand<T> {
   protected readonly operand = '<=';
 }
 
-export function between<T extends StructShape<any>>(lower: RuntimeShape<T>, upper: RuntimeShape<T>): Between<T> {
+export function between<T extends Shape<any>>(lower: RuntimeShape<T>, upper: RuntimeShape<T>): Between<T> {
   return new Between(lower, upper);
 }
 
-class Between<T extends StructShape<any>> implements Comparison<T> {
+class Between<T extends Shape<any>> implements Comparison<T> {
   constructor(private readonly lower: RuntimeShape<T>, private readonly upper: RuntimeShape<T>) {}
 
   public compile(name: string, type: T, context: CompileContext): string {
@@ -127,11 +127,11 @@ class Between<T extends StructShape<any>> implements Comparison<T> {
   }
 }
 
-export function beginsWith<T extends StructShape<any>>(prefix: RuntimeShape<T>): BeginsWith<T> {
+export function beginsWith<T extends Shape<any>>(prefix: RuntimeShape<T>): BeginsWith<T> {
   return new BeginsWith(prefix);
 }
 
-class BeginsWith<T extends StructShape<any>> implements Comparison<T> {
+class BeginsWith<T extends Shape<any>> implements Comparison<T> {
   constructor(private readonly prefix: RuntimeShape<T>) {}
 
   public compile(name: string, type: T, context: CompileContext): string {

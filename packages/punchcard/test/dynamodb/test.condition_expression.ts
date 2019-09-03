@@ -9,7 +9,7 @@ const {
   attribute_not_exists,
   not,
   or,
-  toFacade,
+  toDSL: toFacade,
 } = DynamoDB;
 
 /**

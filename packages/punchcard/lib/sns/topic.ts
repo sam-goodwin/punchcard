@@ -17,9 +17,9 @@ import { Notifications } from './notifications';
 
 export type TopicProps<T extends Shape<any>> = {
   /**
-   * Type of messages.
+   * Shape of notifications emitted from the Topic.
    */
-  type: T;
+  shape: T;
 } & sns.TopicProps;
 
 /**
@@ -35,8 +35,8 @@ export class Topic<T extends Shape<any>> implements Resource<sns.Topic>, Depende
 
   constructor(scope: core.Construct, id: string, props: TopicProps<T>) {
     this.resource = new sns.Topic(scope, id, props);
-    this.type = props.type;
-    this.mapper = Json.forType(props.type);
+    this.type = props.shape;
+    this.mapper = Json.forShape(props.shape);
   }
 
   /**
@@ -73,7 +73,7 @@ export class Topic<T extends Shape<any>> implements Resource<sns.Topic>, Depende
    */
   public toSQSQueue(scope: core.Construct, id: string): Queue<T> {
     const q = new Queue(scope, id, {
-      type: this.type
+      shape: this.type
     });
     this.subscribeQueue(q);
     return q;

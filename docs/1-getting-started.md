@@ -1,6 +1,6 @@
 # Getting Started 
 
-This library is built with (and relies on) the AWS CDK, so you'll want to be familiar with the [CDK Concepts](https://docs.aws.amazon.com/cdk/latest/guide/what-is.html).
+This library is built with (and relies on) the AWS CDK. If you're new to the CDK, the [CDK Docs](https://docs.aws.amazon.com/cdk/latest/guide/what-is.html) and the [TypeScript CDK Workshop](https://cdkworkshop.com/20-typescript.html) are good places to start.
 
 Install `punchcard` and the `aws-cdk`:
 

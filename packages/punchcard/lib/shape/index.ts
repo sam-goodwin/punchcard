@@ -11,7 +11,6 @@ export * from './shape';
 export * from './string';
 export * from './struct';
 export * from './timestamp';
-export * from './type';
 export * from './typed-set';
 
 export * from './json';

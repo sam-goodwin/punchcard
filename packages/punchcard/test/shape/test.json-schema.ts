@@ -2,7 +2,7 @@ import 'jest';
 
 import {  Shape, Util } from '../../lib';
 
-const tree = {
+const tree = Shape.struct({
   stringField: Shape.string(),
   intField: Shape.integer(),
   numberField: Shape.float(),
@@ -36,7 +36,7 @@ const tree = {
     numberMap: Shape.map(Shape.float()),
     boolMap: Shape.map(Shape.boolean),
   })
-};
+});
 
 describe('json', () => {
   describe('schema', () => {
