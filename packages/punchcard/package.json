@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc && tslint --project . && madge --circular lib/",
+    "build": "tsc && tslint --project .",
     "test": "jest",
     "watch": "tsc -w",
     "cdk": "cdk"
