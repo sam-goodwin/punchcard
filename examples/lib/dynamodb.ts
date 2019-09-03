@@ -28,10 +28,10 @@ const Item = {
 }
 
 // the type can be inferred, but we explicitly define them to illustrate how it works
-// 'id' is the partitionKey, undefined is the sortKey (no sort key), and Item is the shape of data in the table
+// 'id' is the partitionKey, undefined is the sortKey (no sort key), and Item is the attributes of data in the table
 const table: DynamoDB.Table<'id', undefined, Item> = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
-  shape: Item,
+  attributes: Item,
   billingMode: BillingMode.PAY_PER_REQUEST
 });
 
@@ -39,7 +39,7 @@ const table: DynamoDB.Table<'id', undefined, Item> = new DynamoDB.Table(stack, '
 const sortedTable: DynamoDB.Table<'id', 'count', Item> = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
   sortKey: 'count',
-  shape: Item,
+  attributes: Item,
   billingMode: BillingMode.PAY_PER_REQUEST
 });
 

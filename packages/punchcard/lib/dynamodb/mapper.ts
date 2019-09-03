@@ -130,8 +130,8 @@ export class Reader implements IReader<AWS.DynamoDB.AttributeValue> {
 // tslint:disable-next-line: no-shadowed-variable
       const struct = type as any as StructShape<any>;
       const result: any = {};
-      Object.keys(struct.shape).forEach(name => {
-        const field = struct.shape[name];
+      Object.keys(struct.fields).forEach(name => {
+        const field = struct.fields[name];
         const v = value.M![name];
         result[name] = this.read(field, v);
       });
@@ -212,8 +212,8 @@ export class Writer implements IWriter<AWS.DynamoDB.AttributeValue> {
     } else if (type.kind === Kind.Struct) {
       const struct = type as any as StructShape<any>;
       const result = {};
-      Object.keys(struct.shape).forEach(name => {
-        const field = struct.shape[name];
+      Object.keys(struct.fields).forEach(name => {
+        const field = struct.fields[name];
         const v = value[name];
         (result as any)[name] = this.write(field, v);
       });

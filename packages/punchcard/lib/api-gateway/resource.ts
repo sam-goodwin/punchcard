@@ -192,23 +192,41 @@ export class Resource extends Tree<Resource> {
   }
 }
 
-function velocityTemplate<S extends StructShape<any>>(
+function velocityTemplate<S extends Shape<any>>(
     shape: S,
     mappings?: any,
     root: string = "$input.path('$')"): string {
 
   let template = `#set($inputRoot = ${root})\n`;
-  template += '{\n';
+
+  if (StructShape.isStruct(shape)) {
+    template += '{\n';
+    let i = 0;
+    const keys = new Set(Object.keys(shape.fields).concat(Object.keys(mappings || {})));
+    for (const childName of keys) {
+      walk(shape, childName, (mappings as any)[childName], 1);
+      if (i + 1 < keys.size) {
+        template += ',';
+      }
+      template += '\n';
+      i += 1;
+    }
+    template += '}\n';
+  } else {
+    template += '$inputRoot\n'; // TODO: this is probably wrong
+  }
+  return template;
 
   function walk(shape: StructShape<any>, name: string, mapping: TypedMapping<any> | object, depth: number) {
     template += '  '.repeat(depth);
+
     if (mapping) {
       if ((mapping as any)[isMapping]) {
         template += `"${name}": ${(mapping as Mapping).path}`;
       } else if (typeof mapping === 'object') {
         template += `"${name}": {\n`;
         Object.keys(mapping).forEach((childName, i) => {
-          const childShape = (shape.shape[childName] as StructShape<any>).shape;
+          const childShape = (shape.fields[childName] as StructShape<any>).fields;
           walk(childShape, childName, (mapping as any)[childName], depth + 1);
           if (i + 1 < Object.keys(mapping).length) {
             template += ',\n';
@@ -220,9 +238,9 @@ function velocityTemplate<S extends StructShape<any>>(
         throw new Error(`unexpected type when generating velocity template: ${typeof mapping}`);
       }
     } else {
-      const type = shape.shape[name];
+      const field = shape.fields[name];
       let path: string;
-      if (type.kind === Kind.String || type.kind === Kind.Timestamp || type.kind === Kind.Binary) {
+      if (field.kind === Kind.String || field.kind === Kind.Timestamp || field.kind === Kind.Binary) {
         path = `"$inputRoot.${name}"`;
       } else {
         path = `$inputRoot.${name}`;
@@ -231,19 +249,6 @@ function velocityTemplate<S extends StructShape<any>>(
       template += `"${name}":${path}`;
     }
   }
-
-  let i = 0;
-  const keys = new Set(Object.keys(shape).concat(Object.keys(mappings || {})));
-  for (const childName of keys) {
-    walk(shape, childName, (mappings as any)[childName], 1);
-    if (i + 1 < keys.size) {
-      template += ',';
-    }
-    template += '\n';
-    i += 1;
-  }
-  template += '}\n';
-  return template;
 }
 
 // class VelocityTemplate<S extends Shape<any>> {

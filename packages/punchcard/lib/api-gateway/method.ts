@@ -29,8 +29,8 @@ export type MappingType<T extends Shape<any>> =
 
 export type RequestMappings<S extends StructShape<any>, M extends MethodName> = M extends 'GET' ?
   // 'GET' methods require mappings for all properties since there is no body
-  { [K in keyof S]-?: MappingType<S['shape'][K]>; } :
-  { [K in keyof S]+?: MappingType<S['shape'][K]>; };
+  { [K in keyof S['fields']]-?: MappingType<S['fields'][K]>; } :
+  { [K in keyof S['fields']]+?: MappingType<S['fields'][K]>; };
 
 export type Responses =  {
   [StatusCode.Ok]: Shape<any>;

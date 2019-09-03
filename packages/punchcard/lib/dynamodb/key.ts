@@ -9,7 +9,7 @@ export type HashKey<A extends Attributes, P extends keyof A> = {
   [K in P]: A[K];
 };
 
-export type CompositeKey<A extends Attributes, P extends keyof A, S extends keyof A> = 
+export type CompositeKey<A extends Attributes, P extends keyof A, S extends keyof A> =
   { [K in P]: A[K] } &
   { [K in S]: A[K] };
 

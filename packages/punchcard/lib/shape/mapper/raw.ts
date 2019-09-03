@@ -121,8 +121,8 @@ export namespace Raw {
 
         const struct = shape as any as StructShape<any>;
         const result: any = {};
-        Object.keys(struct.shape).forEach(name => {
-          const field = struct.shape[name];
+        Object.keys(struct.fields).forEach(name => {
+          const field = struct.fields[name];
           const value = parsed[name];
           result[name] = this.read(field, value);
         });
@@ -201,8 +201,8 @@ export namespace Raw {
       } else if (shape.kind === Kind.Struct) {
         const s = shape as any as StructShape<any>;
         const result: any = {};
-        Object.keys(s.shape).forEach(name => {
-          const field = s.shape[name];
+        Object.keys(s.fields).forEach(name => {
+          const field = s.fields[name];
           const v = value[name];
           result[name] = this.write(field, v);
         });

@@ -24,14 +24,18 @@ type StructType<T extends Fields> =
   { [K in keyof OptionalKeys<T>]+?: RuntimeShape<T[K]>; };
 
 export class StructShape<F extends Fields> implements Shape<StructType<F>> {
+  public static isStruct(s: Shape<any>): s is StructShape<any> {
+    return s.kind === Kind.Struct;
+  }
+
   public readonly kind: Kind.Struct = Kind.Struct;
 
-  constructor(public readonly shape: F) {}
+  constructor(public readonly fields: F) {}
 
   public validate(value: StructType<F>): void {
-    Object.keys(this.shape).forEach(field => {
+    Object.keys(this.fields).forEach(field => {
       const item = (value as any)[field];
-      const schema = this.shape[field];
+      const schema = this.fields[field];
 
       if (item === undefined && !( schema as OptionalShape<any>).isOptional) {
         throw new Error(`required field ${field} is mising from object`);
@@ -52,11 +56,11 @@ export class StructShape<F extends Fields> implements Shape<StructType<F>> {
   public toJsonSchema(): object {
     const properties: any = {};
     const required: string[] = [];
-    Object.keys(this.shape).forEach(field => {
-      if (!( this.shape[field] as any).isOptional) {
+    Object.keys(this.fields).forEach(field => {
+      if (!( this.fields[field] as any).isOptional) {
         required.push(field);
       }
-      properties[field] = this.shape[field].toJsonSchema();
+      properties[field] = this.fields[field].toJsonSchema();
     });
 
     return {
@@ -69,8 +73,8 @@ export class StructShape<F extends Fields> implements Shape<StructType<F>> {
 
   public toGlueType() {
     return {
-      inputString: `struct<${Object.keys(this.shape).map(name => {
-        const field = this.shape[name];
+      inputString: `struct<${Object.keys(this.fields).map(name => {
+        const field = this.fields[name];
         return `${name}:${field.toGlueType().inputString}`;
       }).join(',')}>`,
       isPrimitive: false
@@ -89,7 +93,7 @@ export class StructShape<F extends Fields> implements Shape<StructType<F>> {
       if (bValue === undefined) {
         return false;
       }
-      if (!this.shape[aKey].equals(aValue, bValue)) {
+      if (!this.fields[aKey].equals(aValue, bValue)) {
         return false;
       }
     }
@@ -101,14 +105,14 @@ export class StructShape<F extends Fields> implements Shape<StructType<F>> {
     let result = 1;
     Object.keys(value).forEach(key => {
       result += prime * result + hashCode(key);
-      result += prime * result + this.shape[key].hashCode((value as any)[key]);
+      result += prime * result + this.fields[key].hashCode((value as any)[key]);
     });
     return result;
   }
 }
 
 export type StructFields<S extends StructShape<any>> = {
-  [K in keyof S['shape']]: InferJsonPathType<S['shape'][K]>;
+  [K in keyof S['fields']]: InferJsonPathType<S['fields'][K]>;
 };
 
 export class StructPath<S extends StructShape<any>> extends JsonPath<S> {
@@ -118,8 +122,8 @@ export class StructPath<S extends StructShape<any>> extends JsonPath<S> {
     super(parent, name, type);
     this.fields = {} as StructFields<S>;
 
-    Object.keys(type.shape).forEach(field => {
-      this.fields[field as keyof S] = type.shape[field].toJsonPath(this, `['${field}']`) as InferJsonPathType<S['shape'][typeof field]>;
+    Object.keys(type.fields).forEach(field => {
+      this.fields[field as keyof S] = type.fields[field].toJsonPath(this, `['${field}']`) as InferJsonPathType<S['fields'][typeof field]>;
     });
   }
 }
@@ -130,11 +134,11 @@ export class StructPath<S extends StructShape<any>> extends JsonPath<S> {
  * Recursively creates an attribute for each key in the schema and assigns it to 'fields'.
  */
 export class StructDynamoPath<S extends StructShape<any>> extends BaseDynamoPath<S> {
-  public readonly fields: DSL<S['shape']> = {} as DSL<S['shape']>;
+  public readonly fields: DSL<S['fields']> = {} as DSL<S['fields']>;
 
   constructor(parent: DynamoPath, name: string, shape: S) {
     super(parent, name, shape);
-    for (const [key, schema] of Object.entries(shape.shape)) {
+    for (const [key, schema] of Object.entries(shape.fields)) {
       this.fields[key as keyof S] = (schema as any).toDynamoPath(new MapKeyParent(this, key), key) as any;
     }
   }

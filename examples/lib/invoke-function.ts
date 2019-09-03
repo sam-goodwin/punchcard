@@ -14,7 +14,7 @@ const stack = new cdk.Stack(app, 'invoke-function');
 
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
-  shape: {
+  attributes: {
     id: string(),
     count: integer({
       minimum: 0

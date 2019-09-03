@@ -15,7 +15,7 @@ const stack = new core.Stack(app, 'pet-store');
 const petStore = new DynamoDB.Table(stack, 'pet-store', {
   partitionKey: 'id',
   sortKey: undefined,
-  shape: {
+  attributes: {
     id: string(),
     type: string(),
     price: double()
@@ -38,10 +38,10 @@ const pet = pets.addResource('{id}');
 pets.setGetMethod({
   integration: endpoint,
   request: {
-    shape: {}
+    shape: struct({})
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: array(struct(petStore.shape)),
+    [ApiGateway.StatusCode.Ok]: array(struct(petStore.attributes)),
     [ApiGateway.StatusCode.InternalError]: struct({
       errorMessage: string()
     })
@@ -55,15 +55,15 @@ pets.setGetMethod({
 pet.setGetMethod({
   integration: endpoint,
   request: {
-    shape: {
+    shape: struct({
       id: string()
-    },
+    }),
     mappings: {
       id: ApiGateway.$input.params('id')
     }
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: struct(petStore.shape),
+    [ApiGateway.StatusCode.Ok]: struct(petStore.attributes),
     [ApiGateway.StatusCode.NotFound]: string(),
     [ApiGateway.StatusCode.InternalError]: struct({
       errorMessage: string()
@@ -84,10 +84,10 @@ pet.setGetMethod({
 pets.setPostMethod({
   integration: endpoint,
   request: {
-    shape: {
+    shape: struct({
       type: string(),
       price: double()
-    }
+    })
   },
   responses: {
     [ApiGateway.StatusCode.Ok]: struct({

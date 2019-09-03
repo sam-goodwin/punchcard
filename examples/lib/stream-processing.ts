@@ -21,7 +21,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
   /**
    * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
    */
-  type: struct({
+  shape: struct({
     key: string(),
     count: integer(),
     timestamp,
@@ -33,7 +33,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
  */
 const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
   partitionKey: 'key',
-  shape: {
+  attributes: {
     // define the shape of data in the dynamodb table
     key: string(),
     tags: array(string())
@@ -135,7 +135,7 @@ const stream = queue.messages() // gives us a nice chainable API
     partitionBy: value => value.key,
 
     // type of the data in the stream
-    type: struct({
+    shape: struct({
       key: string(),
       count: integer(),
       tags: array(string()),
@@ -153,7 +153,7 @@ const database = new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
 });
 stream
-  .toFirehoseDeliveryStream(stack, 'ToS3').batches()
+  .toFirehoseDeliveryStream(stack, 'ToS3').objects()
   .toGlueTable(stack, 'ToGlue', {
     database,
     tableName: 'my_table',

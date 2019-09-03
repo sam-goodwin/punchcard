@@ -1923,8 +1923,7 @@ Object {
               "responseTemplates": Object {
                 "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
 {
-  \\"shape\\":$inputRoot.shape,
-  \\"kind\\":$inputRoot.kind
+  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
 }
 ",
               },
@@ -2079,10 +2078,7 @@ Object {
             Object {
               "responseTemplates": Object {
                 "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-{
-  \\"kind\\":$inputRoot.kind,
-  \\"constraints\\":$inputRoot.constraints
-}
+$inputRoot
 ",
               },
               "selectionPattern": "\\\\{\\"statusCode\\":409.*",
@@ -2092,8 +2088,7 @@ Object {
               "responseTemplates": Object {
                 "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
 {
-  \\"shape\\":$inputRoot.shape,
-  \\"kind\\":$inputRoot.kind
+  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
 }
 ",
               },
@@ -2282,10 +2277,7 @@ Object {
             Object {
               "responseTemplates": Object {
                 "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-{
-  \\"kind\\":$inputRoot.kind,
-  \\"constraints\\":$inputRoot.constraints
-}
+$inputRoot
 ",
               },
               "selectionPattern": "\\\\{\\"statusCode\\":404.*",
@@ -2295,8 +2287,7 @@ Object {
               "responseTemplates": Object {
                 "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
 {
-  \\"shape\\":$inputRoot.shape,
-  \\"kind\\":$inputRoot.kind
+  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
 }
 ",
               },
