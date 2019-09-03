@@ -1,0 +1,57 @@
+{
+  "name": "@punchcard/data-lake",
+  "description": "Data Lake Construct",
+  "version": "0.9.2",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc && tslint --project .",
+    "test": "echo no-op",
+    "watch": "tsc -w",
+    "cdk": "cdk"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Sam Goodwin",
+    "email": "sam.goodwin1989@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sam-goodwin/punchcard"
+  },
+  "readme": "README.md",
+  "keywords": [
+    "punchcard",
+    "data-lake",
+    "aws-cdk",
+    "infrastructure-as-code",
+    "serverless",
+    "aws",
+    "cloudformation"
+  ],
+  "devDependencies": {
+    "@types/node": "^10.14.6",
+    "@babel/core": "^7.4.5",
+    "@babel/preset-env": "^7.4.5",
+    "babel-core": "^7.0.0-bridge.0",
+    "tslint": "^5.16.0",
+    "typescript": "^3.6.2"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-glue": "1.6.1",
+    "@aws-cdk/aws-kinesis": "^1.6.1",
+    "@aws-cdk/core": "1.6.1",
+    "punchcard": "^0.9.2"
+  },
+  "peerDependencies": {
+    "@aws-cdk/aws-glue": "1.6.1",
+    "@aws-cdk/aws-kinesis": "1.6.1",
+    "@aws-cdk/core": "1.6.1",
+    "punchcard": "^0.9.2"
+  },
+  "jest": {
+    "testMatch": [
+      "**/test/**/*.js"
+    ]
+  }
+}

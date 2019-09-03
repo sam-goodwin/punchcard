@@ -1,7 +1,9 @@
 import core = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
-import { Lambda, Analytics } from 'punchcard';
+import { Lambda } from 'punchcard';
+
+import * as Analytics from '@punchcard/data-lake';
 
 import { integer, string, timestamp, char, array, } from 'punchcard/lib/shape';
 

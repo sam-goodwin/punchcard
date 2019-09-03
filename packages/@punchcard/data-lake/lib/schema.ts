@@ -1,8 +1,8 @@
-import { Columns } from '../glue';
-import { RuntimeShape, StructShape, TimestampShape } from '../shape';
+import { Glue } from 'punchcard';
+import { RuntimeShape, StructShape, TimestampShape } from 'punchcard/lib/shape';
 
-type IsTimestamp<S extends Columns, T extends keyof S> = S[T] extends TimestampShape ? T : never;
-export class Schema<C extends Columns, T extends keyof C> {
+type IsTimestamp<S extends Glue.Columns, T extends keyof S> = S[T] extends TimestampShape ? T : never;
+export class Schema<C extends Glue.Columns, T extends keyof C> {
   public readonly schemaName: string;
   public readonly shape: C;
   public readonly timestampField: T;

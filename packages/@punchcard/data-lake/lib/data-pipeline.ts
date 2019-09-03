@@ -2,23 +2,20 @@ import { Database } from '@aws-cdk/aws-glue';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
-import * as Glue from '../glue';
-import { Columns } from '../glue';
-import * as Kinesis from '../kinesis';
-import * as S3 from '../s3';
-import { RuntimeShape, struct, StructShape } from '../shape';
-import { DeliveryStream } from './delivery-stream';
+
+import { Glue, Kinesis, S3 } from 'punchcard';
+
+import { RuntimeShape, struct, StructShape } from 'punchcard/lib/shape';
 import { Period } from './period';
 import { Schema } from './schema';
 
-export interface DataPipelineProps<C extends Columns, TS extends keyof C> {
+export interface DataPipelineProps<C extends Glue.Columns, TS extends keyof C> {
   database: Database;
   schema: Schema<C, TS>;
 }
-export class DataPipeline<C extends Columns, TS extends keyof C> extends core.Construct {
+export class DataPipeline<C extends Glue.Columns, TS extends keyof C> extends core.Construct {
   public readonly bucket: S3.Bucket;
   public readonly stream: Kinesis.Stream<StructShape<C>>;
-  public readonly deliveryStream: DeliveryStream;
   public readonly stagingBucket: s3.Bucket;
   public readonly table: Glue.Table<C, Period.PT1M>;
 

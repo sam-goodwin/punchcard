@@ -3,7 +3,6 @@ import AWS = require('aws-sdk');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 
-import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from '../analytics/delivery-stream';
 import { Assembly, Namespace } from '../core/assembly';
 import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
@@ -17,6 +16,7 @@ import { Mapper, RuntimeShape, Shape } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Client } from './client';
+import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from './delivery-stream-construct';
 import { FirehoseEvent, FirehoseResponse, ValidationResult } from './event';
 import { Objects } from './objects';
 

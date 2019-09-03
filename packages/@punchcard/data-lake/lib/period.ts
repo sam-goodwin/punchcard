@@ -1,5 +1,5 @@
-import { PartitionKeys } from '../glue';
-import { smallint } from '../shape';
+import { PartitionKeys } from 'punchcard/lib/glue';
+import { smallint } from 'punchcard/lib/shape';
 
 const PT1H = {
   year: smallint(),

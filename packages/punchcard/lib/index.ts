@@ -37,12 +37,3 @@ export {
   SNS,
   SQS,
 };
-
-/**
- * Supporting packages.
- */
-import * as Analytics from './analytics';
-
-export {
-  Analytics,
-};
