@@ -1,3 +1,14 @@
+# [0.9.0](https://github.com/sam-goodwin/punchcard/compare/v0.8.0...v0.9.0) (2019-08-27)
+
+### Breaking Changes
+* **dependency**: Rename Dependency.list to Dependency.tuple
+* **stream**: Insitute a naming standard for the Streams of each namespace.
+* **lambda**: Simplify how to schedule a Lambda.Function with `Lambda.schedule`
+* **shape**: Rename "Types" to "Shapes"
+
+### Bug Fixes
+* **stream**: Fix bug in Collectors where the Promise wasn't being awaited.
+
 # [0.8.0](https://github.com/sam-goodwin/punchcard/compare/v0.7.0...v0.8.0) (2019-08-27)
 
 
