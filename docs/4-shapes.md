@@ -27,7 +27,7 @@ SNS.Topic<StructType<{
 }>>
 ```
 
-So, a type-safe interface for can be derived at runtime:
+So, a type-safe interface can be derived at runtime:
 
 ```ts
 async function publish(notification: {

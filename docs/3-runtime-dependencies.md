@@ -72,11 +72,11 @@ new Lambda.Function(stack, 'MyFunction', {
 
 # Type Signatures
 
-A Function's Runtime Dependencies are encoded in the type signature, to simplify unit testing and support compiler-time predicates on permissions.
+A Function's Runtime Dependencies are encoded in the type signature.
 
-Ordinarily, an in-memory Function's signature would be `Function<T, U>` (read: "a function from `T` to `U`"). In Punchcard, there's a third argument `D` which captures the Function's runtime dependencies, `Function<T, U, D extends Dependency<any>` (read: "a function from `T` to `U` with runtime dependency `D`").
+Ordinarily, an in-memory Function's signature would be `Function<T, U>` (read: "a function from `T` to `U`"). In Punchcard, there's a third argument ,`D`, which captures the Function's runtime Dependencies, `Function<T, U, D extends Dependency<any>` (read: "a function from `T` to `U` with runtime Dependency `D`").
 
-In our example, the Queue has shape:
+In our example, the Queue has type:
 ```ts
 SQS.Queue<StringShape>
 ```
@@ -86,13 +86,13 @@ Which implements "a `Dependency` on an `SQS.Client` for sending and receiving `S
 Dependency<SQS.Client<StringShape>>;
 ```
 
-Resulting in a Function taking a `CloudWatch.Event` payload and returning an `any`, with a Dependency on an `SQS.Client` with messages of type `StringShape`.
+Resulting in this Function signature:
 
 ```ts
 Lambda.Function<
-  CloudWatch.Event,       // T
-  any,                    // U
-  SQS.Client<StringShape> // D
+  CloudWatch.Event,       // T - the cloud watch trigger event
+  any,                    // U - the return type doesn't matter
+  SQS.Client<StringShape> // D - runtime dependency on a Queue with String messages.
 >;
 ```
 

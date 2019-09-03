@@ -2,20 +2,19 @@
 
 Punchcard is a TypeScript framework for building cloud applications with the [AWS CDK](https://github.com/aws/aws-cdk). It unifies **infrastructure** code with **runtime** code, meaning you can both declare resources and implement logic within the context of one node.js application. AWS resources are thought of as generic, type-safe objects — DynamoDB Tables are like a `Map<K, V>`; SNS Topics, SQS Queues, and Kinesis Streams feel like an `Array<T>`; and a Lambda Function is akin to a `Function<A, B>` – like the standard library of a programming language.
 
+# Blog Series
+
+If you'd like to learn more about the philosophy behind this project, check out my blog series (WIP) [Punchcard: Imagining the future of cloud programming](https://bit.ly/punchcard-cdk).
+
 # Developer Guide
 
+0. Introduction and High-Level Walkthrough (this page).
 1. [Getting Started](1-getting-started.md)
 2. [Creating Functions](2-creating-functions.md)
 3. [Runtime Dependencies](3-runtime-dependencies.md)
 4. [Shapes: Type-Safe Schemas](4-shapes.md)
 5. [Dynamic (and safe) DynamoDB DSL](5-dynamodb-dsl.md)
 6. [Stream Processing](6-stream-processing.md)
-
-# Blog Series
-
-If you'd like to learn more about the philosophy behind this project, check out my blog series (WIP) [Punchcard: Imagining the future of cloud programming](https://bit.ly/punchcard-cdk).
-
-# Introduction
 
 We'll introduce Punchcard by walking through some features at a high-level.
 
@@ -55,7 +54,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
   /**
    * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
    */
-  type: struct({
+  shape: struct({
     key: string(),
     count: integer(),
     timestamp
@@ -79,7 +78,7 @@ This feature in punchcard becomes even more evident when using DynamoDB. To demo
 ```ts
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
-  shape: {
+  attributes: {
     id: string(),
     count: integer({
       minimum: 0
@@ -149,7 +148,7 @@ Punchcard has the concept of `Stream` data structures, which should feel similar
 For example, given an SNS Topic:
 ```ts
 const topic = new SNS.Topic(stack, 'Topic', {
-  type: struct({
+  shape: struct({
     key: string(),
     count: integer(),
     timestamp
@@ -239,3 +238,6 @@ s3DeliveryStream.objects().toGlueTable(stack, 'ToGlue', {
 });
 ```
 
+# Getting Started
+
+This concludes the high-level overview of Punchcard. Up next: [Getting Started](1-getting-started.md).

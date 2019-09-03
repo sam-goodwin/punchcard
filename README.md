@@ -8,7 +8,7 @@ Punchcard is a TypeScript framework for building cloud applications atop the [AW
 
 ## Resources 
 
-* [Punchcard Guide](docs/index.md) - dives deep into concepts and use-cases.
+* [Punchcard Developer Guide](docs/index.md) - learn how to use Punchcard.
 * [Punchcard: Imagining the future of cloud programming](https://bit.ly/punchcard-cdk) - blog series exploring the philosophy behind this project.
 
 ## Hello, World!
@@ -42,7 +42,7 @@ export class HelloPunchcardStack extends cdk.Stack {
 }
 ```
 
-## [Example Stacks](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib)
+## Example Stacks
 
 * [Stream Processing](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/stream-processing.ts) - respond to SNS notifications with a Lambda Function; subscribe notifications to a SQS Queue and process them with a Lambda Function; process and forward data from a SQS Queue to a Kinesis Stream; sink records from the Stream to S3 and catalog it in a Glue Table.
 * [Invoke a Function from another Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/invoke-function.ts) - call a Function from another Function
