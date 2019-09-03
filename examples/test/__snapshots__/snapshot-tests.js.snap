@@ -1164,6 +1164,322 @@ Object {
 }
 `;
 
+exports[`dynamodb stack dynamodb should match snapshot 1`] = `
+Object {
+  "Resources": Object {
+    "CallerAllowEventRuleinvokefunctionCallerSchedule0611FE68E8022069": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "CallerBA8D1D35",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "CallerSchedule962F6585",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "CallerBA8D1D35": Object {
+      "Properties": Object {
+        "Code": Object {
+          "S3Bucket": "mock",
+          "S3Key": "mock",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "bootstrap_construct_path": "invoke-function/Caller",
+            "invokefunctionCaller49F62F6D_0_tableName": Object {
+              "Ref": "hashtable30434784",
+            },
+            "invokefunctionCaller49F62F6D_1_tableName": Object {
+              "Ref": "sortedtable7B46B3EA",
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "CallerServiceRole8749D4FA",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "CallerSchedule962F6585": Object {
+      "Properties": Object {
+        "ScheduleExpression": "rate(1 minute)",
+        "State": "ENABLED",
+        "Targets": Array [
+          Object {
+            "Arn": Object {
+              "Fn::GetAtt": Array [
+                "CallerBA8D1D35",
+                "Arn",
+              ],
+            },
+            "Id": "Target0",
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "CallerServiceRole8749D4FA": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "CallerServiceRoleDefaultPolicy4906D4B8": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "hashtable30434784",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+            Object {
+              "Action": Array [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "sortedtable7B46B3EA",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "CallerServiceRoleDefaultPolicy4906D4B8",
+        "Roles": Array [
+          Object {
+            "Ref": "CallerServiceRole8749D4FA",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "hashtable30434784": Object {
+      "DeletionPolicy": "Retain",
+      "Properties": Object {
+        "AttributeDefinitions": Array [
+          Object {
+            "AttributeName": "id",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": Array [
+          Object {
+            "AttributeName": "id",
+            "KeyType": "HASH",
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "sortedtable7B46B3EA": Object {
+      "DeletionPolicy": "Retain",
+      "Properties": Object {
+        "AttributeDefinitions": Array [
+          Object {
+            "AttributeName": "id",
+            "AttributeType": "S",
+          },
+          Object {
+            "AttributeName": "count",
+            "AttributeType": "N",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": Array [
+          Object {
+            "AttributeName": "id",
+            "KeyType": "HASH",
+          },
+          Object {
+            "AttributeName": "count",
+            "KeyType": "RANGE",
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+  },
+}
+`;
+
+exports[`hello-world stack hello-world should match snapshot 1`] = `
+Object {
+  "Resources": Object {
+    "MyFunction3BAA72D1": Object {
+      "Properties": Object {
+        "Code": Object {
+          "S3Bucket": "mock",
+          "S3Key": "mock",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "bootstrap_construct_path": "MyStack/MyFunction",
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "MyFunctionServiceRole3C357FF2",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "MyFunctionAllowEventRuleMyStackMyFunctionSchedule9F8A230C3C1B3FD9": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "MyFunction3BAA72D1",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "MyFunctionScheduleDD3F691B",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "MyFunctionScheduleDD3F691B": Object {
+      "Properties": Object {
+        "ScheduleExpression": "rate(1 minute)",
+        "State": "ENABLED",
+        "Targets": Array [
+          Object {
+            "Arn": Object {
+              "Fn::GetAtt": Array [
+                "MyFunction3BAA72D1",
+                "Arn",
+              ],
+            },
+            "Id": "Target0",
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "MyFunctionServiceRole3C357FF2": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+  },
+}
+`;
+
 exports[`invoke-function stack invoke-function should match snapshot 1`] = `
 Object {
   "Resources": Object {
@@ -1890,6 +2206,32 @@ Object {
         "HttpMethod": "GET",
         "Integration": Object {
           "IntegrationHttpMethod": "POST",
+          "IntegrationResponses": Array [
+            Object {
+              "SelectionPattern": "",
+              "StatusCode": "200",
+            },
+            Object {
+              "ResponseTemplates": Object {
+                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
+{
+  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
+}
+",
+              },
+              "SelectionPattern": "\\\\{\\"statusCode\\":500.*",
+              "StatusCode": "500",
+            },
+          ],
+          "PassthroughBehavior": "NEVER",
+          "RequestTemplates": Object {
+            "application/json": "#set($inputRoot = $input.path('$'))
+{
+  \\"__resourceId\\": \\"$context.resourceId\\",
+  \\"__httpMethod\\": \\"$context.httpMethod\\"
+}
+",
+          },
           "Type": "AWS",
           "Uri": Object {
             "Fn::Join": Array [
@@ -1914,49 +2256,23 @@ Object {
               ],
             ],
           },
-          "integrationResponses": Array [
-            Object {
-              "selectionPattern": "",
-              "statusCode": "200",
-            },
-            Object {
-              "responseTemplates": Object {
-                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-{
-  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
-}
-",
-              },
-              "selectionPattern": "\\\\{\\"statusCode\\":500.*",
-              "statusCode": "500",
-            },
-          ],
-          "passthroughBehavior": "NEVER",
-          "requestTemplates": Object {
-            "application/json": "#set($inputRoot = $input.path('$'))
-{
-  \\"__resourceId\\": \\"$context.resourceId\\",
-  \\"__httpMethod\\": \\"$context.httpMethod\\"
-}
-",
-          },
         },
         "MethodResponses": Array [
           Object {
-            "responseModels": Object {
+            "ResponseModels": Object {
               "application/json": Object {
                 "Ref": "PetApipetsGETResponse200FF51F4D9",
               },
             },
-            "statusCode": "200",
+            "StatusCode": "200",
           },
           Object {
-            "responseModels": Object {
+            "ResponseModels": Object {
               "application/json": Object {
                 "Ref": "PetApipetsGETResponse5002EFDFAFD",
               },
             },
-            "statusCode": "500",
+            "StatusCode": "500",
           },
         ],
         "RequestModels": Object {
@@ -2046,6 +2362,43 @@ Object {
         "HttpMethod": "POST",
         "Integration": Object {
           "IntegrationHttpMethod": "POST",
+          "IntegrationResponses": Array [
+            Object {
+              "SelectionPattern": "",
+              "StatusCode": "200",
+            },
+            Object {
+              "ResponseTemplates": Object {
+                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
+$inputRoot
+",
+              },
+              "SelectionPattern": "\\\\{\\"statusCode\\":409.*",
+              "StatusCode": "409",
+            },
+            Object {
+              "ResponseTemplates": Object {
+                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
+{
+  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
+}
+",
+              },
+              "SelectionPattern": "\\\\{\\"statusCode\\":500.*",
+              "StatusCode": "500",
+            },
+          ],
+          "PassthroughBehavior": "NEVER",
+          "RequestTemplates": Object {
+            "application/json": "#set($inputRoot = $input.path('$'))
+{
+  \\"type\\":\\"$inputRoot.type\\",
+  \\"price\\":$inputRoot.price,
+  \\"__resourceId\\": \\"$context.resourceId\\",
+  \\"__httpMethod\\": \\"$context.httpMethod\\"
+}
+",
+          },
           "Type": "AWS",
           "Uri": Object {
             "Fn::Join": Array [
@@ -2070,68 +2423,31 @@ Object {
               ],
             ],
           },
-          "integrationResponses": Array [
-            Object {
-              "selectionPattern": "",
-              "statusCode": "200",
-            },
-            Object {
-              "responseTemplates": Object {
-                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-$inputRoot
-",
-              },
-              "selectionPattern": "\\\\{\\"statusCode\\":409.*",
-              "statusCode": "409",
-            },
-            Object {
-              "responseTemplates": Object {
-                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-{
-  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
-}
-",
-              },
-              "selectionPattern": "\\\\{\\"statusCode\\":500.*",
-              "statusCode": "500",
-            },
-          ],
-          "passthroughBehavior": "NEVER",
-          "requestTemplates": Object {
-            "application/json": "#set($inputRoot = $input.path('$'))
-{
-  \\"type\\":\\"$inputRoot.type\\",
-  \\"price\\":$inputRoot.price,
-  \\"__resourceId\\": \\"$context.resourceId\\",
-  \\"__httpMethod\\": \\"$context.httpMethod\\"
-}
-",
-          },
         },
         "MethodResponses": Array [
           Object {
-            "responseModels": Object {
+            "ResponseModels": Object {
               "application/json": Object {
                 "Ref": "PetApipetsPOSTResponse2005523C306",
               },
             },
-            "statusCode": "200",
+            "StatusCode": "200",
           },
           Object {
-            "responseModels": Object {
+            "ResponseModels": Object {
               "application/json": Object {
                 "Ref": "PetApipetsPOSTResponse409774A4B75",
               },
             },
-            "statusCode": "409",
+            "StatusCode": "409",
           },
           Object {
-            "responseModels": Object {
+            "ResponseModels": Object {
               "application/json": Object {
                 "Ref": "PetApipetsPOSTResponse5004699E0D0",
               },
             },
-            "statusCode": "500",
+            "StatusCode": "500",
           },
         ],
         "RequestModels": Object {
@@ -2245,6 +2561,42 @@ $inputRoot
         "HttpMethod": "GET",
         "Integration": Object {
           "IntegrationHttpMethod": "POST",
+          "IntegrationResponses": Array [
+            Object {
+              "SelectionPattern": "",
+              "StatusCode": "200",
+            },
+            Object {
+              "ResponseTemplates": Object {
+                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
+$inputRoot
+",
+              },
+              "SelectionPattern": "\\\\{\\"statusCode\\":404.*",
+              "StatusCode": "404",
+            },
+            Object {
+              "ResponseTemplates": Object {
+                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
+{
+  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
+}
+",
+              },
+              "SelectionPattern": "\\\\{\\"statusCode\\":500.*",
+              "StatusCode": "500",
+            },
+          ],
+          "PassthroughBehavior": "NEVER",
+          "RequestTemplates": Object {
+            "application/json": "#set($inputRoot = $input.path('$'))
+{
+  \\"id\\": \\"$input.params('id')\\",
+  \\"__resourceId\\": \\"$context.resourceId\\",
+  \\"__httpMethod\\": \\"$context.httpMethod\\"
+}
+",
+          },
           "Type": "AWS",
           "Uri": Object {
             "Fn::Join": Array [
@@ -2269,67 +2621,31 @@ $inputRoot
               ],
             ],
           },
-          "integrationResponses": Array [
-            Object {
-              "selectionPattern": "",
-              "statusCode": "200",
-            },
-            Object {
-              "responseTemplates": Object {
-                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-$inputRoot
-",
-              },
-              "selectionPattern": "\\\\{\\"statusCode\\":404.*",
-              "statusCode": "404",
-            },
-            Object {
-              "responseTemplates": Object {
-                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-{
-  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
-}
-",
-              },
-              "selectionPattern": "\\\\{\\"statusCode\\":500.*",
-              "statusCode": "500",
-            },
-          ],
-          "passthroughBehavior": "NEVER",
-          "requestTemplates": Object {
-            "application/json": "#set($inputRoot = $input.path('$'))
-{
-  \\"id\\": \\"$input.params('id')\\",
-  \\"__resourceId\\": \\"$context.resourceId\\",
-  \\"__httpMethod\\": \\"$context.httpMethod\\"
-}
-",
-          },
         },
         "MethodResponses": Array [
           Object {
-            "responseModels": Object {
+            "ResponseModels": Object {
               "application/json": Object {
                 "Ref": "PetApipetsidGETResponse200248249B5",
               },
             },
-            "statusCode": "200",
+            "StatusCode": "200",
           },
           Object {
-            "responseModels": Object {
+            "ResponseModels": Object {
               "application/json": Object {
                 "Ref": "PetApipetsidGETResponse404FE9915DC",
               },
             },
-            "statusCode": "404",
+            "StatusCode": "404",
           },
           Object {
-            "responseModels": Object {
+            "ResponseModels": Object {
               "application/json": Object {
                 "Ref": "PetApipetsidGETResponse500B2083ABD",
               },
             },
-            "statusCode": "500",
+            "StatusCode": "500",
           },
         ],
         "RequestModels": Object {
