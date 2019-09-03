@@ -16,7 +16,7 @@ import { Json, Mapper, Raw, Shape } from '../shape';
 import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../util/constants';
 import { Omit } from '../util/omit';
 
-export type FunctionProps<T, U, D extends Dependency<any>> = {
+export type FunctionProps<T, U, D extends Dependency<any> | undefined = undefined> = {
   /**
    * Type of the request
    *

@@ -1,4 +1,4 @@
-## Stream Processing and Event Sources
+# Stream Processing and Event Sources
 
 Punchcard also has the concept of `Stream` data structures, which feel like in-memory streams/arrays/lists because of its chainable API, including operations such as `map`, `flatMap`, `filter` and `collect`. These operations fluidly create chains of Lambda Functions and [Event Sources](https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventsourcemapping.html).
 
