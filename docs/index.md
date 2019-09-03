@@ -8,7 +8,6 @@ If you'd like to learn more about the philosophy behind this project, check out 
 
 # Developer Guide
 
-0. Introduction and High-Level Walkthrough (this page).
 1. [Getting Started](1-getting-started.md)
 2. [Creating Functions](2-creating-functions.md)
 3. [Runtime Dependencies](3-runtime-dependencies.md)
@@ -16,7 +15,9 @@ If you'd like to learn more about the philosophy behind this project, check out 
 5. [Dynamic (and safe) DynamoDB DSL](5-dynamodb-dsl.md)
 6. [Stream Processing](6-stream-processing.md)
 
-We'll introduce Punchcard by walking through some features at a high-level.
+# Punchcard Tour
+
+To get a taste of Punchcard, we'll first walk through its features at a high-level:
 
 ## Runtime Code and Dependencies
 
