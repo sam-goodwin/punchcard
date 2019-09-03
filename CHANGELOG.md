@@ -1,4 +1,4 @@
-# [](https://github.com/sam-goodwin/punchcard/compare/v0.7.0...v0.8.0) (2019-08-27)
+# [0.8.0](https://github.com/sam-goodwin/punchcard/compare/v0.7.0...v0.8.0) (2019-08-27)
 
 
 ### Features
