@@ -66,9 +66,7 @@ export class CollectedQueue<T extends Shape<any>, S extends Stream<any, any, any
     super(scope, id, props);
     this.sender = props.stream.forBatch(this.resource, 'ToQueue', {
       depends: this,
-      handle: async (events, self) => {
-        self.sink(events);
-      }
+      handle: (events, self) => self.sink(events)
     }) as any;
   }
 }
