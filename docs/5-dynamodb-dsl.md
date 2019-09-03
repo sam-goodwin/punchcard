@@ -2,7 +2,7 @@
 
 Punchcard uses TypeScript's [Advanced Types](https://www.typescriptlang.org/docs/handbook/advanced-types.html) to derive a DynamoDB DSL from [`Shapes`](#shapes). This DSL simplifies the code required to marshal and unmarshal items from the DynamoDB format and build [Condition](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.ConditionExpressions.html), [Query](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Query.html) and [Update](https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Expressions.UpdateExpressions.html) Expressions.
 
-To demonstrate, let's create a `DynamoDB.Table` "with some shape":
+To demonstrate, let's create a `DynamoDB.Table` "with some Shape":
 ```ts
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',

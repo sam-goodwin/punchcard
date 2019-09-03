@@ -1,10 +1,11 @@
 # Shapes: Type-Safe Schemas
+Data structures in punchcard are like ordinary collections such as an `Array<T>` or `Map<K, V>`, except their type is explicitly defined with a "virtual type-system", called **Shapes**.
 
-Data structures in punchcard are like ordinary collections such as an `Array<T>` or `Map<K, V>`, except their type is explicitly defined with a "virtual type-system", called **Shapes**:
+Shapes are an in-code abstraction for (and agnostic to) data and schema formats such as JSON Schema, Glue Tables, DynamoDB, and (soon) Avro, Protobuf, Parquet, Orc.
 
 ```ts
 const topic = new SNS.Topic(stack, 'Topic', {
-  type: struct({
+  shape: struct({
     key: string(),
     count: integer({
       maximum: 10
@@ -15,35 +16,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
 });
 ```
 
-The `topic` client interface is a type-safe and structured interface derived from "its Shape":
-
-```ts
-await topic.publish({
-  key: 'some key',
-  count: 1,
-  timestamp: new Date(),
-  tags : ['some', 'tags']
-});
-```
-
-As opposed to the boiler-plate and opaque types when using the low-level AWS SDK:
-
-```ts
-const sns = new AWS.SNS();
-const topicArn = process.env.TOPIC_ARN;
-
-await sns.publish({
-  TopicArn: topicArn,
-  Message: JSON.stringify({
-    key: 'some key',
-    count: 1,
-    timestamp: new Date().toISOString(),
-    tags : ['some', 'tags']
-  }),
-})
-```
-
-That type-machinery is achieved by mapping a `Shape` to its `RuntimeShape` (the representation at runtime). In this case, the Topic's Shape is directly defined as a `struct` with a `string`, `integer`, `timestamp` and (optionally) an `array` of `strings`, and is encoded in the type for type-checking:
+This Topic's Shape is encoded in the type:
 
 ```ts
 SNS.Topic<StructType<{
@@ -54,7 +27,29 @@ SNS.Topic<StructType<{
 }>>
 ```
 
-Which should look and feel similar to an in-memory array:
+So, a type-safe interface for can be derived at runtime:
+
+```ts
+async function publish(notification: {
+  key: string;
+  count: number;
+  timestamp: Date;
+  tags?: string[] | undefined;
+}): Promise<AWS.SNS.PublishResponse>;
+```
+
+As opposed to the un-safe opaque types when using the low-level AWS SDK:
+
+```ts
+async function publish(request: {
+  TopicArn: string;
+  Message: string | Buffer;
+  // etc.
+})
+```
+
+That type-machinery is achieved by mapping a `Shape` to its `RuntimeShape` (the representation at runtime). It should look and feel like in-memory array:
+
 ```ts
 Array<{
   key: string;
@@ -65,11 +60,9 @@ Array<{
 ```
 
 # Validation and Serialization
-Shapes are an in-code abstractions for (and agnostic to) data and schema formats such as JSON Schema, Glue Tables, DynamoDB, and (soon) Avro, Protobuf, Parquet, Orc.
+The framework makes use of Shapes to type-check your code against its Schema and safely serialize and deserialize values at runtime. The application code is only concerned with a deserialized and validated value, and so the system is protected from bad data at both *compile time* and *runtime*.
 
-The framework makes use of the Topic's Shape to check your code against its Schema and automatically (and safely) serialize and deserialize values at runtime. The application code is only concerned with a deserialized and validated value, and so the system is protected from bad data at both *compile time* and *runtime*.
-
-For reference, the above Topic's Shape
+For reference, the above Topic's Shape:
 ```ts
 struct({
   key: string(),
@@ -81,7 +74,7 @@ struct({
 })
 ```
 
-... is the same as this JSON Schema:
+Is the same as this JSON Schema:
 
 ```json
 {
@@ -115,28 +108,36 @@ struct({
 
 # Data Types
 
-Shapes do more than schema validation - they provide a common language through which orindary values are mapped to other formats - JSON, DynamoDB Attribute Values and Glue (Hive) Table Schemas.
+Shapes are a format-agnostic Data Definition Language (DDL) for JSON, Glue (Hive SQL), (and soon) Avro, Orc and Parquet. For example, the Topic's Shape maps to this Glue Table Schema:
+```sql
+create table myTable(
+  key string,
+  count int,
+  timestamp timestamp,
+  tags array<string>
+)
+```
 
 Below is a table of supported Data Types with their corresponding mappings to different domains:
 
 | Shape             | Runtime      | JSON Schema       | Dynamo        | Glue       | Usage
 |-------------------|--------------|-------------------|---------------|------------|-----------
-| `BooleanType`     | `boolean`    | `boolean`         | `BOOL`        | `boolean`  | `boolean`
-| `TimestampType`      | `string`     | `string` (format: `date-time`) | `S`           | `timestamp`   | `timestamp`
-| `BinaryType`      | `Buffer`     | `string`<br>(contentEncoding: `base64`) | `B`  | `binary` | `binary()`
-| `StringType`      | `string`     | `string`          | `S`           | `string`   | `string()`
-| `IntegerType`     | `number`     | `integer`         | `N`           | `int`      | `integer()`
-| `BigIntType`      | `number`     | `integer`         | `N`           | `bigint`   | `bigint()`
-| `SmallIntType`    | `number`     | `integer`         | `N`           | `smallint` | `smallint()`
-| `TinyInt`         | `number`     | `integer`         | `N`           | `tinyint`  | `tinyint()`
-| `FloatType`       | `number`     | `number`          | `N`           | `float`    | `float()`
-| `DoubleType`      | `number`     | `number`          | `N`           | `double`   | `double()`
-| `ArrayType<T>`    | `Array<T>`   | `array`           | `L`           | `array`    | `array(string())`
-| `SetType<T>`      | `Set<T>`     | `array`<br>(uniqueItems: `false`) | `SS`<br>`NS`<br>`BS`<br>`L` | `array` | `set(string())`
-| `MapType<T>`      | `{[K: string]: T}` | `object`<br>(additionalProperties: `true`) | `M` | `map<string, V>` | `map(string())`
-| `StructType<T>`   | `{[K in keyof T]: T[K]}` | `object`<br>(additionalProperties: `false`) | `M` | `struct` | `struct({name: string()})`
-| `Dynamic`         | `unknown`    | `{}`      | ([AWS Document Client](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html)) | `Error` | `dynamic`
-| `UnsafeDynamic`     | `any`    | `{}`      | ([AWS Document Client](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html)) | `Error` | `unsafeDynamic`
+| `BooleanShape`     | `boolean`    | `boolean`         | `BOOL`        | `boolean`  | `boolean`
+| `TimestampShape`   | `string`     | `string` (format: `date-time`)    | `S`        | `timestamp`   | `timestamp`
+| `BinaryShape`      | `Buffer`     | `string`<br>(contentEncoding: `base64`) | `B`  | `binary` | `binary()`
+| `StringShape`      | `string`     | `string`          | `S`           | `string`   | `string()`
+| `IntegerShape`     | `number`     | `integer`         | `N`           | `int`      | `integer()`
+| `BigIntShape`      | `number`     | `integer`         | `N`           | `bigint`   | `bigint()`
+| `SmallIntShape`    | `number`     | `integer`         | `N`           | `smallint` | `smallint()`
+| `TinyIntShape`     | `number`     | `integer`         | `N`           | `tinyint`  | `tinyint()`
+| `FloatShape`       | `number`     | `number`          | `N`           | `float`    | `float()`
+| `DoubleShape`      | `number`     | `number`          | `N`           | `double`   | `double()`
+| `ArrayShape<T>`    | `Array<T>`   | `array`           | `L`           | `array`    | `array(string())`
+| `SetShape<T>`      | `Set<T>`     | `array`<br>(uniqueItems: `false`) | `SS`<br>`NS`<br>`BS`<br>`L` | `array` | `set(string())`
+| `MapShape<T>`      | `{[K: string]: T}` | `object`<br>(additionalProperties: `true`) | `M` | `map<string, V>` | `map(string())`
+| `StructShape<T>`   | `{[K in keyof T]: T[K]}` | `object`<br>(additionalProperties: `false`) | `M` | `struct` | `struct({name: string()})`
+| `DynamicShape`      | `unknown`    | `{}`      | ([AWS Document Client](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html)) | `Error` | `dynamic`
+| `UnsafeDynamicShape`| `any`    | `{}`      | ([AWS Document Client](https://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/DynamoDB/DocumentClient.html)) | `Error` | `unsafeDynamic`
 
 # Next
 Shapes form the foundation on which DSLs are built for interacting with services. This is best demonstrated with AWS DynamoDB.

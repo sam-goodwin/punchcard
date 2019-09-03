@@ -5,7 +5,7 @@ To contact other services in your Function, data structures such as `SNS.Topic`,
 First, create the Construct you want to access from Lambda, like an `SQS.Queue`:
 ```ts
 const queue = new SQS.Queue(stack, 'MyQueue', {
-  type: string()
+  shape: string()
 });
 ```
 
@@ -76,7 +76,7 @@ A Function's Runtime Dependencies are encoded in the type signature, to simplify
 
 Ordinarily, an in-memory Function's signature would be `Function<T, U>` (read: "a function from `T` to `U`"). In Punchcard, there's a third argument `D` which captures the Function's runtime dependencies, `Function<T, U, D extends Dependency<any>` (read: "a function from `T` to `U` with runtime dependency `D`").
 
-In our example, the Queue has type:
+In our example, the Queue has shape:
 ```ts
 SQS.Queue<StringShape>
 ```
@@ -90,8 +90,8 @@ Resulting in a Function taking a `CloudWatch.Event` payload and returning an `an
 
 ```ts
 Lambda.Function<
-  CloudWatch.Event,      // T
-  any,                   // U
+  CloudWatch.Event,       // T
+  any,                    // U
   SQS.Client<StringShape> // D
 >;
 ```
@@ -120,7 +120,7 @@ const namedDependency: Dependency.Named<{
 You may have noticed something strange about the definition of our `SQS.Queue`:
 ```ts
 const queue: SQS.Queue<StringShape> = new SQS.Queue(this, 'Q', {
-  type: string()
+  shape: string()
 });
 ```
 

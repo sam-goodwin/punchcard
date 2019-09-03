@@ -1,6 +1,6 @@
 # Stream Processing and Event Sources
 
-Punchcard also has the concept of `Stream` data structures, which feel like in-memory streams/arrays/lists because of its chainable API, including operations such as `map`, `flatMap`, `filter` and `collect`. These operations fluidly create chains of Lambda Functions and [Event Sources](https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventsourcemapping.html).
+Punchcard has the concept of `Stream` data structures, which feel like in-memory streams/arrays/lists because of its chainable API, including operations such as `map`, `flatMap`, `filter` and `collect`. These operations fluidly create chains of Lambda Functions and [Event Sources](https://docs.aws.amazon.com/lambda/latest/dg/invocation-eventsourcemapping.html).
 
 Data structures that implement `Stream` are: `SNS.Topic`, `SQS.Queue`, `Kinesis.Stream`, `Firehose.DeliveryStream` and `Glue.Table`. Let's look at some examples of how powerful this flow can be.
 
@@ -15,8 +15,6 @@ const topic = new SNS.Topic(stack, 'Topic', {
 });
 ```
 
-# For Each
-
 You can attach a new Lambda Function to process each notification with `forEach`:
 ```ts
 topic.notifications().forEach(stack, 'ForEachNotification', {
@@ -26,7 +24,6 @@ topic.notifications().forEach(stack, 'ForEachNotification', {
 })
 ```
 
-# Map
 Or, create a new SQS Queue and subscribe notifications to it:
 
 *(Messages in the `Queue` are of the same type as the notifications in the `Topic`.)*
@@ -34,6 +31,13 @@ Or, create a new SQS Queue and subscribe notifications to it:
 ```ts
 const queue = topic.toSQSQueue(stack, 'MyNewQueue');
 ```
+
+These functions are called `Collectors` and they follow the naming convention `to{service}{resource}`:
+* `toFirehoseDeliveryStream`
+* `toGlueTable`
+* `toKinesisStream`
+* `toSNSTopic`
+* `toSQSQueue`
 
 We can then, perhaps, `map` over each message in the `Queue` and collect the results into a new AWS Kinesis `Stream`:
 
