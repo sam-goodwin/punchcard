@@ -3,8 +3,8 @@ import cdk = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
 
-import { DynamoDB, Lambda, Shape } from 'punchcard';
-const { integer, string } = Shape;
+import { DynamoDB, Lambda } from 'punchcard';
+import { integer, string } from 'punchcard/lib/shape';
 
 const app = new cdk.App();
 export default app;
@@ -14,7 +14,7 @@ const stack = new cdk.Stack(app, 'scheduled-function-example');
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
   sortKey: undefined,
-  shape: {
+  attributes: {
     id: string(),
     count: integer({
       minimum: 0
@@ -23,9 +23,7 @@ const table = new DynamoDB.Table(stack, 'my-table', {
   billingMode: BillingMode.PAY_PER_REQUEST
 });
 
-const executorService = new Lambda.ExecutorService();
-
-executorService.schedule(stack, 'Poller', {
+Lambda.schedule(stack, 'Poller', {
   depends: table,
   schedule: Schedule.rate(Duration.minutes(1)),
   handle: async (_, table) => {

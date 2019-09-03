@@ -11,11 +11,11 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: Shape.string()
+      shape: Shape.string()
     });
 
     const results: string[] = [];
-    await (queue.stream().forEach(stack, 'od', {
+    await (queue.messages().forEach(stack, 'od', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -31,11 +31,11 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: Shape.string()
+      shape: Shape.string()
     });
 
     const results: string[] = [];
-    await (queue.stream().forEach(stack, 'od', {
+    await (queue.messages().forEach(stack, 'od', {
       async handle(v) {
         results.push(v);
         return Promise.resolve(v);
@@ -51,7 +51,7 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: Shape.string()
+      shape: Shape.string()
     });
 
     const d1: Core.Dependency<string> = {
@@ -64,7 +64,7 @@ describe('run', () => {
     };
 
     const results: number[] = [];
-    const f = await (queue.stream().map({
+    const f = await (queue.messages().map({
       depends: d1,
       handle: async (v, d1) => {
         expect(d1).toEqual('d1');
@@ -91,7 +91,7 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: Shape.string()
+      shape: Shape.string()
     });
 
     const d1: Core.Dependency<string> = {
@@ -99,7 +99,7 @@ describe('run', () => {
       install: () => undefined
     };
 
-    const stream = queue.stream()
+    const stream = queue.messages()
       .map({
         depends: d1,
         handle: async (v, d1) => {
@@ -108,7 +108,7 @@ describe('run', () => {
         }
       })
       .collect(stack, 'Stream', Util.Collectors.toKinesisStream({
-        type: Shape.integer()
+        shape: Shape.integer()
       }));
 
     const sink = {
@@ -127,7 +127,7 @@ describe('run', () => {
     const stack = new core.Stack(new core.App(), 'stack');
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      type: Shape.string()
+      shape: Shape.string()
     });
 
     const d1: Core.Dependency<string> = {
@@ -135,7 +135,7 @@ describe('run', () => {
       install: () => undefined
     };
 
-    const stream = queue.stream()
+    const stream = queue.messages()
       .map({
         depends: d1,
         handle: async (v, d1) => {
@@ -144,7 +144,7 @@ describe('run', () => {
         }
       })
       .toKinesisStream(stack, 'Stream', {
-        type: Shape.integer()
+        shape: Shape.integer()
       });
 
     const sink = {

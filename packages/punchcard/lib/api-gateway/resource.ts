@@ -2,7 +2,7 @@ import apigateway = require('@aws-cdk/aws-apigateway');
 import cdk = require('@aws-cdk/core');
 
 import { Dependency } from '../core/dependency';
-import { jsonSchema, Kind, Mapper, Raw, Shape, StructType, Type } from '../shape';
+import { Kind, Mapper, Raw, Shape, struct, StructShape } from '../shape';
 import { isRuntime } from '../util/constants';
 import { Tree } from '../util/tree';
 import { Method, MethodName, RequestMappings, Response, Responses } from './method';
@@ -77,31 +77,31 @@ export class Resource extends Tree<Resource> {
     }
   }
 
-  public setDeleteMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'DELETE'>) {
+  public setDeleteMethod<R extends Dependency<any>, T extends StructShape<any>, U extends Responses>(method: Method<R, T, U, 'DELETE'>) {
     this.addMethod('DELETE', method);
   }
 
-  public setGetMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'GET'>) {
+  public setGetMethod<R extends Dependency<any>, T extends StructShape<any>, U extends Responses>(method: Method<R, T, U, 'GET'>) {
     this.addMethod('GET', method);
   }
 
-  public setHeadMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'HEAD'>) {
+  public setHeadMethod<R extends Dependency<any>, T extends StructShape<any>, U extends Responses>(method: Method<R, T, U, 'HEAD'>) {
     this.addMethod('HEAD', method);
   }
 
-  public setOptionsMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'OPTIONS'>) {
+  public setOptionsMethod<R extends Dependency<any>, T extends StructShape<any>, U extends Responses>(method: Method<R, T, U, 'OPTIONS'>) {
     this.addMethod('OPTIONS', method);
   }
 
-  public setPatchMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'PATCH'>) {
+  public setPatchMethod<R extends Dependency<any>, T extends StructShape<any>, U extends Responses>(method: Method<R, T, U, 'PATCH'>) {
     this.addMethod('PATCH', method);
   }
 
-  public setPostMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'POST'>) {
+  public setPostMethod<R extends Dependency<any>, T extends StructShape<any>, U extends Responses>(method: Method<R, T, U, 'POST'>) {
     this.addMethod('POST', method);
   }
 
-  public setPutMethod<R extends Dependency<any>, T extends Shape, U extends Responses>(method: Method<R, T, U, 'PUT'>) {
+  public setPutMethod<R extends Dependency<any>, T extends StructShape<any>, U extends Responses>(method: Method<R, T, U, 'PUT'>) {
     this.addMethod('PUT', method);
   }
 
@@ -109,7 +109,7 @@ export class Resource extends Tree<Resource> {
     return new Resource(this, pathPart, options);
   }
 
-  private addMethod<R extends Dependency<any>, T extends Shape, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
+  private addMethod<R extends Dependency<any>, T extends StructShape<any>, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
     this.makeHandler(methodName, method as any);
     if (isRuntime()) {
       // don't do expensive work at runtime
@@ -121,25 +121,25 @@ export class Resource extends Tree<Resource> {
 
     const requestShape = method.request.shape;
     cfnMethod.addPropertyOverride('Integration', {
-      passthroughBehavior: 'NEVER',
-      requestTemplates: {
+      PassthroughBehavior: 'NEVER',
+      RequestTemplates: {
         'application/json': velocityTemplate(requestShape, {
           ...method.request.mappings as object,
           __resourceId: $context.resourceId,
           __httpMethod: $context.httpMethod
         })
       },
-      integrationResponses: Object.keys(method.responses).map(statusCode => {
+      IntegrationResponses: Object.keys(method.responses).map(statusCode => {
         if (statusCode.toString() === StatusCode.Ok.toString()) {
           return {
-            statusCode,
-            selectionPattern: ''
+            StatusCode: statusCode,
+            SelectionPattern: ''
           };
         } else {
           return {
-            statusCode,
-            selectionPattern: `\\{"statusCode":${statusCode}.*`,
-            responseTemplates: {
+            StatusCode: statusCode,
+            SelectionPattern: `\\{"statusCode":${statusCode}.*`,
+            ResponseTemplates: {
               'application/json': velocityTemplate(
                 (method.responses as any)[statusCode] as any, {},
                 "$util.parseJson($input.path('$.errorMessage')).body")
@@ -158,18 +158,18 @@ export class Resource extends Tree<Resource> {
       'application/json': new apigateway.CfnModel(methodResource, 'Request', {
         restApiId: this.restApiId,
         contentType: 'application/json',
-        schema: jsonSchema(requestShape)
+        schema: requestShape.toJsonSchema()
       }).ref
     });
     const responses = new cdk.Construct(methodResource, 'Response');
     cfnMethod.addPropertyOverride('MethodResponses', Object.keys(method.responses).map(statusCode => {
       return {
-        statusCode,
-        responseModels: {
+        StatusCode: statusCode,
+        ResponseModels: {
           'application/json': new apigateway.CfnModel(responses, statusCode, {
             restApiId: this.restApiId,
             contentType: 'application/json',
-            schema: (method.responses as {[key: string]: Type<any>})[statusCode].toJsonSchema()
+            schema: (method.responses as {[key: string]: Shape<any>})[statusCode].toJsonSchema()
           }).ref
         },
         // TODO: responseParameters
@@ -182,7 +182,7 @@ export class Resource extends Tree<Resource> {
     const responseMappers: ResponseMappers = {} as ResponseMappers;
     Object.keys(method.responses).forEach(statusCode => {
       // TODO: can we return raw here?
-      (responseMappers as any)[statusCode] = Raw.forType(method.responses[statusCode]);
+      (responseMappers as any)[statusCode] = Raw.forShape(method.responses[statusCode]);
     });
     this.methods[httpMethod.toUpperCase()] = {
       handler: method.handle,
@@ -192,23 +192,41 @@ export class Resource extends Tree<Resource> {
   }
 }
 
-function velocityTemplate<S extends Shape>(
-    shape: Shape,
-    mappings?: RequestMappings<S, any>,
+function velocityTemplate<S extends Shape<any>>(
+    shape: S,
+    mappings?: any,
     root: string = "$input.path('$')"): string {
 
   let template = `#set($inputRoot = ${root})\n`;
-  template += '{\n';
 
-  function walk(shape: Shape, name: string, mapping: TypedMapping<any> | object, depth: number) {
+  if (StructShape.isStruct(shape)) {
+    template += '{\n';
+    let i = 0;
+    const keys = new Set(Object.keys(shape.fields).concat(Object.keys(mappings || {})));
+    for (const childName of keys) {
+      walk(shape, childName, (mappings as any)[childName], 1);
+      if (i + 1 < keys.size) {
+        template += ',';
+      }
+      template += '\n';
+      i += 1;
+    }
+    template += '}\n';
+  } else {
+    template += '$inputRoot\n'; // TODO: this is probably wrong
+  }
+  return template;
+
+  function walk(shape: StructShape<any>, name: string, mapping: TypedMapping<any> | object, depth: number) {
     template += '  '.repeat(depth);
+
     if (mapping) {
       if ((mapping as any)[isMapping]) {
         template += `"${name}": ${(mapping as Mapping).path}`;
       } else if (typeof mapping === 'object') {
         template += `"${name}": {\n`;
         Object.keys(mapping).forEach((childName, i) => {
-          const childShape = (shape[childName] as StructType<any>).shape;
+          const childShape = (shape.fields[childName] as StructShape<any>).fields;
           walk(childShape, childName, (mapping as any)[childName], depth + 1);
           if (i + 1 < Object.keys(mapping).length) {
             template += ',\n';
@@ -220,9 +238,9 @@ function velocityTemplate<S extends Shape>(
         throw new Error(`unexpected type when generating velocity template: ${typeof mapping}`);
       }
     } else {
-      const type = shape[name];
+      const field = shape.fields[name];
       let path: string;
-      if (type.kind === Kind.String || type.kind === Kind.Timestamp || type.kind === Kind.Binary) {
+      if (field.kind === Kind.String || field.kind === Kind.Timestamp || field.kind === Kind.Binary) {
         path = `"$inputRoot.${name}"`;
       } else {
         path = `$inputRoot.${name}`;
@@ -231,22 +249,9 @@ function velocityTemplate<S extends Shape>(
       template += `"${name}":${path}`;
     }
   }
-
-  let i = 0;
-  const keys = new Set(Object.keys(shape).concat(Object.keys(mappings || {})));
-  for (const childName of keys) {
-    walk(shape, childName, (mappings as any)[childName], 1);
-    if (i + 1 < keys.size) {
-      template += ',';
-    }
-    template += '\n';
-    i += 1;
-  }
-  template += '}\n';
-  return template;
 }
 
-// class VelocityTemplate<S extends Shape> {
+// class VelocityTemplate<S extends Shape<any>> {
 //   constructor(shape: S, mappings: RequestMappings<S, any> = {}, root: string = "$input.path('$')") {
 //     function walk(type: Type<any>): Renderer {
 //       switch (type.kind) {

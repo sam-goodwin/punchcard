@@ -1,7 +1,7 @@
-import { RuntimeType, Shape } from '../../shape/shape';
-import { ArrayType } from '../../shape/types/array';
-import { Type } from '../../shape/types/type';
+import { ArrayShape } from '../../shape/array';
+import { RuntimeShape, Shape } from '../../shape/shape';
 import { Tree, TreeFields } from '../../util/tree';
+import { Attributes } from '../table';
 import { Compilable, CompileContext, CompiledExpression } from './compile-context';
 
 // tslint:disable: no-shadowed-variable
@@ -11,15 +11,15 @@ export const operand = Symbol.for('dynamodb-operand');
 export const update = Symbol.for('dynamodb-operand-update');
 export const condition = Symbol.for('dynamodb-operand-condition');
 
-export type InferDynamoPathType<T extends Type<any>> = ReturnType<T['toDynamoPath']>;
+export type InferDynamoPathType<T extends Shape<any>> = ReturnType<T['toDynamoPath']>;
 
 /**
  * Maps each attribute in a schema to a 'facade' attribute representing its path.
  *
  * TODO: better name
  */
-export type Facade<S extends Shape> = {
-  [K in keyof S]: InferDynamoPathType<S[K]>;
+export type DSL<A extends Attributes> = {
+  [K in keyof A]: InferDynamoPathType<A[K]>;
 };
 
 export abstract class DynamoPath extends Tree<DynamoPath> {
@@ -61,7 +61,7 @@ export class IndexParent extends DynamoPath {
 /**
  * Represents a path to an attribute within a Dynamo Item.
  */
-export class BaseDynamoPath<T extends Type<any>> extends DynamoPath implements Operand<T> {
+export class BaseDynamoPath<T extends Shape<any>> extends DynamoPath implements Operand<T> {
   public readonly [operand]: 'operand' = 'operand';
 
   constructor(parent: DynamoPath, name: string, public readonly type: T) {
@@ -97,7 +97,7 @@ export class BaseDynamoPath<T extends Type<any>> extends DynamoPath implements O
   }
 }
 
-export class OrdPath<T extends Type<any>> extends BaseDynamoPath<T> {
+export class OrdPath<T extends Shape<any>> extends BaseDynamoPath<T> {
   public gt(value: ConditionValue<T>): Gt<T> {
     return new Gt(this.type, this, value);
   }
@@ -146,7 +146,7 @@ export class OrdPath<T extends Type<any>> extends BaseDynamoPath<T> {
  *
  * @param schema of the dynamodb item
  */
-export function toFacade<S extends Shape>(schema: S): Facade<S> {
+export function toDSL<A extends Attributes>(schema: A): DSL<A> {
   const facade: any = {};
   for (const [name, value] of Object.entries(schema)) {
     facade[name] = value.toDynamoPath(new RootParent(name), name);
@@ -160,15 +160,15 @@ value ::=
   | operand '+' operand
   | operand '-' operand
  */
-export type UpdateValue<T extends Type<any>> = RuntimeType<T> | UpdateOperand<T> | BaseDynamoPath<T>;
+export type UpdateValue<T extends Shape<any>> = RuntimeShape<T> | UpdateOperand<T> | BaseDynamoPath<T>;
 
-export type ConditionValue<T extends Type<any>> = RuntimeType<T> | ConditionOperand<T> | BaseDynamoPath<T>;
+export type ConditionValue<T extends Shape<any>> = RuntimeShape<T> | ConditionOperand<T> | BaseDynamoPath<T>;
 
 /*
 operand ::=
   path | function
 */
-export abstract class Operand<T extends Type<any>> implements Compilable {
+export abstract class Operand<T extends Shape<any>> implements Compilable {
   public readonly [operand]: 'operand' = 'operand';
 
   constructor(public readonly type: T) {}
@@ -176,15 +176,15 @@ export abstract class Operand<T extends Type<any>> implements Compilable {
   public abstract compile(context: CompileContext): string;
 }
 
-export interface UpdateOperand<T extends Type<any>> extends Operand<T> {
+export interface UpdateOperand<T extends Shape<any>> extends Operand<T> {
   readonly [update]: 'update'
 }
 
-export interface ConditionOperand<T extends Type<any>> extends Operand<T> {
+export interface ConditionOperand<T extends Shape<any>> extends Operand<T> {
   readonly [condition]: 'condition'
 }
 
-export function compileValue<T extends Type<any>>(type: T, value: RuntimeType<T> | Operand<T>, context: CompileContext): string {
+export function compileValue<T extends Shape<any>>(type: T, value: RuntimeShape<T> | Operand<T>, context: CompileContext): string {
   if ((value as any)[operand] === 'operand') {
     return ( value as Operand<any>).compile(context);
   } else {
@@ -253,7 +253,7 @@ function ::=
  * Comparators
  */
 
-abstract class ComparisonOperator<T extends Type<any>> extends Condition {
+abstract class ComparisonOperator<T extends Shape<any>> extends Condition {
   protected readonly abstract operator: string;
 
   constructor(private readonly type: T, private readonly lhs: ConditionValue<T>, private readonly rhs: ConditionValue<T>) {
@@ -268,31 +268,31 @@ abstract class ComparisonOperator<T extends Type<any>> extends Condition {
   }
 }
 
-export class Equals<T extends Type<any>> extends ComparisonOperator<T> {
+export class Equals<T extends Shape<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '=';
 }
 
-export class NotEquals<T extends Type<any>> extends ComparisonOperator<T> {
+export class NotEquals<T extends Shape<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '<>';
 }
 
-export class Gt<T extends Type<any>> extends ComparisonOperator<T> {
+export class Gt<T extends Shape<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '>';
 }
 
-export class Gte<T extends Type<any>> extends ComparisonOperator<T> {
+export class Gte<T extends Shape<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '>=';
 }
 
-export class Lt<T extends Type<any>> extends ComparisonOperator<T> {
+export class Lt<T extends Shape<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '<';
 }
 
-export class Lte<T extends Type<any>> extends ComparisonOperator<T> {
+export class Lte<T extends Shape<any>> extends ComparisonOperator<T> {
   protected readonly operator: string = '<=';
 }
 
-export class Between<T extends Type<any>> extends Condition {
+export class Between<T extends Shape<any>> extends Condition {
   constructor(private readonly type: T, private readonly value: ConditionValue<T>,
               private readonly lower: ConditionValue<T>, private readonly upper: ConditionValue<T>) {
     super();
@@ -307,7 +307,7 @@ export class Between<T extends Type<any>> extends Condition {
   }
 }
 
-export class In<T extends Type<any>> extends Condition {
+export class In<T extends Shape<any>> extends Condition {
   constructor(private readonly type: T, private readonly value: ConditionValue<T>, private readonly operands: Array<ConditionValue<T>>) {
     super();
   }
@@ -351,7 +351,7 @@ export class AttributeExists extends Condition {
   }
 }
 
-export class BeginsWith<T extends Type<any>> extends Condition {
+export class BeginsWith<T extends Shape<any>> extends Condition {
   constructor(private readonly attribute: BaseDynamoPath<T>, private readonly substring: ConditionValue<T>) {
     super();
   }
@@ -363,7 +363,7 @@ export class BeginsWith<T extends Type<any>> extends Condition {
   }
 }
 
-export class Contains<T extends Type<any>> extends Condition {
+export class Contains<T extends Shape<any>> extends Condition {
   constructor(private readonly path: DynamoPath, private readonly type: T, private readonly value: ConditionValue<T>) {
     super();
   }
@@ -470,7 +470,7 @@ export abstract class UpdateAction implements Compilable {
 set-action ::=
   path = value
 */
-export class SetAction<T extends Type<any>> extends UpdateAction {
+export class SetAction<T extends Shape<any>> extends UpdateAction {
   constructor(private readonly path: BaseDynamoPath<T>, private readonly value: UpdateValue<T>) {
     super(ActionType.SET);
   }
@@ -482,7 +482,7 @@ export class SetAction<T extends Type<any>> extends UpdateAction {
   }
 }
 
-export function remove<T extends Type<any>>(path: BaseDynamoPath<T>): RemoveAction<T> {
+export function remove<T extends Shape<any>>(path: BaseDynamoPath<T>): RemoveAction<T> {
   return new RemoveAction(path);
 }
 
@@ -490,7 +490,7 @@ export function remove<T extends Type<any>>(path: BaseDynamoPath<T>): RemoveActi
 remove-action ::=
   path
 */
-export class RemoveAction<T extends Type<any>> extends UpdateAction {
+export class RemoveAction<T extends Shape<any>> extends UpdateAction {
   constructor(private readonly path: BaseDynamoPath<T>) {
     super(ActionType.REMOVE);
   }
@@ -504,8 +504,8 @@ export class RemoveAction<T extends Type<any>> extends UpdateAction {
 add-action ::=
   path value
 */
-export class AddAction<T extends Type<any>> extends UpdateAction {
-  constructor(private readonly attribute: BaseDynamoPath<T>, private readonly value: RuntimeType<T>) {
+export class AddAction<T extends Shape<any>> extends UpdateAction {
+  constructor(private readonly attribute: BaseDynamoPath<T>, private readonly value: RuntimeShape<T>) {
     super(ActionType.ADD);
   }
 
@@ -521,7 +521,7 @@ export class AddAction<T extends Type<any>> extends UpdateAction {
   path value
 */
 export class DeleteAction<V> extends UpdateAction {
-  constructor(private readonly path: BaseDynamoPath<Type<Set<V>>>, private readonly subset: Set<V>) {
+  constructor(private readonly path: BaseDynamoPath<Shape<Set<V>>>, private readonly subset: Set<V>) {
     super(ActionType.DELETE);
   }
 
@@ -532,7 +532,7 @@ export class DeleteAction<V> extends UpdateAction {
   }
 }
 
-export class IfNotExists<T extends Type<any>> implements Compilable {
+export class IfNotExists<T extends Shape<any>> implements Compilable {
   constructor(private readonly path: BaseDynamoPath<T>, private readonly value: UpdateValue<T>) {}
 
   public compile(context: CompileContext): string {
@@ -540,14 +540,14 @@ export class IfNotExists<T extends Type<any>> implements Compilable {
   }
 }
 
-export function list_append<T extends Type<any>>(type: ArrayType<T>, lhs: UpdateValue<ArrayType<T>>, rhs: UpdateValue<ArrayType<T>>): ListAppend<T> {
+export function list_append<T extends Shape<any>>(type: ArrayShape<T>, lhs: UpdateValue<ArrayShape<T>>, rhs: UpdateValue<ArrayShape<T>>): ListAppend<T> {
   return new ListAppend(type, lhs, rhs);
 }
 
-export class ListAppend<T extends Type<any>> extends Operand<ArrayType<T>> implements UpdateOperand<ArrayType<T>> {
+export class ListAppend<T extends Shape<any>> extends Operand<ArrayShape<T>> implements UpdateOperand<ArrayShape<T>> {
   public readonly [update]: 'update' = 'update';
 
-  constructor(type: ArrayType<T>, private readonly lhs: UpdateValue<ArrayType<T>>, private readonly rhs: UpdateValue<ArrayType<T>>) {
+  constructor(type: ArrayShape<T>, private readonly lhs: UpdateValue<ArrayShape<T>>, private readonly rhs: UpdateValue<ArrayShape<T>>) {
     super(type);
   }
 
@@ -556,7 +556,7 @@ export class ListAppend<T extends Type<any>> extends Operand<ArrayType<T>> imple
   }
 }
 
-abstract class NumericComputation<T extends Type<any>> extends Operand<T> implements UpdateOperand<T> {
+abstract class NumericComputation<T extends Shape<any>> extends Operand<T> implements UpdateOperand<T> {
   public readonly [update]: 'update' = 'update';
 
   protected abstract readonly operator: string;
@@ -570,10 +570,10 @@ abstract class NumericComputation<T extends Type<any>> extends Operand<T> implem
   }
 }
 
-export class Plus<T extends Type<any>> extends NumericComputation<T> {
+export class Plus<T extends Shape<any>> extends NumericComputation<T> {
   protected readonly operator: string = '+';
 }
 
-export class Minus<T extends Type<any>> extends NumericComputation<T> {
+export class Minus<T extends Shape<any>> extends NumericComputation<T> {
   protected readonly operator: string = '-';
 }

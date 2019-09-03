@@ -1,15 +1,17 @@
-import { Shape } from './shape';
-import { StructFields, StructPath, StructType } from './types';
+export * from './array';
+export * from './binary';
+export * from './boolean';
+export * from './dynamic';
+export * from './kind';
+export * from './map';
+export * from './number';
+export * from './optional';
+export * from './set';
+export * from './shape';
+export * from './string';
+export * from './struct';
+export * from './timestamp';
+export * from './typed-set';
 
 export * from './json';
 export * from './mapper';
-export * from './shape';
-export * from './types';
-
-export function jsonPath<S extends Shape>(schema: S): StructFields<S> {
-  return new StructPath(null as any, '$', new StructType(schema)).fields;
-}
-
-export function jsonSchema<S extends Shape>(schema: S): { [key: string]: any } {
-  return new StructType(schema).toJsonSchema();
-}

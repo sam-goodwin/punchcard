@@ -15,6 +15,7 @@ export {
  * Export namespaces for each AWS service
  */
 import * as ApiGateway from './api-gateway';
+import * as CloudWatch from './cloudwatch';
 import * as DynamoDB from './dynamodb';
 import * as Firehose from './firehose';
 import * as Glue from './glue';
@@ -26,6 +27,7 @@ import * as SQS from './sqs';
 
 export {
   ApiGateway,
+  CloudWatch,
   DynamoDB,
   Firehose,
   Glue,

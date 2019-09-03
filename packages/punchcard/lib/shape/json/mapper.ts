@@ -1,8 +1,7 @@
-import { RuntimeShape, RuntimeType, Shape } from '../shape';
+import { RuntimeShape, Shape } from '../shape';
 
 import { Mapper as IMapper, Reader, Writer } from '../mapper/mapper';
 import { Raw } from '../mapper/raw';
-import { struct, Type } from '../types';
 
 export namespace Json {
   export interface Configuration {
@@ -11,16 +10,16 @@ export namespace Json {
     validate?: boolean;
   }
 
-  export function jsonLine<T extends Type<any>>(type: T, configuration?: Configuration): IMapper<RuntimeType<T>, string> {
-    const m = forType(type, configuration);
+  export function jsonLine<T extends Shape<any>>(type: T, configuration?: Configuration): IMapper<RuntimeShape<T>, string> {
+    const m = forShape(type, configuration);
     return {
       read: s => m.read(s),
       write: s => `${m.write(s)}\n`
     };
   }
 
-  export function forShape<S extends Shape>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, string> {
-    return Json.forType(struct(shape), configuration);
+  export function forShape<S extends Shape<any>>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, string> {
+    return new Mapper(shape, configuration);
   }
 
   export function forAny(): IMapper<any, string> {
@@ -30,11 +29,7 @@ export namespace Json {
     };
   }
 
-  export function forType<T extends Type<any>>(type: T, configuration?: Configuration): IMapper<RuntimeType<T>, string> {
-    return new Mapper(type, configuration);
-  }
-
-  export class Mapper<T extends Type<any>> implements IMapper<RuntimeType<T>, string> {
+  export class Mapper<T extends Shape<any>> implements IMapper<RuntimeShape<T>, string> {
     private readonly reader: Reader<any>;
     private readonly writer: Writer<any>;
     private readonly validate: boolean;
@@ -45,15 +40,15 @@ export namespace Json {
       this.validate = configuration.validate === undefined ? true : configuration.validate;
     }
 
-    public read(json: string): RuntimeType<T> {
-      const record: RuntimeType<T> = this.reader.read(this.type, JSON.parse(json));
+    public read(json: string): RuntimeShape<T> {
+      const record: RuntimeShape<T> = this.reader.read(this.type, JSON.parse(json));
       if (this.validate) {
         this.type.validate(record);
       }
       return record;
     }
 
-    public write(record: RuntimeType<T>): string {
+    public write(record: RuntimeShape<T>): string {
       if (this.validate) {
         this.type.validate(record);
       }

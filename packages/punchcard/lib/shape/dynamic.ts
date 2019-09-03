@@ -1,9 +1,9 @@
-import { DynamoPath, InferDynamoPathType } from '../../dynamodb/expression/path';
-import { TreeFields } from '../../util/tree';
-import { InferJsonPathType, JsonPath } from '../json/path';
+import { DynamoPath, InferDynamoPathType } from '../dynamodb/expression/path';
+import { TreeFields } from '../util/tree';
 import { hashCode as strHashCode } from './hash';
+import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
-import { Type } from './type';
+import { Shape } from './shape';
 
 /**
  * A dynamic value. Resolves to `any` or `unknown` at runtime.
@@ -11,14 +11,14 @@ import { Type } from './type';
  * @see dynamic
  * @see unsafeDynamic
  */
-export class DynamicType<T extends any | unknown> implements Type<T> {
+export class DynamicShape<T extends any | unknown> implements Shape<T> {
   public readonly kind: Kind = Kind.Dynamic;
 
   public validate(value: unknown): void {
     // no op
   }
 
-  public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<T> {
+  public toJsonPath(parent: JsonPath<any>, name: string): JsonPath<this> {
     throw new Error('Method not implemented.');
   }
 
@@ -116,21 +116,21 @@ export class DynamicType<T extends any | unknown> implements Type<T> {
 /**
  * A safe dynamic value. Resolves to `unknown` at runtime.
  */
-export const dynamic = new DynamicType<unknown>();
+export const dynamic = new DynamicShape<unknown>();
 
 /**
  * An un-safe dynamic value value. Resolves to `any` at runtime.
  */
-export const unsafeDynamic = new DynamicType<any>();
+export const unsafeDynamic = new DynamicShape<any>();
 
 export class AnyDynamoPath extends DynamoPath {
-  public as<T extends Type<any>>(type: T): InferDynamoPathType<T> {
+  public as<T extends Shape<any>>(type: T): InferDynamoPathType<T> {
     return type.toDynamoPath(this[TreeFields.parent] as DynamoPath, this[TreeFields.name]) as InferDynamoPathType<T>;
   }
 }
 
 export class AnyJsonPath extends JsonPath<any> {
-  public as<T extends Type<any>>(type: T): InferJsonPathType<T> {
+  public as<T extends Shape<any>>(type: T): InferJsonPathType<T> {
     return type.toJsonPath(this[TreeFields.parent] as JsonPath<any>, this[TreeFields.name]) as InferJsonPathType<T>;
   }
 }

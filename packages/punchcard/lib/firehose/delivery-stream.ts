@@ -11,17 +11,18 @@ import { Resource } from '../core/resource';
 import * as Kinesis from '../kinesis';
 import { ExecutorService } from '../lambda/executor';
 import { Function } from '../lambda/function';
+import * as S3 from '../s3';
 import { Bucket } from '../s3/bucket';
-import { Json, Mapper, RuntimeType, Type } from '../shape';
+import { Mapper, RuntimeShape, Shape } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
-import { Sink, sink, SinkProps } from '../util/sink';
-import { FirehoseEvent, FirehoseResponse, S3Event, ValidationResult } from './event';
-import { DeliveryStreamStream } from './stream';
+import { Client } from './client';
+import { FirehoseEvent, FirehoseResponse, ValidationResult } from './event';
+import { Objects } from './objects';
 
-export type DeliveryStreamProps<T extends Type<any>> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
+export type DeliveryStreamProps<T extends Shape<any>> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 
-interface BaseDeliveryStreamProps<T extends Type<any>> {
+interface BaseDeliveryStreamProps<T extends Shape<any>> {
   /**
    * Codec with which to read files.
    */
@@ -42,17 +43,17 @@ interface BaseDeliveryStreamProps<T extends Type<any>> {
    *
    * @default no validation
    */
-  validate?: (record: RuntimeType<T>) => ValidationResult;
+  validate?: (record: RuntimeShape<T>) => ValidationResult;
 }
 
-export interface DeliveryStreamDirectPut<T extends Type<any>> extends BaseDeliveryStreamProps<T> {
+export interface DeliveryStreamDirectPut<T extends Shape<any>> extends BaseDeliveryStreamProps<T> {
   /**
    * Type of data in the stream.
    */
   type: T;
 }
 
-export interface DeliveryStreamFromKinesis<T extends Type<any>> extends BaseDeliveryStreamProps<T> {
+export interface DeliveryStreamFromKinesis<T extends Shape<any>> extends BaseDeliveryStreamProps<T> {
   /**
    * Kinesis stream to persist in S3.
    */
@@ -64,11 +65,11 @@ export interface DeliveryStreamFromKinesis<T extends Type<any>> extends BaseDeli
  *
  * It may or may not be consuming from a Kinesis Stream.
  */
-export class DeliveryStream<T extends Type<any>> extends core.Construct implements Dependency<DeliveryStream.Client<RuntimeType<T>>>, Resource<DeliveryStreamConstruct> {
+export class DeliveryStream<T extends Shape<any>> extends core.Construct implements Dependency<Client<RuntimeShape<T>>>, Resource<DeliveryStreamConstruct> {
   public readonly resource: DeliveryStreamConstruct;
   public readonly type: T;
 
-  private readonly mapper: Mapper<RuntimeType<T>, Buffer>;
+  private readonly mapper: Mapper<RuntimeShape<T>, Buffer>;
   private readonly codec: Codec;
   private readonly compression: Compression;
   public readonly processor: Validator<T>;
@@ -109,12 +110,12 @@ export class DeliveryStream<T extends Type<any>> extends core.Construct implemen
     }
   }
 
-  public stream(): DeliveryStreamStream<RuntimeType<T>, [Dependency<Bucket.ReadClient>]> {
+  public objects(): Objects<RuntimeShape<T>, [Dependency<S3.ReadClient>]> {
     const codec = this.codec;
     const compression = this.compression;
     const mapper = this.mapper;
-    class Root extends DeliveryStreamStream<RuntimeType<T>, [Dependency<Bucket.ReadClient>]> {
-      public async *run(event: S3Event, [bucket]: [Bucket.ReadClient]) {
+    class Root extends Objects<RuntimeShape<T>, [Dependency<S3.ReadClient>]> {
+      public async *run(event: S3.Event, [bucket]: [S3.ReadClient]) {
         for (const record of event.Records) {
           // TODO: parallelism
           // TODO: streaming I/O
@@ -141,67 +142,18 @@ export class DeliveryStream<T extends Type<any>> extends core.Construct implemen
     this.resource.grantWrite(grantable);
   }
 
-  public async bootstrap(properties: Assembly, cache: Cache): Promise<DeliveryStream.Client<RuntimeType<T>>> {
-    return new DeliveryStream.Client(this,
+  public async bootstrap(properties: Assembly, cache: Cache): Promise<Client<RuntimeShape<T>>> {
+    return new Client(this,
       properties.get('deliveryStreamName'),
       cache.getOrCreate('aws:firehose', () => new AWS.Firehose()));
-  }
-}
-
-export namespace DeliveryStream {
-  export type PutRecordInput<T> = { Record: T; };
-
-  export class Client<T> implements Sink<T> {
-    public readonly mapper: Mapper<T, string>;
-
-    constructor(
-        public readonly stream: DeliveryStream<Type<T>>,
-        public readonly deliveryStreamName: string,
-        public readonly client: AWS.Firehose) {
-      this.mapper = Json.jsonLine(this.stream.type);
-    }
-
-    public putRecord(record: T): Promise<AWS.Firehose.PutRecordOutput> {
-      return this.client.putRecord({
-        DeliveryStreamName: this.deliveryStreamName,
-        Record: {
-          Data: this.mapper.write(record)
-        }
-      }).promise();
-    }
-
-    public putRecordBatch(records: T[]): Promise<AWS.Firehose.PutRecordBatchOutput> {
-      return this.client.putRecordBatch({
-        DeliveryStreamName: this.deliveryStreamName,
-        Records: records.map(record => ({
-          Data: this.mapper.write(record)
-        }))
-      }).promise();
-    }
-
-    public async sink(records: T[], props?: SinkProps): Promise<void> {
-      await sink(records, async values => {
-        const res = await this.putRecordBatch(values);
-        if (res.FailedPutCount) {
-          const redrive: T[] = [];
-          res.RequestResponses.forEach((v, i) => {
-            if (v.ErrorCode !== undefined) {
-              redrive.push(values[i]);
-            }
-          });
-          return redrive;
-        }
-        return [];
-      }, props, 500);
-    }
   }
 }
 
 /**
  * Properties for creating a Validator.
  */
-interface ValidatorProps<T extends Type<any>> {
-  mapper: Mapper<RuntimeType<T>, Buffer>;
+interface ValidatorProps<T extends Shape<any>> {
+  mapper: Mapper<RuntimeShape<T>, Buffer>;
 
   /**
    * Optionally provide an executorService to override the properties
@@ -216,13 +168,13 @@ interface ValidatorProps<T extends Type<any>> {
    *
    * @default no extra validation
    */
-  validate?: (record: RuntimeType<T>) => ValidationResult;
+  validate?: (record: RuntimeShape<T>) => ValidationResult;
 }
 
 /**
  * Validates and formats records flowing from Firehose so that they match the format of a Glue Table.
  */
-class Validator<T extends Type<any>> extends core.Construct {
+class Validator<T extends Shape<any>> extends core.Construct {
   public readonly processor: Function<FirehoseEvent, FirehoseResponse, Dependency.None>;
 
   constructor(scope: core.Construct, id: string, props: ValidatorProps<T>) {

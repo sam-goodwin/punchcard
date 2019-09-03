@@ -1,18 +1,16 @@
 import AWS = require('aws-sdk');
 
-import { RuntimeShape, Shape } from '../shape/shape';
-
 import {
-  ArrayType,
+  ArrayShape,
   Kind,
-  MapType,
-  OptionalType,
-  SetType,
-  struct,
-  StructType,
-  Type,
+  MapShape,
+  OptionalShape,
+  RuntimeShape,
+  SetShape,
+  Shape,
+  StructShape,
   TypeSet
-} from '../shape/types';
+} from '../shape';
 
 import {
   Mapper as IMapper,
@@ -28,16 +26,16 @@ export interface Configuration {
   readonly writer?: IWriter<AWS.DynamoDB.AttributeValue>;
 }
 
-export function forShape<S extends Shape>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, AWS.DynamoDB.AttributeMap> {
-  return new Mapper(struct(shape), configuration);
+export function forShape<S extends StructShape<any>>(shape: S, configuration?: Configuration): Mapper<S> {
+  return new Mapper(shape, configuration);
 }
 
-export class Mapper<S extends Shape> implements IMapper<RuntimeShape<S>, AWS.DynamoDB.AttributeMap> {
+export class Mapper<S extends StructShape<any>> implements IMapper<RuntimeShape<S>, AWS.DynamoDB.AttributeMap> {
   private readonly validate: boolean;
   private readonly reader: IReader<AWS.DynamoDB.AttributeValue>;
   private readonly writer: IWriter<AWS.DynamoDB.AttributeValue>;
 
-  constructor(private readonly type: StructType<S>, props: Configuration = {}) {
+  constructor(private readonly type: S, props: Configuration = {}) {
     this.validate = props.validate === undefined ? false : props.validate;
     this.reader = props.reader || Reader.instance;
     this.writer = props.writer || Writer.instance;
@@ -74,7 +72,7 @@ export class Reader implements IReader<AWS.DynamoDB.AttributeValue> {
     throw new Error(`expected a AttributeValue with type ${expected} for ${kind}, got ${Object.keys(parsed).join(',')}`);
   }
 
-  public read<T extends Type<V>, V>(type: T, value: AWS.DynamoDB.AttributeValue): any {
+  public read<T extends Shape<V>, V>(type: T, value: AWS.DynamoDB.AttributeValue): any {
     if (type.kind === Kind.Dynamic) {
       return AWS.DynamoDB.Converter.output(value);
     } else if (type.kind === Kind.Boolean) {
@@ -121,7 +119,7 @@ export class Reader implements IReader<AWS.DynamoDB.AttributeValue> {
       if (value === undefined || value === null || value.NULL) {
         return undefined;
       } else {
-        const optional = type as any as OptionalType<any>;
+        const optional = type as any as OptionalShape<any>;
         return this.read(optional.type, value);
       }
     } else if (type.kind === Kind.Struct) {
@@ -130,10 +128,10 @@ export class Reader implements IReader<AWS.DynamoDB.AttributeValue> {
       }
 
 // tslint:disable-next-line: no-shadowed-variable
-      const struct = type as any as StructType<any>;
+      const struct = type as any as StructShape<any>;
       const result: any = {};
-      Object.keys(struct.shape).forEach(name => {
-        const field = struct.shape[name];
+      Object.keys(struct.fields).forEach(name => {
+        const field = struct.fields[name];
         const v = value.M![name];
         result[name] = this.read(field, v);
       });
@@ -143,11 +141,11 @@ export class Reader implements IReader<AWS.DynamoDB.AttributeValue> {
         Reader.throwError(type.kind, value, 'L');
       }
 
-      const array = type as any as ArrayType<any>;
+      const array = type as any as ArrayShape<any>;
       const itemType: any = array.itemType;
       return value.L!.map(p => this.read(itemType, p)) as any;
     } else if (type.kind === Kind.Set) {
-      const set: any = type as any as SetType<any>;
+      const set: any = type as any as SetShape<any>;
       const itemType: any = set.itemType;
       const mapping: {set: string, item: string} = setMappings[set.itemType.kind];
       if (!mapping) {
@@ -166,7 +164,7 @@ export class Reader implements IReader<AWS.DynamoDB.AttributeValue> {
       if (value.M === undefined) {
         Reader.throwError(type.kind, value, 'M');
       }
-      const map = type as any as MapType<any>;
+      const map = type as any as MapShape<any>;
       const result = {};
       Object.keys(value.M!).forEach(name => {
         const v = value.M![name];
@@ -191,7 +189,7 @@ export class Writer implements IWriter<AWS.DynamoDB.AttributeValue> {
     this.writeNulls = props.writeNulls === undefined ? false : props.writeNulls;
   }
 
-  public write<T extends Type<V>, V>(type: T, value: any): AWS.DynamoDB.AttributeValue {
+  public write<T extends Shape<V>, V>(type: T, value: any): AWS.DynamoDB.AttributeValue {
     if (type.kind === Kind.Dynamic) {
       return AWS.DynamoDB.Converter.input(value);
     } else if (type.kind === Kind.Boolean) {
@@ -208,25 +206,25 @@ export class Writer implements IWriter<AWS.DynamoDB.AttributeValue> {
       if (value === undefined || value === null) {
         return this.writeNulls ? { NULL: true } : (undefined as any);
       } else {
-        const optional = type as any as OptionalType<any>;
+        const optional = type as any as OptionalShape<any>;
         return this.write(optional.type, value);
       }
     } else if (type.kind === Kind.Struct) {
-      const struct = type as any as StructType<any>;
+      const struct = type as any as StructShape<any>;
       const result = {};
-      Object.keys(struct.shape).forEach(name => {
-        const field = struct.shape[name];
+      Object.keys(struct.fields).forEach(name => {
+        const field = struct.fields[name];
         const v = value[name];
         (result as any)[name] = this.write(field, v);
       });
       return { M: result };
 
     } else if (type.kind === Kind.Array) {
-      const array = type as any as ArrayType<any>;
+      const array = type as any as ArrayShape<any>;
       const itemType: any = array.itemType;
       return { L: value.map((p: any) => this.write(itemType, p)) };
     } else if (type.kind === Kind.Set) {
-      const setType = type as any as SetType<any>;
+      const setType = type as any as SetShape<any>;
       const setValue: TypeSet<any> = value;
       const itemType: any = setType.itemType;
       const mapping = setMappings[itemType.kind];
@@ -247,7 +245,7 @@ export class Writer implements IWriter<AWS.DynamoDB.AttributeValue> {
 
       return { [mapping.set]: result };
     } else if (type.kind === Kind.Map) {
-      const map = type as any as MapType<any>;
+      const map = type as any as MapShape<any>;
       const result = {};
       Object.keys(value).forEach(name => {
         const v = value[name];

@@ -1,37 +1,8 @@
 import 'jest';
 
-import { Core, DynamoDB, Shape, Util } from '../../lib';
+import { Shape, Util } from '../../lib';
 
-export function custom(): Custom {
-  return new Custom();
-}
-export class Custom extends Shape.CustomType<Custom.Shape> {
-  constructor() {
-    super(Custom.shape);
-  }
-
-  public toDynamoPath(parent: DynamoDB.DynamoPath, name: string): any {
-    return new DynamoDB.BaseDynamoPath(parent, name, this);
-  }
-
-  public toJsonPath(parent: Shape.JsonPath<any>, name: string): Custom.Path {
-    return new Custom.Path(parent, name, this);
-  }
-}
-export namespace Custom {
-  export type Shape = typeof shape;
-  export const shape = {
-    id: Shape.string(),
-    arr: Shape.array(Shape.string())
-  };
-  export class Path extends Shape.CustomPath<Shape, Custom> {
-    public customOperation() {
-      return this.fields.arr.slice(0, 1);
-    }
-  }
-}
-
-const tree = {
+const tree = Shape.struct({
   stringField: Shape.string(),
   intField: Shape.integer(),
   numberField: Shape.float(),
@@ -49,8 +20,6 @@ const tree = {
 
   optionalArray: Shape.optional(Shape.array(Shape.string())),
 
-  custom: custom(),
-
   struct: Shape.struct({
     stringField: Shape.string(),
     intField: Shape.integer(),
@@ -67,7 +36,7 @@ const tree = {
     numberMap: Shape.map(Shape.float()),
     boolMap: Shape.map(Shape.boolean),
   })
-};
+});
 
 describe('json', () => {
   describe('path', () => {
@@ -95,9 +64,6 @@ describe('json', () => {
       });
       it('$.struct', () => {
         expect(Shape.jsonPath(tree).struct[Util.TreeFields.path]).toEqual("$['struct']");
-      });
-      it('$.custom', () => {
-        expect(Shape.jsonPath(tree).custom[Util.TreeFields.path]).toEqual("$['custom']");
       });
     });
 
@@ -135,12 +101,6 @@ describe('json', () => {
       it('$.optionalArray.item', () => {
         expect(Shape.jsonPath(tree).optionalArray.items[Util.TreeFields.path]).toEqual("$['optionalArray'][:0]");
       });
-    });
-  });
-
-  describe('custom types', () => {
-    it('custom path', () => {
-      expect(Shape.jsonPath(tree).custom.customOperation()[Util.TreeFields.path]).toEqual("$['custom']['arr'][0:1]");
     });
   });
 });

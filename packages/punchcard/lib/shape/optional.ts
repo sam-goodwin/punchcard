@@ -1,20 +1,19 @@
-import { DynamoPath, InferDynamoPathType } from '../../dynamodb/expression/path';
-import { InferJsonPathType, JsonPath } from '../json/path';
-import { RuntimeType } from '../shape';
+import { DynamoPath, InferDynamoPathType } from '../dynamodb/expression/path';
+import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
-import { Type } from './type';
+import { RuntimeShape, Shape } from './shape';
 
-export function optional<T extends Type<any>>(type: T): OptionalType<T> {
-  return new OptionalType(type);
+export function optional<T extends Shape<any>>(type: T): OptionalShape<T> {
+  return new OptionalShape(type);
 }
 
-export class OptionalType<T extends Type<any>> implements Type<RuntimeType<T> | undefined> {
+export class OptionalShape<T extends Shape<any>> implements Shape<RuntimeShape<T> | undefined> {
   public readonly kind: Kind = Kind.Optional;
   public readonly isOptional: boolean = true;
 
   constructor(public readonly type: T) {}
 
-  public validate(_value: RuntimeType<T> | undefined): void {
+  public validate(_value: RuntimeShape<T> | undefined): void {
     if (_value !== undefined && _value !== null) {
       this.type.validate(_value);
     }
@@ -40,14 +39,14 @@ export class OptionalType<T extends Type<any>> implements Type<RuntimeType<T> | 
     return this.type.toGlueType();
   }
 
-  public hashCode(value: RuntimeType<T>): number {
+  public hashCode(value: RuntimeShape<T>): number {
     if (value === undefined) {
       return 0;
     }
     return this.type.hashCode(value);
   }
 
-  public equals(a: RuntimeType<T> | undefined, b: RuntimeType<T> | undefined): boolean {
+  public equals(a: RuntimeShape<T> | undefined, b: RuntimeShape<T> | undefined): boolean {
     if (a === undefined && b === undefined) {
       return true;
     } else if (a === undefined || b === undefined) {

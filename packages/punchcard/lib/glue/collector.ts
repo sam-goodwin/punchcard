@@ -1,14 +1,13 @@
 import core = require('@aws-cdk/core');
 
 import { Dependency } from '../core/dependency';
-import { Table, TableProps } from '../glue/table';
+import { Columns, PartitionKeys, Table, TableProps } from '../glue/table';
 import { Function } from '../lambda/function';
-import { RuntimeShape, Shape } from '../shape/shape';
-import { StructType } from '../shape/types/struct';
+import { RuntimeShape } from '../shape/shape';
+import { StructShape } from '../shape/struct';
 import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
 import { DependencyType, EventType, Stream } from '../util/stream';
-import { Partition } from './partition';
 
 /**
  * Add a utility method `toGlueTable` for `Stream` which uses the `TableCollector` to produce Glue `Tables`.
@@ -23,7 +22,7 @@ declare module '../util/stream' {
      * @param tableProps properties of the created s3 delivery stream
      * @param runtimeConfig optional runtime properties to configure the function processing the stream's data.
      */
-    toGlueTable<S extends Shape, T extends StructType<S>, P extends Partition>(scope: core.Construct, id: string, tableProps: TableProps<S, P>, runtimeConfig?: C): CollectedGlueTable<S, P, this>;
+    toGlueTable<C extends Columns, T extends StructShape<C>, P extends PartitionKeys>(scope: core.Construct, id: string, tableProps: TableProps<C, P>, runtimeConfig?: C): CollectedGlueTable<C, P, this>;
   }
 }
 Stream.prototype.toGlueTable = function(scope: core.Construct, id: string, tableProps: any): any {
@@ -35,7 +34,7 @@ Stream.prototype.toGlueTable = function(scope: core.Construct, id: string, table
  *
  * @typeparam T type of notififcations sent to (and emitted from) the Glue Table.
  */
-export class GlueTableCollector<Cols extends Shape, P extends Partition, S extends Stream<any, RuntimeShape<Cols>, any, any>> implements Collector<CollectedGlueTable<Cols, P, S>, S> {
+export class GlueTableCollector<Cols extends Columns, P extends PartitionKeys, S extends Stream<any, RuntimeShape<StructShape<Cols>>, any, any>> implements Collector<CollectedGlueTable<Cols, P, S>, S> {
   constructor(private readonly props: TableProps<Cols, P>) { }
 
   public collect(scope: core.Construct, id: string, stream: S): CollectedGlueTable<Cols, P, S> {
@@ -49,7 +48,7 @@ export class GlueTableCollector<Cols extends Shape, P extends Partition, S exten
 /**
  * Properties for creating a collected `Table`.
  */
-export interface CollectedGlueTableProps<T extends Shape, P extends Partition, S extends Stream<any, RuntimeShape<T>, any, any>> extends TableProps<T, P> {
+export interface CollectedGlueTableProps<C extends Columns, P extends PartitionKeys, S extends Stream<any, RuntimeShape<StructShape<C>>, any, any>> extends TableProps<C, P> {
   /**
    * Source of the data; a stream.
    */
@@ -63,16 +62,14 @@ export interface CollectedGlueTableProps<T extends Shape, P extends Partition, S
  * @typeparam P shape of partition keys
  * @typeparam S stream of data to ingest into the table
  */
-export class CollectedGlueTable<T extends Shape, P extends Partition, S extends Stream<any, any, any, any>> extends Table<T, P> {
-  public readonly sender: Function<EventType<S>, void, Dependency.List<Cons<DependencyType<S>, Dependency<Table.Client<T, P>>>>>;
+export class CollectedGlueTable<T extends Columns, P extends PartitionKeys, S extends Stream<any, any, any, any>> extends Table<T, P> {
+  public readonly sender: Function<EventType<S>, void, Dependency.Tuple<Cons<DependencyType<S>, Dependency<Table.Client<T, P>>>>>;
 
   constructor(scope: core.Construct, id: string, props: CollectedGlueTableProps<T, P, S>) {
     super(scope, id, props);
     this.sender = props.stream.forBatch(this.resource, 'ToTable', {
       depends: this,
-      handle: async (events, self) => {
-        self.sink(events);
-      }
+      handle: (events, self) => self.sink(events)
     }) as any;
   }
 }

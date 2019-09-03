@@ -1,16 +1,17 @@
 import dynamodb = require('@aws-cdk/aws-dynamodb');
-import { Shape } from '../shape/shape';
-import { Kind } from '../shape/types/kind';
+import { Kind } from '../shape/kind';
+import { Attributes } from './table';
 
-export type Key<S extends Shape, PKey extends keyof S, SKey extends keyof S | undefined> =
-  SKey extends keyof undefined ? HashKey<S, PKey> : CompositeKey<S, PKey, SKey extends keyof S ? SKey : never>;
+export type Key<A extends Attributes, P extends keyof A, S extends keyof A | undefined> =
+  S extends undefined ? HashKey<A, P> : CompositeKey<A, P, S extends keyof A ? S : never>;
 
-export type HashKey<T extends Shape, PKey extends keyof T> = {
-  [K in PKey]: T[K];
+export type HashKey<A extends Attributes, P extends keyof A> = {
+  [K in P]: A[K];
 };
-export type CompositeKey<T extends Shape, PKey extends keyof T, SKey extends keyof T> =
-  { [K in PKey]: T[K] } &
-  { [K in SKey]: T[K] };
+
+export type CompositeKey<A extends Attributes, P extends keyof A, S extends keyof A> =
+  { [K in P]: A[K] } &
+  { [K in S]: A[K] };
 
 export function keyType(kind: Kind): dynamodb.AttributeType {
   switch (kind) {

@@ -1,4 +1,5 @@
-import { Shape, smallint } from '../shape';
+import { PartitionKeys } from '../glue';
+import { smallint } from '../shape';
 
 const PT1H = {
   year: smallint(),
@@ -30,7 +31,7 @@ export namespace Period {
 /**
  * Represents a `Glue.Partition` partitioned by time.
  */
-export class Period<P extends Shape> {
+export class Period<P extends PartitionKeys> {
   /**
    * Minutely partitions.
    */

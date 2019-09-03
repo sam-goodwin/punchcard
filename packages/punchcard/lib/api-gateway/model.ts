@@ -1,13 +1,13 @@
-import { InferJsonPathType, Type } from '../shape';
+import { InferJsonPathType, Shape } from '../shape';
 import { StatusCode } from './request-response';
 
-export class Model<T extends Type<any>> {
+export class Model<T extends Shape<any>> {
   constructor(
     private readonly name: string,
     private readonly type: T) {}
 }
 
-export class Response<M extends Type<any>, Output extends Type<V>, V> {
+export class Response<M extends Shape<any>, Output extends Shape<V>, V> {
   constructor(props: {
     model: Model<M>;
     output: Output;
@@ -17,7 +17,7 @@ export class Response<M extends Type<any>, Output extends Type<V>, V> {
   }
 }
 
-export class BodyRequest<M extends Type<any>, Request> {
+export class BodyRequest<M extends Shape<any>, Request> {
   constructor(props: {
     model: Model<M>;
     mapping: (input: InferJsonPathType<M>) => Request;
@@ -26,7 +26,7 @@ export class BodyRequest<M extends Type<any>, Request> {
   }
 }
 
-export class BodyMethod<T extends Type<any>, Request extends Type<any>> {
+export class BodyMethod<T extends Shape<any>, Request extends Shape<any>> {
   constructor(props: {
     request: BodyRequest<T, Request>,
     response: {

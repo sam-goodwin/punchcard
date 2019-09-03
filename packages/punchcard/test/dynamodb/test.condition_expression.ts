@@ -2,15 +2,15 @@ import 'jest';
 
 import { DynamoDB, Shape } from '../../lib';
 
-const _ = DynamoDB._;
-const and = DynamoDB.and;
-const attribute_exists = DynamoDB.attribute_exists;
-const attribute_not_exists = DynamoDB.attribute_not_exists;
-
-const not = DynamoDB.not;
-const or = DynamoDB.or;
-const size = DynamoDB.size;
-const toFacade = DynamoDB.toFacade;
+const {
+  _,
+  and,
+  attribute_exists,
+  attribute_not_exists,
+  not,
+  or,
+  toDSL: toFacade,
+} = DynamoDB;
 
 /**
  * TODO: Tests for optional attributes
@@ -211,7 +211,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).equals(1).render(new DynamoDB.CompileContextImpl())).toEqual({
+        expect(facade.list.at(0).equals(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] = :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -426,7 +426,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).ne(1).render(new DynamoDB.CompileContextImpl())).toEqual({
+        expect(facade.list.at(0).ne(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] <> :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -589,7 +589,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).gt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
+        expect(facade.list.at(0).gt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] > :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -736,7 +736,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).gte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
+        expect(facade.list.at(0).gte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] >= :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -883,7 +883,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).lt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
+        expect(facade.list.at(0).lt(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] < :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -1030,7 +1030,7 @@ describe('condition-expression', () => {
       });
 
       it ('list item', () => {
-        expect(facade.list.get(0).lte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
+        expect(facade.list.at(0).lte(1).render(new DynamoDB.CompileContextImpl())).toEqual({
           ConditionExpression: '#0[0] <= :0',
           ExpressionAttributeNames: {
             '#0': 'list'
@@ -1154,7 +1154,7 @@ describe('condition-expression', () => {
     });
 
     it('list item', () => {
-      expect(facade.list.get(0).between(1, 2).render(new DynamoDB.CompileContextImpl())).toEqual({
+      expect(facade.list.at(0).between(1, 2).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0[0] BETWEEN :0 AND :1',
         ExpressionAttributeNames: {
           '#0': 'list'
@@ -1282,7 +1282,7 @@ describe('condition-expression', () => {
     });
 
     it('list item', () => {
-      expect(facade.list.get(0).in(1, 2, 3).render(new DynamoDB.CompileContextImpl())).toEqual({
+      expect(facade.list.at(0).in(1, 2, 3).render(new DynamoDB.CompileContextImpl())).toEqual({
         ConditionExpression: '#0[0] IN (:0,:1,:2)',
         ExpressionAttributeNames: {
           '#0': 'list'
@@ -1466,21 +1466,42 @@ describe('condition-expression', () => {
       });
     });
 
-    it('size', () => {
-      expect(facade.intAttribute.gt(size(facade.list)).render(new DynamoDB.CompileContextImpl())).toEqual({
-        ConditionExpression: '#0 > size(#1)',
-        ExpressionAttributeNames: {
-          '#0': 'intAttribute',
-          '#1': 'list'
-        }
+    describe('size', () => {
+      it('size(path) > 0', () => {
+        expect(facade.stringAttribute.length.greaterThan(0).render(new DynamoDB.CompileContextImpl())).toEqual({
+          ConditionExpression: 'size(#0) > :0',
+          ExpressionAttributeNames: {
+            '#0': 'stringAttribute'
+          },
+          ExpressionAttributeValues: {
+            ':0': {
+              N: '0'
+            }
+          }
+        });
       });
 
-      expect(size(facade.list).gt(facade.intAttribute).render(new DynamoDB.CompileContextImpl())).toEqual({
-        ConditionExpression: 'size(#0) > #1',
-        ExpressionAttributeNames: {
-          '#0': 'list',
-          '#1': 'intAttribute'
-        }
+      // Maybe later?
+      // it('0 > size(path)')
+
+      it('size(path) > path', () => {
+        expect(facade.stringAttribute.length.greaterThan(facade.intAttribute).render(new DynamoDB.CompileContextImpl())).toEqual({
+          ConditionExpression: 'size(#0) > #1',
+          ExpressionAttributeNames: {
+            '#0': 'stringAttribute',
+            '#1': 'intAttribute',
+          },
+        });
+      });
+
+      it('path1 > size(path2)', () => {
+        expect(facade.intAttribute.greaterThan(facade.stringAttribute.length).render(new DynamoDB.CompileContextImpl())).toEqual({
+          ConditionExpression: '#0 > size(#1)',
+          ExpressionAttributeNames: {
+            '#0': 'intAttribute',
+            '#1': 'stringAttribute',
+          },
+        });
       });
     });
   });

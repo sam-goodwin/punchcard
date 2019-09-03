@@ -1,5 +1,5 @@
 import glue = require('@aws-cdk/aws-glue');
-import { Json as JsonMapper, Mapper, Raw, RuntimeType, TimestampFormat, Type } from '../shape';
+import { Json as JsonMapper, Mapper, Raw, RuntimeShape, Shape, TimestampFormat } from '../shape';
 
 /**
  * Maps a `glue.DataFormat` to a `Mapper` which can read and write its data.
@@ -7,7 +7,7 @@ import { Json as JsonMapper, Mapper, Raw, RuntimeType, TimestampFormat, Type } f
 export interface Codec {
   extension: string;
   format: glue.DataFormat;
-  mapper<T extends Type<any>>(type: T): Mapper<RuntimeType<T>, Buffer>;
+  mapper<T extends Shape<any>>(type: T): Mapper<RuntimeShape<T>, Buffer>;
   split(buffer: Buffer): Iterable<Buffer>;
   join(buffers: Buffer[]): Buffer;
 }

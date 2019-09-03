@@ -1,4 +1,4 @@
-import { integer, Kind, MapType, string, StringType, timestamp, Type } from '../shape/types';
+import { integer, Kind, MapShape, Shape, string, StringShape, timestamp } from '../shape';
 
 export const isMapping = Symbol.for('stdlib.isMapping');
 
@@ -6,18 +6,18 @@ export class Mapping {
   public readonly [isMapping]: true = true;
   constructor(public readonly path: string) {}
 
-  public as<T extends Type<any>>(type: T): TypedMapping<T> {
+  public as<T extends Shape<any>>(type: T): TypedMapping<T> {
     return new TypedMapping(type, this.path);
   }
 }
-export class TypedMapping<T extends Type<any>> extends Mapping {
+export class TypedMapping<T extends Shape<any>> extends Mapping {
   constructor(public readonly type: T, path: string) {
     super(type.kind === Kind.String || type.kind === Kind.Timestamp || type.kind === Kind.Binary
       ? `"${path}"` // add quote around string types
       : path);
   }
 }
-export type StringMapping = TypedMapping<StringType>;
+export type StringMapping = TypedMapping<StringShape>;
 function stringMapping(name: string) {
   return new TypedMapping(string(), name);
 }
@@ -34,9 +34,9 @@ export class Input {
   public readonly body = stringMapping('$input.body');
 
   private readonly _params = stringMapping('$input.params()');
-  public params(): TypedMapping<MapType<StringType>>;
-  public params(name: string): TypedMapping<StringType>;
-  public params<T extends Type<any>>(name: string, type: T): TypedMapping<T>;
+  public params(): TypedMapping<MapShape<StringShape>>;
+  public params(name: string): TypedMapping<StringShape>;
+  public params<T extends Shape<any>>(name: string, type: T): TypedMapping<T>;
   public params(name?: any, type?: any) {
     if (name !== undefined) {
       return new TypedMapping(type || string(), `$input.params('${name}')`);
@@ -120,7 +120,7 @@ export const $util = {
     return stringMapping(`$util.escapeJavaScript(${mapping.path})`);
   },
 
-  parseJson<T extends Type<any>>(mapping: StringMapping, type: T): TypedMapping<T> {
+  parseJson<T extends Shape<any>>(mapping: StringMapping, type: T): TypedMapping<T> {
     return new TypedMapping(type, `$util.escapeJavaScript(${mapping.path})`);
   },
 

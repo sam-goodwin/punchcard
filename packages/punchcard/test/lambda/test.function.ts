@@ -155,7 +155,7 @@ it('should install and bootstrap nested dependencies', async () => {
   };
 
   const f = Lambda.L().spawn(new core.Stack(new core.App(), 'stack'), 'f', {
-    depends: Core.Dependency.list(dependency, dependency),
+    depends: Core.Dependency.tuple(dependency, dependency),
     async handle(_, [d1, d2]) {
       return (d1 as any).toString() + (d2 as any).toString(); // expect '11' as result
     }

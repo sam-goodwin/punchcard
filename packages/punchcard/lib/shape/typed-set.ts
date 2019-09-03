@@ -1,13 +1,12 @@
-import { RuntimeType } from "../shape";
 import { Kind } from "./kind";
-import { Type } from "./type";
+import { RuntimeShape, Shape } from "./shape";
 
-export interface TypeSet<T extends Type<any>> extends Set<RuntimeType<T>> {
+export interface TypeSet<T extends Shape<any>> extends Set<RuntimeShape<T>> {
   readonly itemType: T;
 }
 export namespace TypeSet {
   const primitives = [Kind.Boolean, Kind.Integer, Kind.Number, Kind.String];
-  export const forType = <T extends Type<V>, V>(type: T): TypeSet<T> => {
+  export const forType = <T extends Shape<V>, V>(type: T): TypeSet<T> => {
     if (primitives.find(v => v === type.kind)) {
       return new PrimitiveSet(type);
     } else {
@@ -16,25 +15,25 @@ export namespace TypeSet {
   };
 }
 
-class PrimitiveSet<T extends Type<any>> implements Set<RuntimeType<T>> {
+class PrimitiveSet<T extends Shape<any>> implements Set<RuntimeShape<T>> {
   public readonly [Symbol.toStringTag]: 'Set' = 'Set';
   public size: number = 0;
 
-  private readonly delegate: Set<RuntimeType<T>> = new Set();
+  private readonly delegate: Set<RuntimeShape<T>> = new Set();
 
   constructor(public readonly itemType: T) {}
 
-  public add(value: RuntimeType<T>): this {
+  public add(value: RuntimeShape<T>): this {
     this.delegate.add(value);
     this.size = this.delegate.size;
     return this;
   }
 
-  public has(value: RuntimeType<T>): boolean {
+  public has(value: RuntimeShape<T>): boolean {
     return this.delegate.has(value);
   }
 
-  public delete(value: RuntimeType<T>): boolean {
+  public delete(value: RuntimeShape<T>): boolean {
     const res = this.delegate.delete(value);
     this.size = this.delegate.size;
     return res;
@@ -45,37 +44,37 @@ class PrimitiveSet<T extends Type<any>> implements Set<RuntimeType<T>> {
     this.size = 0;
   }
 
-  public [Symbol.iterator](): IterableIterator<RuntimeType<T>> {
+  public [Symbol.iterator](): IterableIterator<RuntimeShape<T>> {
     return this.delegate[Symbol.iterator]();
   }
 
-  public entries(): IterableIterator<[RuntimeType<T>, RuntimeType<T>]> {
+  public entries(): IterableIterator<[RuntimeShape<T>, RuntimeShape<T>]> {
     return this.delegate.entries();
   }
 
-  public keys(): IterableIterator<RuntimeType<T>> {
+  public keys(): IterableIterator<RuntimeShape<T>> {
     return this.delegate.keys();
   }
 
-  public values(): IterableIterator<RuntimeType<T>> {
+  public values(): IterableIterator<RuntimeShape<T>> {
     return this.delegate.values();
   }
 
-  public forEach(callbackfn: (value: RuntimeType<T>, value2: RuntimeType<T>, set: Set<RuntimeType<T>>) => void, thisArg?: any): void {
+  public forEach(callbackfn: (value: RuntimeShape<T>, value2: RuntimeShape<T>, set: Set<RuntimeShape<T>>) => void, thisArg?: any): void {
     this.delegate.forEach(callbackfn, thisArg);
   }
 }
 
-class GeneralSet<T extends Type<any>> implements Set<RuntimeType<T>> {
+class GeneralSet<T extends Shape<any>> implements Set<RuntimeShape<T>> {
   public readonly [Symbol.toStringTag]: 'Set' = 'Set';
 
   public size: number = 0;
 
-  private readonly map = new Map<number, Array<RuntimeType<T>>>();
+  private readonly map = new Map<number, Array<RuntimeShape<T>>>();
 
   constructor(public readonly itemType: T) {}
 
-  public add(value: RuntimeType<T>): this {
+  public add(value: RuntimeShape<T>): this {
     const hashCode = this.itemType.hashCode(value);
     if (this.map.has(hashCode)) {
       const values = this.map.get(hashCode)!;
@@ -90,12 +89,12 @@ class GeneralSet<T extends Type<any>> implements Set<RuntimeType<T>> {
     return this;
   }
 
-  public has(value: RuntimeType<T>): boolean {
+  public has(value: RuntimeShape<T>): boolean {
     const hashCode = this.itemType.hashCode(value);
     return this.map.has(hashCode) && this.map.get(hashCode)!.find(v => this.itemType.equals(value, v)) !== undefined;
   }
 
-  public delete(value: RuntimeType<T>): boolean {
+  public delete(value: RuntimeShape<T>): boolean {
     const hashCode = this.itemType.hashCode(value);
     if (this.map.has(hashCode)) {
       const arr = this.map.get(hashCode)!;
@@ -115,7 +114,7 @@ class GeneralSet<T extends Type<any>> implements Set<RuntimeType<T>> {
     this.size = 0;
   }
 
-  public *[Symbol.iterator](): IterableIterator<RuntimeType<T>> {
+  public *[Symbol.iterator](): IterableIterator<RuntimeShape<T>> {
     for (const arr of this.map.values()) {
       for (const v of arr) {
         yield v;
@@ -123,7 +122,7 @@ class GeneralSet<T extends Type<any>> implements Set<RuntimeType<T>> {
     }
   }
 
-  public *entries(): IterableIterator<[RuntimeType<T>, RuntimeType<T>]> {
+  public *entries(): IterableIterator<[RuntimeShape<T>, RuntimeShape<T>]> {
     for (const arr of this.map.values()) {
       for (const v of arr) {
         yield [v, v];
@@ -131,15 +130,15 @@ class GeneralSet<T extends Type<any>> implements Set<RuntimeType<T>> {
     }
   }
 
-  public keys(): IterableIterator<RuntimeType<T>> {
+  public keys(): IterableIterator<RuntimeShape<T>> {
     return this[Symbol.iterator]();
   }
 
-  public values(): IterableIterator<RuntimeType<T>> {
+  public values(): IterableIterator<RuntimeShape<T>> {
     return this[Symbol.iterator]();
   }
 
-  public forEach(callbackfn: (value: RuntimeType<T>, value2: RuntimeType<T>, set: Set<RuntimeType<T>>) => void, thisArg?: any): void {
+  public forEach(callbackfn: (value: RuntimeShape<T>, value2: RuntimeShape<T>, set: Set<RuntimeShape<T>>) => void, thisArg?: any): void {
     for (const v of this.values()) {
       if (thisArg) {
         callbackfn.call(thisArg, v, v, this);

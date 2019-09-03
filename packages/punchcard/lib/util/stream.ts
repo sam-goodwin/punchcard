@@ -116,17 +116,17 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
   public forEach<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
     depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<any>;
-    props?: C;
-  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
+    config?: C;
+  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.Tuple<D> : Dependency.Tuple<Cons<D, D2>>> {
     // TODO: let the stream type determine default executor service
-    const executorService = (input.props && input.props.executorService) || new Lambda.ExecutorService({
+    const executorService = (input.config && input.config.executorService) || new Lambda.ExecutorService({
       memorySize: 128,
       timeout: core.Duration.seconds(10)
     });
     const l = executorService.spawn(scope, id, {
       depends: input.depends === undefined
-        ? Dependency.list(...this.dependencies)
-        : Dependency.list(input.depends, ...this.dependencies),
+        ? Dependency.tuple(...this.dependencies)
+        : Dependency.tuple(input.depends, ...this.dependencies),
       handle: async (event: E, deps) => {
         if (input.depends === undefined) {
           for await (const value of this.run(event, deps as any)) {
@@ -139,7 +139,7 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
         }
       }
     });
-    l.addEventSource(this.eventSource(input.props));
+    l.addEventSource(this.eventSource(input.config));
     return l as any;
   }
 
@@ -154,8 +154,8 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
   public forBatch<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
     depends?: D2;
     handle: (value: T[], deps: Client<D2>) => Promise<any>;
-    props?: C;
-  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.List<D> : Dependency.List<Cons<D, D2>>> {
+    config?: C;
+  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.Tuple<D> : Dependency.Tuple<Cons<D, D2>>> {
     return this.batched().forEach(scope, id, input);
   }
 

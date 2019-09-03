@@ -4,11 +4,11 @@ import 'jest';
 import { DynamoDB, Shape, } from '../../lib';
 
 describe('HashTable', () => {
-  function makeTable<S extends Shape.Shape, P extends keyof S>(shape: S, partitionKey: P, mock: AWS.DynamoDB): DynamoDB.Table.Client<S, P, undefined> {
+  function makeTable<A extends DynamoDB.Attributes, P extends keyof A>(attributes: A, partitionKey: P, mock: AWS.DynamoDB): DynamoDB.Client<P, undefined, A> {
     const app = new core.App();
     const stack = new core.Stack(app, 'stack');
-    return new DynamoDB.Table.Client(new DynamoDB.Table(stack, 'table', {
-      shape,
+    return new DynamoDB.Client(new DynamoDB.Table(stack, 'table', {
+      attributes,
       partitionKey,
       sortKey: undefined
     }), 'tableName', mock);
@@ -304,11 +304,11 @@ describe('HashTable', () => {
 
 describe('SortedTable', () => {
 // tslint:disable-next-line: max-line-length
-  function makeTable<S extends Shape.Shape, P extends keyof S, SK extends keyof S>(shape: S, partitionKey: P, sortKey: SK, mock: AWS.DynamoDB): DynamoDB.Table.Client<S, P, SK> {
+  function makeTable<A extends DynamoDB.Attributes, P extends keyof A, S extends keyof A>(attributes: A, partitionKey: P, sortKey: S, mock: AWS.DynamoDB): DynamoDB.Client<P, S, A> {
     const app = new core.App();
     const stack = new core.Stack(app, 'stack');
-    return new DynamoDB.Table.Client(new DynamoDB.Table(stack, 'table', {
-      shape,
+    return new DynamoDB.Client(new DynamoDB.Table(stack, 'table', {
+      attributes,
       partitionKey,
       sortKey
     }), 'tableName', mock);

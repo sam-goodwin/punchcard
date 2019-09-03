@@ -13,7 +13,7 @@ const scope: any = {
   }
 };
 
-function keyTypeTests(makeTable: (type: Shape.Type<any>) => void) {
+function keyTypeTests(makeTable: (type: Shape.Shape<any>) => void) {
   it('should accept string partition key type', () => {
     makeTable(Shape.string());
   });
@@ -130,7 +130,7 @@ describe('DynamoDB.Table', () => {
     keyTypeTests(type => {
       const stack = new core.Stack(new core.App(), 'stack');
       const table = new DynamoDB.Table(stack, 'table', {
-        shape: {
+        attributes: {
           key: type
         },
         partitionKey: 'key',
@@ -144,7 +144,7 @@ describe('DynamoDB.Table', () => {
   function boringTable(stack?: core.Stack) {
     stack = stack || new core.Stack(new core.App(), 'stack');
     return new DynamoDB.Table(stack, 'table', {
-      shape: {
+      attributes: {
         key: Shape.string()
       },
       partitionKey: 'key',
@@ -163,7 +163,7 @@ describe('SortedTable', () => {
     keyTypeTests(type => {
       const stack = new core.Stack(new core.App(), 'stack');
       const table = new DynamoDB.Table(stack, 'table', {
-        shape: {
+        attributes: {
           key: type,
           sortKey: type
         },
@@ -178,7 +178,7 @@ describe('SortedTable', () => {
   });
   function boringTable(stack: core.Stack) {
     return new DynamoDB.Table(stack, 'table', {
-      shape: {
+      attributes: {
         key: Shape.string(),
         sortKey: Shape.string()
       },

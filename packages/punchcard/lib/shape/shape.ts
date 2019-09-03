@@ -1,17 +1,22 @@
-import { OptionalType, Type } from './types';
+import { DynamoPath } from '../dynamodb/expression/path';
+import { JsonPath } from './json/path';
+import { Kind } from './kind';
 
-export type Shape = {
-  [key: string]: Type<any>;
-};
+export interface Shape<V> {
+  kind: Kind;
+  /**
+   * TODO: improve return type for better error tracing
+   */
+  validate(value: V): void;
+  toJsonPath(parent: JsonPath<any>, name: string): JsonPath<Shape<any>>;
+  toDynamoPath(parent: DynamoPath, name: string): DynamoPath;
+  toJsonSchema(): {[key: string]: any};
+  toGlueType(): {
+    inputString: string;
+    isPrimitive: boolean;
+  };
+  hashCode(value: V): number;
+  equals(a: V, b: V): boolean;
+}
 
-export type RuntimeType<T> = T extends Type<infer V> ? V : never;
-
-type OptionalKeys<T extends Shape> =
-  Pick<T, { [K in keyof T]: T[K] extends OptionalType<any> ? K : never; }[keyof T]>;
-
-type MandatoryKeys<T extends Shape> =
-  Pick<T, { [K in keyof T]: T[K] extends OptionalType<any> ? never : K; }[keyof T]>;
-
-export type RuntimeShape<T extends Shape> =
-  { [K in keyof MandatoryKeys<T>]-?: RuntimeType<T[K]>; } &
-  { [K in keyof OptionalKeys<T>]+?: RuntimeType<T[K]>; };
+export type RuntimeShape<T extends Shape<any>> = T extends Shape<infer V> ? V : never;

@@ -12,24 +12,24 @@ import { Cache } from '../core/cache';
 import { Client } from '../core/client';
 import { Dependency } from '../core/dependency';
 import { Entrypoint, entrypoint } from '../core/entrypoint';
-import { Json, Mapper, Raw, Type } from '../shape';
+import { Json, Mapper, Raw, Shape } from '../shape';
 import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../util/constants';
 import { Omit } from '../util/omit';
 
-export type FunctionProps<T, U, D extends Dependency<any>> = {
+export type FunctionProps<T, U, D extends Dependency<any> | undefined = undefined> = {
   /**
    * Type of the request
    *
    * @default any
    */
-  request?: Type<T>;
+  request?: Shape<T>;
 
   /**
    * Type of the response
    *
    * @default any
    */
-  response?: Type<U>;
+  response?: Shape<U>;
 
   /**
    * Dependency resources which this Function needs clients for.
@@ -65,8 +65,8 @@ export class Function<T, U, D extends Dependency<any>>
    */
   public readonly handle: (event: T, clients: Client<D>, context: any) => Promise<U>;
 
-  private readonly request?: Type<T>;
-  private readonly response?: Type<U>;
+  private readonly request?: Shape<T>;
+  private readonly response?: Shape<U>;
   private readonly dependencies?: D;
 
   constructor(scope: cdk.Construct, id: string, props: FunctionProps<T, U, D>) {
@@ -107,8 +107,8 @@ export class Function<T, U, D extends Dependency<any>>
       const runtimeProperties = new Assembly(this, bag);
       client = await this.dependencies.bootstrap(runtimeProperties, cache);
     }
-    const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forType(this.request);
-    const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forType(this.response);
+    const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forShape(this.request);
+    const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forShape(this.response);
     return (async (event: any, context) => {
       const parsed = requestMapper.read(event);
       try {
@@ -138,8 +138,8 @@ export class Function<T, U, D extends Dependency<any>>
    * @param cache global cache shared by the runtime
    */
   public async bootstrap(properties: Assembly, cache: Cache): Promise<Function.Client<T, U>> {
-    const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forType(this.request);
-    const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forType(this.response);
+    const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forShape(this.request);
+    const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forShape(this.response);
     return new Function.Client(
       cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
       properties.get('functionArn'),

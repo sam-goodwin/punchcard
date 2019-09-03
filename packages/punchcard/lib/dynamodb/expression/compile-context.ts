@@ -1,5 +1,5 @@
 import { Writer } from "../../shape/mapper/mapper";
-import { Type } from "../../shape/types/type";
+import { Shape } from "../../shape/shape";
 
 export interface CompileContext {
   readonly writer: Writer<AWS.DynamoDB.AttributeValue>;
@@ -7,7 +7,7 @@ export interface CompileContext {
   readonly values: AWS.DynamoDB.ExpressionAttributeValueMap;
 
   name(name: string): string;
-  value<T extends Type<V>, V>(type: T, value: V): string;
+  value<T extends Shape<V>, V>(type: T, value: V): string;
   attributeValue(value: AWS.DynamoDB.AttributeValue): string;
 }
 export interface Compilable {

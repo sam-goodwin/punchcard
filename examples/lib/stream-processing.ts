@@ -1,8 +1,8 @@
 import glue = require('@aws-cdk/aws-glue')
 import cdk = require('@aws-cdk/core');
-import { Core, SNS, Lambda, DynamoDB, Shape } from 'punchcard';
+import { Core, SNS, Lambda, DynamoDB } from 'punchcard';
 
-const { integer, string, struct, array, timestamp, } = Shape;
+import { integer, string, struct, array, timestamp, } from 'punchcard/lib/shape';
 
 import uuid = require('uuid');
 import { Duration } from '@aws-cdk/core';
@@ -21,7 +21,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
   /**
    * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
    */
-  type: struct({
+  shape: struct({
     key: string(),
     count: integer(),
     timestamp,
@@ -33,7 +33,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
  */
 const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
   partitionKey: 'key',
-  shape: {
+  attributes: {
     // define the shape of data in the dynamodb table
     key: string(),
     tags: array(string())
@@ -41,14 +41,13 @@ const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
   billingMode: BillingMode.PAY_PER_REQUEST
 });
 
-
 /**
  * Schedule a Lambda Function to send a (dummy) message to the SNS topic:
  * 
  * CloudWatch Event --(minutely)--> Lambda --(send)-> SNS Topic
  *                                         --(put)--> Dynamo Table
  **/ 
-new Lambda.ExecutorService().schedule(stack, 'DummyData', {
+Lambda.schedule(stack, 'DummyData', {
   /**
    * Trigger the function every minute.
    */
@@ -59,7 +58,7 @@ new Lambda.ExecutorService().schedule(stack, 'DummyData', {
    *
    * We want to *publish* to the SNS `topic` and *write* to the DynamoDB `table`.
    */
-  depends: Core.Dependency.list(topic, enrichments.writeAccess()),
+  depends: Core.Dependency.tuple(topic, enrichments.writeAccess()),
 
   /**
    * Impement the Lambda Function.
@@ -91,7 +90,7 @@ new Lambda.ExecutorService().schedule(stack, 'DummyData', {
  *
  * SNS -> Lambda
  */
-topic.stream().forEach(stack, 'ForEachNotification', {
+topic.notifications().forEach(stack, 'ForEachNotification', {
   async handle(message) {
     console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`);
   }
@@ -112,7 +111,7 @@ const queue = topic.toSQSQueue(stack, 'Queue');
  *                v
  * SQS Queue -> Lambda -> Kinesis Stream
  */
-const stream = queue.stream() // stream gives us a nice chainable API for resources like queues, streams, topics etc.
+const stream = queue.messages() // gives us a nice chainable API
   .map({
     depends: enrichments.readAccess(),
     handle: async(message, e) => {
@@ -136,7 +135,7 @@ const stream = queue.stream() // stream gives us a nice chainable API for resour
     partitionBy: value => value.key,
 
     // type of the data in the stream
-    type: struct({
+    shape: struct({
       key: string(),
       count: integer(),
       tags: array(string()),
@@ -154,7 +153,7 @@ const database = new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
 });
 stream
-  .toFirehoseDeliveryStream(stack, 'ToS3').stream()
+  .toFirehoseDeliveryStream(stack, 'ToS3').objects()
   .toGlueTable(stack, 'ToGlue', {
     database,
     tableName: 'my_table',

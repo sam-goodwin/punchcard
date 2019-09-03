@@ -1,12 +1,11 @@
 import 'jest';
 
-const apps = [
-  'data-lake',
-  'invoke-function',
-  'pet-store-apigw',
-  'scheduled-function',
-  'stream-processing'
-];
+import fs = require('fs');
+import path = require('path');
+
+const apps = fs.readdirSync(path.join(__dirname, '../lib/'))
+  .filter(f => f.endsWith('.ts'))
+  .map(f => path.basename(f, '.ts'));
 
 for (const app of apps) {
   describe(app, () => {

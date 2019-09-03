@@ -3,41 +3,47 @@ import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import s3 = require('@aws-cdk/aws-s3');
 import core = require('@aws-cdk/core');
 import * as Glue from '../glue';
+import { Columns } from '../glue';
 import * as Kinesis from '../kinesis';
-import { RuntimeShape, Shape, struct, StructType, TimestampType } from '../shape';
+import * as S3 from '../s3';
+import { RuntimeShape, struct, StructShape } from '../shape';
 import { DeliveryStream } from './delivery-stream';
 import { Period } from './period';
 import { Schema } from './schema';
 
-export type TimeSeriesData = Shape & { timestamp: TimestampType; };
-
-export interface DataPipelineProps<S extends Shape, T extends keyof S> {
+export interface DataPipelineProps<C extends Columns, TS extends keyof C> {
   database: Database;
-  schema: Schema<S, T>;
+  schema: Schema<C, TS>;
 }
-export class DataPipeline<S extends Shape, T extends keyof S> extends core.Construct {
-  public readonly stream: Kinesis.Stream<StructType<S>>;
+export class DataPipeline<C extends Columns, TS extends keyof C> extends core.Construct {
+  public readonly bucket: S3.Bucket;
+  public readonly stream: Kinesis.Stream<StructShape<C>>;
   public readonly deliveryStream: DeliveryStream;
   public readonly stagingBucket: s3.Bucket;
-  public readonly table: Glue.Table<S, Period.PT1M>;
+  public readonly table: Glue.Table<C, Period.PT1M>;
 
-  constructor(scope: core.Construct, id: string, props: DataPipelineProps<S, T>) {
+  constructor(scope: core.Construct, id: string, props: DataPipelineProps<C, TS>) {
     super(scope, id);
 
     this.stream = new Kinesis.Stream(this, 'Stream', {
-      type: struct(props.schema.shape),
+      shape: struct(props.schema.shape),
       encryption: StreamEncryption.KMS
     });
 
+    this.bucket = new S3.Bucket(new s3.Bucket(this, 'Bucket', {
+      encryption: s3.BucketEncryption.KMS_MANAGED,
+    }));
+
     this.table = this.stream
-      .toFirehoseDeliveryStream(this, 'ToS3').stream()
+      .toFirehoseDeliveryStream(this, 'ToS3').objects()
       .toGlueTable(this, 'ToGlue', {
+        bucket: this.bucket.bucket,
         database: props.database,
         tableName: props.schema.schemaName,
         columns: props.schema.shape,
         partition: {
           keys: Period.PT1M.schema,
-          get(record): RuntimeShape<Period.PT1M> {
+          get(record): RuntimeShape<StructShape<Period.PT1M>> {
             const ts = props.schema.timestamp(record);
             return {
               year: ts.getUTCFullYear(),

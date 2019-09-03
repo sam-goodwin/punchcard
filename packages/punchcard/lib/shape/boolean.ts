@@ -1,8 +1,8 @@
-import { BaseDynamoPath, DynamoPath } from '../../dynamodb/expression/path';
+import { BaseDynamoPath, DynamoPath } from '../dynamodb/expression/path';
 import { Kind } from './kind';
-import { PrimitiveType } from './primitive';
+import { PrimitiveShape } from './primitive';
 
-export class BooleanType extends PrimitiveType<boolean> {
+export class BooleanShape extends PrimitiveShape<boolean> {
   constructor() { super(Kind.Boolean); }
 
   public validate(value: boolean): boolean {
@@ -29,4 +29,4 @@ export class BooleanType extends PrimitiveType<boolean> {
   }
 }
 // tslint:disable-next-line: variable-name
-export const boolean = new BooleanType();
+export const boolean = new BooleanShape();

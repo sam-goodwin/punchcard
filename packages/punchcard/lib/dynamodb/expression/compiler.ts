@@ -1,7 +1,6 @@
 import AWS = require('aws-sdk');
 import { Writer } from '../../shape/mapper';
-import { RuntimeType } from '../../shape/shape';
-import { Type } from '../../shape/types';
+import { RuntimeShape, Shape } from '../../shape/shape';
 import * as Dynamo from '../mapper';
 import { CompileContext } from './compile-context';
 
@@ -28,7 +27,7 @@ export class CompileContextImpl implements CompileContext {
     return nameId;
   }
 
-  public value<T extends Type<any>>(type: T, value: RuntimeType<T>): string {
+  public value<S extends Shape<any>>(type: S, value: RuntimeShape<S>): string {
     const valueId = this.nextValueId();
     this.values[valueId] = this.writer.write(type, value);
     return valueId;

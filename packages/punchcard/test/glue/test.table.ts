@@ -2,7 +2,7 @@ import glue = require('@aws-cdk/aws-glue');
 import core = require('@aws-cdk/core');
 
 import 'jest';
-import { Core, Glue, Shape, Util } from '../../lib';
+import { Glue, Shape, Util } from '../../lib';
 
 it('should map columns and partition keys to their respective types', () => {
   const stack = new core.Stack(new core.App(), 'stack');
@@ -178,7 +178,7 @@ it('should default to Json Codec', () => {
   expect(table.resource.dataFormat).toEqual(glue.DataFormat.Json);
 });
 
-function partitionTest(type: Shape.Type<any>) {
+function partitionTest(type: Shape.Shape<any>) {
   const stack = new core.Stack(new core.App(), 'stack');
   const database = new glue.Database(stack, 'Database', {
     databaseName: 'database'
