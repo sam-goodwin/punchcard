@@ -121,25 +121,25 @@ export class Resource extends Tree<Resource> {
 
     const requestShape = method.request.shape;
     cfnMethod.addPropertyOverride('Integration', {
-      passthroughBehavior: 'NEVER',
-      requestTemplates: {
+      PassthroughBehavior: 'NEVER',
+      RequestTemplates: {
         'application/json': velocityTemplate(requestShape, {
           ...method.request.mappings as object,
           __resourceId: $context.resourceId,
           __httpMethod: $context.httpMethod
         })
       },
-      integrationResponses: Object.keys(method.responses).map(statusCode => {
+      IntegrationResponses: Object.keys(method.responses).map(statusCode => {
         if (statusCode.toString() === StatusCode.Ok.toString()) {
           return {
-            statusCode,
-            selectionPattern: ''
+            StatusCode: statusCode,
+            SelectionPattern: ''
           };
         } else {
           return {
-            statusCode,
-            selectionPattern: `\\{"statusCode":${statusCode}.*`,
-            responseTemplates: {
+            StatusCode: statusCode,
+            SelectionPattern: `\\{"statusCode":${statusCode}.*`,
+            ResponseTemplates: {
               'application/json': velocityTemplate(
                 (method.responses as any)[statusCode] as any, {},
                 "$util.parseJson($input.path('$.errorMessage')).body")
@@ -164,8 +164,8 @@ export class Resource extends Tree<Resource> {
     const responses = new cdk.Construct(methodResource, 'Response');
     cfnMethod.addPropertyOverride('MethodResponses', Object.keys(method.responses).map(statusCode => {
       return {
-        statusCode,
-        responseModels: {
+        StatusCode: statusCode,
+        ResponseModels: {
           'application/json': new apigateway.CfnModel(responses, statusCode, {
             restApiId: this.restApiId,
             contentType: 'application/json',

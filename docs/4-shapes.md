@@ -16,7 +16,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
 });
 ```
 
-This Topic's Shape is encoded in the type:
+This Topic's Shape is encoded in its type definition:
 
 ```ts
 SNS.Topic<StructType<{
@@ -48,7 +48,7 @@ async function publish(request: {
 })
 ```
 
-That type-machinery is achieved by mapping a `Shape` to its `RuntimeShape` (the representation at runtime). It should look and feel like in-memory array:
+That type-machinery is achieved by mapping a `Shape` to its `RuntimeShape` (the representation at runtime). It should look and feel like an in-memory array:
 
 ```ts
 Array<{
@@ -60,7 +60,7 @@ Array<{
 ```
 
 # Validation and Serialization
-The framework makes use of Shapes to type-check your code against its Schema and safely serialize and deserialize values at runtime. The application code is only concerned with a deserialized and validated value, and so the system is protected from bad data at both *compile time* and *runtime*.
+The framework makes use of Shapes to type-check your code against its schema and safely serialize and deserialize values at runtime. The application code is only concerned with a deserialized and validated value, and so the system is protected from bad data at both *compile time* and *runtime*.
 
 For reference, the above Topic's Shape:
 ```ts
