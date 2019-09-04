@@ -21,7 +21,8 @@ const dataPoints = new Analytics.Schema({
     data_points: array(integer()),
     timestamp
   },
-  timestampField: 'timestamp'
+  timestampField: 'timestamp',
+  dataAsOf: new Date(Date.parse('2019-09-4T00:00Z'))
 });
 
 /**

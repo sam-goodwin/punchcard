@@ -45,6 +45,3 @@ rules:
 
     # We create Constructs for their side effect all the time
     no-unused-expression: [true, "allow-new"]
-
-    # Without this rule, _blabla would be disallowed, which is necessary to silence unused variable errors.
-    variable-name: [true, "ban-keywords", "check-format", "allow-leading-underscore"]

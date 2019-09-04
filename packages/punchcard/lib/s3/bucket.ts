@@ -1,6 +1,7 @@
+import AWS = require('aws-sdk');
+
 import iam = require('@aws-cdk/aws-iam');
 import s3 = require('@aws-cdk/aws-s3');
-import AWS = require('aws-sdk');
 
 import { Namespace } from '../core/assembly';
 import { Cache } from '../core/cache';

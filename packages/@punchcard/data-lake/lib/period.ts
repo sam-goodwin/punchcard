@@ -1,5 +1,5 @@
 import { PartitionKeys } from 'punchcard/lib/glue';
-import { smallint } from 'punchcard/lib/shape';
+import { RuntimeShape, smallint, StructShape } from 'punchcard/lib/shape';
 
 const PT1H = {
   year: smallint(),
@@ -21,11 +21,13 @@ export namespace Period {
    * Shape of a minutely `Glue.Partition`.
    */
   export type PT1H = typeof PT1H;
+  export type PT1HValue = RuntimeShape<StructShape<PT1H>>;
 
   /**
    * Shape of an hourly `Glue.Partition`.
    */
   export type PT1M = typeof PT1M;
+  export type PT1MValue = RuntimeShape<StructShape<PT1M>>;
 }
 
 /**

@@ -1,3 +1,5 @@
+import AWS = require('aws-sdk');
+
 import { Omit } from '../util/omit';
 
 export type ReadWriteClient = Client;

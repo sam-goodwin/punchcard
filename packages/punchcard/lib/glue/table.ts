@@ -81,6 +81,10 @@ export type TableProps<C extends Columns, P extends PartitionKeys> = {
  */
 export class Table<C extends Columns, P extends PartitionKeys> implements Resource<glue.Table>, Dependency<Table.ReadWriteClient<C, P>> {
   /**
+   * S3 Bucket storing Table data.
+   */
+  public readonly bucket: S3.Bucket;
+  /**
    * Type of compression.
    */
   public readonly compression: Compression;
@@ -153,6 +157,7 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
         };
       }),
     });
+    this.bucket = new S3.Bucket(this.resource.bucket as any);
 
     this.shape = {
       columns: props.columns,
@@ -233,7 +238,7 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
       namespace.get('databaseName'),
       namespace.get('tableName'),
       this,
-      await new S3.Bucket(this.resource.bucket as any).bootstrap(namespace.namespace('bucket'), cache)
+      await this.bucket.bootstrap(namespace.namespace('bucket'), cache)
     );
   }
 }
@@ -250,9 +255,12 @@ export namespace Table {
    * Request and Response aliases.
    */
   export type GetPartitionsRequest = Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'>;
-  export type GetPartitionsResponse<P extends PartitionKeys> = {Partitions: Array<{
-    Values: RuntimeShape<StructShape<P>>;
-  } & Omit<AWS.Glue.Partition, 'Values'>>};
+  export type GetPartitionsResponse<P extends PartitionKeys> = {
+    NextToken?: string;
+    Partitions: Array<{
+      Values: RuntimeShape<StructShape<P>>;
+    } & Omit<AWS.Glue.Partition, 'Values'>>
+  };
   export type CreatePartitionRequest<P extends PartitionKeys> = {Partition: RuntimeShape<StructShape<P>>, Location: string, LastAccessTime?: Date} &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
   export type CreatePartitionResponse = AWS.Glue.CreatePartitionResponse;
   export type BatchCreatePartitionRequestEntry<P extends PartitionKeys> = CreatePartitionRequest<P>;
@@ -276,6 +284,56 @@ export namespace Table {
       public readonly bucket: S3.Client
     ) {
       this.partitions = Object.keys(table.shape.partitions);
+    }
+
+    public async getRecords(key: string): Promise<Array<RuntimeShape<StructShape<C>>>> {
+      const obj = await this.bucket.getObject({
+        Key: key
+      });
+      const decompresed = await this.table.compression.decompress(Buffer.isBuffer(obj.Body) ? obj.Body : Buffer.from(obj.Body as string, 'utf8'));
+
+      const records = [];
+      for (const buf of this.table.codec.split(decompresed)) {
+        records.push(this.table.mapper.read(buf));
+      }
+      return records;
+    }
+
+    public async putRecords(prefix: string, records: Array<RuntimeShape<StructShape<C>>>) {
+    // serialize the content and compute a sha256 hash of the content
+      // TODO: client-side encryption
+      const content = await this.table.compression.compress(
+        this.table.codec.join(records.map(record => this.table.mapper.write(record))));
+      const sha256 = crypto.createHash('sha256');
+      sha256.update(content);
+      const extension = this.table.compression.isCompressed ? `${this.table.codec.extension}.${this.table.compression.extension!}` : this.table.codec.extension;
+
+      await this.bucket.putObject({
+        // write objects based on sha256 to avoid duplicates during retries
+        Key: `${prefix}${sha256.digest().toString('hex')}.${extension}`,
+        Body: content
+      });
+    }
+
+    public listPartition(partitionValue: RuntimeShape<StructShape<P>>): AsyncIterableIterator<AWS.S3.Object> {
+      const self = this;
+
+      return (async function*() {
+        const partition = await self.getPartition(partitionValue);
+        const location = partition.Partition!.StorageDescriptor!.Location!.replace(/s3:\/\/[^\/]+\//, '');
+
+        let token: string | undefined;
+        do {
+          const res = await self.bucket.listObjectsV2({
+            ContinuationToken: token,
+            Prefix: location
+          });
+          token = res.NextContinuationToken;
+          for (const obj of res.Contents || []) {
+            yield obj;
+          }
+        } while (token !== undefined);
+      })();
     }
 
     /**
@@ -311,27 +369,10 @@ export namespace Table {
       }
       await Promise.all(Array.from(partitions.values()).map(async ({partition, records}) => {
         // determine the partition location in S3
-        const partitionPath = Object.entries(partition).map(([name, value]) => {
-          return `${name}=${this.table.partitionMappers[name].write(value as any)}`;
-        }).join('/');
-        let location = this.table.resource.s3Prefix ? path.join(this.table.resource.s3Prefix, partitionPath) : partitionPath;
-        if (!location.endsWith('/')) {
-          location += '/';
-        }
+        const location = this.pathFor(partition);
 
-        // serialize the content and compute a sha256 hash of the content
-        // TODO: client-side encryption
-        const content = await this.table.compression.compress(
-          this.table.codec.join(records.map(record => this.table.mapper.write(record))));
-        const sha256 = crypto.createHash('sha256');
-        sha256.update(content);
-        const extension = this.table.compression.isCompressed ? `${this.table.codec.extension}.${this.table.compression.extension!}` : this.table.codec.extension;
+        await this.putRecords(location, records);
 
-        await this.bucket.putObject({
-          // write objects based on sha256 to avoid duplicates during retries
-          Key: `${location}${sha256.digest().toString('hex')}.${extension}`,
-          Body: content
-        });
         try {
           await this.createPartition({
             Partition: partition,
@@ -345,6 +386,26 @@ export namespace Table {
           }
         }
       }));
+    }
+
+    public pathFor(partition: RuntimeShape<StructShape<P>>): string {
+      const partitionPath = Object.keys(this.partitions.keys).map((name) => {
+        return `${name}=${this.table.partitionMappers[name].write((partition as any)[name] as any)}`;
+      }).join('/') + '/';
+      let location = this.table.resource.s3Prefix ? path.join(this.table.resource.s3Prefix, partitionPath) : partitionPath;
+      if (!location.endsWith('/')) {
+        location += '/';
+      }
+      return location;
+    }
+
+    public getPartition(partition: RuntimeShape<StructShape<P>>): Promise<AWS.Glue.GetPartitionResponse> {
+      return this.client.getPartition({
+        CatalogId: this.catalogId,
+        DatabaseName: this.databaseName,
+        TableName: this.tableName,
+        PartitionValues: Object.keys(this.partitions.keys).map(key => (partition as any)[key].toString())
+      }).promise();
     }
 
     public async getPartitions(request: GetPartitionsRequest): Promise<GetPartitionsResponse<P>> {
