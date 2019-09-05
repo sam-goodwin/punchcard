@@ -43,6 +43,12 @@ export class DataPipeline<C extends Glue.Columns, TS extends keyof C> extends co
     this.bucket = new S3.Bucket(new s3.Bucket(this, 'Bucket', {
       encryption: s3.BucketEncryption.KMS
     }));
+    this.bucket.bucket.encryptionKey!.grantDecrypt(new iam.AccountRootPrincipal());
+    //  .addToResourcePolicy(new iam.PolicyStatement({
+    //   actions: ['kms:Decrypt'],
+    //   resources: ['*'],
+    //   principals: []
+    // }));
 
     this.minutelyTable = this.stream
       .toFirehoseDeliveryStream(this, 'ToS3').objects()
@@ -57,7 +63,7 @@ export class DataPipeline<C extends Glue.Columns, TS extends keyof C> extends co
             const ts = props.schema.timestamp(record);
             return {
               year: ts.getUTCFullYear(),
-              month: ts.getUTCMonth(),
+              month: ts.getUTCMonth() + 1,
               day: ts.getUTCDate(),
               hour: ts.getUTCHours(),
               minute: ts.getUTCMinutes()
@@ -105,15 +111,15 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
     });
 
     const state = struct({
-      version: integer({
-        minimum: 0
-      }),
+      version: integer(),
+      delaySeconds: integer(),
       startTime: timestamp,
       lastCompactTime: timestamp,
-      shouldCompact: boolean
+      shouldCompact: boolean,
+      shouldTerminate: boolean
     });
 
-    const freshnessCheker = new Lambda.Function(this, 'FreshnessChecker', {
+    const freshnessChecker = new Lambda.Function(this, 'FreshnessChecker', {
       request: state,
       response: state,
       depends: this.source.readAccess(),
@@ -126,16 +132,27 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
           day: state.startTime.getUTCDate(),
           hour: state.startTime.getUTCHours()
         };
+        const shouldCompact = await isStale();
+        // double back-off if we don't need to compact
+        // drop to 1 minute wait if we do
+        const delaySeconds = shouldCompact ? 60 : state.delaySeconds * 2;
+        const age = (new Date().getTime() - state.startTime.getTime());
+
         return {
           ...state,
-          shouldCompact: await isStale(),
-          lastCompactTime
+          shouldCompact,
+          lastCompactTime,
+          // terminate after 6 months
+          shouldTerminate: age >= (6 * 30 * 24 * 60 * 60 * 1000),
+          // wait a max of 1 hour
+          delaySeconds: age < 60 * 60 * 1000 ? 60 : Math.min(60 * 60 /* 1 hour */, delaySeconds)
         };
 
         async function isStale(nextToken?: string): Promise<boolean> {
           const { NextToken, Partitions } = await source.getPartitions({
-            Expression: `(year = ${partition.year}) and (month = ${partition.month}) and (day = ${partition.year}) and (hour = ${partition.hour})`,
-            NextToken: nextToken
+            Expression: `(year = ${partition.year}) and (month = ${partition.month}) and (day = ${partition.day}) and (hour = ${partition.hour})`,
+            NextToken: nextToken,
+            MaxResults: 60
           });
           if (Partitions.findIndex(p => p.LastAccessTime!.getTime() > state.lastCompactTime.getTime()) !== -1) {
             return true;
@@ -178,16 +195,20 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
       memorySize: 1024,
       depends: Dependency.tuple(this.source, this.compacted, worker),
       handle: async (state, [source, compacted, compactWorker]) => {
+        console.log(state.startTime);
         const partition = {
           year: state.startTime.getUTCFullYear(),
           month: state.startTime.getUTCMonth(),
           day: state.startTime.getUTCDate(),
           hour: state.startTime.getUTCHours()
         };
+        console.log('partition', partition);
         const path = compacted.pathFor(partition) + `${state.version}/`;
 
         const partitions = await getPartitions();
+        console.log(partitions);
         const objects = await getObjectsOrderedBySize(partitions);
+        console.log(objects);
         await compactObjects(objects);
         await flipPartition();
         await deleteOldData();
@@ -200,7 +221,7 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
 
         async function getPartitions(nextToken?: string): Promise<Partitions> {
           const { NextToken, Partitions } = await source.getPartitions({
-            Expression: `(year = ${partition.year}) and (month = ${partition.month}) and (day = ${partition.year}) and (hour = ${partition.hour})`,
+            Expression: `(year = ${partition.year}) and (month = ${partition.month}) and (day = ${partition.day}) and (hour = ${partition.hour})`,
             NextToken: nextToken
           });
           if (!NextToken) {
@@ -217,7 +238,9 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
               objects.push(object);
             }
             return objects;
-          }))).reduce((a, b) => a.concat(b)).sort((o1, o2) => (o1.Size || 0)! - (o2.Size || 0)!);
+          })))
+            .reduce((a, b) => a.concat(b))
+            .sort((o1, o2) => (o1.Size || 0) - (o2.Size || 0));
         }
 
         async function compactObjects(objects: AWS.S3.Object[]) {
@@ -249,14 +272,25 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
         }
 
         async function flipPartition() {
-          await compacted.updatePartition({
-            Partition: partition,
-            UpdatedPartition: {
-              LastAccessTime: new Date(),
+          try {
+            await compacted.updatePartition({
               Partition: partition,
-              Location: path
+              UpdatedPartition: {
+                LastAccessTime: new Date(),
+                Partition: partition,
+                Location: path
+              }
+            });
+          } catch (err) {
+            if (err.code !== 'EntityNotFoundException') {
+              throw err;
             }
-          });
+            await compacted.createPartition({
+              Partition: partition,
+              LastAccessTime: new Date(),
+              Location: path
+            });
+          }
         }
 
         async function deleteOldData() {
@@ -266,7 +300,7 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
     });
 
     const checkFreshess = new sfn.Task(this, 'CheckFreshnessTask', {
-      task: new tasks.InvokeFunction(freshnessCheker)
+      task: new tasks.InvokeFunction(freshnessChecker)
     });
 
     const compactPartition: sfn.Task = new sfn.Task(this, 'CompactTask', {
@@ -274,16 +308,18 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
     });
 
     const retry = new sfn.Wait(this, 'Wait', {
-      time: sfn.WaitTime.duration(core.Duration.minutes(1)),
+      time: sfn.WaitTime.secondsPath('$.delaySeconds'),
     }).next(checkFreshess);
 
     const compactorMachine = new StateMachine(new sfn.StateMachine(this, 'Compactor', {
       definition: checkFreshess.next(new sfn.Choice(this, 'CompactOrWait')
+        .when(sfn.Condition.booleanEquals('$.shouldTerminate', true), new sfn.Succeed(this, 'Success'))
         .when(sfn.Condition.booleanEquals('$.shouldCompact', true), compactPartition.next(retry))
         .otherwise(retry))
     }), state);
 
     Lambda.schedule(this, 'Scheduler', {
+      timeout: core.Duration.seconds(30),
       schedule: events.Schedule.rate(core.Duration.minutes(1)),
 
       depends: Dependency.tuple(
@@ -291,13 +327,18 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
         props.scheduleState,
         compactorMachine),
 
-      handle: async (_, [table, scheduleStore, compactorMachine]) => {
+      handle: async (_, [table, scheduleStore, compactorMachine], context) => {
         const scheduleState = await getState();
-
-        if (scheduleState.nextTime.getTime() < new Date().getTime()) {
-          await triggerCompaction();
-          await updateState();
-        }
+        let nextTime = scheduleState.nextTime;
+        do {
+          if (nextTime.getTime() < new Date().getTime()) {
+            await triggerCompaction(nextTime);
+            await updateState(nextTime);
+            nextTime = new Date(nextTime.getTime() + hourMilliseconds);
+          } else {
+            break;
+          }
+        } while (context.getRemainingTimeInMillis() >= 2000);
 
         async function getState() {
           let state = await get();
@@ -328,19 +369,21 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
           }
         }
 
-        async function triggerCompaction(): Promise<void> {
+        async function triggerCompaction(nextTime: Date): Promise<void> {
           await compactorMachine.startExecution({
-            name: scheduleState.nextTime.toISOString(),
+            name: nextTime.toISOString().replace(/[:\.-]/g, '_'),
             state: {
               version: 0,
               lastCompactTime: new Date(0),
               shouldCompact: false,
-              startTime: scheduleState.nextTime,
+              startTime: nextTime,
+              shouldTerminate: false,
+              delaySeconds: 60
             }
           });
         }
 
-        async function updateState() {
+        async function updateState(time: Date) {
           try {
             await scheduleStore.update({
               key: {
@@ -349,7 +392,7 @@ class Compactor<C extends Glue.Columns> extends core.Construct {
               actions: item => [
                 item.nextTime.incrementMs(hourMilliseconds)
               ],
-              if: item => item.nextTime.equals(scheduleState!.nextTime)
+              if: item => item.nextTime.equals(time)
             });
           } catch (err) {
             if (err.code !== 'ConditionalCheckFailedException') {
@@ -368,6 +411,7 @@ type Partitions = Glue.Table.GetPartitionsResponse<Period.PT1M>['Partitions'];
 
 class StateMachine<S extends Shape<any>> implements Dependency<StateMachineClient<RuntimeShape<S>>> {
   constructor(private readonly machine: sfn.StateMachine, private readonly shape: S) {}
+
   public install(namespace: Namespace, grantable: iam.IGrantable): void {
     namespace.set('stateMachineArn', this.machine.stateMachineArn);
     this.machine.grantStartExecution(grantable);
@@ -392,10 +436,12 @@ class StateMachineClient<S> {
     name: string;
     state: S
   }): Promise<AWS.StepFunctions.StartExecutionOutput> {
-    return this.client.startExecution({
+    const params = {
       stateMachineArn: this.stateMachineArn,
       input: this.mapper.write(props.state),
       name: props.name
-    }).promise();
+    };
+    console.log('startExecution', params);
+    return this.client.startExecution(params).promise();
   }
 }

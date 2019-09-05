@@ -5,8 +5,8 @@ import { PrimitiveShape } from './primitive';
 export class BooleanShape extends PrimitiveShape<boolean> {
   constructor() { super(Kind.Boolean); }
 
-  public validate(value: boolean): boolean {
-    return value;
+  public validate(value: boolean): void {
+    // no-op
   }
 
   public toDynamoPath(parent: DynamoPath, name: string): BaseDynamoPath<this> {

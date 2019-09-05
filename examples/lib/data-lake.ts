@@ -5,6 +5,8 @@ import { Lambda } from 'punchcard';
 
 import * as Analytics from '@punchcard/data-lake';
 
+import moment = require('moment');
+
 import { integer, string, timestamp, char, array, } from 'punchcard/lib/shape';
 
 const app = new core.App();
@@ -22,7 +24,7 @@ const dataPoints = new Analytics.Schema({
     timestamp
   },
   timestampField: 'timestamp',
-  dataAsOf: new Date(Date.parse('2019-09-4T00:00Z'))
+  dataAsOf: moment.utc('2019-09-04T00:00Z').toDate()
 });
 
 /**

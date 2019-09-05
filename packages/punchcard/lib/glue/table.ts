@@ -226,6 +226,7 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
         namespace.set('catalogId', this.resource.database.catalogId);
         namespace.set('databaseName', this.resource.database.databaseName);
         namespace.set('tableName', this.resource.tableName);
+        namespace.set('s3Prefix', this.resource.s3Prefix);
       },
       bootstrap: this.bootstrap.bind(this) as any
     };
@@ -238,7 +239,8 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
       namespace.get('databaseName'),
       namespace.get('tableName'),
       this,
-      await this.bucket.bootstrap(namespace.namespace('bucket'), cache)
+      await this.bucket.bootstrap(namespace.namespace('bucket'), cache),
+      namespace.get('s3Prefix')
     );
   }
 }
@@ -281,7 +283,8 @@ export namespace Table {
       public readonly databaseName: string,
       public readonly tableName: string,
       public readonly table: Table<C, P>,
-      public readonly bucket: S3.Client
+      public readonly bucket: S3.Client,
+      public readonly s3Prefix: string
     ) {
       this.partitions = Object.keys(table.shape.partitions);
     }
@@ -300,7 +303,7 @@ export namespace Table {
     }
 
     public async putRecords(prefix: string, records: Array<RuntimeShape<StructShape<C>>>) {
-    // serialize the content and compute a sha256 hash of the content
+      // serialize the content and compute a sha256 hash of the content
       // TODO: client-side encryption
       const content = await this.table.compression.compress(
         this.table.codec.join(records.map(record => this.table.mapper.write(record))));
@@ -376,7 +379,7 @@ export namespace Table {
         try {
           await this.createPartition({
             Partition: partition,
-            Location: `s3://${this.bucket.bucketName}/${location}`
+            Location: location
           });
         } catch (err) {
           console.error(err);
@@ -389,13 +392,16 @@ export namespace Table {
     }
 
     public pathFor(partition: RuntimeShape<StructShape<P>>): string {
-      const partitionPath = Object.keys(this.partitions.keys).map((name) => {
+      const partitionPath = this.partitions.map((name) => {
+        console.log('partition key', name);
         return `${name}=${this.table.partitionMappers[name].write((partition as any)[name] as any)}`;
       }).join('/') + '/';
-      let location = this.table.resource.s3Prefix ? path.join(this.table.resource.s3Prefix, partitionPath) : partitionPath;
+      console.log('partitionPath', partitionPath);
+      let location = this.s3Prefix ? path.join(this.s3Prefix, partitionPath) : partitionPath;
       if (!location.endsWith('/')) {
         location += '/';
       }
+      console.log('location', location);
       return location;
     }
 
@@ -404,7 +410,7 @@ export namespace Table {
         CatalogId: this.catalogId,
         DatabaseName: this.databaseName,
         TableName: this.tableName,
-        PartitionValues: Object.keys(this.partitions.keys).map(key => (partition as any)[key].toString())
+        PartitionValues: this.partitions.map(key => (partition as any)[key].toString())
       }).promise();
     }
 
@@ -466,7 +472,7 @@ export namespace Table {
         LastAccessTime: request.LastAccessTime || new Date(),
         StorageDescriptor: {
           Compressed: this.table.compression.isCompressed,
-          Location: request.Location,
+          Location: `s3://${this.bucket.bucketName}/${request.Location}`,
           Columns: Object.entries(this.table.shape.columns).map(([name, type]) => {
             return {
               Name: name,

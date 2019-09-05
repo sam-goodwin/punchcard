@@ -68,7 +68,7 @@ class WholeNumberShape extends BaseNumberShape {
   public validate(value: number): void {
     super.validate(value);
     if (value % 1 !== 0) {
-      throw new Error('integer must be a whole number');
+      throw new Error('integer must be a whole number: ' + value);
     }
   }
 

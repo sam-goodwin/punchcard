@@ -66,11 +66,13 @@ export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A ex
       expression = put.if(this.table.facade).render(new CompileContextImpl());
     }
 
-    return this.client.putItem({
+    const params = {
       TableName: this.tableName,
       Item: this.table.mapper.write(put.item),
       ...expression
-    }).promise();
+    };
+    console.log('putParams', params);
+    return this.client.putItem(params).promise();
   }
 
   /**

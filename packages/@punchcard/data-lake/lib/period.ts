@@ -42,7 +42,7 @@ export class Period<P extends PartitionKeys> {
   /**
    * Hourly partitions.
    */
-  public static readonly PT1H: Period<Period.PT1H> = new Period('hourly', PT1M, 60 * 60 * 1000);
+  public static readonly PT1H: Period<Period.PT1H> = new Period('hourly', PT1H, 60 * 60 * 1000);
 
   constructor(
     public readonly id: string,

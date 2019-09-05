@@ -31,7 +31,7 @@ const table = new Glue.Table(stack, 'Table', {
 });
 
 function makeClient(glue: AWS.Glue, mockBucket?: S3.Client) {
-  return new Glue.Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, mockBucket as any);
+  return new Glue.Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, mockBucket as any, '');
 }
 
 describe('getPartitions', () => {
