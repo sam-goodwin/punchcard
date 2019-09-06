@@ -4,8 +4,8 @@ import core = require('@aws-cdk/core');
 import { DataPipeline } from './data-pipeline';
 import { Schema, Schemas } from './schema';
 
-import { DynamoDB } from 'punchcard';
-import { string, timestamp } from 'punchcard/lib/shape';
+import { DynamoDB, SNS } from 'punchcard';
+import { string, StringShape, struct, StructShape, timestamp } from 'punchcard/lib/shape';
 import { Lock } from './lock';
 
 export class ScheduleStateTable extends DynamoDB.Table<'id', undefined, ScheduleAttributes> {}
@@ -24,11 +24,22 @@ export class DataLake<S extends Schemas> extends core.Construct {
   public readonly pipelines: Pipelines<S>;
   public readonly scheduleState: ScheduleStateTable;
   public readonly lock: Lock;
+  public readonly deletionRequests: SNS.Topic<StructShape<{
+    requestId: StringShape;
+    customerId: StringShape;
+  }>>;
 
   constructor(scope: core.Construct, id: string, props: DataLakeProps<S>) {
     super(scope, id);
     this.database = new Database(this, 'Database', {
       databaseName: props.lakeName
+    });
+
+    this.deletionRequests = new SNS.Topic(this, 'Deletions', {
+      shape: struct({
+        requestId: string(),
+        customerId: string()
+      })
     });
 
     this.lock = new Lock(this, 'Lock');

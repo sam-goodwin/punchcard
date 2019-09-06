@@ -410,6 +410,9 @@ Object {
       "Type": "AWS::S3::Bucket",
       "UpdateReplacePolicy": "Retain",
     },
+    "LakeDeletions0155FCE3": Object {
+      "Type": "AWS::SNS::Topic",
+    },
     "LakeLockLockTableF4903C57": Object {
       "DeletionPolicy": "Retain",
       "Properties": Object {
@@ -638,22 +641,6 @@ Object {
                 "AWS": Object {
                   "Fn::GetAtt": Array [
                     "LakedataPointsCompactorBrokerServiceRole1E7D316B",
-                    "Arn",
-                  ],
-                },
-              },
-              "Resource": "*",
-            },
-            Object {
-              "Action": Array [
-                "kms:Decrypt",
-                "kms:DescribeKey",
-              ],
-              "Effect": "Allow",
-              "Principal": Object {
-                "AWS": Object {
-                  "Fn::GetAtt": Array [
-                    "LakedataPointsCompactorSchedulerServiceRole84B0AB43",
                     "Arn",
                   ],
                 },
@@ -1693,7 +1680,7 @@ Object {
       },
       "Type": "AWS::IAM::Policy",
     },
-    "LakedataPointsCompactorScheduler4AEFFDEA": Object {
+    "LakedataPointsCompactorScheduler989FDE27": Object {
       "Properties": Object {
         "Code": Object {
           "S3Bucket": "mock",
@@ -1701,32 +1688,19 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "data-lake/Lake/dataPoints/Compactor/Scheduler",
-            "datalakeLakedataPointsCompactorScheduler50558292_0_bucket_bucketName": Object {
-              "Ref": "LakedataPointsBucket3D88C33A",
-            },
-            "datalakeLakedataPointsCompactorScheduler50558292_0_catalogId": Object {
-              "Ref": "AWS::AccountId",
-            },
-            "datalakeLakedataPointsCompactorScheduler50558292_0_databaseName": Object {
-              "Ref": "LakeDatabase6CA13201",
-            },
-            "datalakeLakedataPointsCompactorScheduler50558292_0_s3Prefix": "data_points/",
-            "datalakeLakedataPointsCompactorScheduler50558292_0_tableName": Object {
-              "Ref": "LakedataPointsToGlueTable8B239253",
-            },
-            "datalakeLakedataPointsCompactorScheduler50558292_1_tableName": Object {
-              "Ref": "LakeState8C816D4C",
-            },
-            "datalakeLakedataPointsCompactorScheduler50558292_2_stateMachineArn": Object {
+            "bootstrap_construct_path": "data-lake/Lake/dataPoints/Compactor/Scheduler/Scheduler",
+            "datalakeLakedataPointsCompactorScheduler3E8744EB_0_0_stateMachineArn": Object {
               "Ref": "LakedataPointsCompactor5CE4C935",
+            },
+            "datalakeLakedataPointsCompactorScheduler3E8744EB_1_tableName": Object {
+              "Ref": "LakeState8C816D4C",
             },
           },
         },
         "Handler": "index.handler",
         "Role": Object {
           "Fn::GetAtt": Array [
-            "LakedataPointsCompactorSchedulerServiceRole84B0AB43",
+            "LakedataPointsCompactorSchedulerServiceRoleAEC4A8E5",
             "Arn",
           ],
         },
@@ -1735,26 +1709,26 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "LakedataPointsCompactorSchedulerAllowEventRuledatalakeLakedataPointsCompactorSchedulerSchedule92417AFDF7211C47": Object {
+    "LakedataPointsCompactorSchedulerAllowEventRuledatalakeLakedataPointsCompactorSchedulerSchedule2EF3D40F82CC1EBD": Object {
       "Properties": Object {
         "Action": "lambda:InvokeFunction",
         "FunctionName": Object {
           "Fn::GetAtt": Array [
-            "LakedataPointsCompactorScheduler4AEFFDEA",
+            "LakedataPointsCompactorScheduler989FDE27",
             "Arn",
           ],
         },
         "Principal": "events.amazonaws.com",
         "SourceArn": Object {
           "Fn::GetAtt": Array [
-            "LakedataPointsCompactorSchedulerScheduleBA9DF66F",
+            "LakedataPointsCompactorSchedulerScheduleC8B3448C",
             "Arn",
           ],
         },
       },
       "Type": "AWS::Lambda::Permission",
     },
-    "LakedataPointsCompactorSchedulerScheduleBA9DF66F": Object {
+    "LakedataPointsCompactorSchedulerScheduleC8B3448C": Object {
       "Properties": Object {
         "ScheduleExpression": "rate(1 minute)",
         "State": "ENABLED",
@@ -1762,7 +1736,7 @@ Object {
           Object {
             "Arn": Object {
               "Fn::GetAtt": Array [
-                "LakedataPointsCompactorScheduler4AEFFDEA",
+                "LakedataPointsCompactorScheduler989FDE27",
                 "Arn",
               ],
             },
@@ -1772,7 +1746,7 @@ Object {
       },
       "Type": "AWS::Events::Rule",
     },
-    "LakedataPointsCompactorSchedulerServiceRole84B0AB43": Object {
+    "LakedataPointsCompactorSchedulerServiceRoleAEC4A8E5": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [
@@ -1803,166 +1777,16 @@ Object {
       },
       "Type": "AWS::IAM::Role",
     },
-    "LakedataPointsCompactorSchedulerServiceRoleDefaultPolicy55644387": Object {
+    "LakedataPointsCompactorSchedulerServiceRoleDefaultPolicy048653A4": Object {
       "Properties": Object {
         "PolicyDocument": Object {
           "Statement": Array [
             Object {
-              "Action": Array [
-                "glue:BatchDeletePartition",
-                "glue:BatchGetPartition",
-                "glue:GetPartition",
-                "glue:GetPartitions",
-                "glue:GetTable",
-                "glue:GetTables",
-                "glue:GetTableVersions",
-              ],
-              "Effect": "Allow",
-              "Resource": Array [
-                Object {
-                  "Fn::Join": Array [
-                    "",
-                    Array [
-                      "arn:",
-                      Object {
-                        "Ref": "AWS::Partition",
-                      },
-                      ":glue:",
-                      Object {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":table/",
-                      Object {
-                        "Ref": "LakeDatabase6CA13201",
-                      },
-                      "/",
-                      Object {
-                        "Ref": "LakedataPointsToGlueTable8B239253",
-                      },
-                    ],
-                  ],
-                },
-                Object {
-                  "Fn::Join": Array [
-                    "",
-                    Array [
-                      "arn:",
-                      Object {
-                        "Ref": "AWS::Partition",
-                      },
-                      ":glue:",
-                      Object {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":database/",
-                      Object {
-                        "Ref": "LakeDatabase6CA13201",
-                      },
-                    ],
-                  ],
-                },
-                Object {
-                  "Fn::Join": Array [
-                    "",
-                    Array [
-                      "arn:",
-                      Object {
-                        "Ref": "AWS::Partition",
-                      },
-                      ":glue:",
-                      Object {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":catalog",
-                    ],
-                  ],
-                },
-              ],
-            },
-            Object {
-              "Action": Array [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
-              ],
-              "Effect": "Allow",
-              "Resource": Array [
-                Object {
-                  "Fn::GetAtt": Array [
-                    "LakedataPointsBucket3D88C33A",
-                    "Arn",
-                  ],
-                },
-                Object {
-                  "Fn::Join": Array [
-                    "",
-                    Array [
-                      Object {
-                        "Fn::GetAtt": Array [
-                          "LakedataPointsBucket3D88C33A",
-                          "Arn",
-                        ],
-                      },
-                      "/data_points/",
-                    ],
-                  ],
-                },
-              ],
-            },
-            Object {
-              "Action": Array [
-                "kms:Decrypt",
-                "kms:DescribeKey",
-              ],
+              "Action": "states:StartExecution",
               "Effect": "Allow",
               "Resource": Object {
-                "Fn::GetAtt": Array [
-                  "LakedataPointsBucketKeyC48FBA4A",
-                  "Arn",
-                ],
+                "Ref": "LakedataPointsCompactor5CE4C935",
               },
-            },
-            Object {
-              "Action": Array [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
-              ],
-              "Effect": "Allow",
-              "Resource": Array [
-                Object {
-                  "Fn::GetAtt": Array [
-                    "LakedataPointsBucket3D88C33A",
-                    "Arn",
-                  ],
-                },
-                Object {
-                  "Fn::Join": Array [
-                    "",
-                    Array [
-                      Object {
-                        "Fn::GetAtt": Array [
-                          "LakedataPointsBucket3D88C33A",
-                          "Arn",
-                        ],
-                      },
-                      "/*",
-                    ],
-                  ],
-                },
-              ],
             },
             Object {
               "Action": Array [
@@ -1990,20 +1814,13 @@ Object {
                 },
               ],
             },
-            Object {
-              "Action": "states:StartExecution",
-              "Effect": "Allow",
-              "Resource": Object {
-                "Ref": "LakedataPointsCompactor5CE4C935",
-              },
-            },
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "LakedataPointsCompactorSchedulerServiceRoleDefaultPolicy55644387",
+        "PolicyName": "LakedataPointsCompactorSchedulerServiceRoleDefaultPolicy048653A4",
         "Roles": Array [
           Object {
-            "Ref": "LakedataPointsCompactorSchedulerServiceRole84B0AB43",
+            "Ref": "LakedataPointsCompactorSchedulerServiceRoleAEC4A8E5",
           },
         ],
       },

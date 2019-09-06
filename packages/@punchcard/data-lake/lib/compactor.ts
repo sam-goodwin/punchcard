@@ -1,22 +1,19 @@
 import AWS = require('aws-sdk');
 
-import events = require('@aws-cdk/aws-events');
-import iam = require('@aws-cdk/aws-iam');
 import sfn = require('@aws-cdk/aws-stepfunctions');
 import tasks = require('@aws-cdk/aws-stepfunctions-tasks');
 import core = require('@aws-cdk/core');
 
 import moment = require('moment');
 
-import { Glue, Lambda } from 'punchcard';
-import { Cache, Dependency, Namespace } from 'punchcard/lib/core';
-import { array, boolean, dynamic, integer, Json, Mapper, RuntimeShape, Shape, string, struct, timestamp } from 'punchcard/lib/shape';
+import { Glue, Lambda, StepFunctions } from 'punchcard';
+import { Dependency } from 'punchcard/lib/core';
+import { array, boolean, dynamic, integer, string, struct, timestamp } from 'punchcard/lib/shape';
 import { ScheduleStateTable } from './data-lake';
 import { Lock } from './lock';
 import { Period } from './period';
+import { Scheduler } from './scheduler';
 import { Schema } from './schema';
-
-const hourMilliseconds = 60 * 60 * 1000;
 
 type Partitions = Glue.Table.GetPartitionsResponse<Period.PT1M>['Partitions'];
 
@@ -126,7 +123,7 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
       }
     });
 
-    const worker = new Lambda.Function(this, 'Worker', {
+    const compactWorker = new Lambda.Function(this, 'Worker', {
       request: struct({
         objects: array(string()),
         to: string()
@@ -154,10 +151,9 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
       response: state,
       timeout: core.Duration.minutes(15),
       memorySize: 1024,
-      depends: Dependency.tuple(this.source, this.compacted, worker, props.lock, deleteWorker),
+      depends: Dependency.tuple(this.source, this.compacted, compactWorker, props.lock, deleteWorker),
       handle: async (state, [source, compacted, compactWorker, lock, deleteWorker]) => {
         const expiry = moment().add(15, 'minutes').toDate();
-
         const partition = {
           year: state.startTime.getUTCFullYear(),
           month: state.startTime.getUTCMonth() + 1,
@@ -328,133 +324,33 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
       time: sfn.WaitTime.secondsPath('$.delaySeconds'),
     }).next(checkFreshess);
 
-    const compactorMachine = new StateMachine(new sfn.StateMachine(this, 'Compactor', {
+    const compactorMachine = new StepFunctions.StateMachine(new sfn.StateMachine(this, 'Compactor', {
       definition: checkFreshess.next(new sfn.Choice(this, 'CompactOrWait')
         .when(sfn.Condition.booleanEquals('$.shouldTerminate', true), new sfn.Succeed(this, 'Success'))
         .when(sfn.Condition.booleanEquals('$.shouldCompact', true), compactPartition.next(retry))
         .otherwise(retry))
     }), state);
 
-    Lambda.schedule(this, 'Scheduler', {
-      timeout: core.Duration.seconds(30),
-      schedule: events.Schedule.rate(core.Duration.minutes(1)),
-
-      depends: Dependency.tuple(
-        this.source.readAccess(),
-        props.scheduleState,
-        compactorMachine),
-
-      handle: async (_, [table, scheduleStore, compactorMachine], context) => {
-        const scheduleState = await getState();
-        let nextTime = scheduleState.nextTime;
-        do {
-          if (nextTime.getTime() < new Date().getTime()) {
-            await triggerCompaction(nextTime);
-            await updateState(nextTime);
-            nextTime = new Date(nextTime.getTime() + hourMilliseconds);
-          } else {
-            break;
+    new Scheduler(this, 'Scheduler', {
+      depends: Dependency.tuple(compactorMachine),
+      scheduleState: props.scheduleState,
+      scheduleId: `${props.schema.schemaName}:compact:hourly`,
+      scheduleStartTime: props.schema.dataAsOf,
+      scheduleWindow: core.Duration.hours(1),
+      handle: async (nextTime, scheduleId, [compactorMachine]) => {
+        await compactorMachine.startExecution({
+          name: nextTime.toISOString().replace(/[:\.-]/g, '_'),
+          state: {
+            globalId: scheduleId,
+            version: 0,
+            lastCompactTime: new Date(0),
+            shouldCompact: false,
+            startTime: nextTime,
+            shouldTerminate: false,
+            delaySeconds: 60
           }
-        } while (context.getRemainingTimeInMillis() >= 2000);
-
-        async function getState() {
-          let state = await get();
-          if (!state) {
-            state = {
-              id: table.tableName,
-              nextTime: props.schema.dataAsOf
-            };
-            try {
-              await scheduleStore.put({
-                item: state,
-                if: item => item.id.isNotSet()
-              });
-            } catch (err) {
-              if (err.code === 'ConditionalCheckFailedException') {
-                state = await get();
-              } else {
-                throw err;
-              }
-            }
-          }
-          return state!;
-
-          function get() {
-            return scheduleStore.get({
-              id: table.tableName
-            });
-          }
-        }
-
-        async function triggerCompaction(nextTime: Date): Promise<void> {
-          const name = nextTime.toISOString().replace(/[:\.-]/g, '_');
-          await compactorMachine.startExecution({
-            name,
-            state: {
-              globalId: `${table.tableName}:compactor:${name}`,
-              version: 0,
-              lastCompactTime: new Date(0),
-              shouldCompact: false,
-              startTime: nextTime,
-              shouldTerminate: false,
-              delaySeconds: 60
-            }
-          });
-        }
-
-        async function updateState(time: Date) {
-          try {
-            await scheduleStore.update({
-              key: {
-                id: table.tableName
-              },
-              actions: item => [
-                item.nextTime.incrementMs(hourMilliseconds)
-              ],
-              if: item => item.nextTime.equals(time)
-            });
-          } catch (err) {
-            if (err.code !== 'ConditionalCheckFailedException') {
-              throw err;
-            }
-          }
-        }
+        });
       }
     });
-  }
-}
-
-class StateMachine<S extends Shape<any>> implements Dependency<StateMachineClient<RuntimeShape<S>>> {
-  constructor(private readonly machine: sfn.StateMachine, private readonly shape: S) {}
-
-  public install(namespace: Namespace, grantable: iam.IGrantable): void {
-    namespace.set('stateMachineArn', this.machine.stateMachineArn);
-    this.machine.grantStartExecution(grantable);
-  }
-
-  public async bootstrap(namespace: Namespace, cache: Cache): Promise<StateMachineClient<RuntimeShape<S>>> {
-    return new StateMachineClient(
-      cache.getOrCreate('aws:stepfunctions', () => new AWS.StepFunctions()),
-      namespace.get('stateMachineArn'),
-      Json.forShape(this.shape));
-  }
-
-}
-class StateMachineClient<S> {
-  constructor(
-    public readonly client: AWS.StepFunctions,
-    public readonly stateMachineArn: string,
-    public readonly mapper: Mapper<S, string>,
-  ) {}
-
-  public startExecution(props: {
-    name: string;
-    state: S
-  }): Promise<AWS.StepFunctions.StartExecutionOutput> {
-    return this.client.startExecution({
-      stateMachineArn: this.stateMachineArn,
-      input: this.mapper.write(props.state),
-      name: props.name
-    }).promise();
   }
 }

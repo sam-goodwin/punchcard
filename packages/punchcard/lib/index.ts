@@ -24,6 +24,7 @@ import * as Lambda from './lambda';
 import * as S3 from './s3';
 import * as SNS from './sns';
 import * as SQS from './sqs';
+import * as StepFunctions from './step-functions';
 
 export {
   ApiGateway,
@@ -36,4 +37,5 @@ export {
   S3,
   SNS,
   SQS,
+  StepFunctions
 };

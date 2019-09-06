@@ -302,11 +302,15 @@ export namespace Table {
       return records;
     }
 
+    public async serializeRecords(records: Array<RuntimeShape<StructShape<C>>>) {
+      return await this.table.compression.compress(
+        this.table.codec.join(records.map(record => this.table.mapper.write(record))));
+    }
+
     public async putRecords(prefix: string, records: Array<RuntimeShape<StructShape<C>>>) {
       // serialize the content and compute a sha256 hash of the content
       // TODO: client-side encryption
-      const content = await this.table.compression.compress(
-        this.table.codec.join(records.map(record => this.table.mapper.write(record))));
+      const content = await this.serializeRecords(records);
       const sha256 = crypto.createHash('sha256');
       sha256.update(content);
       const extension = this.table.compression.isCompressed ? `${this.table.codec.extension}.${this.table.compression.extension!}` : this.table.codec.extension;

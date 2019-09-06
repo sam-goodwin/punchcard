@@ -51,7 +51,7 @@ export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A ex
   // TODO: Support paging, etc.
   public async scan(): Promise<Array<RuntimeShape<StructShape<A>>>> {
     const result = await this.client.scan({
-      TableName: this.tableName
+      TableName: this.tableName,
     }).promise();
     if (result.Items) {
       return result.Items.map(item => this.table.mapper.read(item));
