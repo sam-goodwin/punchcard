@@ -459,6 +459,7 @@ export namespace Table {
     }
 
     private createPartitionInput(request: CreatePartitionRequest<P>): AWS.Glue.PartitionInput {
+      console.log(this);
       const partitionValues = Object.values(request.Partition).map(value => (value as any).toString());
       return {
         Values: partitionValues,

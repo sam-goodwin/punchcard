@@ -31,7 +31,9 @@ const table = new Glue.Table(stack, 'Table', {
 });
 
 function makeClient(glue: AWS.Glue, mockBucket?: S3.Client) {
-  return new Glue.Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, mockBucket as any, '');
+  return new Glue.Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, (mockBucket || {
+    bucketName: 'bucketName'
+  }) as any, 'table_name');
 }
 
 describe('getPartitions', () => {
@@ -120,7 +122,7 @@ it('should createPartition', async () => {
   const client = makeClient(mock as any);
 
   await client.createPartition({
-    Location: 's3://bucket/location',
+    Location: 'location',
     LastAccessTime: new Date(0),
     Partition: {
       year: 2019,
@@ -138,7 +140,7 @@ it('should createPartition', async () => {
       LastAccessTime: new Date(0),
       StorageDescriptor: {
         Compressed: false,
-        Location: 's3://bucket/location',
+        Location: 's3://bucketName/location',
         Columns: [{
           Name: 'timestamp',
           Type: 'timestamp'
@@ -160,7 +162,7 @@ it('should batchCreatePartition', async () => {
   const client = makeClient(mock as any);
 
   await client.batchCreatePartition([{
-    Location: 's3://bucket/location',
+    Location: 'location',
     LastAccessTime: new Date(0),
     Partition: {
       year: 2019,
@@ -178,7 +180,7 @@ it('should batchCreatePartition', async () => {
       LastAccessTime: new Date(0),
       StorageDescriptor: {
         Compressed: false,
-        Location: 's3://bucket/location',
+        Location: 's3://bucketName/location',
         Columns: [{
           Name: 'timestamp',
           Type: 'timestamp'
@@ -205,7 +207,7 @@ it('should updatePartition', async () => {
       month: 1
     },
     UpdatedPartition: {
-      Location: 's3://bucket/location',
+      Location: 'location',
       LastAccessTime: new Date(0),
       Partition: {
         year: 2019,
@@ -225,7 +227,7 @@ it('should updatePartition', async () => {
       LastAccessTime: new Date(0),
       StorageDescriptor: {
         Compressed: false,
-        Location: 's3://bucket/location',
+        Location: 's3://bucketName/location',
         Columns: [{
           Name: 'timestamp',
           Type: 'timestamp'
@@ -267,7 +269,7 @@ describe('write', () => {
 
     expect(createPartitionSpy.calledOnce).toBe(true);
     expect(createPartitionSpy.args[0][0]).toEqual({
-      Location: 's3://bucketName/table_name/year=2019/month=0/',
+      Location: 'table_name/year=2019/month=0/',
       Partition: {
         year: 2019,
         month: 0

@@ -302,11 +302,8 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
             if (listResponse.CommonPrefixes) {
               const deleteOldPrefixes = Promise.all(listResponse.CommonPrefixes
                 .filter(p => {
-                  const sliced = p.Prefix!.split('/').slice(-2, -1);
-                  console.log('sliced', sliced);
-                  const v = sliced[0];
-                  console.log(p, v, state.version);
-                  const shouldDelete = v !== state.version.toString();
+                  const partitionVersion = p.Prefix!.split('/').slice(-2, -1)[0];
+                  const shouldDelete = partitionVersion !== state.version.toString();
                   console.log('shouldDelete', p.Prefix, shouldDelete);
                   return shouldDelete;
                 })

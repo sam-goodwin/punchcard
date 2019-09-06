@@ -49,7 +49,6 @@ export namespace Raw {
 
     public read(raw: any): RuntimeShape<S> {
       const record: RuntimeShape<S> = this.reader.read(this.type, raw);
-      console.log(record);
       if (this.validate) {
         this.type.validate(record);
       }
