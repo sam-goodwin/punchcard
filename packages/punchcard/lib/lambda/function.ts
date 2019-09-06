@@ -51,7 +51,7 @@ export type FunctionProps<T, U, D extends Dependency<any> | undefined = undefine
  * @typeparam U return type
  * @typeparam D runtime dependencies
  */
-export class Function<T, U, D extends Dependency<any>>
+export class Function<T = unknown, U = unknown, D extends Dependency<any> | undefined = undefined>
     extends lambda.Function
     implements Entrypoint, Dependency<Function.Client<T, U>> {
   public readonly [entrypoint] = true;
@@ -85,7 +85,7 @@ export class Function<T, U, D extends Dependency<any>>
 
     const assembly = new Assembly(this);
     if (this.dependencies) {
-      this.dependencies.install(assembly, this);
+      this.dependencies!.install(assembly, this);
     }
     for (const [name, p] of Object.entries(assembly.properties)) {
       this.addEnvironment(name, p);
@@ -94,6 +94,7 @@ export class Function<T, U, D extends Dependency<any>>
   }
 
   public async boot(): Promise<(event: any, context: any) => Promise<U>> {
+    console.log(`${this.node.uniqueId} is bookting`);
     const bag: {[name: string]: string} = {};
     for (const [env, value] of Object.entries(process.env)) {
       if (env.startsWith(this.node.uniqueId) && value !== undefined) {
@@ -105,7 +106,7 @@ export class Function<T, U, D extends Dependency<any>>
     if (this.dependencies) {
       const cache = new Cache();
       const runtimeProperties = new Assembly(this, bag);
-      client = await this.dependencies.bootstrap(runtimeProperties, cache);
+      client = await this.dependencies!.bootstrap(runtimeProperties, cache);
     }
     const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forShape(this.request);
     const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forShape(this.response);
@@ -137,7 +138,7 @@ export class Function<T, U, D extends Dependency<any>>
    * @param properties property bag containing variables set during the `install` phase
    * @param cache global cache shared by the runtime
    */
-  public async bootstrap(properties: Assembly, cache: Cache): Promise<Function.Client<T, U>> {
+  public async bootstrap(properties: Namespace, cache: Cache): Promise<Function.Client<T, U>> {
     const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forShape(this.request);
     const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forShape(this.response);
     return new Function.Client(

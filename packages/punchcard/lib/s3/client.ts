@@ -49,11 +49,19 @@ export class Client {
     }).promise();
   }
 
-  public listObjectsV2(request: ListObjectsV2Request): Promise<AWS.S3.ListObjectsV2Output> {
-    return this.client.listObjectsV2({
-      ...request,
-      Bucket: this.bucketName
-    }).promise();
+  public listObjectsV2(request: ListObjectsV2Request): AsyncIterableIterator<AWS.S3.ListObjectsV2Output> {
+    const self = this;
+    return (async function*() {
+      let continuationToken: string | undefined;
+      do {
+        const result =  await self.client.listObjectsV2({
+          ...request,
+          Bucket: self.bucketName
+        }).promise();
+        yield result;
+        continuationToken = result.NextContinuationToken;
+      } while (continuationToken);
+    })();
   }
 
   public putObject(request: PutObjectRequest): Promise<AWS.S3.PutObjectOutput> {

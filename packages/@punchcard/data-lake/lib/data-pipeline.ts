@@ -7,14 +7,13 @@ import core = require('@aws-cdk/core');
 import { Glue, Kinesis, S3 } from 'punchcard';
 import { RuntimeShape, struct, StructShape } from 'punchcard/lib/shape';
 import { Compactor } from './compactor';
-import { ScheduleStateTable } from './data-lake';
+import { DataLake } from './data-lake';
 import { Period } from './period';
 import { Schema } from './schema';
 
 export interface DataPipelineProps<C extends Glue.Columns, TS extends keyof C> {
-  database: Database;
   schema: Schema<C, TS>;
-  scheduleState: ScheduleStateTable;
+  lake: DataLake<any>;
 }
 export class DataPipeline<C extends Glue.Columns, TS extends keyof C> extends core.Construct {
   public readonly schema: Schema<C, TS>;
@@ -44,7 +43,7 @@ export class DataPipeline<C extends Glue.Columns, TS extends keyof C> extends co
       .toFirehoseDeliveryStream(this, 'ToS3').objects()
       .toGlueTable(this, 'ToGlue', {
         bucket: this.bucket.bucket,
-        database: props.database,
+        database: props.lake.database,
         tableName: props.schema.schemaName,
         columns: props.schema.shape,
         partition: {
@@ -64,9 +63,10 @@ export class DataPipeline<C extends Glue.Columns, TS extends keyof C> extends co
 
     this.hourlyTable = new Compactor(this, 'Compactor', {
       source: this.minutelyTable,
-      scheduleState: props.scheduleState,
+      scheduleState: props.lake.scheduleState,
       schema: props.schema,
-      optimalFileSizeMB: 256
+      optimalFileSizeMB: 256,
+      lock: props.lake.lock
     }).compacted;
   }
 }

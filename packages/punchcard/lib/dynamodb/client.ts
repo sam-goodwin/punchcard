@@ -1,7 +1,7 @@
 
 import AWS = require('aws-sdk');
 
-import { RuntimeShape, Shape } from '../shape/shape';
+import { RuntimeShape } from '../shape/shape';
 import { StructShape } from '../shape/struct';
 import { CompiledExpression } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';
@@ -60,19 +60,30 @@ export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A ex
     }
   }
 
+  public delete(request: DeleteRequest<A, PKey, SKey>): Promise<AWS.DynamoDB.DeleteItemOutput> {
+    let expression: Partial<CompiledExpression> = {};
+    if (request.if) {
+      expression = request.if(this.table.facade).render(new CompileContextImpl());
+    }
+
+    return this.client.deleteItem({
+      TableName: this.tableName,
+      Key: this.table.keyMapper.write(request.key),
+      ...expression,
+    }).promise();
+  }
+
   public put(put: PutRequest<A>): Promise<AWS.DynamoDB.PutItemOutput> {
     let expression: Partial<CompiledExpression> = {};
     if (put.if) {
       expression = put.if(this.table.facade).render(new CompileContextImpl());
     }
 
-    const params = {
+    return this.client.putItem({
       TableName: this.tableName,
       Item: this.table.mapper.write(put.item),
       ...expression
-    };
-    console.log('putParams', params);
-    return this.client.putItem(params).promise();
+    }).promise();
   }
 
   /**
@@ -171,6 +182,11 @@ export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A ex
       return [];
     }
   }
+}
+
+export interface DeleteRequest<A extends Attributes, PKey extends keyof A, SKey extends keyof A | undefined> {
+  key: RuntimeShape<StructShape<Key<A, PKey, SKey>>>;
+  if?: (dsl: DSL<A>) => Condition;
 }
 
 export interface PutRequest<A extends Attributes> {

@@ -325,17 +325,13 @@ export namespace Table {
         const partition = await self.getPartition(partitionValue);
         const location = partition.Partition!.StorageDescriptor!.Location!.replace(/s3:\/\/[^\/]+\//, '');
 
-        let token: string | undefined;
-        do {
-          const res = await self.bucket.listObjectsV2({
-            ContinuationToken: token,
-            Prefix: location
-          });
-          token = res.NextContinuationToken;
-          for (const obj of res.Contents || []) {
+        for await (const response of self.bucket.listObjectsV2({
+          Prefix: location
+        })) {
+          for (const obj of response.Contents || []) {
             yield obj;
           }
-        } while (token !== undefined);
+        }
       })();
     }
 
@@ -393,15 +389,12 @@ export namespace Table {
 
     public pathFor(partition: RuntimeShape<StructShape<P>>): string {
       const partitionPath = this.partitions.map((name) => {
-        console.log('partition key', name);
         return `${name}=${this.table.partitionMappers[name].write((partition as any)[name] as any)}`;
       }).join('/') + '/';
-      console.log('partitionPath', partitionPath);
       let location = this.s3Prefix ? path.join(this.s3Prefix, partitionPath) : partitionPath;
       if (!location.endsWith('/')) {
         location += '/';
       }
-      console.log('location', location);
       return location;
     }
 

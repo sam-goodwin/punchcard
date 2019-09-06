@@ -6,10 +6,13 @@ import sfn = require('@aws-cdk/aws-stepfunctions');
 import tasks = require('@aws-cdk/aws-stepfunctions-tasks');
 import core = require('@aws-cdk/core');
 
+import moment = require('moment');
+
 import { Glue, Lambda } from 'punchcard';
 import { Cache, Dependency, Namespace } from 'punchcard/lib/core';
 import { array, boolean, dynamic, integer, Json, Mapper, RuntimeShape, Shape, string, struct, timestamp } from 'punchcard/lib/shape';
 import { ScheduleStateTable } from './data-lake';
+import { Lock } from './lock';
 import { Period } from './period';
 import { Schema } from './schema';
 
@@ -22,6 +25,7 @@ export interface CompactorProps<C extends Glue.Columns> {
   source: Glue.Table<C, Period.PT1M>;
   scheduleState: ScheduleStateTable;
   optimalFileSizeMB: number;
+  lock: Lock;
 }
 
 export class Compactor<C extends Glue.Columns> extends core.Construct {
@@ -48,6 +52,7 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
     });
 
     const state = struct({
+      globalId: string(),
       version: integer(),
       delaySeconds: integer(),
       startTime: timestamp,
@@ -61,6 +66,7 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
       response: state,
       depends: this.source.readAccess(),
       timeout: core.Duration.minutes(1),
+      memorySize: 512,
       handle: async (state, source) => {
         const lastCompactTime = new Date();
         const partition = {
@@ -102,6 +108,24 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
       }
     });
 
+    const deleteWorker = new Lambda.Function(this, 'DeleteWorker', {
+      request: string(),
+      response: dynamic,
+      memorySize: 512,
+      timeout: core.Duration.minutes(15),
+      depends: this.compacted.bucket,
+      handle: async (req, compacted) => {
+        const promises: Array<Promise<any>> = [];
+        for await (const response of (compacted.listObjectsV2({Prefix: req}))) {
+           promises.push(Promise.all(response.Contents!.map(o => {
+             console.log('deleting', o);
+             return compacted.deleteObject({Key: o.Key!});
+           })));
+        }
+        await Promise.all(promises);
+      }
+    });
+
     const worker = new Lambda.Function(this, 'Worker', {
       request: struct({
         objects: array(string()),
@@ -130,8 +154,10 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
       response: state,
       timeout: core.Duration.minutes(15),
       memorySize: 1024,
-      depends: Dependency.tuple(this.source, this.compacted, worker),
-      handle: async (state, [source, compacted, compactWorker]) => {
+      depends: Dependency.tuple(this.source, this.compacted, worker, props.lock, deleteWorker),
+      handle: async (state, [source, compacted, compactWorker, lock, deleteWorker]) => {
+        const expiry = moment().add(15, 'minutes').toDate();
+
         const partition = {
           year: state.startTime.getUTCFullYear(),
           month: state.startTime.getUTCMonth() + 1,
@@ -140,17 +166,61 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
         };
         const path = compacted.pathFor(partition) + `${state.version}/`;
 
-        const partitions = await getPartitions();
-        const objects = await getObjectsOrderedBySize(partitions);
-        await compactObjects(objects);
-        await flipPartition();
-        await deleteOldData();
+        try {
+          await acquireLock();
+          const partitions = await getPartitions();
+          const objects = await getObjectsOrderedBySize(partitions);
+          await compactObjects(objects);
+          await flipPartition();
+          await deleteOldData();
+          await releaseLock();
 
-        return {
-          ...state,
-          version: state.version + 1,
-          shouldCompact: false
-        };
+          return {
+            ...state,
+            version: state.version + 1,
+            shouldCompact: false
+          };
+        } catch (err) {
+          console.error(err);
+          try {
+            await releaseLock();
+          } catch (err) {
+            console.error(err);
+          }
+          throw err;
+        }
+
+        async function acquireLock() {
+          await Promise.all([
+            lock.acquire({
+              tableName: source.tableName,
+              hour: state.startTime,
+              expiry,
+              owner: state.globalId
+            }),
+            lock.acquire({
+              tableName: compacted.tableName,
+              hour: state.startTime,
+              expiry,
+              owner: state.globalId
+            })
+          ]);
+        }
+
+        async function releaseLock() {
+          await Promise.all([
+            lock.release({
+              tableName: source.tableName,
+              hour: state.startTime,
+              owner: state.globalId
+            }),
+            lock.release({
+              tableName: compacted.tableName,
+              hour: state.startTime,
+              owner: state.globalId
+            })
+          ]);
+        }
 
         async function getPartitions(nextToken?: string): Promise<Partitions> {
           const { NextToken, Partitions } = await source.getPartitions({
@@ -227,7 +297,24 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
         }
 
         async function deleteOldData() {
-          console.log('TODO: delete old data');
+          const promises: Array<Promise<any>> = [];
+          for await (const listResponse of compacted.bucket.listObjectsV2({Prefix: compacted.pathFor(partition), Delimiter: '/'})) {
+            if (listResponse.CommonPrefixes) {
+              const deleteOldPrefixes = Promise.all(listResponse.CommonPrefixes
+                .filter(p => {
+                  const sliced = p.Prefix!.split('/').slice(-2, -1);
+                  console.log('sliced', sliced);
+                  const v = sliced[0];
+                  console.log(p, v, state.version);
+                  const shouldDelete = v !== state.version.toString();
+                  console.log('shouldDelete', p.Prefix, shouldDelete);
+                  return shouldDelete;
+                })
+                .map(prefix => deleteWorker.invoke(prefix.Prefix!)));
+              promises.push(deleteOldPrefixes);
+            }
+          }
+          await Promise.all(promises);
         }
       }
     });
@@ -303,9 +390,11 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
         }
 
         async function triggerCompaction(nextTime: Date): Promise<void> {
+          const name = nextTime.toISOString().replace(/[:\.-]/g, '_');
           await compactorMachine.startExecution({
-            name: nextTime.toISOString().replace(/[:\.-]/g, '_'),
+            name,
             state: {
+              globalId: `${table.tableName}:compactor:${name}`,
               version: 0,
               lastCompactTime: new Date(0),
               shouldCompact: false,

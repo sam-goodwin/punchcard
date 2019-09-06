@@ -48,7 +48,7 @@ export namespace Dependency {
       this.deps.forEach((d, i) => d.install(namespace.namespace(i.toString()), grantable));
     }
 
-    public async bootstrap(namespace: Assembly, cache: Cache): Promise<Clients<HList<T>>> {
+    public async bootstrap(namespace: Namespace, cache: Cache): Promise<Clients<HList<T>>> {
       return await Promise.all(this.deps.map((d, i) => d.bootstrap(namespace.namespace(i.toString()), cache))) as any;
     }
   }
@@ -67,7 +67,7 @@ export namespace Dependency {
       }
     }
 
-    public async bootstrap(properties: Assembly, cache: Cache): Promise<{ [name in keyof D]: Client<D[name]>; }> {
+    public async bootstrap(properties: Namespace, cache: Cache): Promise<{ [name in keyof D]: Client<D[name]>; }> {
       const client: any = {};
       const deps = await Promise.all(Object
         .entries(this.dependencies)
