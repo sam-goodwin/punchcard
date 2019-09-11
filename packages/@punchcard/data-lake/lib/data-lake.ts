@@ -5,15 +5,15 @@ import { DataPipeline } from './data-pipeline';
 import { Schema, Schemas } from './schema';
 
 import { DynamoDB, SNS } from 'punchcard';
-import { string, StringShape, struct, StructShape, timestamp } from 'punchcard/lib/shape';
+import { array, ArrayShape, string, StringShape, struct, StructShape, timestamp } from 'punchcard/lib/shape';
 import { Lock } from './lock';
 
-export class ScheduleStateTable extends DynamoDB.Table<'id', undefined, ScheduleAttributes> {}
 export type ScheduleAttributes = typeof ScheduleAttributes;
 export const ScheduleAttributes = {
   id: string(),
   nextTime: timestamp
 };
+export class ScheduleStateTable extends DynamoDB.Table<'id', undefined, ScheduleAttributes> {}
 
 export interface DataLakeProps<S extends Schemas> {
   lakeName: string;
@@ -26,7 +26,7 @@ export class DataLake<S extends Schemas> extends core.Construct {
   public readonly lock: Lock;
   public readonly deletionRequests: SNS.Topic<StructShape<{
     requestId: StringShape;
-    customerId: StringShape;
+    customerIds: ArrayShape<StringShape>;
   }>>;
 
   constructor(scope: core.Construct, id: string, props: DataLakeProps<S>) {
@@ -38,7 +38,7 @@ export class DataLake<S extends Schemas> extends core.Construct {
     this.deletionRequests = new SNS.Topic(this, 'Deletions', {
       shape: struct({
         requestId: string(),
-        customerId: string()
+        customerIds: array(string())
       })
     });
 

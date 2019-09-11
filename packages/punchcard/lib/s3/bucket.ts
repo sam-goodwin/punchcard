@@ -7,6 +7,7 @@ import { Namespace } from '../core/assembly';
 import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Client, DeleteClient, PutClient, ReadClient, ReadWriteClient, WriteClient } from './client';
+import { Event } from './event';
 import { Notifications } from './notifications';
 
 export class Bucket implements Dependency<ReadWriteClient> {
@@ -16,8 +17,13 @@ export class Bucket implements Dependency<ReadWriteClient> {
     this.readWriteAccess().install(namespace, grantable);
   }
 
-  public notifications(): Notifications<any, []> {
-    return new Notifications(this, null as any, {
+  public notifications(): Notifications<Event, []> {
+    class Root extends Notifications<Event, []> {
+      public async *run(event: Event): AsyncIterableIterator<Event> {
+        yield event;
+      }
+    }
+    return new Root(this, undefined as any, {
       depends: [],
       handle: value => value
     });

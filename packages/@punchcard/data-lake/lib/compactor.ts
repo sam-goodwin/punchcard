@@ -4,15 +4,12 @@ import sfn = require('@aws-cdk/aws-stepfunctions');
 import tasks = require('@aws-cdk/aws-stepfunctions-tasks');
 import core = require('@aws-cdk/core');
 
-import moment = require('moment');
-
 import { Glue, Lambda, StepFunctions } from 'punchcard';
 import { Dependency } from 'punchcard/lib/core';
 import { array, boolean, dynamic, integer, string, struct, timestamp } from 'punchcard/lib/shape';
 import { ScheduleStateTable } from './data-lake';
 import { Lock } from './lock';
 import { Period } from './period';
-import { Scheduler } from './scheduler';
 import { Schema } from './schema';
 
 type Partitions = Glue.Table.GetPartitionsResponse<Period.PT1M>['Partitions'];
@@ -25,7 +22,18 @@ export interface CompactorProps<C extends Glue.Columns> {
   lock: Lock;
 }
 
+const state = struct({
+  globalId: string(),
+  version: integer(),
+  delaySeconds: integer(),
+  startTime: timestamp,
+  lastCompactTime: timestamp,
+  shouldCompact: boolean,
+  shouldTerminate: boolean
+});
+
 export class Compactor<C extends Glue.Columns> extends core.Construct {
+  public readonly machine: StepFunctions.StateMachine<Compactor.State>;
   public readonly source: Glue.Table<C, Period.PT1M>;
   public readonly compacted: Glue.Table<C, Period.PT1H>;
 
@@ -46,16 +54,6 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
           return p;
         }
       }
-    });
-
-    const state = struct({
-      globalId: string(),
-      version: integer(),
-      delaySeconds: integer(),
-      startTime: timestamp,
-      lastCompactTime: timestamp,
-      shouldCompact: boolean,
-      shouldTerminate: boolean
     });
 
     const freshnessChecker = new Lambda.Function(this, 'FreshnessChecker', {
@@ -135,7 +133,8 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
 
       depends: Dependency.tuple(
         this.source.readAccess(),
-        this.compacted.writeAccess()),
+        this.compacted.writeAccess()
+      ),
 
       handle: async (req, [source, dest]) => {
         const records = (await Promise
@@ -151,9 +150,10 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
       response: state,
       timeout: core.Duration.minutes(15),
       memorySize: 1024,
-      depends: Dependency.tuple(this.source, this.compacted, compactWorker, props.lock, deleteWorker),
-      handle: async (state, [source, compacted, compactWorker, lock, deleteWorker]) => {
-        const expiry = moment().add(15, 'minutes').toDate();
+      depends: Dependency.tuple(this.source, this.compacted, compactWorker, deleteWorker, props.lock),
+      handle: async (state, [source, compacted, compactWorker, deleteWorker, lock]) => {
+        const expiry = new Date(new Date().getTime() + 15 * 60 * 1000);
+
         const partition = {
           year: state.startTime.getUTCFullYear(),
           month: state.startTime.getUTCMonth() + 1,
@@ -178,28 +178,24 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
           };
         } catch (err) {
           console.error(err);
-          try {
-            await releaseLock();
-          } catch (err) {
-            console.error(err);
-          }
           throw err;
         }
 
         async function acquireLock() {
+          const props = {
+            hour: state.startTime,
+            expiry,
+            owner: state.globalId,
+          };
           await Promise.all([
             lock.acquire({
+              ...props,
               tableName: source.tableName,
-              hour: state.startTime,
-              expiry,
-              owner: state.globalId
             }),
             lock.acquire({
               tableName: compacted.tableName,
-              hour: state.startTime,
-              expiry,
-              owner: state.globalId
-            })
+              ...props
+            }),
           ]);
         }
 
@@ -207,13 +203,13 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
           await Promise.all([
             lock.release({
               tableName: source.tableName,
+              owner: state.globalId,
               hour: state.startTime,
-              owner: state.globalId
             }),
             lock.release({
               tableName: compacted.tableName,
+              owner: state.globalId,
               hour: state.startTime,
-              owner: state.globalId
             })
           ]);
         }
@@ -324,33 +320,14 @@ export class Compactor<C extends Glue.Columns> extends core.Construct {
       time: sfn.WaitTime.secondsPath('$.delaySeconds'),
     }).next(checkFreshess);
 
-    const compactorMachine = new StepFunctions.StateMachine(new sfn.StateMachine(this, 'Compactor', {
+    this.machine = new StepFunctions.StateMachine(new sfn.StateMachine(this, 'Compactor', {
       definition: checkFreshess.next(new sfn.Choice(this, 'CompactOrWait')
         .when(sfn.Condition.booleanEquals('$.shouldTerminate', true), new sfn.Succeed(this, 'Success'))
         .when(sfn.Condition.booleanEquals('$.shouldCompact', true), compactPartition.next(retry))
         .otherwise(retry))
     }), state);
-
-    new Scheduler(this, 'Scheduler', {
-      depends: Dependency.tuple(compactorMachine),
-      scheduleState: props.scheduleState,
-      scheduleId: `${props.schema.schemaName}:compact:hourly`,
-      scheduleStartTime: props.schema.dataAsOf,
-      scheduleWindow: core.Duration.hours(1),
-      handle: async (nextTime, scheduleId, [compactorMachine]) => {
-        await compactorMachine.startExecution({
-          name: nextTime.toISOString().replace(/[:\.-]/g, '_'),
-          state: {
-            globalId: scheduleId,
-            version: 0,
-            lastCompactTime: new Date(0),
-            shouldCompact: false,
-            startTime: nextTime,
-            shouldTerminate: false,
-            delaySeconds: 60
-          }
-        });
-      }
-    });
   }
+}
+export namespace Compactor {
+  export type State = typeof state;
 }

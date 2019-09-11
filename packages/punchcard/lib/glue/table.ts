@@ -190,6 +190,10 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
     };
   }
 
+  public onObjectCreated() {
+    
+  }
+
   /**
    * By default, depending on the `Table` installs read/write access.
    */

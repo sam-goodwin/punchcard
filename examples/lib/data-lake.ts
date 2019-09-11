@@ -23,8 +23,7 @@ const dataPoints = new Analytics.Schema({
     data_points: array(integer()),
     timestamp
   },
-  timestampField: 'timestamp',
-  dataAsOf: moment.utc('2019-09-04T00:00Z').toDate()
+  timestampField: 'timestamp'
 });
 
 /**

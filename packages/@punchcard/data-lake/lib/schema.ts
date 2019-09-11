@@ -6,20 +6,17 @@ export class Schema<C extends Glue.Columns, TS extends keyof C> {
   public readonly schemaName: string;
   public readonly shape: C;
   public readonly timestampField: TS;
-  public readonly dataAsOf: Date;
   public readonly shouldDelete?: (record: RuntimeShape<StructShape<C>>, customerIds: Set<string>) => boolean;
 
   constructor(props: {
     schemaName: string;
     shape: C;
     timestampField: IsTimestamp<C, TS>;
-    dataAsOf: Date;
     shouldDelete?: (record: RuntimeShape<StructShape<C>>, customerIds: Set<string>) => boolean;
   }) {
     this.schemaName = props.schemaName;
     this.shape = props.shape;
     this.timestampField = props.timestampField;
-    this.dataAsOf = props.dataAsOf;
     this.shouldDelete = props.shouldDelete;
   }
 
