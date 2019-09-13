@@ -12,18 +12,18 @@ If you'd like to learn more about the philosophy behind this project, check out 
 
 # Developer Guide
 
-To dive into the details, check out the developer guide. If you'd just like to get an idea of what Punchcard is, take the [Tour](#tour).
+To understand the internals, there is the guide:
 
-1. [Getting Started](1-getting-started.md)
-2. [Creating Functions](2-creating-functions.md)
-3. [Runtime Dependencies](3-runtime-dependencies.md)
-4. [Shapes: Type-Safe Schemas](4-shapes.md)
-5. [Dynamic (and safe) DynamoDB DSL](5-dynamodb-dsl.md)
-6. [Stream Processing](6-stream-processing.md)
+1. [Getting Started](docs/1-getting-started.md)
+2. [Creating Functions](docs/2-creating-functions.md)
+3. [Runtime Dependencies](docs/3-runtime-dependencies.md)
+4. [Shapes: Type-Safe Schemas](docs/4-shapes.md)
+5. [Dynamic (and safe) DynamoDB DSL](docs/5-dynamodb-dsl.md)
+6. [Stream Processing](docs/6-stream-processing.md)
 
 # Tour
 
-To get a taste of Punchcard, we'll first walk through its features at a high-level.
+Take a tour of of Punchcard. 
 
 ## Runtime Code and Dependencies
 
