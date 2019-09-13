@@ -23,8 +23,6 @@ To understand the internals, there is the guide:
 
 # Tour
 
-Take a tour of of Punchcard. 
-
 ## Runtime Code and Dependencies
 
 Creating a Lambda Function is super simple - just create it and implement `handle`:
