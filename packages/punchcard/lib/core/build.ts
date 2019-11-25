@@ -82,6 +82,11 @@ export class Build<A> {
     let isMemoized = false;
     let value: A | undefined;
     this[get] = () => {
+      if (process.env.is_runtime === 'true') {
+        const err = 'attempted to resolve a Build value at runtime';
+        console.error(err);
+        throw new Error(err);
+      }
       if (!isMemoized) {
         value = _get();
         isMemoized = true;

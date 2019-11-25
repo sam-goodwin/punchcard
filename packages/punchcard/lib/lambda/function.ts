@@ -7,6 +7,7 @@ import cdk = require('@aws-cdk/core');
 import fs = require('fs');
 import path = require('path');
 
+import { Global } from '../core';
 import { Assembly, Namespace } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -86,13 +87,17 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
   private readonly dependencies?: D;
 
   constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>) {
+    const entrypointId = Global.addEntrypoint(this);
+
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
       const lambdaFunction = new lambda.Function(scope, id, {
         ...functionProps,
         code: code(scope),
         runtime: lambda.Runtime.NODEJS_10_X,
-        handler: 'index.handler'
+        handler: 'index.handler',
       });
+      lambdaFunction.addEnvironment('is_runtime', 'true');
+      lambdaFunction.addEnvironment('entrypoint_id', entrypointId);
 
       const assembly = new Assembly();
       if (this.dependencies) {
@@ -274,44 +279,25 @@ export function code(scope: cdk.IConstruct): lambda.Code {
       }
     });
     fs.writeFileSync(path.join(codePath, 'index.js'), `
-const app = require('./app').default;
-
-if (app === undefined) {
-  throw new Error('app is null, are you exporting your cdk.App as the default in your main module (i.e. index.js)?');
+require('./app');
+const entrypointId = process.env.entrypoint_id;
+if (!entrypointId) {
+  throw new Error('entrypoint_id environment variable is missing');
 }
-
-app.synth = (() => {
-  // no-op when at runtime
-  console.log('cdk.App.run: no-op');
-  return null;
-});
-
+const state = global[Symbol.for('punchcard.global')];
+if (!state) {
+  throw new Error('global state missing');
+}
+const entrypoint = state.entrypoints[entrypointId];
+if (!entrypoint) {
+  throw new Error('entrypoint with id "' + entrypointId + '" does not exist');
+}
 var handler;
 exports.handler = async (event, context) => {
   if (!handler) {
-    const runPath = process.env['${RUNTIME_ENV}'];
-    const target = findChild(app, runPath);
-    if (target[Symbol.for('${ENTRYPOINT_SYMBOL_NAME}')] === true) {
-      handler = await target.boot();
-    } else {
-      throw new Error(\`path '\${runPath}' did not point to an Entrypoint\`);
-    }
+    handler = await entrypoint.entrypoint[Symbol.for('Runtime.get')]();
   }
   return await handler(event, context);
-};
-
-function findChild(scope, path) {
-  const elements = path.split('/');
-  for (const e of elements) {
-    scope = scope.node.tryFindChild(e);
-    if (!scope) {
-      break;
-    }
-  }
-  if (!scope) {
-    throw new Error(\`no child found with path: \${path}\`);
-  }
-  return scope;
 }
 `);
     (app as any)[codeSymbol] = lambda.Code.asset(codePath);

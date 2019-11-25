@@ -1,3 +1,4 @@
+export * from './app';
 export * from './assembly';
 export * from './cache';
 export * from './client';

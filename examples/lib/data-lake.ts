@@ -1,17 +1,16 @@
 import core = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
-import { Lambda } from 'punchcard';
+import { Core, Lambda } from 'punchcard';
 
 import * as Analytics from '@punchcard/data-lake';
 
 import { integer, string, timestamp, char, array, } from 'punchcard/lib/shape';
-import { Build } from 'punchcard/lib/core/build';
 
-const app = Build.lazy(() => new core.App());
-export default app;
+const app = new Core.App();
+export default app.root;
 
-const stack = app.map(app => new core.Stack(app, 'data-lake'));
+const stack = app.root.map(app => new core.Stack(app, 'data-lake'));
 
 // create a schema to describe our data
 const dataPoints = new Analytics.Schema({
