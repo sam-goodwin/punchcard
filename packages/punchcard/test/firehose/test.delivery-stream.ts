@@ -3,12 +3,13 @@ import sinon = require('sinon');
 
 import core = require('@aws-cdk/core');
 import { Firehose, Shape, Util } from '../../lib';
+import { Build } from '../../lib/core/build';
 
 Util.setRuntime();
 
 describe('run', () => {
   it('should get object amnd parse lines into records', async () => {
-    const stack = new core.Stack(new core.App(), 'stack');
+    const stack = Build.of(new core.Stack(new core.App({ autoSynth: false }), 'stack'));
 
     const bucket = {
       getObject: sinon.fake.returns(Promise.resolve({
@@ -51,7 +52,7 @@ describe('run', () => {
   });
 
   it('should throw if getting object fails', async () => {
-    const stack = new core.Stack(new core.App(), 'stack');
+    const stack = Build.of(new core.Stack(new core.App({ autoSynth: false }), 'stack'));
 
     const bucket = {
       getObject: sinon.fake.returns(Promise.reject(new Error('fail')))

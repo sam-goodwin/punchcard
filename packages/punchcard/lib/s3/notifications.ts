@@ -26,9 +26,9 @@ export class Notifications<T, D extends any[]> extends Stream<Event, T, D, Objec
    * @param props optional tuning properties for the event source.
    */
   public eventSource(props?: ObjectStreamConfig) {
-    return new events.S3EventSource(this.bucket.bucket, props || {
+    return this.bucket.resource.map(bucket => new events.S3EventSource(bucket, props || {
       events: [s3.EventType.OBJECT_CREATED],
-    });
+    }));
   }
 
   /**

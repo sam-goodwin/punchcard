@@ -5,11 +5,12 @@ import { Schedule } from '@aws-cdk/aws-events';
 
 import { DynamoDB, Lambda } from 'punchcard';
 import { integer, string } from 'punchcard/lib/shape';
+import { Build } from 'punchcard/lib/core/build';
 
-const app = new cdk.App();
+const app = Build.lazy(() => new cdk.App());
 export default app;
 
-const stack = new cdk.Stack(app, 'scheduled-function-example');
+const stack = app.map(app => new cdk.Stack(app, 'scheduled-function-example'));
 
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
@@ -20,11 +21,13 @@ const table = new DynamoDB.Table(stack, 'my-table', {
       minimum: 0
     })
   },
-  billingMode: BillingMode.PAY_PER_REQUEST
+  tableProps: Build.lazy(() => ({
+    billingMode: BillingMode.PAY_PER_REQUEST
+  }))
 });
 
 Lambda.schedule(stack, 'Poller', {
-  depends: table,
+  depends: table.readWriteAccess(),
   schedule: Schedule.rate(Duration.minutes(1)),
   handle: async (_, table) => {
     const item = await table.get({

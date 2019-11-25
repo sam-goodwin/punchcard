@@ -1,5 +1,6 @@
 import core = require('@aws-cdk/core');
 
+import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Function } from '../lambda/function';
 import { RuntimeShape, Shape } from '../shape';
@@ -23,10 +24,10 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to stream
      */
-    toKinesisStream<DataType extends Shape<T>>(scope: core.Construct, id: string, streamProps: StreamProps<DataType>, runtimeProps?: C): CollectedStream<DataType, this>;
+    toKinesisStream<DataType extends Shape<T>>(scope: Build<core.Construct>, id: string, streamProps: StreamProps<DataType>, runtimeProps?: C): CollectedStream<DataType, this>;
   }
 }
-SStream.prototype.toKinesisStream = function(scope: core.Construct, id: string, props: StreamProps<any>): any {
+SStream.prototype.toKinesisStream = function(scope: Build<core.Construct>, id: string, props: StreamProps<any>): any {
   return this.collect(scope, id, new StreamCollector(props));
 };
 
@@ -36,7 +37,7 @@ SStream.prototype.toKinesisStream = function(scope: core.Construct, id: string, 
 export class StreamCollector<T extends Shape<any>, S extends SStream<any, RuntimeShape<T>, any, any>> implements Collector<CollectedStream<T, S>, S> {
   constructor(private readonly props: StreamProps<T>) { }
 
-  public collect(scope: core.Construct, id: string, stream: S): CollectedStream<T, S> {
+  public collect(scope: Build<core.Construct>, id: string, stream: S): CollectedStream<T, S> {
     return new CollectedStream(scope, id, {
       ...this.props,
       stream
@@ -57,9 +58,9 @@ export interface CollectedStreamProps<T extends Shape<any>, S extends SStream<an
  * A Kinesis `Stream` produced by collecting data from an `Stream`.
  */
 export class CollectedStream<T extends Shape<any>, S extends SStream<any, any, any, any>> extends Stream<T> {
-  public readonly sender: Function<EventType<S>, void, Dependency.Tuple<Cons<DependencyType<S>, Dependency<Client<T>>>>>;
+  public readonly sender: Function<EventType<S>, void, Dependency.Concat<Cons<DependencyType<S>, Dependency<Client<T>>>>>;
 
-  constructor(scope: core.Construct, id: string, props: CollectedStreamProps<T, S>) {
+  constructor(scope: Build<core.Construct>, id: string, props: CollectedStreamProps<T, S>) {
     super(scope, id, props);
     this.sender = props.stream.forBatch(this.resource, 'ToStream', {
       depends: this.writeAccess(),

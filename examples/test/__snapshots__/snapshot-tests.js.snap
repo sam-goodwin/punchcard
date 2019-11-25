@@ -38,7 +38,7 @@ Object {
         const responseBody = JSON.stringify({
             Status: responseStatus,
             Reason: reason || \\"See the details in CloudWatch Log Stream: \\" + context.logStreamName,
-            PhysicalResourceId: context.logStreamName,
+            PhysicalResourceId: event.PhysicalResourceId || event.LogicalResourceId,
             StackId: event.StackId,
             RequestId: event.RequestId,
             LogicalResourceId: event.LogicalResourceId,
@@ -77,7 +77,7 @@ Object {
             "Arn",
           ],
         },
-        "Runtime": "nodejs8.10",
+        "Runtime": "nodejs10.x",
         "Timeout": 300,
       },
       "Type": "AWS::Lambda::Function",
@@ -156,14 +156,13 @@ Object {
     "DummyDataPointsE5E16468": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "data-lake/DummyDataPoints",
-            "datalakeDummyDataPointsF4DD2757_streamName": Object {
-              "Ref": "LakedataPointsStream726F773E",
+            "punchcard_streamName": Object {
+              "Ref": "LakeDatabasedataPointsStreamF9D85971",
             },
           },
         },
@@ -240,7 +239,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "LakedataPointsStream726F773E",
+                  "LakeDatabasedataPointsStreamF9D85971",
                   "Arn",
                 ],
               },
@@ -254,7 +253,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "LakedataPointsStreamKey38B9FC2D",
+                  "LakeDatabasedataPointsStreamKey6D78F220",
                   "Arn",
                 ],
               },
@@ -274,8 +273,7 @@ Object {
     "ForEachDataPoint3838832C": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
@@ -283,7 +281,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 128,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ForEachDataPointServiceRole11B2F00E",
@@ -291,16 +288,15 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
-        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
-    "ForEachDataPointKinesisEventSourcedatalakeLakedataPointsStream190B6691E8F5C88F": Object {
+    "ForEachDataPointKinesisEventSourcedatalakeLakeDatabasedataPointsStreamCC89A340AE3B311E": Object {
       "Properties": Object {
         "BatchSize": 100,
         "EventSourceArn": Object {
           "Fn::GetAtt": Array [
-            "LakedataPointsStream726F773E",
+            "LakeDatabasedataPointsStreamF9D85971",
             "Arn",
           ],
         },
@@ -355,7 +351,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "LakedataPointsStream726F773E",
+                  "LakeDatabasedataPointsStreamF9D85971",
                   "Arn",
                 ],
               },
@@ -365,7 +361,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "LakedataPointsStreamKey38B9FC2D",
+                  "LakeDatabasedataPointsStreamKey6D78F220",
                   "Arn",
                 ],
               },
@@ -410,7 +406,7 @@ Object {
       "Type": "AWS::S3::Bucket",
       "UpdateReplacePolicy": "Retain",
     },
-    "LakedataPointsBucket3D88C33A": Object {
+    "LakeDatabasedataPointsBucketB080069E": Object {
       "DeletionPolicy": "Retain",
       "Properties": Object {
         "BucketEncryption": Object {
@@ -426,7 +422,7 @@ Object {
       "Type": "AWS::S3::Bucket",
       "UpdateReplacePolicy": "Retain",
     },
-    "LakedataPointsStream726F773E": Object {
+    "LakeDatabasedataPointsStreamF9D85971": Object {
       "Properties": Object {
         "RetentionPeriodHours": 24,
         "ShardCount": 1,
@@ -434,7 +430,7 @@ Object {
           "EncryptionType": "KMS",
           "KeyId": Object {
             "Fn::GetAtt": Array [
-              "LakedataPointsStreamKey38B9FC2D",
+              "LakeDatabasedataPointsStreamKey6D78F220",
               "Arn",
             ],
           },
@@ -442,10 +438,10 @@ Object {
       },
       "Type": "AWS::Kinesis::Stream",
     },
-    "LakedataPointsStreamKey38B9FC2D": Object {
+    "LakeDatabasedataPointsStreamKey6D78F220": Object {
       "DeletionPolicy": "Retain",
       "Properties": Object {
-        "Description": "Created by data-lake/Lake/dataPoints/Stream",
+        "Description": "Created by data-lake/Lake/Database/dataPoints/Stream",
         "KeyPolicy": Object {
           "Statement": Array [
             Object {
@@ -491,7 +487,7 @@ Object {
               "Principal": Object {
                 "AWS": Object {
                   "Fn::GetAtt": Array [
-                    "LakedataPointsToS3DeliveryStreamKinesisRole530738DB",
+                    "LakeDatabasedataPointsToS3DeliveryStreamKinesisRole95E2FA2F",
                     "Arn",
                   ],
                 },
@@ -535,7 +531,7 @@ Object {
       "Type": "AWS::KMS::Key",
       "UpdateReplacePolicy": "Retain",
     },
-    "LakedataPointsToGlueTable8B239253": Object {
+    "LakeDatabasedataPointsToGlueTableF86F6D7D": Object {
       "Properties": Object {
         "CatalogId": Object {
           "Ref": "AWS::AccountId",
@@ -598,7 +594,7 @@ Object {
                 Array [
                   "s3://",
                   Object {
-                    "Ref": "LakedataPointsBucket3D88C33A",
+                    "Ref": "LakeDatabasedataPointsBucketB080069E",
                   },
                   "/data_points/",
                 ],
@@ -615,12 +611,48 @@ Object {
       },
       "Type": "AWS::Glue::Table",
     },
-    "LakedataPointsToGlueToTableAllowBucketNotificationsFromdatalakeLakedataPointsToS3DeliveryStreamBucketB00EE12AEDDEFFA4": Object {
+    "LakeDatabasedataPointsToGlueToTable3427B72C": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "bootstrap_construct_path": "data-lake/Lake/Database/dataPoints/ToGlue/ToTable",
+            "punchcard_bucketName": Object {
+              "Ref": "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
+            },
+            "punchcard_bucket_bucketName": Object {
+              "Ref": "LakeDatabasedataPointsBucketB080069E",
+            },
+            "punchcard_catalogId": Object {
+              "Ref": "AWS::AccountId",
+            },
+            "punchcard_databaseName": Object {
+              "Ref": "LakeDatabase6CA13201",
+            },
+            "punchcard_tableName": Object {
+              "Ref": "LakeDatabasedataPointsToGlueTableF86F6D7D",
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "LakeDatabasedataPointsToGlueToTableServiceRole67CA1129",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "LakeDatabasedataPointsToGlueToTableAllowBucketNotificationsFromdatalakeLakeDatabasedataPointsToS3DeliveryStreamBucketF9808C9D37D54768": Object {
       "Properties": Object {
         "Action": "lambda:InvokeFunction",
         "FunctionName": Object {
           "Fn::GetAtt": Array [
-            "LakedataPointsToGlueToTableD70BA54E",
+            "LakeDatabasedataPointsToGlueToTable3427B72C",
             "Arn",
           ],
         },
@@ -630,53 +662,14 @@ Object {
         },
         "SourceArn": Object {
           "Fn::GetAtt": Array [
-            "LakedataPointsToS3DeliveryStreamBucket7E029F63",
+            "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
             "Arn",
           ],
         },
       },
       "Type": "AWS::Lambda::Permission",
     },
-    "LakedataPointsToGlueToTableD70BA54E": Object {
-      "Properties": Object {
-        "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
-        },
-        "Environment": Object {
-          "Variables": Object {
-            "bootstrap_construct_path": "data-lake/Lake/dataPoints/ToGlue/ToTable",
-            "datalakeLakedataPointsToGlueToTable382B9C60_0_bucket_bucketName": Object {
-              "Ref": "LakedataPointsBucket3D88C33A",
-            },
-            "datalakeLakedataPointsToGlueToTable382B9C60_0_catalogId": Object {
-              "Ref": "AWS::AccountId",
-            },
-            "datalakeLakedataPointsToGlueToTable382B9C60_0_databaseName": Object {
-              "Ref": "LakeDatabase6CA13201",
-            },
-            "datalakeLakedataPointsToGlueToTable382B9C60_0_tableName": Object {
-              "Ref": "LakedataPointsToGlueTable8B239253",
-            },
-            "datalakeLakedataPointsToGlueToTable382B9C60_1_bucketName": Object {
-              "Ref": "LakedataPointsToS3DeliveryStreamBucket7E029F63",
-            },
-          },
-        },
-        "Handler": "index.handler",
-        "MemorySize": 128,
-        "Role": Object {
-          "Fn::GetAtt": Array [
-            "LakedataPointsToGlueToTableServiceRole3857166E",
-            "Arn",
-          ],
-        },
-        "Runtime": "nodejs10.x",
-        "Timeout": 10,
-      },
-      "Type": "AWS::Lambda::Function",
-    },
-    "LakedataPointsToGlueToTableServiceRole3857166E": Object {
+    "LakeDatabasedataPointsToGlueToTableServiceRole67CA1129": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [
@@ -707,19 +700,12 @@ Object {
       },
       "Type": "AWS::IAM::Role",
     },
-    "LakedataPointsToGlueToTableServiceRoleDefaultPolicyB00F1250": Object {
+    "LakeDatabasedataPointsToGlueToTableServiceRoleDefaultPolicyADAFD4E2": Object {
       "Properties": Object {
         "PolicyDocument": Object {
           "Statement": Array [
             Object {
               "Action": Array [
-                "glue:BatchDeletePartition",
-                "glue:BatchGetPartition",
-                "glue:GetPartition",
-                "glue:GetPartitions",
-                "glue:GetTable",
-                "glue:GetTables",
-                "glue:GetTableVersions",
                 "glue:BatchCreatePartition",
                 "glue:BatchDeletePartition",
                 "glue:CreatePartition",
@@ -750,7 +736,7 @@ Object {
                       },
                       "/",
                       Object {
-                        "Ref": "LakedataPointsToGlueTable8B239253",
+                        "Ref": "LakeDatabasedataPointsToGlueTableF86F6D7D",
                       },
                     ],
                   ],
@@ -802,9 +788,6 @@ Object {
             },
             Object {
               "Action": Array [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
                 "s3:DeleteObject*",
                 "s3:PutObject*",
                 "s3:Abort*",
@@ -813,7 +796,7 @@ Object {
               "Resource": Array [
                 Object {
                   "Fn::GetAtt": Array [
-                    "LakedataPointsBucket3D88C33A",
+                    "LakeDatabasedataPointsBucketB080069E",
                     "Arn",
                   ],
                 },
@@ -823,7 +806,7 @@ Object {
                     Array [
                       Object {
                         "Fn::GetAtt": Array [
-                          "LakedataPointsBucket3D88C33A",
+                          "LakeDatabasedataPointsBucketB080069E",
                           "Arn",
                         ],
                       },
@@ -835,9 +818,6 @@ Object {
             },
             Object {
               "Action": Array [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
                 "s3:DeleteObject*",
                 "s3:PutObject*",
                 "s3:Abort*",
@@ -846,7 +826,7 @@ Object {
               "Resource": Array [
                 Object {
                   "Fn::GetAtt": Array [
-                    "LakedataPointsBucket3D88C33A",
+                    "LakeDatabasedataPointsBucketB080069E",
                     "Arn",
                   ],
                 },
@@ -856,7 +836,7 @@ Object {
                     Array [
                       Object {
                         "Fn::GetAtt": Array [
-                          "LakedataPointsBucket3D88C33A",
+                          "LakeDatabasedataPointsBucketB080069E",
                           "Arn",
                         ],
                       },
@@ -876,7 +856,7 @@ Object {
               "Resource": Array [
                 Object {
                   "Fn::GetAtt": Array [
-                    "LakedataPointsToS3DeliveryStreamBucket7E029F63",
+                    "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
                     "Arn",
                   ],
                 },
@@ -886,7 +866,7 @@ Object {
                     Array [
                       Object {
                         "Fn::GetAtt": Array [
-                          "LakedataPointsToS3DeliveryStreamBucket7E029F63",
+                          "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
                           "Arn",
                         ],
                       },
@@ -899,56 +879,22 @@ Object {
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "LakedataPointsToGlueToTableServiceRoleDefaultPolicyB00F1250",
+        "PolicyName": "LakeDatabasedataPointsToGlueToTableServiceRoleDefaultPolicyADAFD4E2",
         "Roles": Array [
           Object {
-            "Ref": "LakedataPointsToGlueToTableServiceRole3857166E",
+            "Ref": "LakeDatabasedataPointsToGlueToTableServiceRole67CA1129",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "LakedataPointsToS3DeliveryStreamBucket7E029F63": Object {
-      "DeletionPolicy": "Retain",
-      "Type": "AWS::S3::Bucket",
-      "UpdateReplacePolicy": "Retain",
-    },
-    "LakedataPointsToS3DeliveryStreamBucketNotificationsE04744D5": Object {
-      "Properties": Object {
-        "BucketName": Object {
-          "Ref": "LakedataPointsToS3DeliveryStreamBucket7E029F63",
-        },
-        "NotificationConfiguration": Object {
-          "LambdaFunctionConfigurations": Array [
-            Object {
-              "Events": Array [
-                "s3:ObjectCreated:*",
-              ],
-              "LambdaFunctionArn": Object {
-                "Fn::GetAtt": Array [
-                  "LakedataPointsToGlueToTableD70BA54E",
-                  "Arn",
-                ],
-              },
-            },
-          ],
-        },
-        "ServiceToken": Object {
-          "Fn::GetAtt": Array [
-            "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::S3BucketNotifications",
-    },
-    "LakedataPointsToS3DeliveryStreamDFF220AF": Object {
+    "LakeDatabasedataPointsToS3DeliveryStream14BC848A": Object {
       "Properties": Object {
         "DeliveryStreamType": "KinesisStreamAsSource",
         "ExtendedS3DestinationConfiguration": Object {
           "BucketARN": Object {
             "Fn::GetAtt": Array [
-              "LakedataPointsToS3DeliveryStreamBucket7E029F63",
+              "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
               "Arn",
             ],
           },
@@ -967,7 +913,7 @@ Object {
                     "ParameterName": "LambdaArn",
                     "ParameterValue": Object {
                       "Fn::GetAtt": Array [
-                        "LakedataPointsToS3ValidatorProcessor63738B55",
+                        "LakeDatabasedataPointsToS3Processor72949AE3",
                         "Arn",
                       ],
                     },
@@ -983,7 +929,7 @@ Object {
           },
           "RoleARN": Object {
             "Fn::GetAtt": Array [
-              "LakedataPointsToS3DeliveryStreamKinesisRole530738DB",
+              "LakeDatabasedataPointsToS3DeliveryStreamKinesisRole95E2FA2F",
               "Arn",
             ],
           },
@@ -991,13 +937,13 @@ Object {
         "KinesisStreamSourceConfiguration": Object {
           "KinesisStreamARN": Object {
             "Fn::GetAtt": Array [
-              "LakedataPointsStream726F773E",
+              "LakeDatabasedataPointsStreamF9D85971",
               "Arn",
             ],
           },
           "RoleARN": Object {
             "Fn::GetAtt": Array [
-              "LakedataPointsToS3DeliveryStreamKinesisRole530738DB",
+              "LakeDatabasedataPointsToS3DeliveryStreamKinesisRole95E2FA2F",
               "Arn",
             ],
           },
@@ -1005,7 +951,41 @@ Object {
       },
       "Type": "AWS::KinesisFirehose::DeliveryStream",
     },
-    "LakedataPointsToS3DeliveryStreamKinesisRole530738DB": Object {
+    "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3": Object {
+      "DeletionPolicy": "Retain",
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "LakeDatabasedataPointsToS3DeliveryStreamBucketNotifications879BF603": Object {
+      "Properties": Object {
+        "BucketName": Object {
+          "Ref": "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
+        },
+        "NotificationConfiguration": Object {
+          "LambdaFunctionConfigurations": Array [
+            Object {
+              "Events": Array [
+                "s3:ObjectCreated:*",
+              ],
+              "LambdaFunctionArn": Object {
+                "Fn::GetAtt": Array [
+                  "LakeDatabasedataPointsToGlueToTable3427B72C",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+        },
+        "ServiceToken": Object {
+          "Fn::GetAtt": Array [
+            "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3BucketNotifications",
+    },
+    "LakeDatabasedataPointsToS3DeliveryStreamKinesisRole95E2FA2F": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [
@@ -1022,7 +1002,7 @@ Object {
       },
       "Type": "AWS::IAM::Role",
     },
-    "LakedataPointsToS3DeliveryStreamKinesisRoleDefaultPolicyD6E3403E": Object {
+    "LakeDatabasedataPointsToS3DeliveryStreamKinesisRoleDefaultPolicy3788B980": Object {
       "Properties": Object {
         "PolicyDocument": Object {
           "Statement": Array [
@@ -1035,7 +1015,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "LakedataPointsStream726F773E",
+                  "LakeDatabasedataPointsStreamF9D85971",
                   "Arn",
                 ],
               },
@@ -1045,7 +1025,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "LakedataPointsStreamKey38B9FC2D",
+                  "LakeDatabasedataPointsStreamKey6D78F220",
                   "Arn",
                 ],
               },
@@ -1063,7 +1043,7 @@ Object {
               "Resource": Array [
                 Object {
                   "Fn::GetAtt": Array [
-                    "LakedataPointsToS3DeliveryStreamBucket7E029F63",
+                    "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
                     "Arn",
                   ],
                 },
@@ -1073,7 +1053,7 @@ Object {
                     Array [
                       Object {
                         "Fn::GetAtt": Array [
-                          "LakedataPointsToS3DeliveryStreamBucket7E029F63",
+                          "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
                           "Arn",
                         ],
                       },
@@ -1088,7 +1068,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "LakedataPointsToS3ValidatorProcessor63738B55",
+                  "LakeDatabasedataPointsToS3Processor72949AE3",
                   "Arn",
                 ],
               },
@@ -1096,40 +1076,37 @@ Object {
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "LakedataPointsToS3DeliveryStreamKinesisRoleDefaultPolicyD6E3403E",
+        "PolicyName": "LakeDatabasedataPointsToS3DeliveryStreamKinesisRoleDefaultPolicy3788B980",
         "Roles": Array [
           Object {
-            "Ref": "LakedataPointsToS3DeliveryStreamKinesisRole530738DB",
+            "Ref": "LakeDatabasedataPointsToS3DeliveryStreamKinesisRole95E2FA2F",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "LakedataPointsToS3ValidatorProcessor63738B55": Object {
+    "LakeDatabasedataPointsToS3Processor72949AE3": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "data-lake/Lake/dataPoints/ToS3/Validator/Processor",
+            "bootstrap_construct_path": "data-lake/Lake/Database/dataPoints/ToS3/Processor",
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
-            "LakedataPointsToS3ValidatorProcessorServiceRole3D65B26F",
+            "LakeDatabasedataPointsToS3ProcessorServiceRole1138340D",
             "Arn",
           ],
         },
         "Runtime": "nodejs10.x",
-        "Timeout": 60,
       },
       "Type": "AWS::Lambda::Function",
     },
-    "LakedataPointsToS3ValidatorProcessorServiceRole3D65B26F": Object {
+    "LakeDatabasedataPointsToS3ProcessorServiceRole1138340D": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [
@@ -1189,16 +1166,12 @@ Object {
     "CallerBA8D1D35": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "invoke-function/Caller",
-            "invokefunctionCaller49F62F6D_0_tableName": Object {
-              "Ref": "hashtable30434784",
-            },
-            "invokefunctionCaller49F62F6D_1_tableName": Object {
+            "punchcard_tableName": Object {
               "Ref": "sortedtable7B46B3EA",
             },
           },
@@ -1301,10 +1274,6 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
-                "dynamodb:BatchWriteItem",
-                "dynamodb:PutItem",
-                "dynamodb:UpdateItem",
-                "dynamodb:DeleteItem",
               ],
               "Effect": "Allow",
               "Resource": Array [
@@ -1389,8 +1358,7 @@ Object {
     "MyFunction3BAA72D1": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
@@ -1486,13 +1454,12 @@ Object {
     "CallableB8832084": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "invoke-function/Callable",
-            "invokefunctionCallableCF9C4F62_tableName": Object {
+            "punchcard_tableName": Object {
               "Ref": "mytable0324D45C",
             },
           },
@@ -1603,13 +1570,12 @@ Object {
     "CallerBA8D1D35": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "invoke-function/Caller",
-            "invokefunctionCaller49F62F6D_functionArn": Object {
+            "punchcard_functionArn": Object {
               "Fn::GetAtt": Array [
                 "CallableB8832084",
                 "Arn",
@@ -1758,262 +1724,20 @@ Object {
     },
   },
   "Resources": Object {
-    "MyEndpointApiPermissionTestpetstorePetApi101B408DGETpets8385743F": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/test-invoke-stage/GET/pets",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "MyEndpointApiPermissionTestpetstorePetApi101B408DGETpetsidE944CE29": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/test-invoke-stage/GET/pets/{id}",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "MyEndpointApiPermissionTestpetstorePetApi101B408DPOSTpets616048F6": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/test-invoke-stage/POST/pets",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "MyEndpointApiPermissionpetstorePetApi101B408DGETpets6A60D9F8": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/",
-              Object {
-                "Ref": "PetApiDeploymentStageprod6B2EA37F",
-              },
-              "/GET/pets",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "MyEndpointApiPermissionpetstorePetApi101B408DGETpetsid6A1A5F6B": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/",
-              Object {
-                "Ref": "PetApiDeploymentStageprod6B2EA37F",
-              },
-              "/GET/pets/{id}",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "MyEndpointApiPermissionpetstorePetApi101B408DPOSTpets1A2CFC88": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/",
-              Object {
-                "Ref": "PetApiDeploymentStageprod6B2EA37F",
-              },
-              "/POST/pets",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
     "MyEndpointE262FD4F": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "pet-store/MyEndpoint",
-            "petstoreMyEndpoint52C4C6E8_tableName": Object {
+            "punchcard_tableName": Object {
               "Ref": "petstore3A6A0F62",
-            },
-            "resource_id_petstorePetApipets192B5521": Object {
-              "Ref": "PetApipetsC3752A49",
-            },
-            "resource_id_petstorePetApipetsidD85CC2F8": Object {
-              "Ref": "PetApipetsidBC2D20F8",
             },
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 512,
         "Role": Object {
           "Fn::GetAtt": Array [
             "MyEndpointServiceRole3F5D1E79",
@@ -2289,6 +2013,84 @@ Object {
       },
       "Type": "AWS::ApiGateway::Method",
     },
+    "PetApipetsGETApiPermissionTestpetstorePetApi101B408DGETpetsCD49AEAA": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "MyEndpointE262FD4F",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::Join": Array [
+            "",
+            Array [
+              "arn:",
+              Object {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              Object {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              Object {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              Object {
+                "Ref": "PetApi503401F5",
+              },
+              "/test-invoke-stage/GET/pets",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "PetApipetsGETApiPermissionpetstorePetApi101B408DGETpets90F4294D": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "MyEndpointE262FD4F",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::Join": Array [
+            "",
+            Array [
+              "arn:",
+              Object {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              Object {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              Object {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              Object {
+                "Ref": "PetApi503401F5",
+              },
+              "/",
+              Object {
+                "Ref": "PetApiDeploymentStageprod6B2EA37F",
+              },
+              "/GET/pets",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
     "PetApipetsGETRequestC70DCE36": Object {
       "Properties": Object {
         "ContentType": "application/json",
@@ -2463,6 +2265,84 @@ $inputRoot
         },
       },
       "Type": "AWS::ApiGateway::Method",
+    },
+    "PetApipetsPOSTApiPermissionTestpetstorePetApi101B408DPOSTpets7C31F763": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "MyEndpointE262FD4F",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::Join": Array [
+            "",
+            Array [
+              "arn:",
+              Object {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              Object {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              Object {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              Object {
+                "Ref": "PetApi503401F5",
+              },
+              "/test-invoke-stage/POST/pets",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "PetApipetsPOSTApiPermissionpetstorePetApi101B408DPOSTpetsF05C70E4": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "MyEndpointE262FD4F",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::Join": Array [
+            "",
+            Array [
+              "arn:",
+              Object {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              Object {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              Object {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              Object {
+                "Ref": "PetApi503401F5",
+              },
+              "/",
+              Object {
+                "Ref": "PetApiDeploymentStageprod6B2EA37F",
+              },
+              "/POST/pets",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
     },
     "PetApipetsPOSTRequest0AEAE40B": Object {
       "Properties": Object {
@@ -2662,6 +2542,84 @@ $inputRoot
       },
       "Type": "AWS::ApiGateway::Method",
     },
+    "PetApipetsidGETApiPermissionTestpetstorePetApi101B408DGETpetsid8FEF4993": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "MyEndpointE262FD4F",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::Join": Array [
+            "",
+            Array [
+              "arn:",
+              Object {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              Object {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              Object {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              Object {
+                "Ref": "PetApi503401F5",
+              },
+              "/test-invoke-stage/GET/pets/{id}",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "PetApipetsidGETApiPermissionpetstorePetApi101B408DGETpetsid2A2AC067": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "MyEndpointE262FD4F",
+            "Arn",
+          ],
+        },
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::Join": Array [
+            "",
+            Array [
+              "arn:",
+              Object {
+                "Ref": "AWS::Partition",
+              },
+              ":execute-api:",
+              Object {
+                "Ref": "AWS::Region",
+              },
+              ":",
+              Object {
+                "Ref": "AWS::AccountId",
+              },
+              ":",
+              Object {
+                "Ref": "PetApi503401F5",
+              },
+              "/",
+              Object {
+                "Ref": "PetApiDeploymentStageprod6B2EA37F",
+              },
+              "/GET/pets/{id}",
+            ],
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
     "PetApipetsidGETRequest9062AB18": Object {
       "Properties": Object {
         "ContentType": "application/json",
@@ -2778,13 +2736,12 @@ Object {
     "Poller8D8A3186": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "scheduled-function-example/Poller",
-            "scheduledfunctionexamplePoller8C8D66B7_tableName": Object {
+            "punchcard_tableName": Object {
               "Ref": "mytable0324D45C",
             },
           },
@@ -2972,7 +2929,7 @@ Object {
         const responseBody = JSON.stringify({
             Status: responseStatus,
             Reason: reason || \\"See the details in CloudWatch Log Stream: \\" + context.logStreamName,
-            PhysicalResourceId: context.logStreamName,
+            PhysicalResourceId: event.PhysicalResourceId || event.LogicalResourceId,
             StackId: event.StackId,
             RequestId: event.RequestId,
             LogicalResourceId: event.LogicalResourceId,
@@ -3011,7 +2968,7 @@ Object {
             "Arn",
           ],
         },
-        "Runtime": "nodejs8.10",
+        "Runtime": "nodejs10.x",
         "Timeout": 300,
       },
       "Type": "AWS::Lambda::Function",
@@ -3099,17 +3056,16 @@ Object {
     "DummyData3BBFD842": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/DummyData",
-            "streamprocessingDummyData0C7E4F48_0_topicArn": Object {
-              "Ref": "TopicBFC7AF6E",
-            },
-            "streamprocessingDummyData0C7E4F48_1_tableName": Object {
+            "punchcard_tableName": Object {
               "Ref": "Enrichments5620103C",
+            },
+            "punchcard_topicArn": Object {
+              "Ref": "TopicBFC7AF6E",
             },
           },
         },
@@ -3274,8 +3230,7 @@ Object {
     "ForEachNotificationB4EB4E5A": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
@@ -3283,7 +3238,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 128,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ForEachNotificationServiceRole460EBC3F",
@@ -3291,7 +3245,6 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
-        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
@@ -3494,22 +3447,20 @@ Object {
     "StreamToStream239763A4": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/Stream/ToStream",
-            "streamprocessingStreamToStream32AF1CD3_0_streamName": Object {
+            "punchcard_streamName": Object {
               "Ref": "Stream790BDEE4",
             },
-            "streamprocessingStreamToStream32AF1CD3_1_tableName": Object {
+            "punchcard_tableName": Object {
               "Ref": "Enrichments5620103C",
             },
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 128,
         "Role": Object {
           "Fn::GetAtt": Array [
             "StreamToStreamServiceRole00FC6AF4",
@@ -3517,7 +3468,6 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
-        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
@@ -3758,31 +3708,29 @@ Object {
     "ToGlueToTableCC856D42": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/ToGlue/ToTable",
-            "streamprocessingToGlueToTableE6D653FC_0_bucket_bucketName": Object {
+            "punchcard_bucketName": Object {
+              "Ref": "ToS3DeliveryStreamBucket410C5594",
+            },
+            "punchcard_bucket_bucketName": Object {
               "Ref": "ToGlueBucket21D24ECF",
             },
-            "streamprocessingToGlueToTableE6D653FC_0_catalogId": Object {
+            "punchcard_catalogId": Object {
               "Ref": "AWS::AccountId",
             },
-            "streamprocessingToGlueToTableE6D653FC_0_databaseName": Object {
+            "punchcard_databaseName": Object {
               "Ref": "DatabaseB269D8BB",
             },
-            "streamprocessingToGlueToTableE6D653FC_0_tableName": Object {
+            "punchcard_tableName": Object {
               "Ref": "ToGlueTableCEC90A28",
-            },
-            "streamprocessingToGlueToTableE6D653FC_1_bucketName": Object {
-              "Ref": "ToS3DeliveryStreamBucket410C5594",
             },
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 128,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ToGlueToTableServiceRole53B96987",
@@ -3790,7 +3738,6 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
-        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
@@ -3831,13 +3778,6 @@ Object {
           "Statement": Array [
             Object {
               "Action": Array [
-                "glue:BatchDeletePartition",
-                "glue:BatchGetPartition",
-                "glue:GetPartition",
-                "glue:GetPartitions",
-                "glue:GetTable",
-                "glue:GetTables",
-                "glue:GetTableVersions",
                 "glue:BatchCreatePartition",
                 "glue:BatchDeletePartition",
                 "glue:CreatePartition",
@@ -3920,9 +3860,6 @@ Object {
             },
             Object {
               "Action": Array [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
                 "s3:DeleteObject*",
                 "s3:PutObject*",
                 "s3:Abort*",
@@ -3953,9 +3890,6 @@ Object {
             },
             Object {
               "Action": Array [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
                 "s3:DeleteObject*",
                 "s3:PutObject*",
                 "s3:Abort*",
@@ -4051,7 +3985,7 @@ Object {
                     "ParameterName": "LambdaArn",
                     "ParameterValue": Object {
                       "Fn::GetAtt": Array [
-                        "ToS3ValidatorProcessorD6994816",
+                        "ToS3Processor14BA5FE8",
                         "Arn",
                       ],
                     },
@@ -4206,7 +4140,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "ToS3ValidatorProcessorD6994816",
+                  "ToS3Processor14BA5FE8",
                   "Arn",
                 ],
               },
@@ -4223,31 +4157,28 @@ Object {
       },
       "Type": "AWS::IAM::Policy",
     },
-    "ToS3ValidatorProcessorD6994816": Object {
+    "ToS3Processor14BA5FE8": Object {
       "Properties": Object {
         "Code": Object {
-          "S3Bucket": "mock",
-          "S3Key": "mock",
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "stream-processing/ToS3/Validator/Processor",
+            "bootstrap_construct_path": "stream-processing/ToS3/Processor",
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
-            "ToS3ValidatorProcessorServiceRole49E084BB",
+            "ToS3ProcessorServiceRoleECCCE576",
             "Arn",
           ],
         },
         "Runtime": "nodejs10.x",
-        "Timeout": 60,
       },
       "Type": "AWS::Lambda::Function",
     },
-    "ToS3ValidatorProcessorServiceRole49E084BB": Object {
+    "ToS3ProcessorServiceRoleECCCE576": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [

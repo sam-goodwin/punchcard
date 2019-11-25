@@ -5,8 +5,11 @@ import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 
 import { Namespace } from '../core/assembly';
+import { Build } from '../core/build';
 import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
+import { Resource } from '../core/resource';
+import { Run } from '../core/run';
 import { Mapper } from '../shape/mapper/mapper';
 import { RuntimeShape, Shape } from '../shape/shape';
 import { struct, StructShape } from '../shape/struct';
@@ -23,11 +26,12 @@ export type Attributes = {
   [attributeName: string]: Shape<any>;
 };
 
-export type TableProps<PKey extends keyof A, SKey extends keyof A | undefined, A extends Attributes> = {
+export interface TableProps<PKey extends keyof A, SKey extends keyof A | undefined, A extends Attributes> {
   partitionKey: PKey;
   sortKey?: SKey;
   attributes: A;
-} & Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'>;
+  tableProps?: Build<Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'>>
+}
 
 /**
  * A DynamoDB Table.
@@ -36,9 +40,12 @@ export type TableProps<PKey extends keyof A, SKey extends keyof A | undefined, A
  * @typeparam PKey name of partition key
  * @typeparam SKey name of sort key (if this table has one)
  */
-export class Table<PKey extends keyof A, SKey extends keyof A | undefined, A extends Attributes>
-    extends dynamodb.Table
-    implements Dependency<Client<PKey, SKey, A>> {
+export class Table<PKey extends keyof A, SKey extends keyof A | undefined, A extends Attributes> implements Resource<dynamodb.Table> {
+  /**
+   * The DynamoDB Table Construct.
+   */
+  public readonly resource: Build<dynamodb.Table>;
+
   /**
    * Shape of data in the table.
    */
@@ -74,12 +81,10 @@ export class Table<PKey extends keyof A, SKey extends keyof A | undefined, A ext
    */
   public readonly keyMapper: Mapper<RuntimeShape<StructShape<Key<A, PKey, SKey>>>, AWS.DynamoDB.AttributeMap>;
 
-  constructor(scope: core.Construct, id: string, props: TableProps<PKey, SKey, A>) {
-    super(scope, id, toTableProps(props));
-
-    function toTableProps(props: TableProps<any, any, any>): dynamodb.TableProps {
-      const tableProps = {
-        ...props,
+  constructor(scope: Build<core.Construct>, id: string, props: TableProps<PKey, SKey, A>) {
+    this.resource = (props.tableProps || Build.of({})).chain(extraTableProps => scope.map(scope => {
+      const tableProps: any = {
+        ...extraTableProps,
         partitionKey: {
           name: props.partitionKey.toString(),
           type: keyType(props.attributes[props.partitionKey].kind)
@@ -88,11 +93,12 @@ export class Table<PKey extends keyof A, SKey extends keyof A | undefined, A ext
       if (props.sortKey) {
         tableProps.sortKey = {
           name: props.sortKey!.toString(),
-          type: keyType(props.attributes[props.sortKey].kind)
+          type: keyType(props.attributes[props.sortKey as any].kind)
         };
       }
-      return tableProps;
-    }
+
+      return new dynamodb.Table(scope, id, tableProps as dynamodb.TableProps);
+    }));
 
     this.attributes = props.attributes;
     this.partitionKey = props.partitionKey;
@@ -110,64 +116,44 @@ export class Table<PKey extends keyof A, SKey extends keyof A | undefined, A ext
   }
 
   /**
-   * Create the client for the table by looking up the table name property
-   * and initializing a DynamoDB client.
-   *
-   * @param namespace local properties set by this table by `install`
-   * @param cache global cache shared by all clients
-   */
-  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Client<PKey, SKey, A>> {
-    return new Client(this,
-      namespace.get('tableName'),
-      cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())) as Client<PKey, SKey, A>;
-  }
-
-  /**
-   * Set a runtime property for this table's name and grant permissions to the runtime's principal.
-   *
-   * Takes a *read-write* dependency on this table.
-   *
-   * @param target
-   */
-  public install(namespace: Namespace, grantable: iam.IGrantable): void {
-    this.readWriteAccess().install(namespace, grantable);
-  }
-
-  private _install(grant: (grantable: iam.IGrantable) => void): Dependency<Client<PKey, SKey, A>> {
-    return {
-      install: (namespace: Namespace, grantable: iam.IGrantable) => {
-        namespace.set('tableName', this.tableName);
-        grant(grantable);
-      },
-      bootstrap: this.bootstrap.bind(this)
-    };
-  }
-
-  /**
    * Take a *read-only* dependency on this table.
    */
   public readAccess(): Dependency<Client<PKey, SKey, A>> {
-    return this._install(this.grantReadData.bind(this));
+    return this.dependency((t, g) => t.grantReadData(g));
   }
 
   /**
    * Take a *read-write* dependency on this table.
    */
   public readWriteAccess(): Dependency<Client<PKey, SKey, A>> {
-    return this._install(this.grantReadWriteData.bind(this));
+    return this.dependency((t, g) => t.grantReadWriteData(g));
   }
 
   /**
    * Take a *write-only* dependency on this table.
    */
   public writeAccess(): Dependency<Client<PKey, SKey, A>> {
-    return this._install(this.grantWriteData.bind(this));
+    return this.dependency((t, g) => t.grantWriteData(g));
   }
 
   /**
    * Take a *full-access* dependency on this table.
    */
   public fullAccess(): Dependency<Client<PKey, SKey, A>> {
-    return this._install(this.grantFullAccess.bind(this));
+    return this.dependency((t, g) => t.grantFullAccess(g));
+  }
+
+  private dependency(grant: (table: dynamodb.Table, grantable: iam.IGrantable) => void): Dependency<Client<PKey, SKey, A>> {
+    return {
+      install: this.resource.map(table => (ns, grantable) => {
+        ns.set('tableName', table.tableName);
+        grant(table, grantable);
+      }),
+      bootstrap: Run.of(async (ns, cache) =>
+        new Client(
+          this,
+          ns.get('tableName'),
+          cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())) as Client<PKey, SKey, A>)
+    };
   }
 }

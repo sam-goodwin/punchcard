@@ -8,6 +8,7 @@ import { Omit } from '../util/omit';
 import { Function, FunctionProps } from './function';
 
 import * as CloudWatch from '../cloudwatch';
+import { Build } from '../core/build';
 import { schedule, ScheduleProps } from './schedule';
 
 /**
@@ -24,24 +25,24 @@ export class ExecutorService {
     memorySize: 128
   }) {}
 
-  public spawn<T, U, D extends Dependency<any>>(scope: cdk.Construct, id: string, props: FunctionProps<T, U, D>): Function<T, U, D> {
+  public spawn<T, U, D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>): Function<T, U, D> {
     return new Function<T, U, D>(scope, id, {
       ...this.props,
       ...props
     });
   }
 
-  public schedule<D extends Dependency<any>>(scope: cdk.Construct, id: string, props: ScheduleProps<D>): Function<CloudWatch.Event, any, D> {
+  public schedule<D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: ScheduleProps<D>): Function<CloudWatch.Event, any, D> {
     return schedule(scope, id, {
       ...this.props,
       ...props
     });
   }
 
-  public apiIntegration<D extends Dependency<any>>(parent: cdk.Construct, id: string, props: {
+  public apiIntegration<D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: {
     depends: D;
   }): Integration<D> {
-    const handler = this.spawn(parent, id, {
+    const handler = this.spawn(scope, id, {
       depends: props.depends,
       handle: async (event: any, runtimeContext: Client<D>) => {
         const resourceId = event.__resourceId; // TODO: we implicitly know this field exists - magic field. see ../api-gateway/resource.ts

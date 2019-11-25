@@ -1,7 +1,9 @@
 import 'jest';
 
+import cdk = require('@aws-cdk/core');
 import fs = require('fs');
 import path = require('path');
+import { Build } from 'punchcard/lib/core/build';
 
 const apps = fs.readdirSync(path.join(__dirname, '../lib/'))
   .filter(f => f.endsWith('.ts'))
@@ -9,10 +11,14 @@ const apps = fs.readdirSync(path.join(__dirname, '../lib/'))
 
 for (const app of apps) {
   describe(app, () => {
-    for (const stack of require(`../lib/${app}`).default.node.children) {
-      it(`stack ${app} should match snapshot`, () => {
-        expect(stack._toCloudFormation()).toMatchSnapshot();
-      });
+    const a = require(`../lib/${app}`).default as Build<cdk.App>;
+    Build.walk(a);
+    for (const stack of Build.resolve(a).node.children) {
+      if (cdk.Stack.isStack(stack)) {
+        it(`stack ${app} should match snapshot`, () => {
+          expect((stack as any)._toCloudFormation()).toMatchSnapshot();
+        });
+      }
     }
   });
 }

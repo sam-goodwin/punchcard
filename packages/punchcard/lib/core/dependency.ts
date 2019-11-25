@@ -2,82 +2,62 @@ import iam = require('@aws-cdk/aws-iam');
 
 import { Assembly, Namespace } from '../core/assembly';
 import { Cache } from '../core/cache';
-import { HList } from '../util/hlist';
+import { Cons, Head, HList, Tail } from '../util/hlist';
 import { Client, Clients } from './client';
 
-/**
- * A dependency that may be installed into a `Runtime`.
- *
- * @typeparam C type of the client created at runtime.
- */
-export interface Dependency<C> {
-  /**
-   * Install a Client instance into a target:
-   * * grant required permissions
-   * * add properties required at runtime
-   *
-   * @param namespace property namespace
-   * @param grantable principal to grant permissions to
-   */
-  install(namespace: Namespace, grantable: iam.IGrantable): void;
-  /**
-   * Bootstrap the runtime interface of a construct.
-   *
-   * @param namespace property namespace
-   * @param cache a cache of state shared by all clients at runtime.
-   */
-  bootstrap(namespace: Namespace, cache: Cache): Promise<C>;
-}
+import { Build } from './build';
+import { Run } from './run';
 
+export interface Dependency<D> {
+  install: Build<Install>;
+  bootstrap: Run<Bootstrap<D>>;
+}
 export namespace Dependency {
   export type None = typeof none;
   export const none: Dependency<{}> = {
     [Symbol.for('punchcard:dependency:none')]: true,
-    bootstrap: async () => ({}),
-    install: () => undefined
+    bootstrap: Run.of(async () => ({})),
+    install: Build.of(() => undefined)
   };
 
-  export function tuple<T extends any[]>(...deps: T): Tuple<T> {
-    return new Tuple(deps);
+  // gross, but hopefully more efficient than a HList traversal and just as effective
+  // see <pkg-root>/codegen/dependency-concat
+  // export function concat<D1 extends Dependency<any>>(d1: D1): Dependency<[Client<D1>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>>(d1: D1, d2: D2): Dependency<[Client<D1>, Client<D2>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>>(d1: D1, d2: D2, d3: D3): Dependency<[Client<D1>, Client<D2>, Client<D3>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>, D11 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10, d11: D11): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>, Client<D11>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>, D11 extends Dependency<any>, D12 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10, d11: D11, d12: D12): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>, Client<D11>, Client<D12>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>, D11 extends Dependency<any>, D12 extends Dependency<any>, D13 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10, d11: D11, d12: D12, d13: D13): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>, Client<D11>, Client<D12>, Client<D13>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>, D11 extends Dependency<any>, D12 extends Dependency<any>, D13 extends Dependency<any>, D14 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10, d11: D11, d12: D12, d13: D13, d14: D14): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>, Client<D11>, Client<D12>, Client<D13>, Client<D14>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>, D11 extends Dependency<any>, D12 extends Dependency<any>, D13 extends Dependency<any>, D14 extends Dependency<any>, D15 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10, d11: D11, d12: D12, d13: D13, d14: D14, d15: D15): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>, Client<D11>, Client<D12>, Client<D13>, Client<D14>, Client<D15>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>, D11 extends Dependency<any>, D12 extends Dependency<any>, D13 extends Dependency<any>, D14 extends Dependency<any>, D15 extends Dependency<any>, D16 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10, d11: D11, d12: D12, d13: D13, d14: D14, d15: D15, d16: D16): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>, Client<D11>, Client<D12>, Client<D13>, Client<D14>, Client<D15>, Client<D16>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>, D11 extends Dependency<any>, D12 extends Dependency<any>, D13 extends Dependency<any>, D14 extends Dependency<any>, D15 extends Dependency<any>, D16 extends Dependency<any>, D17 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10, d11: D11, d12: D12, d13: D13, d14: D14, d15: D15, d16: D16, d17: D17): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>, Client<D11>, Client<D12>, Client<D13>, Client<D14>, Client<D15>, Client<D16>, Client<D17>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>, D11 extends Dependency<any>, D12 extends Dependency<any>, D13 extends Dependency<any>, D14 extends Dependency<any>, D15 extends Dependency<any>, D16 extends Dependency<any>, D17 extends Dependency<any>, D18 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10, d11: D11, d12: D12, d13: D13, d14: D14, d15: D15, d16: D16, d17: D17, d18: D18): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>, Client<D11>, Client<D12>, Client<D13>, Client<D14>, Client<D15>, Client<D16>, Client<D17>, Client<D18>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>, D11 extends Dependency<any>, D12 extends Dependency<any>, D13 extends Dependency<any>, D14 extends Dependency<any>, D15 extends Dependency<any>, D16 extends Dependency<any>, D17 extends Dependency<any>, D18 extends Dependency<any>, D19 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10, d11: D11, d12: D12, d13: D13, d14: D14, d15: D15, d16: D16, d17: D17, d18: D18, d19: D19): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>, Client<D11>, Client<D12>, Client<D13>, Client<D14>, Client<D15>, Client<D16>, Client<D17>, Client<D18>, Client<D19>]>;
+  // export function concat<D1 extends Dependency<any>, D2 extends Dependency<any>, D3 extends Dependency<any>, D4 extends Dependency<any>, D5 extends Dependency<any>, D6 extends Dependency<any>, D7 extends Dependency<any>, D8 extends Dependency<any>, D9 extends Dependency<any>, D10 extends Dependency<any>, D11 extends Dependency<any>, D12 extends Dependency<any>, D13 extends Dependency<any>, D14 extends Dependency<any>, D15 extends Dependency<any>, D16 extends Dependency<any>, D17 extends Dependency<any>, D18 extends Dependency<any>, D19 extends Dependency<any>, D20 extends Dependency<any>>(d1: D1, d2: D2, d3: D3, d4: D4, d5: D5, d6: D6, d7: D7, d8: D8, d9: D9, d10: D10, d11: D11, d12: D12, d13: D13, d14: D14, d15: D15, d16: D16, d17: D17, d18: D18, d19: D19, d20: D20): Dependency<[Client<D1>, Client<D2>, Client<D3>, Client<D4>, Client<D5>, Client<D6>, Client<D7>, Client<D8>, Client<D9>, Client<D10>, Client<D11>, Client<D12>, Client<D13>, Client<D14>, Client<D15>, Client<D16>, Client<D17>, Client<D18>, Client<D19>, Client<D20>]>;
+
+  export function concat<D extends any[]>(...ds: D): Concat<D>;
+
+  export function concat(...ds: Array<Dependency<any>>): Dependency<any[]> {
+    return {
+      install:  Build
+        .concat(...ds.map(_ => _.install))
+        .map(is => (ns, grantable) => (is as any).forEach((i: any) => i(ns, grantable))),
+      bootstrap: Run
+        .concat(...ds.map(_ => _.bootstrap))
+        .map(bs => (ns, cache) => Promise.all((bs as any).map((bootstrap: any) => bootstrap(ns, cache) ))),
+    };
   }
 
-  export class Tuple<T extends any[]> implements Dependency<Clients<HList<T>>> {
-    constructor(private readonly deps: T) {}
-
-    public install(namespace: Namespace, grantable: iam.IGrantable): void {
-      this.deps.forEach((d, i) => d.install(namespace.namespace(i.toString()), grantable));
-    }
-
-    public async bootstrap(namespace: Assembly, cache: Cache): Promise<Clients<HList<T>>> {
-      return await Promise.all(this.deps.map((d, i) => d.bootstrap(namespace.namespace(i.toString()), cache))) as any;
-    }
-  }
-
-  export type NamedDeps = {[name: string]: Dependency<any>};
-  export type NamedClients<D extends NamedDeps> = {
-    [name in keyof D]: Client<D[name]>;
-  };
-
-  export class Named<D extends {[name: string]: Dependency<any>}> implements Dependency<NamedClients<D>> {
-    constructor(private readonly dependencies: D) {}
-
-    public install(namespace: Namespace, grantable: iam.IGrantable): void {
-      for (const [name, dep] of Object.entries(this.dependencies)) {
-        dep.install(namespace.namespace(name), grantable);
-      }
-    }
-
-    public async bootstrap(properties: Assembly, cache: Cache): Promise<{ [name in keyof D]: Client<D[name]>; }> {
-      const client: any = {};
-      const deps = await Promise.all(Object
-        .entries(this.dependencies)
-        .map(async ([name, dep]) => {
-          return [name, await dep.bootstrap(properties.namespace(name), cache)];
-        }));
-      for (const [name, dep] of deps) {
-        client[name] = dep;
-      }
-      return client;
-    }
-  }
+  export type Concat<T extends any[]> = Dependency<Clients<HList<T>>>;
 }
+
+export type Install = (namespace: Namespace, grantable: iam.IGrantable) => void;
+export type Bootstrap<D> = (namespace: Namespace, cache: Cache) => Promise<D>;

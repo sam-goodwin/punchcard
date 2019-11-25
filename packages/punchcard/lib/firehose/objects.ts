@@ -3,6 +3,7 @@ import lambda = require('@aws-cdk/aws-lambda');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import s3 = require('@aws-cdk/aws-s3');
 
+import { Build } from '../core/build';
 import { Clients } from '../core/client';
 import { Event as S3Event } from '../s3/event';
 import { Stream } from '../util/stream';
@@ -19,10 +20,10 @@ export class Objects<T, D extends any[]> extends Stream<S3Event, T, D, Stream.Co
     super(previous, input.handle, input.depends);
   }
 
-  public eventSource(): lambda.IEventSource {
-    return new events.S3EventSource(this.s3Stream.resource.s3Bucket!, {
+  public eventSource(): Build<lambda.IEventSource> {
+    return this.s3Stream.resource.map(s3Stream => new events.S3EventSource(s3Stream.s3Bucket!, {
       events: [s3.EventType.OBJECT_CREATED]
-    });
+    }));
   }
 
   public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): Objects<U, D2> {

@@ -3,12 +3,14 @@ import sinon = require('sinon');
 
 import core = require('@aws-cdk/core');
 import { Core, Shape, SQS, Util } from '../../lib';
+import { Build } from '../../lib/core/build';
+import { Run } from '../../lib/core/run';
 
 Util.setRuntime();
 
 describe('run', () => {
   it('should parse event into records', async () => {
-    const stack = new core.Stack(new core.App(), 'stack');
+    const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
     const queue = new SQS.Queue(stack, 'Queue', {
       shape: Shape.string()
@@ -28,7 +30,7 @@ describe('run', () => {
     expect(results).toEqual(['string']);
   });
   it('should not require a depends property', async () => {
-    const stack = new core.Stack(new core.App(), 'stack');
+    const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
     const queue = new SQS.Queue(stack, 'Queue', {
       shape: Shape.string()
@@ -48,23 +50,23 @@ describe('run', () => {
     expect(results).toEqual(['string']);
   });
   it('should transform records with a map', async () => {
-    const stack = new core.Stack(new core.App(), 'stack');
+    const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
     const queue = new SQS.Queue(stack, 'Queue', {
       shape: Shape.string()
     });
 
     const d1: Core.Dependency<string> = {
-      bootstrap: async () => 'd1',
-      install: () => undefined
+      bootstrap: Run.of(async () => 'd1'),
+      install: Build.of(() => undefined)
     };
     const d2: Core.Dependency<string> = {
-      bootstrap: async () => 'd2',
-      install: () => undefined
+      bootstrap: Run.of(async () => 'd2'),
+      install: Build.of(() => undefined)
     };
 
     const results: number[] = [];
-    const f = await (queue.messages().map({
+    const f = await (Run.resolve(queue.messages().map({
       depends: d1,
       handle: async (v, d1) => {
         expect(d1).toEqual('d1');
@@ -77,7 +79,7 @@ describe('run', () => {
         results.push(v);
         return Promise.resolve(v);
       }
-    }).boot());
+    }).entrypoint));
 
     await f({
       Records: [{
@@ -88,15 +90,15 @@ describe('run', () => {
     expect.assertions(3);
   });
   it('should transform records with a map and `collect`', async () => {
-    const stack = new core.Stack(new core.App(), 'stack');
+    const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
     const queue = new SQS.Queue(stack, 'Queue', {
       shape: Shape.string()
     });
 
     const d1: Core.Dependency<string> = {
-      bootstrap: async () => 'd1',
-      install: () => undefined
+      bootstrap: Run.of(async () => 'd1'),
+      install: Build.of(() => undefined)
     };
 
     const stream = queue.messages()
@@ -124,15 +126,15 @@ describe('run', () => {
     expect.assertions(2);
   });
   it('should transform records with a map and toStream', async () => {
-    const stack = new core.Stack(new core.App(), 'stack');
+    const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
     const queue = new SQS.Queue(stack, 'Queue', {
       shape: Shape.string()
     });
 
     const d1: Core.Dependency<string> = {
-      bootstrap: async () => 'd1',
-      install: () => undefined
+      bootstrap: Run.of(async () => 'd1'),
+      install: Build.of(() => undefined)
     };
 
     const stream = queue.messages()

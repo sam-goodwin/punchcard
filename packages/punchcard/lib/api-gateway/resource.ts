@@ -1,7 +1,10 @@
 import apigateway = require('@aws-cdk/aws-apigateway');
 import cdk = require('@aws-cdk/core');
 
+import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
+import { Resource as RResource } from '../core/resource';
+import { Run } from '../core/run';
 import { Kind, Mapper, Raw, Shape, struct, StructShape } from '../shape';
 import { isRuntime } from '../util/constants';
 import { Tree } from '../util/tree';
@@ -14,17 +17,17 @@ type ResponseMappers = {
 };
 interface Handler<T> {
   requestMapper: Mapper<T, string>;
-  handler: (request: T, context: any) => Promise<Response<any, any>>;
+  handler: Run<(request: T, context: any) => Promise<Response<any, any>>>;
   responseMappers: ResponseMappers;
 }
 type MethodHandlers = { [method: string]: Handler<any>; };
 
-export class Resource extends Tree<Resource> {
-  public readonly resource: apigateway.Resource;
+export class Resource extends Tree<Resource> implements RResource<apigateway.Resource> {
+  public readonly resource: Build<apigateway.Resource>;
 
-  protected readonly restApiId: string;
-  protected readonly getRequestValidator: apigateway.CfnRequestValidator;
-  protected readonly bodyRequestValidator: apigateway.CfnRequestValidator;
+  protected readonly restApiId: Build<string>;
+  protected readonly getRequestValidator: Build<apigateway.CfnRequestValidator>;
+  protected readonly bodyRequestValidator: Build<apigateway.CfnRequestValidator>;
 
   private readonly methods: MethodHandlers;
 
@@ -34,7 +37,7 @@ export class Resource extends Tree<Resource> {
 
     if (parent) {
       this.restApiId = parent.restApiId;
-      this.resource = parent.resource.addResource(pathPart, options);
+      this.resource = parent.resource.map(r => r.addResource(pathPart, options));
       this.getRequestValidator = parent.getRequestValidator;
       this.bodyRequestValidator = parent.bodyRequestValidator;
     }
@@ -49,7 +52,7 @@ export class Resource extends Tree<Resource> {
       let result: Response<any, any>;
       let responseMapper: Mapper<any, any>;
       try {
-        result = await handler.handler(request, context);
+        result = await Run.resolve(handler.handler)(request, context);
         responseMapper = (handler.responseMappers as any)[result.statusCode];
       } catch (err) {
         console.error('api gateway handler threw error', err.message);
@@ -110,71 +113,80 @@ export class Resource extends Tree<Resource> {
   }
 
   private addMethod<R extends Dependency<any>, T extends StructShape<any>, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
-    this.makeHandler(methodName, method as any);
-    if (isRuntime()) {
-      // don't do expensive work at runtime
-      return;
-    }
-
-    const methodResource = this.resource.addMethod(methodName, method.integration);
-    const cfnMethod = methodResource.node.findChild('Resource') as apigateway.CfnMethod;
-
-    const requestShape = method.request.shape;
-    cfnMethod.addPropertyOverride('Integration', {
-      PassthroughBehavior: 'NEVER',
-      RequestTemplates: {
-        'application/json': velocityTemplate(requestShape, {
-          ...method.request.mappings as object,
-          __resourceId: $context.resourceId,
-          __httpMethod: $context.httpMethod
-        })
-      },
-      IntegrationResponses: Object.keys(method.responses).map(statusCode => {
-        if (statusCode.toString() === StatusCode.Ok.toString()) {
-          return {
-            StatusCode: statusCode,
-            SelectionPattern: ''
-          };
-        } else {
-          return {
-            StatusCode: statusCode,
-            SelectionPattern: `\\{"statusCode":${statusCode}.*`,
-            ResponseTemplates: {
-              'application/json': velocityTemplate(
-                (method.responses as any)[statusCode] as any, {},
-                "$util.parseJson($input.path('$.errorMessage')).body")
-            }
-          };
+    Build
+      .concat(
+        this.resource,
+        method.integration.resource,
+        this.getRequestValidator,
+        this.bodyRequestValidator)
+      .map(([resource, integration, getRequestValidator, bodyRequestValidator]) => {
+        // eww, mutability
+        this.makeHandler(methodName, method as any);
+        if (isRuntime()) {
+          // don't do expensive work at runtime
+          return;
         }
-      })
-    });
 
-    if (methodName === 'GET') {
-      cfnMethod.addPropertyOverride('RequestValidatorId', this.getRequestValidator.ref);
-    } else {
-      cfnMethod.addPropertyOverride('RequestValidatorId', this.bodyRequestValidator.ref);
-    }
-    cfnMethod.addPropertyOverride('RequestModels', {
-      'application/json': new apigateway.CfnModel(methodResource, 'Request', {
-        restApiId: this.restApiId,
-        contentType: 'application/json',
-        schema: requestShape.toJsonSchema()
-      }).ref
-    });
-    const responses = new cdk.Construct(methodResource, 'Response');
-    cfnMethod.addPropertyOverride('MethodResponses', Object.keys(method.responses).map(statusCode => {
-      return {
-        StatusCode: statusCode,
-        ResponseModels: {
-          'application/json': new apigateway.CfnModel(responses, statusCode, {
-            restApiId: this.restApiId,
+        const methodResource = resource.addMethod(methodName, integration);
+        const cfnMethod = methodResource.node.findChild('Resource') as apigateway.CfnMethod;
+
+        const requestShape = method.request.shape;
+        cfnMethod.addPropertyOverride('Integration', {
+          PassthroughBehavior: 'NEVER',
+          RequestTemplates: {
+            'application/json': velocityTemplate(requestShape, {
+              ...method.request.mappings as object,
+              __resourceId: $context.resourceId,
+              __httpMethod: $context.httpMethod
+            })
+          },
+          IntegrationResponses: Object.keys(method.responses).map(statusCode => {
+            if (statusCode.toString() === StatusCode.Ok.toString()) {
+              return {
+                StatusCode: statusCode,
+                SelectionPattern: ''
+              };
+            } else {
+              return {
+                StatusCode: statusCode,
+                SelectionPattern: `\\{"statusCode":${statusCode}.*`,
+                ResponseTemplates: {
+                  'application/json': velocityTemplate(
+                    (method.responses as any)[statusCode] as any, {},
+                    "$util.parseJson($input.path('$.errorMessage')).body")
+                }
+              };
+            }
+          })
+        });
+
+        if (methodName === 'GET') {
+          cfnMethod.addPropertyOverride('RequestValidatorId', getRequestValidator.ref);
+        } else {
+          cfnMethod.addPropertyOverride('RequestValidatorId', bodyRequestValidator.ref);
+        }
+        cfnMethod.addPropertyOverride('RequestModels', {
+          'application/json': new apigateway.CfnModel(methodResource, 'Request', {
+            restApiId: resource.restApi.restApiId,
             contentType: 'application/json',
-            schema: (method.responses as {[key: string]: Shape<any>})[statusCode].toJsonSchema()
+            schema: requestShape.toJsonSchema()
           }).ref
-        },
-        // TODO: responseParameters
-      };
-    }));
+        });
+        const responses = new cdk.Construct(methodResource, 'Response');
+        cfnMethod.addPropertyOverride('MethodResponses', Object.keys(method.responses).map(statusCode => {
+          return {
+            StatusCode: statusCode,
+            ResponseModels: {
+              'application/json': new apigateway.CfnModel(responses, statusCode, {
+                restApiId: resource.restApi.restApiId,
+                contentType: 'application/json',
+                schema: (method.responses as {[key: string]: Shape<any>})[statusCode].toJsonSchema()
+              }).ref
+            },
+            // TODO: responseParameters
+          };
+        }));
+      });
   }
 
   private makeHandler(httpMethod: string, method: Method<any, any, any, any>): void {
@@ -185,7 +197,7 @@ export class Resource extends Tree<Resource> {
       (responseMappers as any)[statusCode] = Raw.forShape(method.responses[statusCode]);
     });
     this.methods[httpMethod.toUpperCase()] = {
-      handler: method.handle,
+      handler: Run.of(method.handle as any),
       requestMapper: Raw.forShape(method.request.shape),
       responseMappers
     };

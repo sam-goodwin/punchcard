@@ -4,13 +4,14 @@ import uuid = require('uuid');
 import { ApiGateway, DynamoDB, Lambda } from 'punchcard';
 
 import { array, double, string, struct } from 'punchcard/lib/shape';
+import { Build } from 'punchcard/lib/core/build';
 
-const app = new core.App();
+const app = Build.lazy(() => new core.App());
 export default app;
 
 // WARNING: this example will be changed - it does not properly descrive the Model and Velocity Templates yet.
 
-const stack = new core.Stack(app, 'pet-store');
+const stack = app.map(app => new core.Stack(app, 'pet-store'));
 
 const petStore = new DynamoDB.Table(stack, 'pet-store', {
   partitionKey: 'id',
@@ -27,7 +28,7 @@ const executorService = new Lambda.ExecutorService({
 });
 
 const endpoint = executorService.apiIntegration(stack, 'MyEndpoint', {
-  depends: petStore
+  depends: petStore.readWriteAccess()
 });
 
 const api = new ApiGateway.Api(stack, 'PetApi');

@@ -6,11 +6,12 @@ import { Lambda } from 'punchcard';
 import * as Analytics from '@punchcard/data-lake';
 
 import { integer, string, timestamp, char, array, } from 'punchcard/lib/shape';
+import { Build } from 'punchcard/lib/core/build';
 
-const app = new core.App();
+const app = Build.lazy(() => new core.App());
 export default app;
 
-const stack = new core.Stack(app, 'data-lake');
+const stack = app.map(app => new core.Stack(app, 'data-lake'));
 
 // create a schema to describe our data
 const dataPoints = new Analytics.Schema({
@@ -37,7 +38,6 @@ const lake = new Analytics.DataLake(stack, 'Lake', {
     dataPoints
   }
 });
-
 // we can consume from the stream of data points in real-time and log out each property
 // Kinesis -> Lambda
 // Note: the type-safety of the `record`

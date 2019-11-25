@@ -3,10 +3,10 @@ import sqs = require('@aws-cdk/aws-sqs');
 import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 
-import { Namespace } from '../core/assembly';
-import { Cache } from '../core/cache';
+import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
+import { Run } from '../core/run';
 import { Json, Mapper, RuntimeShape, Shape } from '../shape';
 import { Omit } from '../util/omit';
 import { sink, Sink, SinkProps } from '../util/sink';
@@ -27,15 +27,15 @@ export interface QueueProps<S extends Shape<any>> extends sqs.QueueProps {
 /**
  * Represents a SQS Queue containtining messages of type, `T`, serialized with some `Codec`.
  */
-export class Queue<S extends Shape<any>> implements Resource<sqs.Queue>, Dependency<Queue.ConsumeAndSendClient<S>> {
+export class Queue<S extends Shape<any>> implements Resource<sqs.Queue> {
   public readonly context = {};
   public readonly mapper: Mapper<RuntimeShape<S>, string>;
-  public readonly resource: sqs.Queue;
+  public readonly resource: Build<sqs.Queue>;
   public readonly shape: S;
 
-  constructor(scope: core.Construct, id: string, props: QueueProps<S>) {
+  constructor(scope: Build<core.Construct>, id: string, props: QueueProps<S>) {
     this.shape = props.shape;
-    this.resource = new sqs.Queue(scope, id, props);
+    this.resource = scope.map(scope => new sqs.Queue(scope, id, props));
     this.mapper = Json.forShape(props.shape);
   }
 
@@ -66,32 +66,12 @@ export class Queue<S extends Shape<any>> implements Resource<sqs.Queue>, Depende
   }
 
   /**
-   * Get the `queueUrl` from properties and create a SQS client for this queue's data type.
-   *
-   * @param namespace runtime property bag
-   * @param cache of shared runtime state
-   */
-  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Queue.Client<S>> {
-    return new Queue.Client(
-      namespace.get('queueUrl'),
-      cache.getOrCreate('aws:sqs', () => new AWS.SQS()),
-      this.mapper);
-  }
-
-  /**
-   * By default, the consume and send client is installed for a Queue.
-   */
-  public install(namespace: Namespace, grantable: iam.IGrantable): void {
-    this.consumeAndSendAccess().install(namespace, grantable);
-  }
-
-  /**
    * A client with permission to consume and send messages.
    */
   public consumeAndSendAccess(): Dependency<Queue.ConsumeAndSendClient<S>> {
-    return this._client(g => {
-      this.resource.grantConsumeMessages(g);
-      this.resource.grantSendMessages(g);
+    return this.dependency((queue, g) => {
+      queue.grantConsumeMessages(g);
+      queue.grantSendMessages(g);
     });
   }
 
@@ -99,23 +79,27 @@ export class Queue<S extends Shape<any>> implements Resource<sqs.Queue>, Depende
    * A client with only permission to consume messages from this Queue.
    */
   public consumeAccess(): Dependency<Queue.ConsumeClient<S>> {
-    return this._client(g => this.resource.grantConsumeMessages(g));
+    return this.dependency((queue, g) => queue.grantConsumeMessages(g));
   }
 
   /**
    * A client with only permission to send messages to this Queue.
    */
   public sendAccess(): Dependency<Queue.SendClient<S>> {
-    return this._client(g => this.resource.grantSendMessages(g));
+    return this.dependency((queue, g) => queue.grantSendMessages(g));
   }
 
-  private _client(grant: (grantable: iam.IGrantable) => void): Dependency<Queue.Client<S>> {
+  private dependency<C>(grant: (queue: sqs.Queue, grantable: iam.IGrantable) => void): Dependency<C> {
     return {
-      install: (namespace, grantable) => {
-        namespace.set('queueUrl', this.resource.queueUrl);
-        grant(grantable);
-      },
-      bootstrap: this.bootstrap.bind(this),
+      install: this.resource.map(queue => (ns, grantable) => {
+        grant(queue, grantable);
+        ns.set('queueUrl', queue.queueUrl);
+      }),
+      bootstrap: Run.of(async (ns, cache) =>
+        new Queue.Client(
+          ns.get('queueUrl'),
+          cache.getOrCreate('aws:sqs', () => new AWS.SQS()),
+          this.mapper) as any)
     };
   }
 }

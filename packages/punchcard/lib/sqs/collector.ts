@@ -1,5 +1,6 @@
 import core = require('@aws-cdk/core');
 
+import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Function } from '../lambda/function';
 import { RuntimeShape, Shape } from '../shape';
@@ -22,10 +23,10 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to queue
      */
-    toSQSQueue<DataType extends Shape<T>>(scope: core.Construct, id: string, queueProps: QueueProps<DataType>, runtimeProps?: C): CollectedQueue<DataType, this>;
+    toSQSQueue<DataType extends Shape<T>>(scope: Build<core.Construct>, id: string, queueProps: QueueProps<DataType>, runtimeProps?: C): CollectedQueue<DataType, this>;
   }
 }
-Stream.prototype.toSQSQueue = function(scope: core.Construct, id: string, props: QueueProps<any>): any {
+Stream.prototype.toSQSQueue = function(scope: Build<core.Construct>, id: string, props: QueueProps<any>): any {
   return this.collect(scope, id, new QueueCollector(props));
 };
 
@@ -37,7 +38,7 @@ Stream.prototype.toSQSQueue = function(scope: core.Construct, id: string, props:
 export class QueueCollector<T extends Shape<any>, S extends Stream<any, RuntimeShape<T>, any, any>> implements Collector<CollectedQueue<T, S>, S> {
   constructor(private readonly props: QueueProps<T>) { }
 
-  public collect(scope: core.Construct, id: string, stream: S): CollectedQueue<T, S> {
+  public collect(scope: Build<core.Construct>, id: string, stream: S): CollectedQueue<T, S> {
     return new CollectedQueue(scope, id, {
       ...this.props,
       stream
@@ -60,12 +61,12 @@ export interface CollectedQueueProps<T extends Shape<any>, S extends Stream<any,
  * @typeparam T type of notififcations sent to, and emitted from, the SQS Queue.
  */
 export class CollectedQueue<T extends Shape<any>, S extends Stream<any, any, any, any>> extends Queue<T> {
-  public readonly sender: Function<EventType<S>, void, Dependency.Tuple<Cons<DependencyType<S>, Dependency<Queue.Client<T>>>>>;
+  public readonly sender: Function<EventType<S>, void, Dependency.Concat<Cons<DependencyType<S>, Dependency<Queue.Client<T>>>>>;
 
-  constructor(scope: core.Construct, id: string, props: CollectedQueueProps<T, S>) {
+  constructor(scope: Build<core.Construct>, id: string, props: CollectedQueueProps<T, S>) {
     super(scope, id, props);
     this.sender = props.stream.forBatch(this.resource, 'ToQueue', {
-      depends: this,
+      depends: this.sendAccess(),
       handle: (events, self) => self.sink(events)
     }) as any;
   }

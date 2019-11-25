@@ -8,15 +8,18 @@ import fs = require('fs');
 import path = require('path');
 
 import { Assembly, Namespace } from '../core/assembly';
+import { Build } from '../core/build';
 import { Cache } from '../core/cache';
 import { Client } from '../core/client';
 import { Dependency } from '../core/dependency';
 import { Entrypoint, entrypoint } from '../core/entrypoint';
+import { Resource } from '../core/resource';
+import { Run } from '../core/run';
 import { Json, Mapper, Raw, Shape } from '../shape';
 import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../util/constants';
 import { Omit } from '../util/omit';
 
-export type FunctionProps<T, U, D extends Dependency<any> | undefined = undefined> = {
+export interface FunctionProps<T, U, D extends Dependency<any> | undefined = undefined> {
   /**
    * Type of the request
    *
@@ -42,7 +45,12 @@ export type FunctionProps<T, U, D extends Dependency<any> | undefined = undefine
    * Function to handle the event of type `T`, given initialized client instances `Clients<C>`.
    */
   handle: (event: T, run: Client<D>, context: any) => Promise<U>;
-} & Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>;
+
+  /**
+   * Extra Lambda Function Props.
+   */
+  functionProps?: Build<Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>>
+}
 
 /**
  * Runs a function `T => U` in AWS Lambda with some runtime dependencies, `D`.
@@ -51,11 +59,19 @@ export type FunctionProps<T, U, D extends Dependency<any> | undefined = undefine
  * @typeparam U return type
  * @typeparam D runtime dependencies
  */
-export class Function<T, U, D extends Dependency<any>>
-    extends lambda.Function
-    implements Entrypoint, Dependency<Function.Client<T, U>> {
+export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Resource<lambda.Function> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
+
+  /**
+   * The Lambda Function CDK Construct.
+   */
+  public readonly resource: Build<lambda.Function>;
+
+  /**
+   * Entrypoint handler function.
+   */
+  public readonly entrypoint: Run<Promise<(event: any, context: any) => Promise<any>>>;
 
   /**
    * Function to handle the event of type `T`, given initialized client instances `Clients<D>`.
@@ -69,12 +85,53 @@ export class Function<T, U, D extends Dependency<any>>
   private readonly response?: Shape<U>;
   private readonly dependencies?: D;
 
-  constructor(scope: cdk.Construct, id: string, props: FunctionProps<T, U, D>) {
-    super(scope, id, {
-      ...props,
-      code: code(scope),
-      runtime: lambda.Runtime.NODEJS_10_X,
-      handler: 'index.handler'
+  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>) {
+    this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
+      const lambdaFunction = new lambda.Function(scope, id, {
+        ...functionProps,
+        code: code(scope),
+        runtime: lambda.Runtime.NODEJS_10_X,
+        handler: 'index.handler'
+      });
+
+      const assembly = new Assembly();
+      if (this.dependencies) {
+        Build.resolve(this.dependencies.install)(assembly, lambdaFunction);
+      }
+      for (const [name, p] of Object.entries(assembly.properties)) {
+        lambdaFunction.addEnvironment(name, p);
+      }
+      lambdaFunction.addEnvironment(RUNTIME_ENV, lambdaFunction.node.path);
+
+      return lambdaFunction;
+    }));
+
+    this.entrypoint = Run.lazy(async () => {
+      const bag: {[name: string]: string} = {};
+      for (const [env, value] of Object.entries(process.env)) {
+        if (env.startsWith('punchcard') && value !== undefined) {
+          bag[env] = value;
+        }
+      }
+      let client: Client<D> = undefined as any;
+
+      if (this.dependencies) {
+        const cache = new Cache();
+        const runtimeProperties = new Assembly(bag);
+        client = await (Run.resolve(this.dependencies.bootstrap))(runtimeProperties, cache);
+      }
+      const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forShape(this.request);
+      const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forShape(this.response);
+      return (async (event: any, context: any) => {
+        const parsed = requestMapper.read(event);
+        try {
+          const result = await this.handle(parsed, client, context);
+          return responseMapper.write(result);
+        } catch (err) {
+          console.error(err);
+          throw err;
+        }
+      });
     });
 
     this.handle = props.handle;
@@ -82,70 +139,28 @@ export class Function<T, U, D extends Dependency<any>>
     this.request = props.request;
     this.response = props.response;
     this.dependencies = props.depends;
-
-    const assembly = new Assembly(this);
-    if (this.dependencies) {
-      this.dependencies.install(assembly, this);
-    }
-    for (const [name, p] of Object.entries(assembly.properties)) {
-      this.addEnvironment(name, p);
-    }
-    this.addEnvironment(RUNTIME_ENV, this.node.path);
-  }
-
-  public async boot(): Promise<(event: any, context: any) => Promise<U>> {
-    const bag: {[name: string]: string} = {};
-    for (const [env, value] of Object.entries(process.env)) {
-      if (env.startsWith(this.node.uniqueId) && value !== undefined) {
-        bag[env] = value;
-      }
-    }
-    let client: Client<D> = undefined as any;
-
-    if (this.dependencies) {
-      const cache = new Cache();
-      const runtimeProperties = new Assembly(this, bag);
-      client = await this.dependencies.bootstrap(runtimeProperties, cache);
-    }
-    const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forShape(this.request);
-    const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forShape(this.response);
-    return (async (event: any, context) => {
-      const parsed = requestMapper.read(event);
-      try {
-        const result = await this.handle(parsed, client, context);
-        return responseMapper.write(result);
-      } catch (err) {
-        console.error(err);
-        throw err;
-      }
-    });
   }
 
   /**
-   * Install this Function in another `Runtime`, creating a client to invoke this Function.
-   *
-   * @param target runtime
+   * Depend on invoking this Function.
    */
-  public install(namespace: Namespace, grantable: iam.IGrantable): void {
-    this.grantInvoke(grantable);
-    namespace.set('functionArn', this.functionArn);
-  }
-
-  /**
-   * Create a client to invoke this function.
-   *
-   * @param properties property bag containing variables set during the `install` phase
-   * @param cache global cache shared by the runtime
-   */
-  public async bootstrap(properties: Assembly, cache: Cache): Promise<Function.Client<T, U>> {
-    const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forShape(this.request);
-    const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forShape(this.response);
-    return new Function.Client(
-      cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
-      properties.get('functionArn'),
-      requestMapper,
-      responseMapper
-    );
+  public invokeAccess(): Dependency<Function.Client<T, U>> {
+    return {
+      install: this.resource.map(fn => (ns, g) => {
+        fn.grantInvoke(g);
+        ns.set('functionArn', fn.functionArn);
+      }),
+      bootstrap: Run.of(async (ns, cache) => {
+        const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forShape(this.request);
+        const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forShape(this.response);
+        return new Function.Client(
+          cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
+          ns.get('functionArn'),
+          requestMapper,
+          responseMapper
+        );
+      })
+    };
   }
 }
 
@@ -206,24 +221,24 @@ function findApp(c: cdk.IConstruct): cdk.App {
 
 const codeSymbol = Symbol.for('punchcard:code');
 export function code(scope: cdk.IConstruct): lambda.Code {
-  if (isRuntime() || !process.mainModule) {
-    class MockCode extends lambda.Code {
-      public bind(): lambda.CodeConfig {
-        return {
-          s3Location: {
-            bucketName: 'mock',
-            objectKey: 'mock'
-          }
-        };
-      }
-      public readonly isInline: boolean = false;
+  const app = findApp(scope);
+
+  class MockCode extends lambda.Code {
+    public readonly isInline: boolean = true;
+
+    public bind(): lambda.CodeConfig {
+      return {
+        inlineCode: 'exports.handler = function(){ throw new Error("Mocked code is running, oops!");}'
+      };
     }
-    return new MockCode();
   }
 
-  const app = findApp(scope);
   if ((app as any)[codeSymbol] === undefined) {
-    const index = process.mainModule!.filename;
+    if (process.mainModule === undefined) {
+      // console.warn('Mocking code, assuming its a unit test. Are you running the node process from another tool like jest?');
+      return new MockCode();
+    }
+    const index = process.mainModule.filename;
     // TODO: probably better to stash things in the CWD instead of next to the app
     const dist = path.resolve(path.dirname(index), '.punchcard');
     const name = path.basename(index, '.js');

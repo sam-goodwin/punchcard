@@ -9,10 +9,11 @@ import { Duration } from '@aws-cdk/core';
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import { Schedule } from '@aws-cdk/aws-events';
+import { Build } from 'punchcard/lib/core/build';
 
-const app = new cdk.App();
+const app = Build.lazy(() => new cdk.App());
 export default app;
-const stack = new cdk.Stack(app, 'stream-processing');
+const stack = app.map(app => new cdk.Stack(app, 'stream-processing'));
 
 /**
  * Create a SNS Topic.
@@ -38,7 +39,9 @@ const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
     key: string(),
     tags: array(string())
   },
-  billingMode: BillingMode.PAY_PER_REQUEST
+  tableProps: Build.lazy(() => ({
+    billingMode: BillingMode.PAY_PER_REQUEST
+  }))
 });
 
 /**
@@ -58,7 +61,9 @@ Lambda.schedule(stack, 'DummyData', {
    *
    * We want to *publish* to the SNS `topic` and *write* to the DynamoDB `table`.
    */
-  depends: Core.Dependency.tuple(topic, enrichments.writeAccess()),
+  depends: Core.Dependency.concat(
+    topic.publishAccess(),
+    enrichments.writeAccess()),
 
   /**
    * Impement the Lambda Function.
@@ -151,9 +156,9 @@ const stream = queue.messages() // gives us a nice chainable API
  * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioned by `year`, `month`, `day`, `hour` and `minute`)
  *                                                                      -> Glue Catalog
  */
-const database = new glue.Database(stack, 'Database', {
+const database = stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
-});
+}));
 stream
   .toFirehoseDeliveryStream(stack, 'ToS3').objects()
   .toGlueTable(stack, 'ToGlue', {
