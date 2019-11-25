@@ -3,7 +3,6 @@ import { Build } from './build';
 import { Entrypoint } from './entrypoint';
 
 export class App {
-
   public readonly root: Build<cdk.App>;
 
   constructor() {
@@ -12,6 +11,7 @@ export class App {
     }));
     if (process.env.is_runtime !== 'true') {
       process.once('beforeExit', () => {
+        // resolve all Build closures and synth the app if this isn't runtime.
         Build.walk(this.root);
         const app = Build.resolve(this.root);
         app.synth();
@@ -19,7 +19,6 @@ export class App {
     }
   }
 }
-const symbol = Symbol.for('punchcard.global');
 
 interface State {
   idCounter: number;
@@ -28,6 +27,7 @@ interface State {
   }
 }
 
+const symbol = Symbol.for('punchcard.global');
 const state: State = (() => {
   let s: State = (global as any)[symbol];
   if (!s) {

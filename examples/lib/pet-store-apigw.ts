@@ -9,7 +9,12 @@ export const app = new Core.App();
 
 // WARNING: this example will be changed - it does not properly descrive the Model and Velocity Templates yet.
 
-const stack = app.root.map(app => new core.Stack(app, 'pet-store'));
+const stack = app.root.map(app => new core.Stack(app, 'pet-store', {
+  env: {
+    account: '785049305830',
+    region: 'us-west-2'
+  }
+}));
 
 const petStore = new DynamoDB.Table(stack, 'pet-store', {
   partitionKey: 'id',

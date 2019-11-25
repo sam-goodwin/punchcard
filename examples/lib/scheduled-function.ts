@@ -8,7 +8,12 @@ import { integer, string } from 'punchcard/lib/shape';
 import { Build } from 'punchcard/lib/core/build';
 
 export const app = new Core.App();
-const stack = app.root.map(app => new cdk.Stack(app, 'scheduled-function-example'));
+const stack = app.root.map(app => new cdk.Stack(app, 'scheduled-function-example', {
+  env: {
+    account: '785049305830',
+    region: 'us-west-2'
+  }
+}));
 
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
