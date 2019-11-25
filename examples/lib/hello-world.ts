@@ -2,7 +2,7 @@ import cdk = require('@aws-cdk/core');
 import { Schedule } from '@aws-cdk/aws-events';
 import { Core, Lambda } from 'punchcard';
 
-const app = new Core.App();
+export const app = new Core.App();
 const stack = app.root.map(app => new cdk.Stack(app, 'hello-world', {
   env: {
     account: '785049305830',

@@ -4,9 +4,8 @@ import uuid = require('uuid');
 import { Core, ApiGateway, DynamoDB, Lambda } from 'punchcard';
 
 import { array, double, string, struct } from 'punchcard/lib/shape';
-import { Build } from 'punchcard/lib/core/build';
 
-const app = new Core.App();
+export const app = new Core.App();
 
 // WARNING: this example will be changed - it does not properly descrive the Model and Velocity Templates yet.
 

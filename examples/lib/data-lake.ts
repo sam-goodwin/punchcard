@@ -7,7 +7,7 @@ import * as Analytics from '@punchcard/data-lake';
 
 import { integer, string, timestamp, char, array, } from 'punchcard/lib/shape';
 
-const app = new Core.App();
+export const app = new Core.App();
 const stack = app.root.map(app => new core.Stack(app, 'data-lake'));
 
 // create a schema to describe our data

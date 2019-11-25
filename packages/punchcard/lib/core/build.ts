@@ -29,15 +29,18 @@ const children = Symbol.for('Build.children');
  */
 export class Build<A> {
   public static walk(b: Build<any>): void {
-    const wm = new WeakSet();
+    // const wm = new WeakSet();
 
     walk(b);
 
     function walk(b: Build<any>): void {
-      if (wm.has(b)) {
+      if (!b) {
         return;
       }
-      wm.add(b);
+      // if (wm.has(b)) {
+      //   return;
+      // }
+      // wm.add(b);
       if (b[children]) {
         for (const child of b[children]) {
           Build.walk(child);

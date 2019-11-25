@@ -7,7 +7,7 @@ import { Core, DynamoDB, Lambda } from 'punchcard';
 import { integer, string } from 'punchcard/lib/shape';
 import { Build } from 'punchcard/lib/core/build';
 
-const app = new Core.App();
+export const app = new Core.App();
 const stack = app.root.map(app => new cdk.Stack(app, 'scheduled-function-example'));
 
 const table = new DynamoDB.Table(stack, 'my-table', {

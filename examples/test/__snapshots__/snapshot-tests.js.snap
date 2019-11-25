@@ -161,6 +161,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "data-lake/DummyDataPoints",
+            "entrypoint_id": "4",
+            "is_runtime": "true",
             "punchcard_streamName": Object {
               "Ref": "LakeDatabasedataPointsStreamF9D85971",
             },
@@ -278,6 +280,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "data-lake/ForEachDataPoint",
+            "entrypoint_id": "3",
+            "is_runtime": "true",
           },
         },
         "Handler": "index.handler",
@@ -619,6 +623,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "data-lake/Lake/Database/dataPoints/ToGlue/ToTable",
+            "entrypoint_id": "2",
+            "is_runtime": "true",
             "punchcard_bucketName": Object {
               "Ref": "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
             },
@@ -1093,6 +1099,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "data-lake/Lake/Database/dataPoints/ToS3/Processor",
+            "entrypoint_id": "1",
+            "is_runtime": "true",
           },
         },
         "Handler": "index.handler",
@@ -1171,6 +1179,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "invoke-function/Caller",
+            "entrypoint_id": "5",
+            "is_runtime": "true",
             "punchcard_tableName": Object {
               "Ref": "sortedtable7B46B3EA",
             },
@@ -1362,7 +1372,9 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "MyStack/MyFunction",
+            "bootstrap_construct_path": "hello-world/MyFunction",
+            "entrypoint_id": "6",
+            "is_runtime": "true",
           },
         },
         "Handler": "index.handler",
@@ -1376,7 +1388,7 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "MyFunctionAllowEventRuleMyStackMyFunctionSchedule9F8A230C3C1B3FD9": Object {
+    "MyFunctionAllowEventRulehelloworldMyFunctionScheduleAED6CE6B66BC7FB4": Object {
       "Properties": Object {
         "Action": "lambda:InvokeFunction",
         "FunctionName": Object {
@@ -1459,6 +1471,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "invoke-function/Callable",
+            "entrypoint_id": "7",
+            "is_runtime": "true",
             "punchcard_tableName": Object {
               "Ref": "mytable0324D45C",
             },
@@ -1575,6 +1589,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "invoke-function/Caller",
+            "entrypoint_id": "8",
+            "is_runtime": "true",
             "punchcard_functionArn": Object {
               "Fn::GetAtt": Array [
                 "CallableB8832084",
@@ -1732,6 +1748,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "pet-store/MyEndpoint",
+            "entrypoint_id": "9",
+            "is_runtime": "true",
             "punchcard_tableName": Object {
               "Ref": "petstore3A6A0F62",
             },
@@ -2741,6 +2759,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "scheduled-function-example/Poller",
+            "entrypoint_id": "10",
+            "is_runtime": "true",
             "punchcard_tableName": Object {
               "Ref": "mytable0324D45C",
             },
@@ -3061,6 +3081,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/DummyData",
+            "entrypoint_id": "11",
+            "is_runtime": "true",
             "punchcard_tableName": Object {
               "Ref": "Enrichments5620103C",
             },
@@ -3235,6 +3257,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/ForEachNotification",
+            "entrypoint_id": "12",
+            "is_runtime": "true",
           },
         },
         "Handler": "index.handler",
@@ -3452,6 +3476,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/Stream/ToStream",
+            "entrypoint_id": "13",
+            "is_runtime": "true",
             "punchcard_streamName": Object {
               "Ref": "Stream790BDEE4",
             },
@@ -3713,6 +3739,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/ToGlue/ToTable",
+            "entrypoint_id": "15",
+            "is_runtime": "true",
             "punchcard_bucketName": Object {
               "Ref": "ToS3DeliveryStreamBucket410C5594",
             },
@@ -4165,6 +4193,8 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/ToS3/Processor",
+            "entrypoint_id": "14",
+            "is_runtime": "true",
           },
         },
         "Handler": "index.handler",
