@@ -11,9 +11,8 @@ import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import { Schedule } from '@aws-cdk/aws-events';
 import { Build } from 'punchcard/lib/core/build';
 
-const app = Build.lazy(() => new cdk.App());
-export default app;
-const stack = app.map(app => new cdk.Stack(app, 'stream-processing'));
+const app = new Core.App();
+const stack = app.root.map(app => new cdk.Stack(app, 'stream-processing'));
 
 /**
  * Create a SNS Topic.

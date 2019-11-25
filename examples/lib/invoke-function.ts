@@ -3,15 +3,13 @@ import cdk = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
 
-import { DynamoDB, Lambda } from 'punchcard';
+import { Core, DynamoDB, Lambda } from 'punchcard';
 
 import { dynamic, string, integer, struct } from 'punchcard/lib/shape';
 import { Build } from 'punchcard/lib/core/build';
 
-const app = Build.lazy(() => new cdk.App());
-export default app;
-
-const stack = app.map(app => new cdk.Stack(app, 'invoke-function'));
+const app = new Core.App()
+const stack = app.root.map(app => new cdk.Stack(app, 'invoke-function'));
 
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',

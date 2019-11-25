@@ -1,17 +1,16 @@
 import core = require('@aws-cdk/core');
 import uuid = require('uuid');
 
-import { ApiGateway, DynamoDB, Lambda } from 'punchcard';
+import { Core, ApiGateway, DynamoDB, Lambda } from 'punchcard';
 
 import { array, double, string, struct } from 'punchcard/lib/shape';
 import { Build } from 'punchcard/lib/core/build';
 
-const app = Build.lazy(() => new core.App());
-export default app;
+const app = new Core.App();
 
 // WARNING: this example will be changed - it does not properly descrive the Model and Velocity Templates yet.
 
-const stack = app.map(app => new core.Stack(app, 'pet-store'));
+const stack = app.root.map(app => new core.Stack(app, 'pet-store'));
 
 const petStore = new DynamoDB.Table(stack, 'pet-store', {
   partitionKey: 'id',

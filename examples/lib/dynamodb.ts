@@ -8,10 +8,9 @@ import { Core, DynamoDB, Lambda } from 'punchcard';
 import { array, dynamic, string, integer, struct } from 'punchcard/lib/shape';
 import { Build } from 'punchcard/lib/core/build';
 
-const app = Build.lazy(() => new cdk.App());
-export default app;
+const app = new Core.App();
 
-const stack = app.map(app => new cdk.Stack(app, 'invoke-function'));
+const stack = app.root.map(app => new cdk.Stack(app, 'invoke-function'));
 
 type Item = typeof Item;
 const Item = {
