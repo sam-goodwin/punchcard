@@ -42,12 +42,12 @@ export class Run<A> {
 
   constructor(_next: IO<A>) {
     // memoize
-    let isMemoized = true;
+    let isMemoized = false;
     let value: A | undefined;
     this[get] = () => {
-      if (isMemoized) {
+      if (!isMemoized) {
         value = _next();
-        isMemoized = false;
+        isMemoized = true;
       }
       return value!;
     };
