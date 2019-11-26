@@ -1,23 +1,20 @@
 import AWS = require('aws-sdk');
 
-import iam = require('@aws-cdk/aws-iam');
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/core');
 
-import fs = require('fs');
-import path = require('path');
-
-import { Global } from '../core';
-import { Assembly, Namespace } from '../core/assembly';
+import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
 import { Client } from '../core/client';
+import { Code } from '../core/code';
 import { Dependency } from '../core/dependency';
 import { Entrypoint, entrypoint } from '../core/entrypoint';
+import { Global } from '../core/global';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { Json, Mapper, Raw, Shape } from '../shape';
-import { ENTRYPOINT_SYMBOL_NAME, isRuntime, RUNTIME_ENV, WEBPACK_MODE } from '../util/constants';
+import { RUNTIME_ENV } from '../util/constants';
 import { Omit } from '../util/omit';
 
 export interface FunctionProps<T, U, D extends Dependency<any> | undefined = undefined> {
@@ -92,7 +89,7 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
       const lambdaFunction = new lambda.Function(scope, id, {
         ...functionProps,
-        code: code(scope),
+        code: Code.tryGetCode(scope) || Code.mock,
         runtime: lambda.Runtime.NODEJS_10_X,
         handler: 'index.handler',
       });
@@ -215,93 +212,4 @@ export namespace Function {
       }).promise();
     }
   }
-}
-
-function findApp(c: cdk.IConstruct): cdk.App {
-  while (c.node.scope !== undefined) {
-    c = c.node.scope;
-  }
-  return c as cdk.App;
-}
-
-const codeSymbol = Symbol.for('punchcard:code');
-export function code(scope: cdk.IConstruct): lambda.Code {
-  const app = findApp(scope);
-
-  class MockCode extends lambda.Code {
-    public readonly isInline: boolean = true;
-
-    public bind(): lambda.CodeConfig {
-      return {
-        inlineCode: 'exports.handler = function(){ throw new Error("Mocked code is running, oops!");}'
-      };
-    }
-  }
-
-  if ((app as any)[codeSymbol] === undefined) {
-    if (process.mainModule === undefined) {
-      // console.warn('Mocking code, assuming its a unit test. Are you running the node process from another tool like jest?');
-      return new MockCode();
-    }
-    const index = process.mainModule.filename;
-    // TODO: probably better to stash things in the CWD instead of next to the app
-    const dist = path.resolve(path.dirname(index), '.punchcard');
-    const name = path.basename(index, '.js');
-    const codePath = path.join(dist, name);
-    // HACK: this block is effectively erased at runtime:
-    // 1) it is guarded by an environment variable expected to only be set at runtime
-    // 2) webpack removes calls to itself, i.e. require('webpack')
-    if (!fs.existsSync(dist)) {
-      fs.mkdirSync(dist);
-    }
-    if (!fs.existsSync(codePath)) {
-      fs.mkdirSync(codePath);
-    }
-
-    const webpack = require('webpack');
-    const compiler = webpack({
-      mode: scope.node.tryGetContext(WEBPACK_MODE) || 'production',
-      entry: index,
-      target: 'node',
-      output: {
-        path: codePath,
-        filename: 'app.js',
-        libraryTarget: 'umd',
-      },
-      externals: ['aws-sdk', 'webpack'],
-      plugins: [new webpack.IgnorePlugin({
-        resourceRegExp: /^webpack$/ // don't generate imports for webpack
-      })]
-    });
-    compiler.run((err: Error) => {
-      if (err) {
-        console.log(err);
-      }
-    });
-    fs.writeFileSync(path.join(codePath, 'index.js'), `
-require('./app');
-const entrypointId = process.env.entrypoint_id;
-if (!entrypointId) {
-  throw new Error('entrypoint_id environment variable is missing');
-}
-const state = global[Symbol.for('punchcard.global')];
-if (!state) {
-  throw new Error('global state missing');
-}
-const entrypoint = state.entrypoints[entrypointId];
-if (!entrypoint) {
-  throw new Error('entrypoint with id "' + entrypointId + '" does not exist');
-}
-var handler;
-exports.handler = async (event, context) => {
-  if (!handler) {
-    handler = await entrypoint.entrypoint[Symbol.for('Runtime.get')]();
-  }
-  return await handler(event, context);
-}
-`);
-    (app as any)[codeSymbol] = lambda.Code.asset(codePath);
-  }
-
-  return (app as any)[codeSymbol] as lambda.Code;
 }

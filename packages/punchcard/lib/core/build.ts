@@ -34,7 +34,7 @@ export class Build<A> {
     walk(b);
 
     function walk(b: Build<any>): void {
-      if (!b) {
+      if (!Build.isBuild(b)) {
         return;
       }
       // if (wm.has(b)) {

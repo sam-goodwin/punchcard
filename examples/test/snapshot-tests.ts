@@ -11,7 +11,7 @@ const apps = fs.readdirSync(path.join(__dirname, '../lib/'))
 
 for (const app of apps) {
   describe(app, () => {
-    const a = require(`../lib/${app}`).default as Build<cdk.App>;
+    const a = require(`../lib/${app}`).app.root as Build<cdk.App>;
     Build.walk(a);
     for (const stack of Build.resolve(a).node.children) {
       if (cdk.Stack.isStack(stack)) {

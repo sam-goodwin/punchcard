@@ -384,9 +384,7 @@ Object {
     },
     "LakeDatabase6CA13201": Object {
       "Properties": Object {
-        "CatalogId": Object {
-          "Ref": "AWS::AccountId",
-        },
+        "CatalogId": "785049305830",
         "DatabaseInput": Object {
           "LocationUri": Object {
             "Fn::Join": Array [
@@ -474,11 +472,7 @@ Object {
                       Object {
                         "Ref": "AWS::Partition",
                       },
-                      ":iam::",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":root",
+                      ":iam::785049305830:root",
                     ],
                   ],
                 },
@@ -537,9 +531,7 @@ Object {
     },
     "LakeDatabasedataPointsToGlueTableF86F6D7D": Object {
       "Properties": Object {
-        "CatalogId": Object {
-          "Ref": "AWS::AccountId",
-        },
+        "CatalogId": "785049305830",
         "DatabaseName": Object {
           "Ref": "LakeDatabase6CA13201",
         },
@@ -631,9 +623,7 @@ Object {
             "punchcard_bucket_bucketName": Object {
               "Ref": "LakeDatabasedataPointsBucketB080069E",
             },
-            "punchcard_catalogId": Object {
-              "Ref": "AWS::AccountId",
-            },
+            "punchcard_catalogId": "785049305830",
             "punchcard_databaseName": Object {
               "Ref": "LakeDatabase6CA13201",
             },
@@ -663,9 +653,7 @@ Object {
           ],
         },
         "Principal": "s3.amazonaws.com",
-        "SourceAccount": Object {
-          "Ref": "AWS::AccountId",
-        },
+        "SourceAccount": "785049305830",
         "SourceArn": Object {
           "Fn::GetAtt": Array [
             "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
@@ -728,15 +716,7 @@ Object {
                       Object {
                         "Ref": "AWS::Partition",
                       },
-                      ":glue:",
-                      Object {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":table/",
+                      ":glue:us-west-2:785049305830:table/",
                       Object {
                         "Ref": "LakeDatabase6CA13201",
                       },
@@ -755,15 +735,7 @@ Object {
                       Object {
                         "Ref": "AWS::Partition",
                       },
-                      ":glue:",
-                      Object {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":database/",
+                      ":glue:us-west-2:785049305830:database/",
                       Object {
                         "Ref": "LakeDatabase6CA13201",
                       },
@@ -778,15 +750,7 @@ Object {
                       Object {
                         "Ref": "AWS::Partition",
                       },
-                      ":glue:",
-                      Object {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":catalog",
+                      ":glue:us-west-2:785049305830:catalog",
                     ],
                   ],
                 },
@@ -1470,7 +1434,7 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "invoke-function/Callable",
+            "bootstrap_construct_path": "invoke-function-example/Callable",
             "entrypoint_id": "7",
             "is_runtime": "true",
             "punchcard_tableName": Object {
@@ -1562,7 +1526,7 @@ Object {
       },
       "Type": "AWS::IAM::Policy",
     },
-    "CallerAllowEventRuleinvokefunctionCallerSchedule0611FE68E8022069": Object {
+    "CallerAllowEventRuleinvokefunctionexampleCallerSchedule6A5466654735B083": Object {
       "Properties": Object {
         "Action": "lambda:InvokeFunction",
         "FunctionName": Object {
@@ -1588,7 +1552,7 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "invoke-function/Caller",
+            "bootstrap_construct_path": "invoke-function-example/Caller",
             "entrypoint_id": "8",
             "is_runtime": "true",
             "punchcard_functionArn": Object {
@@ -1721,11 +1685,7 @@ Object {
             Object {
               "Ref": "PetApi503401F5",
             },
-            ".execute-api.",
-            Object {
-              "Ref": "AWS::Region",
-            },
-            ".",
+            ".execute-api.us-west-2.",
             Object {
               "Ref": "AWS::URLSuffix",
             },
@@ -1983,11 +1943,7 @@ Object {
                 Object {
                   "Ref": "AWS::Partition",
                 },
-                ":apigateway:",
-                Object {
-                  "Ref": "AWS::Region",
-                },
-                ":lambda:path/2015-03-31/functions/",
+                ":apigateway:us-west-2:lambda:path/2015-03-31/functions/",
                 Object {
                   "Fn::GetAtt": Array [
                     "MyEndpointE262FD4F",
@@ -2049,15 +2005,7 @@ Object {
               Object {
                 "Ref": "AWS::Partition",
               },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
+              ":execute-api:us-west-2:785049305830:",
               Object {
                 "Ref": "PetApi503401F5",
               },
@@ -2086,15 +2034,7 @@ Object {
               Object {
                 "Ref": "AWS::Partition",
               },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
+              ":execute-api:us-west-2:785049305830:",
               Object {
                 "Ref": "PetApi503401F5",
               },
@@ -2228,11 +2168,7 @@ $inputRoot
                 Object {
                   "Ref": "AWS::Partition",
                 },
-                ":apigateway:",
-                Object {
-                  "Ref": "AWS::Region",
-                },
-                ":lambda:path/2015-03-31/functions/",
+                ":apigateway:us-west-2:lambda:path/2015-03-31/functions/",
                 Object {
                   "Fn::GetAtt": Array [
                     "MyEndpointE262FD4F",
@@ -2302,15 +2238,7 @@ $inputRoot
               Object {
                 "Ref": "AWS::Partition",
               },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
+              ":execute-api:us-west-2:785049305830:",
               Object {
                 "Ref": "PetApi503401F5",
               },
@@ -2339,15 +2267,7 @@ $inputRoot
               Object {
                 "Ref": "AWS::Partition",
               },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
+              ":execute-api:us-west-2:785049305830:",
               Object {
                 "Ref": "PetApi503401F5",
               },
@@ -2504,11 +2424,7 @@ $inputRoot
                 Object {
                   "Ref": "AWS::Partition",
                 },
-                ":apigateway:",
-                Object {
-                  "Ref": "AWS::Region",
-                },
-                ":lambda:path/2015-03-31/functions/",
+                ":apigateway:us-west-2:lambda:path/2015-03-31/functions/",
                 Object {
                   "Fn::GetAtt": Array [
                     "MyEndpointE262FD4F",
@@ -2578,15 +2494,7 @@ $inputRoot
               Object {
                 "Ref": "AWS::Partition",
               },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
+              ":execute-api:us-west-2:785049305830:",
               Object {
                 "Ref": "PetApi503401F5",
               },
@@ -2615,15 +2523,7 @@ $inputRoot
               Object {
                 "Ref": "AWS::Partition",
               },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
+              ":execute-api:us-west-2:785049305830:",
               Object {
                 "Ref": "PetApi503401F5",
               },
@@ -3047,9 +2947,7 @@ Object {
     },
     "DatabaseB269D8BB": Object {
       "Properties": Object {
-        "CatalogId": Object {
-          "Ref": "AWS::AccountId",
-        },
+        "CatalogId": "785049305830",
         "DatabaseInput": Object {
           "LocationUri": Object {
             "Fn::Join": Array [
@@ -3420,11 +3318,7 @@ Object {
                       Object {
                         "Ref": "AWS::Partition",
                       },
-                      ":iam::",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":root",
+                      ":iam::785049305830:root",
                     ],
                   ],
                 },
@@ -3631,9 +3525,7 @@ Object {
     },
     "ToGlueTableCEC90A28": Object {
       "Properties": Object {
-        "CatalogId": Object {
-          "Ref": "AWS::AccountId",
-        },
+        "CatalogId": "785049305830",
         "DatabaseName": Object {
           "Ref": "DatabaseB269D8BB",
         },
@@ -3719,9 +3611,7 @@ Object {
           ],
         },
         "Principal": "s3.amazonaws.com",
-        "SourceAccount": Object {
-          "Ref": "AWS::AccountId",
-        },
+        "SourceAccount": "785049305830",
         "SourceArn": Object {
           "Fn::GetAtt": Array [
             "ToS3DeliveryStreamBucket410C5594",
@@ -3747,9 +3637,7 @@ Object {
             "punchcard_bucket_bucketName": Object {
               "Ref": "ToGlueBucket21D24ECF",
             },
-            "punchcard_catalogId": Object {
-              "Ref": "AWS::AccountId",
-            },
+            "punchcard_catalogId": "785049305830",
             "punchcard_databaseName": Object {
               "Ref": "DatabaseB269D8BB",
             },
@@ -3822,15 +3710,7 @@ Object {
                       Object {
                         "Ref": "AWS::Partition",
                       },
-                      ":glue:",
-                      Object {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":table/",
+                      ":glue:us-west-2:785049305830:table/",
                       Object {
                         "Ref": "DatabaseB269D8BB",
                       },
@@ -3849,15 +3729,7 @@ Object {
                       Object {
                         "Ref": "AWS::Partition",
                       },
-                      ":glue:",
-                      Object {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":database/",
+                      ":glue:us-west-2:785049305830:database/",
                       Object {
                         "Ref": "DatabaseB269D8BB",
                       },
@@ -3872,15 +3744,7 @@ Object {
                       Object {
                         "Ref": "AWS::Partition",
                       },
-                      ":glue:",
-                      Object {
-                        "Ref": "AWS::Region",
-                      },
-                      ":",
-                      Object {
-                        "Ref": "AWS::AccountId",
-                      },
-                      ":catalog",
+                      ":glue:us-west-2:785049305830:catalog",
                     ],
                   ],
                 },
