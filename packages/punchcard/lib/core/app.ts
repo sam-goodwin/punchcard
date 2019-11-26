@@ -12,10 +12,14 @@ export class App {
     }));
     if (process.env.is_runtime !== 'true') {
       process.once('beforeExit', () => {
-        // resolve all Build closures and synth the app if this isn't runtime.
+        // resolve the reference to the root - only the root App is resolved at this time.
         const app = Build.resolve(this.root);
+        // code compilation is an asynchronous process so we initialize it here
+        // before entering the Build domain containing Constructs.
         Code.initCode(app, () => {
+          // resolve all nodes in the Build domain
           Build.walk(this.root);
+          // synth the fully-constructed Construct tree.
           app.synth();
         });
       });

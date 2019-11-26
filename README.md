@@ -215,9 +215,9 @@ With data now flowing to S3, let's partition and catalog it in a `Glue.Table` (b
 ```ts
 import glue = require('@aws-cdk/aws-glue');
 
-const database = new glue.Database(stack, 'Database', {
+const database = stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
-});
+}));
 s3DeliveryStream.objects().toGlueTable(stack, 'ToGlue', {
   database,
   tableName: 'my_table',

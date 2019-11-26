@@ -10,7 +10,9 @@ const table = new DynamoDB.Table(stack, 'my-table', {
     id: string(),
     count: integer()
   },
-  billingMode: BillingMode.PAY_PER_REQUEST
+  tableProps: Build.lazy(() => ({
+    billingMode: BillingMode.PAY_PER_REQUEST
+  })
 });
 ```
 # Table Type
