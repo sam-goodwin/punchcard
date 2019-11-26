@@ -7,11 +7,10 @@ import webpack = require('webpack');
 
 export class App {
   public readonly root: Build<cdk.App>;
+  public readonly externals: Set<string> = new Set();
+  public readonly plugins: webpack.Plugin[] = [];
 
-  public readonly externals: Set<string>;
-
-  constructor(externals: string[], public readonly plugins: webpack.Plugin[]) {
-    this.externals = new Set(externals);
+  constructor() {
     this.addExternal('aws-sdk');
     this.addExternal('webpack');
     this.addPlugin(new webpack.IgnorePlugin({
