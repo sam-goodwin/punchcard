@@ -3,10 +3,21 @@ import cdk = require('@aws-cdk/core');
 import { Build } from './build';
 import { Code } from './code';
 
+import webpack = require('webpack');
+
 export class App {
   public readonly root: Build<cdk.App>;
 
-  constructor() {
+  public readonly externals: Set<string>;
+
+  constructor(externals: string[], public readonly plugins: webpack.Plugin[]) {
+    this.externals = new Set(externals);
+    this.addExternal('aws-sdk');
+    this.addExternal('webpack');
+    this.addPlugin(new webpack.IgnorePlugin({
+      resourceRegExp: /^webpack$/ // don't generate imports for webpack
+    }));
+
     this.root = Build.lazy(() => new cdk.App({
       autoSynth: false
     }));
@@ -16,7 +27,7 @@ export class App {
         const app = Build.resolve(this.root);
         // code compilation is an asynchronous process so we initialize it here
         // before entering the Build domain containing Constructs.
-        Code.initCode(app, () => {
+        Code.initCode(app, Array.from(this.externals), this.plugins, () => {
           // resolve all nodes in the Build domain
           Build.walk(this.root);
           // synth the fully-constructed Construct tree.
@@ -24,5 +35,17 @@ export class App {
         });
       });
     }
+  }
+
+  public addExternal(external: string): void {
+    this.externals.add(external);
+  }
+
+  public removeExternal(external: string): void {
+    this.externals.delete(external);
+  }
+
+  public addPlugin(plugin: webpack.Plugin): void {
+    this.plugins.push(plugin);
   }
 }

@@ -5,8 +5,8 @@ import fs = require('fs');
 import path = require('path');
 
 import { WEBPACK_MODE } from '../util/constants';
-import { Build } from './build';
-import { Entrypoint } from './entrypoint';
+
+import webpack = require('webpack');
 
 class MockCode extends lambda.Code {
   public readonly isInline: boolean = true;
@@ -42,7 +42,7 @@ export namespace Code {
     return (findApp(scope) as any)[symbol];
   }
 
-  export function initCode(app: cdk.App, cb: (code: lambda.Code) => void): void {
+  export function initCode(app: cdk.App, externals: string[], plugins: webpack.Plugin[], cb: (code: lambda.Code) => void): void {
     class MockCode extends lambda.Code {
       public readonly isInline: boolean = true;
 
@@ -74,7 +74,6 @@ export namespace Code {
         fs.mkdirSync(codePath);
       }
 
-      const webpack = require('webpack');
       const compiler = webpack({
         mode: app.node.tryGetContext(WEBPACK_MODE) || 'production',
         entry: index,
@@ -84,19 +83,10 @@ export namespace Code {
           filename: 'app.js',
           libraryTarget: 'umd',
         },
-        externals: ['aws-sdk', 'webpack'],
-        plugins: [new webpack.IgnorePlugin({
-          resourceRegExp: /^webpack$/ // don't generate imports for webpack
-        })]
+        externals,
+        plugins
       });
-      // TODO: fix this - it's async so the code asset is usually built before the file is written
-      compiler.run((err: Error) => {
-        if (err) {
-          console.log(err);
-        }
-        (app as any)[symbol] = lambda.Code.asset(codePath);
-        cb((app as any)[symbol]);
-      });
+
       fs.writeFileSync(path.join(codePath, 'index.js'), `
   require('./app');
   const entrypointId = process.env.entrypoint_id;
@@ -119,6 +109,15 @@ export namespace Code {
     return await handler(event, context);
   }
   `);
+
+      // TODO: fix this - it's async so the code asset is usually built before the file is written
+      compiler.run((err: Error) => {
+        if (err) {
+          console.log(err);
+        }
+        (app as any)[symbol] = lambda.Code.asset(codePath);
+        cb((app as any)[symbol]);
+      });
     }
   }
 }
