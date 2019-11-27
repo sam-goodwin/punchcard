@@ -36,9 +36,10 @@ export class App {
     }
   }
 
-  public removeImports(resourceRegExp: RegExp): void{
+  public removeImports(resourceRegExp: RegExp, contextRegExp?: string): void {
     this.addPlugin(new webpack.IgnorePlugin({
-      resourceRegExp
+      resourceRegExp,
+      contextRegExp
     }));
   }
 

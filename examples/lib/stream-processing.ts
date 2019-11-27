@@ -1,4 +1,4 @@
-import glue = require('@aws-cdk/aws-glue')
+import glue = require('@aws-cdk/aws-glue');
 import cdk = require('@aws-cdk/core');
 import { Core, SNS, Lambda, DynamoDB } from 'punchcard';
 
