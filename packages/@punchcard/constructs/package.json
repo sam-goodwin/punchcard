@@ -1,0 +1,57 @@
+{
+  "name": "@punchcard/constructs",
+  "description": "Supplementary constructs for the CDK",
+  "version": "0.1.0",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "build": "tsc && tslint --project .",
+    "test": "echo TODO",
+    "watch": "tsc -w",
+    "cdk": "cdk"
+  },
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Sam Goodwin",
+    "email": "sam.goodwin1989@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sam-goodwin/punchcard"
+  },
+  "readme": "README.md",
+  "keywords": [
+    "punchcard",
+    "aws-cdk",
+    "infrastructure-as-code",
+    "serverless",
+    "aws",
+    "cloudformation"
+  ],
+  "devDependencies": {
+    "@aws-cdk/assert": "^1.18.0",
+    "sinon": "^7.3.2",
+    "tslint": "^5.16.0",
+    "typescript": "^3.7.2"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-iam": "^1.18.0",
+    "@aws-cdk/aws-kinesis": "^1.18.0",
+    "@aws-cdk/aws-kinesisfirehose": "^1.18.0",
+    "@aws-cdk/aws-kms": "^1.18.0",
+    "@aws-cdk/aws-lambda": "^1.18.0",
+    "@aws-cdk/aws-logs": "^1.18.0",
+    "@aws-cdk/aws-s3": "^1.18.0",
+    "@aws-cdk/core": "^1.18.0"
+  },
+  "peerDependencies": {
+    "@aws-cdk/aws-iam": "^1.18.0",
+    "@aws-cdk/aws-kinesis": "^1.18.0",
+    "@aws-cdk/aws-kinesisfirehose": "^1.18.0",
+    "@aws-cdk/aws-kms": "^1.18.0",
+    "@aws-cdk/aws-lambda": "^1.18.0",
+    "@aws-cdk/aws-logs": "^1.18.0",
+    "@aws-cdk/aws-s3": "^1.18.0",
+    "@aws-cdk/core": "^1.18.0"
+  }
+}

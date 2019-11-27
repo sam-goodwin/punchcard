@@ -20,7 +20,7 @@ export class Messages<T, D extends any[]> extends Stream<Event, T, D, Config>  {
 
   // TODO: this should be passed in at instantiation time!!!
   public eventSource(props?: Config) {
-    return new events.SqsEventSource(this.queue.resource, props);
+    return this.queue.resource.map(queue => new events.SqsEventSource(queue, props));
   }
 
   public chain<U, D2 extends any[]>(input: {

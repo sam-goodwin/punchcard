@@ -1,24 +1,23 @@
 import AWS = require('aws-sdk');
 
-import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 
-import { Assembly, Namespace } from '../core/assembly';
-import { Cache } from '../core/cache';
+import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
+import { Run } from '../core/run';
 import * as Kinesis from '../kinesis';
 import { ExecutorService } from '../lambda/executor';
 import { Function } from '../lambda/function';
 import * as S3 from '../s3';
-import { Bucket } from '../s3/bucket';
 import { Mapper, RuntimeShape, Shape } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Client } from './client';
-import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from './delivery-stream-construct';
 import { FirehoseEvent, FirehoseResponse, ValidationResult } from './event';
 import { Objects } from './objects';
+
+import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from '@punchcard/constructs';
 
 export type DeliveryStreamProps<S extends Shape<any>> = DeliveryStreamDirectPut<S> | DeliveryStreamFromKinesis<S>;
 
@@ -65,17 +64,17 @@ export interface DeliveryStreamFromKinesis<S extends Shape<any>> extends BaseDel
  *
  * It may or may not be consuming from a Kinesis Stream.
  */
-export class DeliveryStream<S extends Shape<any>> extends core.Construct implements Dependency<Client<RuntimeShape<S>>>, Resource<DeliveryStreamConstruct> {
-  public readonly resource: DeliveryStreamConstruct;
+export class DeliveryStream<S extends Shape<any>> implements Resource<DeliveryStreamConstruct> {
+  public readonly resource: Build<DeliveryStreamConstruct>;
   public readonly shape: S;
 
   private readonly mapper: Mapper<RuntimeShape<S>, Buffer>;
   private readonly codec: Codec;
   private readonly compression: Compression;
   public readonly processor: Validator<S>;
+  public readonly bucket: S3.Bucket;
 
-  constructor(scope: core.Construct, id: string, props: DeliveryStreamProps<S>) {
-    super(scope, id);
+  constructor(scope: Build<core.Construct>, id: string, props: DeliveryStreamProps<S>) {
     const fromStream = props as DeliveryStreamFromKinesis<S>;
     const fromType = props as DeliveryStreamDirectPut<S>;
 
@@ -87,27 +86,37 @@ export class DeliveryStream<S extends Shape<any>> extends core.Construct impleme
     this.mapper = props.codec.mapper(this.shape);
     this.codec = props.codec;
     this.compression = props.compression;
-    this.processor = new Validator(this, 'Validator', {
+
+    scope = scope.map(scope => new core.Construct(scope, id));
+
+    this.processor = new Validator(scope, 'Validator', {
       mapper: this.mapper,
       validate: props.validate
     });
 
     if (fromStream.stream) {
-      this.resource = new DeliveryStreamConstruct(this, 'DeliveryStream', {
-        kinesisStream: fromStream.stream.resource,
-        destination: DeliveryStreamDestination.S3,
-        type: DeliveryStreamType.KinesisStreamAsSource,
-        compression: props.compression.type,
-        transformFunction: this.processor.processor
-      });
+      this.resource = scope.chain(scope =>
+        this.processor.processor.resource.chain(transformFunction =>
+          fromStream.stream.resource.map(kinesisStream =>
+            new DeliveryStreamConstruct(scope, 'DeliveryStream', {
+              kinesisStream,
+              destination: DeliveryStreamDestination.S3,
+              type: DeliveryStreamType.KinesisStreamAsSource,
+              compression: props.compression.type,
+              transformFunction
+            }))));
     } else {
-      this.resource = new DeliveryStreamConstruct(this, 'DeliveryStream', {
-        destination: DeliveryStreamDestination.S3,
-        type: DeliveryStreamType.DirectPut,
-        compression: fromType.compression.type,
-        transformFunction: this.processor.processor
-      });
+      this.resource = scope.chain(scope =>
+        this.processor.processor.resource.map(transformFunction =>
+          new DeliveryStreamConstruct(scope, 'DeliveryStream', {
+            destination: DeliveryStreamDestination.S3,
+            type: DeliveryStreamType.DirectPut,
+            compression: props.compression.type,
+            transformFunction
+          })));
     }
+
+    this.bucket = new S3.Bucket(this.resource.map(ds => ds.s3Bucket!));
   }
 
   public objects(): Objects<RuntimeShape<S>, [Dependency<S3.ReadClient>]> {
@@ -132,20 +141,21 @@ export class DeliveryStream<S extends Shape<any>> extends core.Construct impleme
       }
     }
     return new Root(this, undefined as any, {
-      depends: [new Bucket(this.resource.s3Bucket!).readAccess()],
+      depends: [this.bucket.readAccess()],
       handle: i => i
     });
   }
 
-  public install(namespace: Namespace, grantable: iam.IGrantable): void {
-    namespace.set('deliveryStreamName', this.resource.deliveryStreamName);
-    this.resource.grantWrite(grantable);
-  }
-
-  public async bootstrap(properties: Assembly, cache: Cache): Promise<Client<RuntimeShape<S>>> {
-    return new Client(this,
-      properties.get('deliveryStreamName'),
-      cache.getOrCreate('aws:firehose', () => new AWS.Firehose()));
+  public writeAccess(): Dependency<Client<RuntimeShape<S>>> {
+    return {
+      install: this.resource.map(ds => (ns, grantable) => {
+        ns.set('deliveryStreamName', ds.deliveryStreamName);
+        ds.grantWrite(grantable);
+      }),
+      bootstrap: Run.of(async (ns, cache) => new Client(this,
+        ns.get('deliveryStreamName'),
+        cache.getOrCreate('aws:firehose', () => new AWS.Firehose())))
+    };
   }
 }
 
@@ -174,17 +184,16 @@ interface ValidatorProps<S extends Shape<any>> {
 /**
  * Validates and formats records flowing from Firehose so that they match the format of a Glue Table.
  */
-class Validator<S extends Shape<any>> extends core.Construct {
+class Validator<S extends Shape<any>> {
   public readonly processor: Function<FirehoseEvent, FirehoseResponse, Dependency.None>;
 
-  constructor(scope: core.Construct, id: string, props: ValidatorProps<S>) {
-    super(scope, id);
+  constructor(scope: Build<core.Construct>, id: string, props: ValidatorProps<S>) {
     const executorService = props.executorService || new ExecutorService({
       memorySize: 256,
       timeout: core.Duration.seconds(60)
     });
 
-    this.processor = executorService.spawn(this, 'Processor', {
+    this.processor = executorService.spawn(scope, 'Processor', {
       depends: Dependency.none,
       handle: async (event: FirehoseEvent) => {
         const response: FirehoseResponse = {records: []};

@@ -1,5 +1,6 @@
 import { Database } from '@aws-cdk/aws-glue';
-import core = require('@aws-cdk/core');
+import cdk = require('@aws-cdk/core');
+import { Build } from 'punchcard/lib/core/build';
 import { DataPipeline } from './data-pipeline';
 import { Schema, Schemas } from './schema';
 
@@ -7,18 +8,19 @@ export interface DataLakeProps<S extends Schemas> {
   lakeName: string;
   schemas: S;
 }
-export class DataLake<S extends Schemas> extends core.Construct {
-  public readonly database: Database;
+export class DataLake<S extends Schemas> {
+  public readonly database: Build<Database>;
   public readonly pipelines: Pipelines<S>;
 
-  constructor(scope: core.Construct, id: string, props: DataLakeProps<S>) {
-    super(scope, id);
-    this.database = new Database(this, 'Database', {
+  constructor(scope: Build<cdk.Construct>, id: string, props: DataLakeProps<S>) {
+    scope = scope.map(scope => new cdk.Construct(scope, id));
+
+    this.database = scope.map(scope => new Database(scope, 'Database', {
       databaseName: props.lakeName
-    });
+    }));
     this.pipelines = {} as any;
     for (const [alias, schema] of Object.entries(props.schemas)) {
-      (this.pipelines as any)[alias] = new DataPipeline<any, any>(this, alias, {
+      (this.pipelines as any)[alias] = new DataPipeline<any, any>(this.database, alias, {
         database: this.database,
         schema
       });

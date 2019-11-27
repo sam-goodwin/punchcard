@@ -1,12 +1,14 @@
 import cdk = require('@aws-cdk/core');
 import { Schedule } from '@aws-cdk/aws-events';
-import { Lambda } from 'punchcard';
+import { Core, Lambda } from 'punchcard';
 
-const app = new cdk.App();
-const stack = new cdk.Stack(app, 'MyStack');
-
-// NOTE: make sure you export the app as default, or else your code won't run at runtime
-export default app;
+export const app = new Core.App();
+const stack = app.root.map(app => new cdk.Stack(app, 'hello-world', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION
+  }
+}));
 
 Lambda.schedule(stack, 'MyFunction', {
   schedule: Schedule.rate(cdk.Duration.minutes(1)),

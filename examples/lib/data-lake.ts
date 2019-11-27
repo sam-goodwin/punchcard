@@ -1,16 +1,19 @@
 import core = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
-import { Lambda } from 'punchcard';
+import { Core, Lambda } from 'punchcard';
 
 import * as Analytics from '@punchcard/data-lake';
 
 import { integer, string, timestamp, char, array, } from 'punchcard/lib/shape';
 
-const app = new core.App();
-export default app;
-
-const stack = new core.Stack(app, 'data-lake');
+export const app = new Core.App();
+const stack = app.root.map(app => new core.Stack(app, 'data-lake', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION
+  }
+}));
 
 // create a schema to describe our data
 const dataPoints = new Analytics.Schema({
@@ -37,7 +40,6 @@ const lake = new Analytics.DataLake(stack, 'Lake', {
     dataPoints
   }
 });
-
 // we can consume from the stream of data points in real-time and log out each property
 // Kinesis -> Lambda
 // Note: the type-safety of the `record`

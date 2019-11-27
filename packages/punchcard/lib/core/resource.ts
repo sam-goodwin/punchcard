@@ -1,5 +1,5 @@
-import core = require('@aws-cdk/core');
+import { Build } from './build';
 
-export interface Resource<R extends core.Construct> {
-  resource: R;
+export interface Resource<R> {
+  resource: Build<R>;
 }

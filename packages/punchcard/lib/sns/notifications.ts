@@ -20,7 +20,7 @@ export class Notifications<T, D extends any[]> extends Stream<Event, T, D, Strea
    * Create a `SnsEventSource` which attaches a Lambda Function to this `Topic`.
    */
   public eventSource() {
-    return new events.SnsEventSource(this.topic.resource);
+    return this.topic.resource.map(ds => new events.SnsEventSource(ds));
   }
 
   /**

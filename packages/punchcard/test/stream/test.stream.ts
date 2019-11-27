@@ -3,6 +3,7 @@ import 'jest';
 import sinon = require('sinon');
 
 import { Kinesis, Shape } from '../../lib';
+import { Build } from '../../lib/core/build';
 
 // tslint:disable-next-line: variable-name
 const { string } = Shape;
@@ -10,7 +11,7 @@ const { string } = Shape;
 describe('client', () => {
   describe('sink', () => {
     it('should sink all messages', async () => {
-      const stream = new Kinesis.Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
+      const stream = new Kinesis.Stream(Build.of(new core.Stack(new core.App( { autoSynth: false }), 'stack')), 'stream', {
         shape: string(),
         partitionBy: () => 'p'
       });
@@ -35,7 +36,7 @@ describe('client', () => {
       }]);
     });
     it('should divide and conquer evenly', async () => {
-      const stream = new Kinesis.Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
+      const stream = new Kinesis.Stream(Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack')), 'stream', {
         shape: string(),
         partitionBy: () => 'p'
       });
@@ -67,7 +68,7 @@ describe('client', () => {
       }]);
     });
     it('should divide and conquer oddly', async () => {
-      const stream = new Kinesis.Stream(new core.Stack(new core.App(), 'stack'), 'stream', {
+      const stream = new Kinesis.Stream(Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack')), 'stream', {
         shape: string(),
         partitionBy: () => 'p'
       });

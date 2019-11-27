@@ -6,9 +6,11 @@ import snsSubs = require('@aws-cdk/aws-sns-subscriptions');
 import core = require('@aws-cdk/core');
 
 import { Namespace } from '../core/assembly';
+import { Build } from '../core/build';
 import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
+import { Run } from '../core/run';
 import { Json, Mapper, RuntimeShape, Shape } from '../shape';
 import { Queue } from '../sqs/queue';
 import { Sink, sink, SinkProps } from '../util/sink';
@@ -27,14 +29,14 @@ export type TopicProps<S extends Shape<any>> = {
  *
  * @typeparam T type of notifications sent and emitted from the `Topic`.
  */
-export class Topic<S extends Shape<any>> implements Resource<sns.Topic>, Dependency<Topic.Client<S>> {
+export class Topic<S extends Shape<any>> implements Resource<sns.Topic> {
   public readonly context = {};
   public readonly shape: S;
   public readonly mapper: Mapper<RuntimeShape<S>, string>;
-  public readonly resource: sns.Topic;
+  public readonly resource: Build<sns.Topic>;
 
-  constructor(scope: core.Construct, id: string, props: TopicProps<S>) {
-    this.resource = new sns.Topic(scope, id, props);
+  constructor(scope: Build<core.Construct>, id: string, props: TopicProps<S>) {
+    this.resource = scope.map(scope => new sns.Topic(scope, id, props));
     this.shape = props.shape;
     this.mapper = Json.forShape(props.shape);
   }
@@ -71,7 +73,7 @@ export class Topic<S extends Shape<any>> implements Resource<sns.Topic>, Depende
    * @see https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html
    * @see https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
    */
-  public toSQSQueue(scope: core.Construct, id: string): Queue<S> {
+  public toSQSQueue(scope: Build<core.Construct>, id: string): Queue<S> {
     const q = new Queue(scope, id, {
       shape: this.shape
     });
@@ -86,10 +88,10 @@ export class Topic<S extends Shape<any>> implements Resource<sns.Topic>, Depende
    *
    * @param queue to subscribe to this `Topic`.
    */
-  public subscribeQueue(queue: Queue<S>): void {
-    this.resource.addSubscription(new snsSubs.SqsSubscription(queue.resource, {
+  public subscribeQueue(queue: Queue<S>): Build<void> {
+    return this.resource.chain(topic => queue.resource.map(queue => topic.addSubscription(new snsSubs.SqsSubscription(queue, {
       rawMessageDelivery: true
-    }));
+    }))));
   }
 
   /**
@@ -101,12 +103,14 @@ export class Topic<S extends Shape<any>> implements Resource<sns.Topic>, Depende
     return new Topic.Client(this.mapper, namespace.get('topicArn'), cache.getOrCreate('aws:sns', () => new AWS.SNS()));
   }
 
-  /**
-   * Set `topicArn` and grant permissions to a `Runtime` so it may `bootstrap` a client for this `Topic`.
-   */
-  public install(namespace: Namespace, grantable: iam.IGrantable): void {
-    this.resource.grantPublish(grantable);
-    namespace.set('topicArn', this.resource.topicArn);
+  public publishAccess(): Dependency<Topic.Client<S>> {
+    return {
+      install: this.resource.map(topic => (ns, g) => {
+        topic.grantPublish(g);
+        ns.set('topicArn', topic.topicArn);
+      }),
+      bootstrap: Run.of(async (ns, cache) => new Topic.Client(this.mapper, ns.get('topicArn'), cache.getOrCreate('aws:sns', () => new AWS.SNS())))
+    };
   }
 }
 

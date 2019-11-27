@@ -1,5 +1,6 @@
 import core = require('@aws-cdk/core');
 
+import { Build } from '../core/build';
 import * as Firehose from '../firehose';
 import * as Kinesis from '../kinesis';
 import { Shape } from '../shape/shape';
@@ -17,7 +18,7 @@ export interface Collector<T, S extends Stream<any, any, any, any>> {
   /**
    * Create Constructs to collect data from the `Stream` and returns the result of that collection.
    */
-  collect(scope: core.Construct, id: string, stream: S): T
+  collect(scope: Build<core.Construct>, id: string, stream: S): T
 }
 
 /**

@@ -1,16 +1,20 @@
 import core = require('@aws-cdk/core');
 import uuid = require('uuid');
 
-import { ApiGateway, DynamoDB, Lambda } from 'punchcard';
+import { Core, ApiGateway, DynamoDB, Lambda } from 'punchcard';
 
 import { array, double, string, struct } from 'punchcard/lib/shape';
 
-const app = new core.App();
-export default app;
+export const app = new Core.App();
 
 // WARNING: this example will be changed - it does not properly descrive the Model and Velocity Templates yet.
 
-const stack = new core.Stack(app, 'pet-store');
+const stack = app.root.map(app => new core.Stack(app, 'pet-store', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION
+  }
+}));
 
 const petStore = new DynamoDB.Table(stack, 'pet-store', {
   partitionKey: 'id',
@@ -27,7 +31,7 @@ const executorService = new Lambda.ExecutorService({
 });
 
 const endpoint = executorService.apiIntegration(stack, 'MyEndpoint', {
-  depends: petStore
+  depends: petStore.readWriteAccess()
 });
 
 const api = new ApiGateway.Api(stack, 'PetApi');

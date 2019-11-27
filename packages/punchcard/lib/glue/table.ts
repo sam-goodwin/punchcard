@@ -5,12 +5,13 @@ import path = require('path');
 
 import glue = require('@aws-cdk/aws-glue');
 import iam = require('@aws-cdk/aws-iam');
-import core = require('@aws-cdk/core');
+import s3 = require('@aws-cdk/aws-s3');
+import cdk = require('@aws-cdk/core');
 
-import { Namespace } from '../core/assembly';
-import { Cache } from '../core/cache';
+import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
+import { Run } from '../core/run';
 import * as S3 from '../s3';
 import { Json, Kind, Mapper, RuntimeShape, Shape, struct, StructShape } from '../shape';
 import { Codec } from '../util/codec';
@@ -74,12 +75,36 @@ export type TableProps<C extends Columns, P extends PartitionKeys> = {
    * @default None
    */
   compression?: Compression;
-} & Omit<glue.TableProps, 's3Prefix' | 'columns' | 'partitionKeys' | 'dataFormat' | 'compressed'>;
+
+  /**
+   * Database to store this Table.
+   */
+  database: Build<glue.Database>;
+
+  bucket?: Build<s3.Bucket>;
+
+  /**
+   * Name of the Table.
+   */
+  tableName: string;
+
+  /**
+   * Optional description of the Tazble.
+   */
+  description?: string;
+
+  /**
+   * Optional s3 prefix to append to all objects written to this Table in S3.
+   *
+   * @default - no prefix
+   */
+  s3Prefix?: string;
+};
 
 /**
  * Represents a partitioned Glue Table.
  */
-export class Table<C extends Columns, P extends PartitionKeys> implements Resource<glue.Table>, Dependency<Table.ReadWriteClient<C, P>> {
+export class Table<C extends Columns, P extends PartitionKeys> implements Resource<glue.Table> {
   /**
    * Type of compression.
    */
@@ -119,40 +144,78 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
    * Optional function to validate data prior to writing into this table.
    */
   public readonly validate?: (record: RuntimeShape<StructShape<C>>) => void;
+
   /**
    * The underlying `glue.Table` construct.
    */
-  public readonly resource: glue.Table;
+  public readonly resource: Build<glue.Table>;
 
-  constructor(scope: core.Construct, id: string, props: TableProps<C, P>) {
+  /**
+   * S3 Bucket containing this Table's objects.
+   */
+  public readonly bucket: S3.Bucket;
+
+  /**
+   * Prefix of this Table's S3 Objects.
+   */
+  public readonly s3Prefix?: string;
+
+  constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<C, P>) {
     const compression = (props.compression || Compression.None);
     const codec = (props.codec || Codec.Json);
-    this.resource = new glue.Table(scope, id, {
-      ...props,
-      dataFormat: codec.format,
-      compressed: compression.isCompressed,
-      s3Prefix: props.tableName + '/',
-      columns: Object.entries(props.columns).map(([name, schema]) => ({
-        name,
-        type: schema.toGlueType()
-      })),
-      partitionKeys: Object.entries(props.partition.keys).map(([name, schema]) => {
-        switch (schema.kind) {
-          case Kind.String:
-          case Kind.Boolean:
-          case Kind.Timestamp:
-          case Kind.Integer:
-          case Kind.Number:
-            break;
-          default:
-            throw new Error(`invalid type for partition key ${schema}, must be string, numeric, boolean or timestamp`);
-        }
-        return {
-          name,
-          type: schema.toGlueType()
+
+    this.s3Prefix = props.s3Prefix || props.tableName + '/';
+    this.resource = scope.chain(scope => props.database.chain(database => {
+      const makeTable = (bucket?: s3.Bucket) => {
+        const table = new glue.Table(scope, id, {
+          ...props,
+          database,
+          bucket,
+          dataFormat: codec.format,
+          compressed: compression.isCompressed,
+          s3Prefix: this.s3Prefix,
+          columns: Object.entries(props.columns).map(([name, schema]) => ({
+            name,
+            type: schema.toGlueType()
+          })),
+          partitionKeys: Object.entries(props.partition.keys).map(([name, schema]) => {
+            switch (schema.kind) {
+              case Kind.String:
+              case Kind.Boolean:
+              case Kind.Timestamp:
+              case Kind.Integer:
+              case Kind.Number:
+                break;
+              default:
+                throw new Error(`invalid type for partition key ${schema}, must be string, numeric, boolean or timestamp`);
+            }
+            return {
+              name,
+              type: schema.toGlueType()
+            };
+          }),
+        });
+
+        (table as any).grant = (grantee: iam.IGrantable, actions: string[]) => {
+          // Hack: override grant to also add catalog and database arns as resources
+          return iam.Grant.addToPrincipal({
+            grantee,
+            resourceArns: [table.tableArn, table.database.databaseArn, table.database.catalogArn],
+            actions,
+          });
         };
-      }),
-    });
+
+        return table;
+      };
+
+      if (props.bucket) {
+        return props.bucket.map(bucket => makeTable(bucket));
+      } else {
+        return Build.of(makeTable());
+      }
+    }));
+
+    this.bucket = new S3.Bucket(this.resource.map(table => table.bucket as any));
 
     this.shape = {
       columns: props.columns,
@@ -168,73 +231,48 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
     Object.entries(this.shape.partitions).forEach(([name, shape]) => {
       this.partitionMappers[name as keyof P] = Json.forShape(shape) as any;
     });
-
-    // Hack: fix tableArn (fixed in 0.32.0)
-    (this.resource as any).tableArn = this.resource.stack.formatArn({
-      service: 'glue',
-      resource: 'table',
-      resourceName: `${this.resource.database.databaseName}/${this.resource.tableName}`
-    });
-    (this.resource as any).grant = (grantee: iam.IGrantable, actions: string[]) => {
-      // Hack: override grant to also add catalog and database arns as resources
-      return iam.Grant.addToPrincipal({
-        grantee,
-        resourceArns: [this.resource.tableArn, this.resource.database.databaseArn, this.resource.database.catalogArn],
-        actions,
-      });
-    };
-  }
-
-  /**
-   * By default, depending on the `Table` installs read/write access.
-   */
-  public install(namespace: Namespace, grantable: iam.IGrantable): void {
-    return this.readWriteAccess().install(namespace, grantable);
   }
 
   /**
    * Runtime dependency with read/write access to the Table and S3 Bucket.
    */
   public readWriteAccess(): Dependency<Table.ReadWriteClient<C, P>> {
-    return this.client(g => this.resource.grantReadWrite(g), new S3.Bucket(this.resource.bucket as any).readWriteAccess());
+    return this.client((t, g) => t.grantReadWrite(g), this.bucket.readWriteAccess());
   }
 
   /**
    * Runtime dependency with read access to the Table and S3 Bucket.
    */
   public readAccess(): Dependency<Table.ReadClient<C, P>> {
-    return this.client(g => this.resource.grantRead(g), new S3.Bucket(this.resource.bucket as any).readAccess());
+    return this.client((t, g) => t.grantRead(g), this.bucket.readAccess());
   }
 
   /**
    * Runtime dependency with write access to the Table and S3 Bucket.
    */
   public writeAccess(): Dependency<Table.WriteClient<C, P>> {
-    return this.client(g => this.resource.grantWrite(g), new S3.Bucket(this.resource.bucket as any).writeAccess());
+    return this.client((t, g) => t.grantWrite(g), this.bucket.writeAccess());
   }
 
-  private client<C>(grant: (grantable: iam.IGrantable) => void, bucket: Dependency<any>): Dependency<C> {
+  private client<C>(grant: (table: glue.Table, grantable: iam.IGrantable) => void, bucket: Dependency<any>): Dependency<C> {
     return {
-      install: (namespace, grantable) => {
-        grant(grantable);
-        bucket.install(namespace.namespace('bucket'), grantable);
-        namespace.set('catalogId', this.resource.database.catalogId);
-        namespace.set('databaseName', this.resource.database.databaseName);
-        namespace.set('tableName', this.resource.tableName);
-      },
-      bootstrap: this.bootstrap.bind(this) as any
-    };
-  }
+      install: this.resource.map(table => (ns, grantable) => {
+        grant(table, grantable);
+        ns.set('catalogId', table.database.catalogId);
+        ns.set('databaseName', table.database.databaseName);
+        ns.set('tableName', table.tableName);
 
-  public async bootstrap(namespace: Namespace, cache: Cache): Promise<Table.Client<C, P>> {
-    return new Table.Client(
-      cache.getOrCreate('aws:glue', () => new AWS.Glue()),
-      namespace.get('catalogId'),
-      namespace.get('databaseName'),
-      namespace.get('tableName'),
-      this,
-      await new S3.Bucket(this.resource.bucket as any).bootstrap(namespace.namespace('bucket'), cache)
-    );
+        Build.resolve(bucket.install)(ns.namespace('bucket'), grantable);
+      }),
+      bootstrap: Run.of(async (ns, cache) => new Table.Client(
+        cache.getOrCreate('aws:glue', () => new AWS.Glue()),
+        ns.get('catalogId'),
+        ns.get('databaseName'),
+        ns.get('tableName'),
+        this,
+        await Run.resolve(bucket.bootstrap)(ns.namespace('bucket'), cache)
+      ) as any)
+    };
   }
 }
 
@@ -314,7 +352,7 @@ export namespace Table {
         const partitionPath = Object.entries(partition).map(([name, value]) => {
           return `${name}=${this.table.partitionMappers[name].write(value as any)}`;
         }).join('/');
-        let location = this.table.resource.s3Prefix ? path.join(this.table.resource.s3Prefix, partitionPath) : partitionPath;
+        let location = this.table.s3Prefix ? path.join(this.table.s3Prefix, partitionPath) : partitionPath;
         if (!location.endsWith('/')) {
           location += '/';
         }
@@ -412,10 +450,10 @@ export namespace Table {
               Type: type.toGlueType().inputString
             };
           }),
-          InputFormat: this.table.resource.dataFormat.inputFormat.className,
-          OutputFormat: this.table.resource.dataFormat.outputFormat.className,
+          InputFormat: this.table.codec.format.inputFormat.className,
+          OutputFormat: this.table.codec.format.outputFormat.className,
           SerdeInfo: {
-            SerializationLibrary: this.table.resource.dataFormat.serializationLibrary.className
+            SerializationLibrary: this.table.codec.format.serializationLibrary.className
           }
         }
       };

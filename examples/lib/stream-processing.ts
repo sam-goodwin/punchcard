@@ -1,4 +1,4 @@
-import glue = require('@aws-cdk/aws-glue')
+import glue = require('@aws-cdk/aws-glue');
 import cdk = require('@aws-cdk/core');
 import { Core, SNS, Lambda, DynamoDB } from 'punchcard';
 
@@ -9,10 +9,16 @@ import { Duration } from '@aws-cdk/core';
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import { Schedule } from '@aws-cdk/aws-events';
+import { Build } from 'punchcard/lib/core/build';
 
-const app = new cdk.App();
-export default app;
-const stack = new cdk.Stack(app, 'stream-processing');
+export const app = new Core.App();
+
+const stack = app.root.map(app => new cdk.Stack(app, 'stream-processing', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION
+  }
+}));
 
 /**
  * Create a SNS Topic.
@@ -38,7 +44,9 @@ const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
     key: string(),
     tags: array(string())
   },
-  billingMode: BillingMode.PAY_PER_REQUEST
+  tableProps: Build.lazy(() => ({
+    billingMode: BillingMode.PAY_PER_REQUEST
+  }))
 });
 
 /**
@@ -58,7 +66,9 @@ Lambda.schedule(stack, 'DummyData', {
    *
    * We want to *publish* to the SNS `topic` and *write* to the DynamoDB `table`.
    */
-  depends: Core.Dependency.tuple(topic, enrichments.writeAccess()),
+  depends: Core.Dependency.concat(
+    topic.publishAccess(),
+    enrichments.writeAccess()),
 
   /**
    * Impement the Lambda Function.
@@ -151,9 +161,9 @@ const stream = queue.messages() // gives us a nice chainable API
  * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioned by `year`, `month`, `day`, `hour` and `minute`)
  *                                                                      -> Glue Catalog
  */
-const database = new glue.Database(stack, 'Database', {
+const database = stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
-});
+}));
 stream
   .toFirehoseDeliveryStream(stack, 'ToS3').objects()
   .toGlueTable(stack, 'ToGlue', {

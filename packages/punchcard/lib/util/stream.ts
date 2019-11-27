@@ -1,5 +1,6 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import core = require('@aws-cdk/core');
+import { Build } from '../core/build';
 import { Client, Clients } from '../core/client';
 import { Dependency } from '../core/dependency';
 import * as Lambda from '../lambda';
@@ -31,7 +32,7 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
    *
    * @param props optional properties - must implement sensible defaults
    */
-  public abstract eventSource(props?: C): lambda.IEventSource;
+  public abstract eventSource(props?: C): Build<lambda.IEventSource>;
 
   /**
    * Describe a transformation of values.
@@ -113,11 +114,11 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
    * @param f next transformation of a record
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forEach<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
+  public forEach<D2 extends Dependency<any> | undefined>(scope: Build<core.Construct>, id: string, input: {
     depends?: D2;
     handle: (value: T, deps: Client<D2>) => Promise<any>;
     config?: C;
-  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.Tuple<D> : Dependency.Tuple<Cons<D, D2>>> {
+  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.Concat<D> : Dependency.Concat<Cons<D, D2>>> {
     // TODO: let the stream type determine default executor service
     const executorService = (input.config && input.config.executorService) || new Lambda.ExecutorService({
       memorySize: 128,
@@ -125,8 +126,8 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
     });
     const l = executorService.spawn(scope, id, {
       depends: input.depends === undefined
-        ? Dependency.tuple(...this.dependencies)
-        : Dependency.tuple(input.depends, ...this.dependencies),
+        ? Dependency.concat(...this.dependencies)
+        : Dependency.concat(input.depends, ...this.dependencies),
       handle: async (event: E, deps) => {
         if (input.depends === undefined) {
           for await (const value of this.run(event, deps as any)) {
@@ -139,7 +140,7 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
         }
       }
     });
-    l.addEventSource(this.eventSource(input.config));
+    l.resource.chain(l => this.eventSource(input.config).map(es => l.addEventSource(es)));
     return l as any;
   }
 
@@ -151,11 +152,11 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
    * @param f function to process batch of results
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forBatch<D2 extends Dependency<any> | undefined>(scope: core.Construct, id: string, input: {
+  public forBatch<D2 extends Dependency<any> | undefined>(scope: Build<core.Construct>, id: string, input: {
     depends?: D2;
     handle: (value: T[], deps: Client<D2>) => Promise<any>;
     config?: C;
-  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.Tuple<D> : Dependency.Tuple<Cons<D, D2>>> {
+  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.Concat<D> : Dependency.Concat<Cons<D, D2>>> {
     return this.batched().forEach(scope, id, input);
   }
 
@@ -191,7 +192,7 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
    * @param id of construct under which forwarding resources will be created
    * @param collector destination collector
    */
-  public collect<T>(scope: core.Construct, id: string, collector: Collector<T, this>): T {
+  public collect<T>(scope: Build<core.Construct>, id: string, collector: Collector<T, this>): T {
     return collector.collect(scope, id, this);
   }
 }

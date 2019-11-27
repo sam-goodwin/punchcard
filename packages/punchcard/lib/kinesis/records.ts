@@ -24,10 +24,10 @@ export class Records<T, D extends any[]> extends SStream<Event, T, D, Config>  {
    * @param props optional tuning properties for the event source.
    */
   public eventSource(props?: Config) {
-    return new events.KinesisEventSource(this.stream.resource, props || {
+    return this.stream.resource.map(stream => new events.KinesisEventSource(stream, props || {
       batchSize: 100,
       startingPosition: lambda.StartingPosition.TRIM_HORIZON
-    });
+    }));
   }
 
   /**

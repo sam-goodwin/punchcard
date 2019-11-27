@@ -3,6 +3,8 @@ import 'jest';
 import sinon = require('sinon');
 
 import { Core, Lambda, Util } from '../../lib';
+import { Build } from '../../lib/core/build';
+import { Run } from '../../lib/core/run';
 
 // stop web-pack from running
 // TODO: gross as fuck - every user will have to do this
@@ -10,29 +12,30 @@ Util.setRuntime();
 
 describe('Function', () => {
   it('should install clients in context', () => {
-    const stack = new core.Stack(new core.App(), 'stack');
+    const stack = Build.of(new core.Stack(new core.App({ autoSynth: false }), 'stack'));
     const client: Core.Dependency<any> = {
-      install: (namespace, grantable) => namespace.set('test', 'value'),
-      bootstrap: async () => null
+      install: Build.of((namespace, grantable) => namespace.set('test', 'value')),
+      bootstrap: Run.of(async () => null)
     };
     const f = Lambda.L().spawn(stack, 'function', {
       depends: client,
       handle: null as any
     });
-    expect((f as any).environment[`${f.node.uniqueId}_test`]).toEqual('value');
+    const fn = Build.resolve(f.resource);
+    expect((fn as any).environment[`punchcard_test`]).toEqual('value');
   });
   it('should bootstrap all clients on boot and pass to handler', async () => {
-    const stack = new core.Stack(new core.App(), 'stack');
+    const stack = Build.of(new core.Stack(new core.App({ autoSynth: false }), 'stack'));
     const client: Core.Dependency<any> = {
-      install: (namespace, grantable) => namespace.set('test', 'value'),
-      bootstrap: async () => 'client'
+      install: Build.of((namespace, grantable) => namespace.set('test', 'value')),
+      bootstrap: Run.of(async () => 'client')
     };
     const fake = sinon.fake();
     const f = new Lambda.Function(stack, 'function', {
       depends: client,
       handle: fake
     });
-    const handler = await f.boot();
+    const handler = await Run.resolve(f.entrypoint);
     await handler(null, null);
     expect(fake.args[0][1]).toEqual('client');
     expect(fake.calledOnceWithExactly(null, 'client', null)).toBe(true);
@@ -133,54 +136,36 @@ describe('Function.Client', () => {
 
 it('should install and bootstrap dependencies', async () => {
   const dependency = {
-    bootstrap: sinon.fake.returns(Promise.resolve(1)),
-    install: sinon.fake()
+    bootstrap: Run.of(sinon.fake.returns(Promise.resolve(1))),
+    install: Build.of(sinon.fake())
   };
 
-  const f = Lambda.L().spawn(new core.Stack(new core.App(), 'stack'), 'f', {
+  const f = Lambda.L().spawn(Build.of(new core.Stack(new core.App( { autoSynth: false }), 'stack')), 'f', {
     depends: dependency,
     async handle(_, dep: any) {
       return dep.toString(); // expect '1' as result
     }
   });
+  Build.resolve(f.resource);
 
-  expect(await (await f.boot())('event', {})).toEqual('1');
-  expect(dependency.install.calledOnce).toBe(true);
+  expect(await (await Run.resolve(f.entrypoint))('event', {})).toEqual('1');
+  expect(Build.resolve(dependency.install).calledOnce).toBe(true);
 });
 
 it('should install and bootstrap nested dependencies', async () => {
-  const dependency = {
-    bootstrap: sinon.fake.returns(Promise.resolve(1)),
-    install: sinon.fake()
+  const dependency: Core.Dependency<any> = {
+    bootstrap: Run.of(sinon.fake.returns(Promise.resolve(1))),
+    install: Build.of(sinon.fake())
   };
 
-  const f = Lambda.L().spawn(new core.Stack(new core.App(), 'stack'), 'f', {
-    depends: Core.Dependency.tuple(dependency, dependency),
+  const f = Lambda.L().spawn(Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack')), 'f', {
+    depends: Core.Dependency.concat(dependency, dependency),
     async handle(_, [d1, d2]) {
       return (d1 as any).toString() + (d2 as any).toString(); // expect '11' as result
     }
   });
+  Build.resolve(f.resource);
 
-  expect(await (await f.boot())('event', {})).toEqual('11');
-  expect(dependency.install.calledTwice).toBe(true);
+  expect(await (await Run.resolve(f.entrypoint))('event', {})).toEqual('11');
+  expect((Build.resolve(dependency.install) as sinon.SinonSpy).calledTwice).toBe(true);
 });
-
-// it('should install and bootstrap named dependencies', async () => {
-//   const dependency = {
-//     bootstrap: sinon.fake.returns(Promise.resolve(1)),
-//     install: sinon.fake()
-//   };
-
-//   const f = Lambda.L().spawn(new cdk.Stack(new cdk.App(), 'stack'), 'f', {
-//     depends: Core.Dependency.list({
-//       d1: dependency,
-//       d2: dependency
-//     }),
-//     async handle(_, {d1, d2}) {
-//       return d1.toString() + d2.toString(); // expect '11' as result
-//     }
-//   });
-
-//   expect(await (await f.boot())('event', {})).toEqual('11');
-//   expect(dependency.install.calledTwice).toBe(true);
-// });

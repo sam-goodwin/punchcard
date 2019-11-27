@@ -12,31 +12,28 @@ Punchcard is a TypeScript framework for building cloud applications atop the [AW
 
 Running code in AWS is almost as simple as running it locally!
 ```ts
-export class HelloPunchcardStack extends cdk.Stack {
-  public readonly topic: SNS.Topic<StringShape>;
 
-  constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
+const app = new Core.App();
 
-    this.topic = new SNS.Topic(this, 'Topic', {
-      shape: string()
-    });
+const stack = app.root.map(app => new cdk.Stack(app, 'hello, world!'));
 
-    Lambda.schedule(this, 'SendNotification', {
-      rate: Schedule.rate(Duration.minutes(1)),
-      depends: topic,
-      handle: async(event, topic) => {
-        await topic.publish('Hello, World!');
-      }
-    });
+const topic: SNS.Topic<StringShape> = new SNS.Topic(this, 'Topic', {
+  shape: string()
+});
 
-    const queue = topic.toSQSQueue(this, 'Queue');
-
-    queue.messages().forEach(this, 'ForEachMessge', {
-      handle: async(message) => console.log(`message '${message}' has length ${message.length}`);
-    });
+Lambda.schedule(this, 'SendNotification', {
+  rate: Schedule.rate(Duration.minutes(1)),
+  depends: topic,
+  handle: async(event, topic) => {
+    await topic.publish('Hello, World!');
   }
-}
+});
+
+const queue = topic.toSQSQueue(this, 'Queue');
+
+queue.messages().forEach(this, 'ForEachMessge', {
+  handle: async(message) => console.log(`message '${message}' has length ${message.length}`);
+});
 ```
 
 ## Example Stacks

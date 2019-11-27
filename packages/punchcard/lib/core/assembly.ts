@@ -56,8 +56,8 @@ export class Namespace {
 }
 
 export class Assembly extends Namespace {
-  constructor(scope: core.Construct, properties?: {[key: string]: string}) {
-    super(undefined as any, scope.node.uniqueId, properties || {});
+  constructor(properties?: {[key: string]: string}) {
+    super(undefined as any, 'punchcard', properties || {});
   }
 
   public get properties() {

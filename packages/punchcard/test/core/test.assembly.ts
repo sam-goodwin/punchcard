@@ -10,27 +10,27 @@ const scope: any = {
 
 describe('PropertyBag', () => {
   it('should append prefix keys when setting a value', () => {
-    const bag = new Core.Assembly(scope);
+    const bag = new Core.Assembly();
     bag.set('key', 'value');
     expect(bag.get('key')).toEqual('value');
     expect(bag.properties).toEqual({
-      test_key: 'value'
+      punchcard_key: 'value'
     });
   });
   it('push should add another namespace prefix', () => {
-    const bag = new Core.Assembly(scope);
+    const bag = new Core.Assembly();
     const subBag = bag.namespace('2');
     subBag.set('key', 'value');
     expect(bag.properties).toEqual({
-      test_2_key: 'value'
+      punchcard_2_key: 'value'
     });
     expect(subBag.get('key')).toEqual('value');
   });
   it('get should throw if key does not exist', () => {
-    expect(() => new Core.Assembly(scope).get('key')).toThrow();
+    expect(() => new Core.Assembly().get('key')).toThrow();
   });
   it('tryGet should return undefined if key does not exist', () => {
-    expect(new Core.Assembly(scope).tryGet('key')).toEqual(undefined);
+    expect(new Core.Assembly().tryGet('key')).toEqual(undefined);
   });
 });
 

@@ -4,12 +4,13 @@ import core = require('@aws-cdk/core');
 import 'jest';
 import sinon = require('sinon');
 import { Glue, S3, Shape, Util } from '../../lib';
+import { Build } from '../../lib/core/build';
 const { timestamp } = Shape;
 
-const stack = new core.Stack(new core.App(), 'stack');
-const database = new glue.Database(stack, 'Database', {
+const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
+const database = stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'database'
-});
+}));
 
 const table = new Glue.Table(stack, 'Table', {
   database,

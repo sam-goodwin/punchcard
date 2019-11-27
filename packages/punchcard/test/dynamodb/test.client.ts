@@ -2,11 +2,12 @@ import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import 'jest';
 import { DynamoDB, Shape, } from '../../lib';
+import { Build } from '../../lib/core/build';
 
 describe('HashTable', () => {
   function makeTable<A extends DynamoDB.Attributes, P extends keyof A>(attributes: A, partitionKey: P, mock: AWS.DynamoDB): DynamoDB.Client<P, undefined, A> {
-    const app = new core.App();
-    const stack = new core.Stack(app, 'stack');
+    const app = Build.lazy(() => new core.App());
+    const stack = app.map(app => new core.Stack(app, 'stack'));
     return new DynamoDB.Client(new DynamoDB.Table(stack, 'table', {
       attributes,
       partitionKey,
@@ -305,8 +306,8 @@ describe('HashTable', () => {
 describe('SortedTable', () => {
 // tslint:disable-next-line: max-line-length
   function makeTable<A extends DynamoDB.Attributes, P extends keyof A, S extends keyof A>(attributes: A, partitionKey: P, sortKey: S, mock: AWS.DynamoDB): DynamoDB.Client<P, S, A> {
-    const app = new core.App();
-    const stack = new core.Stack(app, 'stack');
+    const app = Build.lazy(() => new core.App());
+    const stack = app.map(app => new core.Stack(app, 'stack'));
     return new DynamoDB.Client(new DynamoDB.Table(stack, 'table', {
       attributes,
       partitionKey,

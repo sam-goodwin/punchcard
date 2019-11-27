@@ -1,11 +1,14 @@
 import sinon = require('sinon');
 
+import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import 'jest';
 // tslint:disable-next-line: max-line-length
 import { Core, DynamoDB, Shape } from '../../lib';
+import { Build } from '../../lib/core/build';
+import { Run } from '../../lib/core/run';
 
 const scope: any = {
   node: {
@@ -61,23 +64,27 @@ function keyTypeTests(makeTable: (type: Shape.Shape<any>) => void) {
 }
 
 // tests for installing the table into an RunTarget
-function installTests(makeTable: (stack: core.Stack) => DynamoDB.Table<any, any, any>) {
-  function installTest(getRun: (t: DynamoDB.Table<any, any, any>) => Core.Dependency<any>, expectedGrant: keyof DynamoDB.Table<any, any, any>) {
-    const stack = new core.Stack(new core.App(), 'stack');
+function installTests(makeTable: (stack: Build<core.Stack>) => DynamoDB.Table<any, any, any>) {
+  function installTest(getRun: (t: DynamoDB.Table<any, any, any>) => Core.Dependency<any>, expectedGrant: keyof dynamodb.Table) {
+    const app = Build.lazy(() => new core.App({
+      autoSynth: false
+    }));
+    const stack = app.map(app => new core.Stack(app, 'stack'));
+
     const table = makeTable(stack);
-    const tableSpy = sinon.spy(table, expectedGrant);
-    const role = new iam.Role(stack, 'Role', {
+    const tableSpy = Build.resolve(table.resource.map(table => sinon.spy(table, expectedGrant)));
+
+    const role = Build.resolve(stack.map(stack => new iam.Role(stack, 'Role', {
       assumedBy: new iam.ServicePrincipal('lambda.amazonaws.com')
-    });
-    const assembly = new Core.Assembly(scope, {});
-    getRun(table).install(assembly, role);
-    expect(assembly.get('tableName')).toEqual(table.tableName);
+    })));
+    const assembly = new Core.Assembly({});
+    Build.resolve(getRun(table).install)(assembly, role);
+    const tableConstruct = Build.resolve(table.resource);
+
+    expect(assembly.get('tableName')).toEqual(tableConstruct.tableName);
     expect(tableSpy.calledWith(role)).toEqual(true);
     tableSpy.restore();
   }
-  it('default client grants readWriteData', () => {
-    installTest(t => t, 'grantReadWriteData');
-  });
   it('readData', () => {
     installTest(t => t.readAccess(), 'grantReadData');
   });
@@ -93,32 +100,32 @@ function installTests(makeTable: (stack: core.Stack) => DynamoDB.Table<any, any,
 }
 
 // tests for bootstrapping a runnable client from a property bag
-function bootstrapTests(makeTable: (stack: core.Stack) => DynamoDB.Table<any, any, any>) {
+function bootstrapTests(makeTable: (stack: Build<core.Stack>) => DynamoDB.Table<any, any, any>) {
   it('should lookup tableName from properties', async () => {
-    const table = makeTable(new core.Stack(new core.App(), 'hello'));
-    const bag = new Core.Assembly(scope, {});
+    const table = makeTable(Build.of(new core.Stack(new core.App({ autoSynth: false }), 'hello')));
+    const bag = new Core.Assembly({});
     const cache = new Core.Cache();
     bag.set('tableName', 'table-name');
-    const client = await table.bootstrap(bag, cache);
+    const client = await Run.resolve(table.readAccess().bootstrap.map(bootstrap => bootstrap(bag, cache)));
     expect((client as any).tableName).toEqual('table-name');
   });
   it('should create and cache dynamo client', async () => {
-    const table = makeTable(new core.Stack(new core.App(), 'hello'));
-    const bag = new Core.Assembly(scope, {});
+    const table = makeTable(Build.of(new core.Stack(new core.App({ autoSynth: false }), 'hello')));
+    const bag = new Core.Assembly({});
     const cache = new Core.Cache();
     bag.set('tableName', 'table-name');
-    await table.bootstrap(bag, cache);
+    await Run.resolve(table.readAccess().bootstrap.map(bootstrap => bootstrap(bag, cache)));
     expect(cache.has('aws:dynamodb')).toBe(true);
   });
   it('should use cached dynamo client', async () => {
     const ddbClientConstructor = sinon.spy(AWS, 'DynamoDB');
 
-    const table = makeTable(new core.Stack(new core.App(), 'hello'));
-    const bag = new Core.Assembly(scope, {});
+    const table = makeTable(Build.of(new core.Stack(new core.App({ autoSynth: false }), 'hello')));
+    const bag = new Core.Assembly({});
     const cache = new Core.Cache();
     bag.set('tableName', 'table-name');
-    await table.bootstrap(bag, cache);
-    await table.bootstrap(bag, cache);
+    await Run.resolve(table.readAccess().bootstrap.map(bootstrap => bootstrap(bag, cache)));
+    await Run.resolve(table.readAccess().bootstrap.map(bootstrap => bootstrap(bag, cache)));
     expect(ddbClientConstructor.calledOnce).toEqual(true);
 
     ddbClientConstructor.restore();
@@ -128,7 +135,7 @@ function bootstrapTests(makeTable: (stack: core.Stack) => DynamoDB.Table<any, an
 describe('DynamoDB.Table', () => {
   describe('partition key must be S, N or B', () => {
     keyTypeTests(type => {
-      const stack = new core.Stack(new core.App(), 'stack');
+      const stack = Build.of(new core.Stack(new core.App(), 'stack'));
       const table = new DynamoDB.Table(stack, 'table', {
         attributes: {
           key: type
@@ -139,10 +146,11 @@ describe('DynamoDB.Table', () => {
       expect(table.key).toEqual({
         key: type
       });
+      Build.resolve(table.resource);
     });
   });
-  function boringTable(stack?: core.Stack) {
-    stack = stack || new core.Stack(new core.App(), 'stack');
+  function boringTable(stack?: Build<core.Stack>) {
+    stack = stack || Build.of(new core.Stack(new core.App(), 'stack'));
     return new DynamoDB.Table(stack, 'table', {
       attributes: {
         key: Shape.string()
@@ -161,7 +169,7 @@ describe('DynamoDB.Table', () => {
 describe('SortedTable', () => {
   describe('partition and sort keys must be S, N or B', () => {
     keyTypeTests(type => {
-      const stack = new core.Stack(new core.App(), 'stack');
+      const stack = Build.of(new core.Stack(new core.App(), 'stack'));
       const table = new DynamoDB.Table(stack, 'table', {
         attributes: {
           key: type,
@@ -174,10 +182,11 @@ describe('SortedTable', () => {
         key: type,
         sortKey: type
       });
+      Build.resolve(table.resource);
     });
   });
-  function boringTable(stack: core.Stack) {
-    return new DynamoDB.Table(stack, 'table', {
+  function boringTable(stack: Build<core.Stack>) {
+    const d = new DynamoDB.Table(stack, 'table', {
       attributes: {
         key: Shape.string(),
         sortKey: Shape.string()
@@ -185,6 +194,8 @@ describe('SortedTable', () => {
       partitionKey: 'key',
       sortKey: 'sortKey'
     });
+    Build.resolve(d.resource);
+    return d;
   }
   describe('install', () => {
     installTests(boringTable);

@@ -3,12 +3,13 @@ import core = require('@aws-cdk/core');
 
 import 'jest';
 import { Glue, Shape, Util } from '../../lib';
+import { Build } from '../../lib/core/build';
 
 it('should map columns and partition keys to their respective types', () => {
-  const stack = new core.Stack(new core.App(), 'stack');
-  const database = new glue.Database(stack, 'Database', {
+  const stack = Build.of(new core.Stack(new core.App({ autoSynth: false}), 'stack'));
+  const database = stack.map(stack => new glue.Database(stack, 'Database', {
     databaseName: 'database'
-  });
+  }));
 
   const table = new Glue.Table(stack, 'Table', {
     database,
@@ -45,8 +46,8 @@ it('should map columns and partition keys to their respective types', () => {
     },
   });
 
-  expect(table.resource.dataFormat).toEqual(glue.DataFormat.Json);
-  expect(table.resource.columns).toEqual([{
+  expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.Json);
+  expect(Build.resolve(table.resource).columns).toEqual([{
     name: 'boolean',
     type: {
       inputString: 'boolean',
@@ -137,7 +138,7 @@ it('should map columns and partition keys to their respective types', () => {
       isPrimitive: false
     }
   }]);
-  expect(table.resource.partitionKeys).toEqual([{
+  expect(Build.resolve(table.resource).partitionKeys).toEqual([{
     name: 'year',
     type: {
       inputString: 'smallint',
@@ -153,10 +154,10 @@ it('should map columns and partition keys to their respective types', () => {
 });
 
 it('should default to Json Codec', () => {
-  const stack = new core.Stack(new core.App(), 'stack');
-  const database = new glue.Database(stack, 'Database', {
+  const stack = Build.of(new core.Stack(new core.App(), 'stack'));
+  const database = stack.map(stack => new glue.Database(stack, 'Database', {
     databaseName: 'database'
-  });
+  }));
 
   const table = new Glue.Table(stack, 'Table', {
     database,
@@ -175,16 +176,16 @@ it('should default to Json Codec', () => {
   });
 
   expect(table.codec).toEqual(Util.Codec.Json);
-  expect(table.resource.dataFormat).toEqual(glue.DataFormat.Json);
+  expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.Json);
 });
 
-function partitionTest(type: Shape.Shape<any>) {
-  const stack = new core.Stack(new core.App(), 'stack');
-  const database = new glue.Database(stack, 'Database', {
+function partitionTest(type: Shape.Shape<any>): void {
+  const stack = Build.of(new core.Stack(new core.App({ autoSynth: false }), 'stack'));
+  const database = stack.map(stack => new glue.Database(stack, 'Database', {
     databaseName: 'database'
-  });
+  }));
 
-  new Glue.Table(stack, 'Table', {
+  const table = new Glue.Table(stack, 'Table', {
     database,
     codec: Util.Codec.Json,
     tableName: 'table_name',
@@ -200,6 +201,8 @@ function partitionTest(type: Shape.Shape<any>) {
       })
     }
   });
+
+  Build.resolve(table.resource);
 }
 
 it('should not throw if valid partition key type', () => {

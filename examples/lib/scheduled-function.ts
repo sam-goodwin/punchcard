@@ -3,13 +3,17 @@ import cdk = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
 
-import { DynamoDB, Lambda } from 'punchcard';
+import { Core, DynamoDB, Lambda } from 'punchcard';
 import { integer, string } from 'punchcard/lib/shape';
+import { Build } from 'punchcard/lib/core/build';
 
-const app = new cdk.App();
-export default app;
-
-const stack = new cdk.Stack(app, 'scheduled-function-example');
+export const app = new Core.App();
+const stack = app.root.map(app => new cdk.Stack(app, 'scheduled-function-example', {
+  env: {
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION
+  }
+}));
 
 const table = new DynamoDB.Table(stack, 'my-table', {
   partitionKey: 'id',
@@ -20,11 +24,13 @@ const table = new DynamoDB.Table(stack, 'my-table', {
       minimum: 0
     })
   },
-  billingMode: BillingMode.PAY_PER_REQUEST
+  tableProps: Build.lazy(() => ({
+    billingMode: BillingMode.PAY_PER_REQUEST
+  }))
 });
 
 Lambda.schedule(stack, 'Poller', {
-  depends: table,
+  depends: table.readWriteAccess(),
   schedule: Schedule.rate(Duration.minutes(1)),
   handle: async (_, table) => {
     const item = await table.get({

@@ -1,5 +1,6 @@
 import core = require('@aws-cdk/core');
 
+import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Function } from '../lambda/function';
 import { RuntimeShape, Shape } from '../shape';
@@ -22,10 +23,10 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to topic
      */
-    toSNSTopic<DataType extends Shape<T>>(scope: core.Construct, id: string, topicProps: TopicProps<DataType>, runtimeProps?: C): CollectedTopic<DataType, this>;
+    toSNSTopic<DataType extends Shape<T>>(scope: Build<core.Construct>, id: string, topicProps: TopicProps<DataType>, runtimeProps?: C): CollectedTopic<DataType, this>;
   }
 }
-Stream.prototype.toSNSTopic = function(scope: core.Construct, id: string, props: TopicProps<any>): any {
+Stream.prototype.toSNSTopic = function(scope: Build<core.Construct>, id: string, props: TopicProps<any>): any {
   return this.collect(scope, id, new TopicCollector(props));
 };
 
@@ -37,7 +38,7 @@ Stream.prototype.toSNSTopic = function(scope: core.Construct, id: string, props:
 export class TopicCollector<T extends Shape<any>, S extends Stream<any, RuntimeShape<T>, any, any>> implements Collector<CollectedTopic<T, S>, S> {
   constructor(private readonly props: TopicProps<T>) { }
 
-  public collect(scope: core.Construct, id: string, stream: S): CollectedTopic<T, S> {
+  public collect(scope: Build<core.Construct>, id: string, stream: S): CollectedTopic<T, S> {
     return new CollectedTopic(scope, id, {
       ...this.props,
       stream
@@ -60,12 +61,12 @@ export interface CollectedTopicProps<T extends Shape<any>, S extends Stream<any,
  * @typeparam T type of notififcations sent to, and emitted from, the SNS Topic.
  */
 export class CollectedTopic<T extends Shape<any>, S extends Stream<any, any, any, any>> extends Topic<T> {
-  public readonly sender: Function<EventType<S>, void, Dependency.Tuple<Cons<DependencyType<S>, Dependency<Topic.Client<T>>>>>;
+  public readonly sender: Function<EventType<S>, void, Dependency.Concat<Cons<DependencyType<S>, Dependency<Topic.Client<T>>>>>;
 
-  constructor(scope: core.Construct, id: string, props: CollectedTopicProps<T, S>) {
+  constructor(scope: Build<core.Construct>, id: string, props: CollectedTopicProps<T, S>) {
     super(scope, id, props);
     this.sender = props.stream.forBatch(this.resource, 'ToTopic', {
-      depends: this,
+      depends: this.publishAccess(),
       handle: (events, self) => self.sink(events)
     }) as any;
   }
