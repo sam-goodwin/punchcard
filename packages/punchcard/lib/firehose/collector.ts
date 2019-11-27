@@ -69,7 +69,6 @@ export class CollectedDeliveryStream<T extends Shape<any>, S extends Stream<any,
     super(scope, id, props);
     this.sender = props.stream.forBatch(this.resource, 'ToDeliveryStream', {
       depends: this.writeAccess(),
-      handle: (events, self) => self.sink(events)
-    }) as any;
+    }, (events, self) => self.sink(events)) as any;
   }
 }

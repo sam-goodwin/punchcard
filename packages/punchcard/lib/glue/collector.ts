@@ -70,7 +70,6 @@ export class CollectedGlueTable<C extends Columns, P extends PartitionKeys, S ex
     super(scope, id, props);
     this.sender = props.stream.forBatch(this.resource, 'ToTable', {
       depends: this.writeAccess(),
-      handle: (events, self) => self.sink(events)
-    }) as any;
+    }, (events, self) => self.sink(events)) as any;
   }
 }

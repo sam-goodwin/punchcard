@@ -42,14 +42,13 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
    *
    * @param f transformation function
    */
-  public map<U, D2 extends Dependency<any> | undefined>(input: {
-    depends?: D2;
-    handle: (value: T, deps: Client<D2>) => Promise<U>
-  }): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C> {
-    return this.flatMap({
-      depends: input.depends,
-      handle: async (v, c) => [await input.handle(v, c)]
-    });
+  public map<U, D2 extends Dependency<any> | undefined>(
+      input: {
+        depends?: D2;
+      },
+      handle: (value: T, deps: Client<D2>) => Promise<U>): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C> {
+    return this.flatMap( { depends: input.depends },
+      async (v, c) => [await handle(v, c)]);
   }
 
   /**
@@ -60,15 +59,14 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
    *
    * @param f transformation function
    */
-  public flatMap<U, D2 extends Dependency<any> | undefined>(input: {
-    depends?: D2;
-    handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>
-  }): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C> {
+  public flatMap<U, D2 extends Dependency<any> | undefined>(
+      input: { depends?: D2; },
+      handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C> {
     return this.chain({
       depends: (input.depends === undefined ? this.dependencies : [input.depends].concat(this.dependencies)) as any,
       handle: (async function*(values: AsyncIterableIterator<T>, clients: any) {
         for await (const value of values) {
-          for (const mapped of await input.handle(value, clients)) {
+          for (const mapped of await handle(value, clients)) {
             yield mapped;
           }
         }
@@ -114,11 +112,10 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
    * @param f next transformation of a record
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forEach<D2 extends Dependency<any> | undefined>(scope: Build<core.Construct>, id: string, input: {
-    depends?: D2;
-    handle: (value: T, deps: Client<D2>) => Promise<any>;
-    config?: C;
-  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.Concat<D> : Dependency.Concat<Cons<D, D2>>> {
+  public forEach<D2 extends Dependency<any> | undefined>(
+      scope: Build<core.Construct>, id: string,
+      input: { depends?: D2; config?: C; },
+      handle: (value: T, deps: Client<D2>) => Promise<any>): Lambda.Function<E, any, D2 extends undefined ? Dependency.Concat<D> : Dependency.Concat<Cons<D, D2>>> {
     // TODO: let the stream type determine default executor service
     const executorService = (input.config && input.config.executorService) || new Lambda.ExecutorService({
       memorySize: 128,
@@ -128,15 +125,14 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
       depends: input.depends === undefined
         ? Dependency.concat(...this.dependencies)
         : Dependency.concat(input.depends, ...this.dependencies),
-      handle: async (event: E, deps) => {
-        if (input.depends === undefined) {
-          for await (const value of this.run(event, deps as any)) {
-            await input.handle(value, undefined as any);
-          }
-        } else {
-          for await (const value of this.run(event, (deps as any[]).slice(1) as Clients<D>)) {
-            await input.handle(value, deps[0] as Client<D2>);
-          }
+    }, async (event: E, deps) => {
+      if (input.depends === undefined) {
+        for await (const value of this.run(event, deps as any)) {
+          await handle(value, undefined as any);
+        }
+      } else {
+        for await (const value of this.run(event, (deps as any[]).slice(1) as Clients<D>)) {
+          await handle(value, deps[0] as Client<D2>);
         }
       }
     });
@@ -152,12 +148,14 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
    * @param f function to process batch of results
    * @param props optional props for configuring the function consuming from SQS
    */
-  public forBatch<D2 extends Dependency<any> | undefined>(scope: Build<core.Construct>, id: string, input: {
-    depends?: D2;
-    handle: (value: T[], deps: Client<D2>) => Promise<any>;
-    config?: C;
-  }): Lambda.Function<E, any, D2 extends undefined ? Dependency.Concat<D> : Dependency.Concat<Cons<D, D2>>> {
-    return this.batched().forEach(scope, id, input);
+  public forBatch<D2 extends Dependency<any> | undefined>(
+    scope: Build<core.Construct>, id: string,
+    input: {
+      depends?: D2;
+      config?: C;
+    },
+    handle: (value: T[], deps: Client<D2>) => Promise<any>): Lambda.Function<E, any, D2 extends undefined ? Dependency.Concat<D> : Dependency.Concat<Cons<D, D2>>> {
+    return this.batched().forEach(scope, id, input, handle);
   }
 
   /**

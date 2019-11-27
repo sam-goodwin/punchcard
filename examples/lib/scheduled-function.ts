@@ -32,28 +32,27 @@ const table = new DynamoDB.Table(stack, 'my-table', {
 Lambda.schedule(stack, 'Poller', {
   depends: table.readWriteAccess(),
   schedule: Schedule.rate(Duration.minutes(1)),
-  handle: async (_, table) => {
-    const item = await table.get({
-      id: 'state'
-    });
+}, async (_, table) => {
+  const item = await table.get({
+    id: 'state'
+  });
 
-    if (item) {
-      await table.update({
-        key: {
-          id: 'state'
-        },
-        actions: item => [
-          item.count.increment(1)
-        ]
-      });
-    } else {
-      await table.put({
-        item: {
-          id: 'state',
-          count: 1
-        },
-        if: item => DynamoDB.attribute_not_exists(item.id)
-      });
-    }
+  if (item) {
+    await table.update({
+      key: {
+        id: 'state'
+      },
+      actions: item => [
+        item.count.increment(1)
+      ]
+    });
+  } else {
+    await table.put({
+      item: {
+        id: 'state',
+        count: 1
+      },
+      if: item => DynamoDB.attribute_not_exists(item.id)
+    });
   }
 });

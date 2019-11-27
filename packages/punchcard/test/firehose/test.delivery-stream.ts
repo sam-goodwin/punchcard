@@ -28,11 +28,9 @@ describe('run', () => {
     });
 
     const results: Array<{key: string}> = [];
-    await (stream.objects().forEach(stack, 'id', {
-      async handle(v) {
-        results.push(v);
-        return Promise.resolve(v);
-      }
+    await (stream.objects().forEach(stack, 'id', {}, async (v) => {
+      results.push(v);
+      return Promise.resolve(v);
     }).handle({
       Records: [{
         s3: {
@@ -64,10 +62,8 @@ describe('run', () => {
       shape: Shape.struct({key: Shape.string()})
     });
 
-    expect((stream.objects().forEach(stack, 'id', {
-      async handle(v) {
-        // do nothing
-      }
+    expect((stream.objects().forEach(stack, 'id', {}, async (v) => {
+      // do nothing
     }).handle({
       Records: [{
         s3: {

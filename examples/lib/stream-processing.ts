@@ -70,31 +70,32 @@ Lambda.schedule(stack, 'DummyData', {
     topic.publishAccess(),
     enrichments.writeAccess()),
 
+  
+}, async (_, [topic, table]) => {
   /**
    * Impement the Lambda Function.
    * 
-   * We will be passed clients for each of our dependencies: the `topic` and `table`.
+   * We are passed clients for each of our dependencies: the `topic` and `table`.
    */
-  handle: async (_, [topic, table]) => {
-    const key = uuid();
-    // write some data to the dynamodb table
-    await table.put({
-      item: {
-        key,
-        tags: ['some', 'tags']
-      }
-    });
 
-    // send 3 SNS notifications
-    await Promise.all([1, 2, 3].map(async (i) => {
-      // message is structured and strongly typed (based on our Topic definition above)
-      await topic.publish({
-        key,
-        count: i,
-        timestamp: new Date(),
-      });
-    }));
-  }
+  const key = uuid();
+  // write some data to the dynamodb table
+  await table.put({
+    item: {
+      key,
+      tags: ['some', 'tags']
+    }
+  });
+
+  // send 3 SNS notifications
+  await Promise.all([1, 2, 3].map(async (i) => {
+    // message is structured and strongly typed (based on our Topic definition above)
+    await topic.publish({
+      key,
+      count: i,
+      timestamp: new Date(),
+    });
+  }));
 });
 
 /**
@@ -102,11 +103,10 @@ Lambda.schedule(stack, 'DummyData', {
  *
  * SNS -> Lambda
  */
-topic.notifications().forEach(stack, 'ForEachNotification', {
-  async handle(message) {
-    console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`);
-  }
-});
+topic.notifications().forEach(stack, 'ForEachNotification', {},
+  async (message) => {
+    console.log(`received notification '${message.key}' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`)
+  });
 
 /**
  * Subscribe SNS Topic to a SQS Queue:
@@ -126,18 +126,17 @@ const queue = topic.toSQSQueue(stack, 'Queue');
 const stream = queue.messages() // gives us a nice chainable API
   .map({
     depends: enrichments.readAccess(),
-    handle: async(message, e) => {
-      // here we transform messages received from SQS by looking up some data in DynamoDB
-      const enrichment = await e.get({
-        key: message.key
-      });
+  }, async(message, e) => {
+    // here we transform messages received from SQS by looking up some data in DynamoDB
+    const enrichment = await e.get({
+      key: message.key
+    });
 
-      return {
-        ...message,
-        tags: enrichment ? enrichment.tags : [],
-        timestamp: new Date()
-      };
-    }
+    return {
+      ...message,
+      tags: enrichment ? enrichment.tags : [],
+      timestamp: new Date()
+    };
   })
   .toKinesisStream(stack, 'Stream', {
     // encrypt values in the stream with a customer-managed KMS key.

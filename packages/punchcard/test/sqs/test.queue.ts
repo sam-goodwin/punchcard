@@ -17,11 +17,9 @@ describe('run', () => {
     });
 
     const results: string[] = [];
-    await (queue.messages().forEach(stack, 'od', {
-      async handle(v) {
-        results.push(v);
-        return Promise.resolve(v);
-      }
+    await (queue.messages().forEach(stack, 'od', {}, async (v) => {
+      results.push(v);
+      return Promise.resolve(v);
     }).handle({
       Records: [{
       body: JSON.stringify('string')
@@ -37,11 +35,9 @@ describe('run', () => {
     });
 
     const results: string[] = [];
-    await (queue.messages().forEach(stack, 'od', {
-      async handle(v) {
-        results.push(v);
-        return Promise.resolve(v);
-      }
+    await (queue.messages().forEach(stack, 'od', {}, async (v) => {
+      results.push(v);
+      return Promise.resolve(v);
     }).handle({
       Records: [{
       body: JSON.stringify('string')
@@ -68,17 +64,15 @@ describe('run', () => {
     const results: number[] = [];
     const f = await (Run.resolve(queue.messages().map({
       depends: d1,
-      handle: async (v, d1) => {
-        expect(d1).toEqual('d1');
-        return v.length;
-      }
+    }, async (v, d1) => {
+      expect(d1).toEqual('d1');
+      return v.length;
     }).forEach(stack, 'od', {
       depends: d2,
-      handle: async (v, d2) => {
-        expect(d2).toEqual('d2');
-        results.push(v);
-        return Promise.resolve(v);
-      }
+    }, async (v, d2) => {
+      expect(d2).toEqual('d2');
+      results.push(v);
+      return Promise.resolve(v);
     }).entrypoint));
 
     await f({
@@ -104,10 +98,9 @@ describe('run', () => {
     const stream = queue.messages()
       .map({
         depends: d1,
-        handle: async (v, d1) => {
-          expect(d1).toEqual('d1');
-          return v.length;
-        }
+      }, async (v, d1) => {
+        expect(d1).toEqual('d1');
+        return v.length;
       })
       .collect(stack, 'Stream', Util.Collectors.toKinesisStream({
         shape: Shape.integer()
@@ -140,10 +133,9 @@ describe('run', () => {
     const stream = queue.messages()
       .map({
         depends: d1,
-        handle: async (v, d1) => {
-          expect(d1).toEqual('d1');
-          return v.length;
-        }
+      }, async (v, d1) => {
+        expect(d1).toEqual('d1');
+        return v.length;
       })
       .toKinesisStream(stack, 'Stream', {
         shape: Shape.integer()

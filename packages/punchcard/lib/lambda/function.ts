@@ -40,11 +40,6 @@ export interface FunctionProps<T, U, D extends Dependency<any> | undefined = und
   depends?: D;
 
   /**
-   * Function to handle the event of type `T`, given initialized client instances `Clients<C>`.
-   */
-  handle: (event: T, run: Client<D>, context: any) => Promise<U>;
-
-  /**
    * Extra Lambda Function Props.
    */
   functionProps?: Build<Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>>
@@ -83,7 +78,8 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
   private readonly response?: Shape<U>;
   private readonly dependencies?: D;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>) {
+  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: T, run: Client<D>, context: any) => Promise<U>) {
+    this.handle = handle;
     const entrypointId = Global.addEntrypoint(this);
 
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
@@ -135,8 +131,6 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
         }
       });
     });
-
-    this.handle = props.handle;
 
     this.request = props.request;
     this.response = props.response;

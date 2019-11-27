@@ -67,7 +67,6 @@ export class CollectedTopic<T extends Shape<any>, S extends Stream<any, any, any
     super(scope, id, props);
     this.sender = props.stream.forBatch(this.resource, 'ToTopic', {
       depends: this.publishAccess(),
-      handle: (events, self) => self.sink(events)
-    }) as any;
+    }, (events, self) => self.sink(events)) as any;
   }
 }

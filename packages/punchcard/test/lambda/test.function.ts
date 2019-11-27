@@ -17,10 +17,7 @@ describe('Function', () => {
       install: Build.of((namespace, grantable) => namespace.set('test', 'value')),
       bootstrap: Run.of(async () => null)
     };
-    const f = Lambda.L().spawn(stack, 'function', {
-      depends: client,
-      handle: null as any
-    });
+    const f = Lambda.L().spawn(stack, 'function', {depends: client, }, null as any);
     const fn = Build.resolve(f.resource);
     expect((fn as any).environment[`punchcard_test`]).toEqual('value');
   });
@@ -33,8 +30,7 @@ describe('Function', () => {
     const fake = sinon.fake();
     const f = new Lambda.Function(stack, 'function', {
       depends: client,
-      handle: fake
-    });
+    }, fake);
     const handler = await Run.resolve(f.entrypoint);
     await handler(null, null);
     expect(fake.args[0][1]).toEqual('client');
@@ -142,9 +138,8 @@ it('should install and bootstrap dependencies', async () => {
 
   const f = Lambda.L().spawn(Build.of(new core.Stack(new core.App( { autoSynth: false }), 'stack')), 'f', {
     depends: dependency,
-    async handle(_, dep: any) {
-      return dep.toString(); // expect '1' as result
-    }
+  }, async (_, dep: any) => {
+    return dep.toString(); // expect '1' as result
   });
   Build.resolve(f.resource);
 
@@ -160,9 +155,8 @@ it('should install and bootstrap nested dependencies', async () => {
 
   const f = Lambda.L().spawn(Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack')), 'f', {
     depends: Core.Dependency.concat(dependency, dependency),
-    async handle(_, [d1, d2]) {
-      return (d1 as any).toString() + (d2 as any).toString(); // expect '11' as result
-    }
+  }, async (_, [d1, d2]) => {
+    return (d1 as any).toString() + (d2 as any).toString(); // expect '11' as result
   });
   Build.resolve(f.resource);
 

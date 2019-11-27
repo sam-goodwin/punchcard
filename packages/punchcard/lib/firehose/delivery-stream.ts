@@ -195,33 +195,32 @@ class Validator<S extends Shape<any>> {
 
     this.processor = executorService.spawn(scope, 'Processor', {
       depends: Dependency.none,
-      handle: async (event: FirehoseEvent) => {
-        const response: FirehoseResponse = {records: []};
-        event.records.forEach(record => {
-          try {
-            const data = new Buffer(record.data, 'base64');
-            const parsed = props.mapper.read(data);
-            let result = ValidationResult.Ok;
-            if (props.validate) {
-              result = props.validate(parsed);
-            }
-            response.records.push({
-              result: props.validate ? props.validate(parsed) : ValidationResult.Ok,
-              recordId: record.recordId,
-              data: result === ValidationResult.Ok
-                ? props.mapper.write(parsed).toString('base64') // re-format the data if OK
-                : record.data // original record if dropped or processing failed
-            });
-          } catch (err) {
-            response.records.push({
-              result: ValidationResult.ProcessingFailed,
-              recordId: record.recordId,
-              data: record.data
-            });
+    }, async (event: FirehoseEvent) => {
+      const response: FirehoseResponse = {records: []};
+      event.records.forEach(record => {
+        try {
+          const data = new Buffer(record.data, 'base64');
+          const parsed = props.mapper.read(data);
+          let result = ValidationResult.Ok;
+          if (props.validate) {
+            result = props.validate(parsed);
           }
-        });
-        return response;
-      }
+          response.records.push({
+            result: props.validate ? props.validate(parsed) : ValidationResult.Ok,
+            recordId: record.recordId,
+            data: result === ValidationResult.Ok
+              ? props.mapper.write(parsed).toString('base64') // re-format the data if OK
+              : record.data // original record if dropped or processing failed
+          });
+        } catch (err) {
+          response.records.push({
+            result: ValidationResult.ProcessingFailed,
+            recordId: record.recordId,
+            data: record.data
+          });
+        }
+      });
+      return response;
     });
   }
 }

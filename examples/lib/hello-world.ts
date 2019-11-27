@@ -11,6 +11,5 @@ const stack = app.root.map(app => new cdk.Stack(app, 'hello-world', {
 }));
 
 Lambda.schedule(stack, 'MyFunction', {
-  schedule: Schedule.rate(cdk.Duration.minutes(1)),
-  handle: async() => console.log('Hello, World!')
-});
+  schedule: Schedule.rate(cdk.Duration.minutes(1))
+}, async() => console.log('Hello, World!'));
