@@ -30,6 +30,7 @@
   ],
   "devDependencies": {
     "@aws-cdk/assert": "^1.18.0",
+    "@types/webpack": "^4.41.0",
     "sinon": "^7.3.2",
     "tslint": "^5.16.0",
     "typescript": "^3.7.2"

@@ -6,8 +6,6 @@ import path = require('path');
 
 import { WEBPACK_MODE } from '../util/constants';
 
-import webpack = require('webpack');
-
 class MockCode extends lambda.Code {
   public readonly isInline: boolean = true;
 
@@ -42,7 +40,7 @@ export namespace Code {
     return (findApp(scope) as any)[symbol];
   }
 
-  export function initCode(app: cdk.App, externals: string[], plugins: webpack.Plugin[], cb: (code: lambda.Code) => void): void {
+  export function initCode(app: cdk.App, externals: string[], plugins: any[], cb: (code: lambda.Code) => void): void {
     class MockCode extends lambda.Code {
       public readonly isInline: boolean = true;
 
@@ -73,6 +71,8 @@ export namespace Code {
       if (!fs.existsSync(codePath)) {
         fs.mkdirSync(codePath);
       }
+
+      const webpack = require('webpack');
 
       const compiler = webpack({
         mode: app.node.tryGetContext(WEBPACK_MODE) || 'production',
