@@ -14,9 +14,10 @@ import { Mapper, RuntimeShape, Shape } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Client } from './client';
-import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from './delivery-stream-construct';
 import { FirehoseEvent, FirehoseResponse, ValidationResult } from './event';
 import { Objects } from './objects';
+
+import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from '@punchcard/constructs';
 
 export type DeliveryStreamProps<S extends Shape<any>> = DeliveryStreamDirectPut<S> | DeliveryStreamFromKinesis<S>;
 

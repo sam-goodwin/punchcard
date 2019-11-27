@@ -36,6 +36,12 @@ export class App {
     }
   }
 
+  public removeImports(resourceRegExp: RegExp): void{
+    this.addPlugin(new webpack.IgnorePlugin({
+      resourceRegExp
+    }));
+  }
+
   public addExternal(external: string): void {
     this.externals.add(external);
   }
