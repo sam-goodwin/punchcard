@@ -10,8 +10,8 @@ import { integer, string, timestamp, char, array, } from 'punchcard/lib/shape';
 export const app = new Core.App();
 const stack = app.root.map(app => new core.Stack(app, 'data-lake', {
   env: {
-    account: '785049305830',
-    region: 'us-west-2'
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION
   }
 }));
 

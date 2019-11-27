@@ -10,8 +10,8 @@ import { Build } from 'punchcard/lib/core/build';
 export const app = new Core.App();
 const stack = app.root.map(app => new cdk.Stack(app, 'scheduled-function-example', {
   env: {
-    account: '785049305830',
-    region: 'us-west-2'
+    account: process.env.CDK_DEFAULT_ACCOUNT,
+    region: process.env.CDK_DEFAULT_REGION
   }
 }));
 
