@@ -48,7 +48,7 @@ await table.put({
   item: {
     id: 'state',
     count: 1,
-    //invalid: 'value', // does not conmpile
+    //invalid: 'value', // does not compile
   },
 })
 ```
