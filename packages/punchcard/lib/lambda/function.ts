@@ -42,7 +42,7 @@ export interface FunctionProps<T, U, D extends Dependency<any> | undefined = und
   /**
    * Extra Lambda Function Props.
    */
-  functionProps?: Build<Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>>
+  functionProps?: Build<Omit<lambda.FunctionProps, 'code' | 'handler'>>
 }
 
 /**
@@ -84,9 +84,9 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
 
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
       const lambdaFunction = new lambda.Function(scope, id, {
+        runtime: lambda.Runtime.NODEJS_12_X,
         ...functionProps,
         code: Code.tryGetCode(scope) || Code.mock,
-        runtime: lambda.Runtime.NODEJS_10_X,
         handler: 'index.handler',
       });
       lambdaFunction.addEnvironment('is_runtime', 'true');
