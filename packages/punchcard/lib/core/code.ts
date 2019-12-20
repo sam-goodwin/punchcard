@@ -4,6 +4,8 @@ import cdk = require('@aws-cdk/core');
 import fs = require('fs');
 import path = require('path');
 
+import { Compiler, Configuration } from 'webpack';
+
 import { WEBPACK_MODE } from '../util/constants';
 
 class MockCode extends lambda.Code {
@@ -74,7 +76,7 @@ export namespace Code {
 
       const webpack = require('webpack');
 
-      const compiler = webpack({
+      const config: Configuration = {
         mode: app.node.tryGetContext(WEBPACK_MODE) || 'production',
         entry: index,
         target: 'node',
@@ -83,9 +85,20 @@ export namespace Code {
           filename: 'app.js',
           libraryTarget: 'umd',
         },
+        resolve: {
+          // Add `.ts` and `.tsx` as a resolvable extension.
+          extensions: [".ts", ".tsx", ".js"]
+        },
+        module: {
+          rules: [
+            // all files with a `.ts` or `.tsx` extension will be handled by `ts-loader`
+            { test: /\.tsx?$/, loader: "ts-loader" }
+          ]
+        },
         externals,
         plugins
-      });
+      };
+      const compiler: Compiler = webpack(config);
 
       fs.writeFileSync(path.join(codePath, 'index.js'), `
   require('./app');
@@ -111,9 +124,13 @@ export namespace Code {
   `);
 
       // TODO: fix this - it's async so the code asset is usually built before the file is written
-      compiler.run((err: Error) => {
+      compiler.run((err, stats) => {
         if (err) {
-          console.log(err);
+          console.error(err);
+        } else if (stats?.compilation?.errors?.length) {
+          // Sometimes the err will be null, but the errors array won't, so map each
+          // one individually to the console
+          stats.compilation.errors.map((s) => console.error(s));
         }
         (app as any)[symbol] = lambda.Code.asset(codePath);
         cb((app as any)[symbol]);
