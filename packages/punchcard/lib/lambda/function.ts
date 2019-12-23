@@ -121,6 +121,7 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
       const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forShape(this.request);
       const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forShape(this.response);
       return (async (event: any, context: any) => {
+        context.callbackWaitsForEmptyEventLoop = false;
         const parsed = requestMapper.read(event);
         try {
           const result = await this.handle(parsed, client, context);

@@ -50,7 +50,7 @@ export class ExecutorService {
       if (!resource) {
         throw new Error(`could not resolve resource handler for resourceId: ${resourceId}`);
       }
-      return await resource.handle(event, runtimeContext);
+      return resource.handle(event, runtimeContext);
     });
     const integration = new LambdaIntegration(handler);
     return integration;

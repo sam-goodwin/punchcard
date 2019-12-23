@@ -103,10 +103,11 @@ export namespace Code {
   }
   var handler;
   exports.handler = async (event, context) => {
+    context.callbackWaitsForEmptyEventLoop = false;
     if (!handler) {
       handler = await entrypoint.entrypoint[Symbol.for('Runtime.get')]();
     }
-    return await handler(event, context);
+    return handler(event, context);
   }
   `);
 
