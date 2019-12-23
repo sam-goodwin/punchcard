@@ -130,7 +130,7 @@ export namespace Code {
         } else if (stats?.compilation?.errors?.length) {
           // Sometimes the err will be null, but the errors array won't, so map each
           // one individually to the console
-          stats.compilation.errors.map((s) => console.error(s));
+          stats.compilation.errors.map((s) => console.error(s.message ?? s));
         }
         (app as any)[symbol] = lambda.Code.asset(codePath);
         cb((app as any)[symbol]);
