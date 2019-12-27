@@ -13,12 +13,7 @@ import { Build } from 'punchcard/lib/core/build';
 
 export const app = new Core.App();
 
-const stack = app.root.map(app => new cdk.Stack(app, 'stream-processing', {
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT,
-    region: process.env.CDK_DEFAULT_REGION
-  }
-}));
+const stack = app.root.map(app => new cdk.Stack(app, 'stream-processing'));
 
 /**
  * Create a SNS Topic.
