@@ -1,12 +1,13 @@
 import cdk = require('@aws-cdk/core');
 
+import { Plugin } from 'webpack';
 import { Build } from './build';
 import { Code } from './code';
 
 export class App {
   public readonly root: Build<cdk.App>;
   public readonly externals: Set<string> = new Set();
-  public readonly plugins: any[] = [];
+  public readonly plugins: Plugin[] = [];
 
   constructor() {
     this.root = Build.lazy(() => new cdk.App({
@@ -44,7 +45,7 @@ export class App {
     this.externals.delete(external);
   }
 
-  public addPlugin(plugin: any): void {
+  public addPlugin(plugin: Plugin): void {
     this.plugins.push(plugin);
   }
 }
