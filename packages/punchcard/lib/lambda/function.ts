@@ -84,7 +84,7 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
 
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
       const lambdaFunction = new lambda.Function(scope, id, {
-        runtime: lambda.Runtime.NODEJS_12_X,
+        runtime: lambda.Runtime.NODEJS_10_X,
         ...functionProps,
         code: Code.tryGetCode(scope) || Code.mock,
         handler: 'index.handler',
