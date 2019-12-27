@@ -26,17 +26,23 @@ export class ExecutorService {
   }) {}
 
   public spawn<T, U, D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handler: (event: T, clients: Client<D>, context: any) => Promise<U>): Function<T, U, D> {
-    return new Function<T, U, D>(scope, id, {
-      ...this.props,
-      ...props
-    }, handler);
+    return new Function<T, U, D>(scope, id, this.applyDefaultProps(props), handler);
   }
 
   public schedule<D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: ScheduleProps<D>, handler: (event: CloudWatch.Event, clients: Client<D>, context: any) => Promise<any>): Function<CloudWatch.Event, any, D> {
-    return schedule(scope, id, {
-      ...this.props,
-      ...props
-    }, handler);
+    return schedule(scope, id, this.applyDefaultProps(props), handler);
+  }
+
+  private applyDefaultProps<P extends FunctionProps<any, any, any>>(props: P): P {
+    if (props.functionProps) {
+      props.functionProps = props.functionProps.map(p => ({
+        ...this.props,
+        ...p,
+      }));
+    } else {
+      props.functionProps = Build.of(this.props);
+    }
+    return props;
   }
 
   public apiIntegration<D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: {

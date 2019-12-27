@@ -285,6 +285,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 128,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ForEachDataPointServiceRole11B2F00E",
@@ -292,6 +293,7 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
+        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
@@ -643,6 +645,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 128,
         "Role": Object {
           "Fn::GetAtt": Array [
             "LakeDatabasedataPointsToGlueToTableServiceRole67CA1129",
@@ -650,6 +653,7 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
+        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
@@ -1104,6 +1108,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "LakeDatabasedataPointsToS3ProcessorServiceRole1138340D",
@@ -1111,6 +1116,7 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
+        "Timeout": 60,
       },
       "Type": "AWS::Lambda::Function",
     },
@@ -1756,6 +1762,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 512,
         "Role": Object {
           "Fn::GetAtt": Array [
             "MyEndpointServiceRole3F5D1E79",
@@ -3262,6 +3269,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 128,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ForEachNotificationServiceRole460EBC3F",
@@ -3269,6 +3277,7 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
+        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
@@ -3487,6 +3496,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 128,
         "Role": Object {
           "Fn::GetAtt": Array [
             "StreamToStreamServiceRole00FC6AF4",
@@ -3494,6 +3504,7 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
+        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
@@ -3759,6 +3770,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 128,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ToGlueToTableServiceRole53B96987",
@@ -3766,6 +3778,7 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
+        "Timeout": 10,
       },
       "Type": "AWS::Lambda::Function",
     },
@@ -4198,6 +4211,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ToS3ProcessorServiceRoleECCCE576",
@@ -4205,6 +4219,7 @@ Object {
           ],
         },
         "Runtime": "nodejs10.x",
+        "Timeout": 60,
       },
       "Type": "AWS::Lambda::Function",
     },
