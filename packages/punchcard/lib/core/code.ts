@@ -124,13 +124,13 @@ export namespace Code {
   `);
 
       // TODO: fix this - it's async so the code asset is usually built before the file is written
-      compiler.run((err, stats) => {
+      compiler.run((err: any, stats: any) => {
         if (err) {
           console.error(err);
         } else if (stats?.compilation?.errors?.length) {
           // Sometimes the err will be null, but the errors array won't, so map each
           // one individually to the console
-          stats.compilation.errors.map((s) => console.error(s.message ?? s));
+          stats.compilation.errors.map((s: any) => console.error(s.message ?? s));
         }
         (app as any)[symbol] = lambda.Code.asset(codePath);
         cb((app as any)[symbol]);
