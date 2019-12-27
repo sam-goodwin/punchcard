@@ -110,7 +110,6 @@ export namespace Code {
   }
   `);
 
-      // TODO: fix this - it's async so the code asset is usually built before the file is written
       compiler.run((err: Error) => {
         if (err) {
           console.log(err);
