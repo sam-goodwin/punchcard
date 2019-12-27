@@ -82,7 +82,9 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
     this.handle = handle;
     const entrypointId = Global.addEntrypoint(this);
 
+    console.log('props.functionProps', props.functionProps);
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
+      console.log('functionProps', functionProps);
       const lambdaFunction = new lambda.Function(scope, id, {
         ...functionProps,
         code: Code.tryGetCode(scope) || Code.mock,
