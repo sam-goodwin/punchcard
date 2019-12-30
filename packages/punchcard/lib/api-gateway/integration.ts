@@ -4,6 +4,7 @@ import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource as RResource } from '../core/resource';
 import * as Lambda from '../lambda';
+import { TreeFields } from '../util';
 import { Omit } from '../util/omit';
 import { Resource } from './resource';
 
@@ -31,13 +32,15 @@ export class LambdaIntegration<R extends Dependency<any>> implements Integration
   }
 
   public mapResource(resource: Resource) {
+    const id = resource[TreeFields.path].replace(/[^a-zA-Z_0-9]/g, '_');
+    this.resourceMappings[id] = resource; // TODO: mutability here seems bad
+
     return Build
       .concat(this.fn.resource, resource.resource)
       .map(([fn, r]) => {
         // TODO: namespace _resource_ consistently with other bootstraps
 
-        fn.addEnvironment(`${resourceIdPrefix}${r.node.uniqueId}`, r.resourceId);
-        this.resourceMappings[r.node.uniqueId] = resource; // TODO: mutability here seems bad
+        fn.addEnvironment(`${resourceIdPrefix}${id}`, r.resourceId);
       });
   }
 

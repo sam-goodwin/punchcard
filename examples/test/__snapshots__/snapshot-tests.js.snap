@@ -1759,6 +1759,12 @@ Object {
             "punchcard_tableName": Object {
               "Ref": "petstore3A6A0F62",
             },
+            "resource_id___pets": Object {
+              "Ref": "PetApipetsC3752A49",
+            },
+            "resource_id___pets__id_": Object {
+              "Ref": "PetApipetsidBC2D20F8",
+            },
           },
         },
         "Handler": "index.handler",
