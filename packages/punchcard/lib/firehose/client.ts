@@ -4,7 +4,9 @@ import { Json, Mapper, Shape } from '../shape';
 import { Sink, sink, SinkProps } from '../util/sink';
 import { DeliveryStream } from './delivery-stream';
 
-export type PutRecordInput<T> = { Record: T; };
+export interface PutRecordInput<T> {
+  Record: T;
+}
 
 export class Client<T> implements Sink<T> {
   public readonly mapper: Mapper<T, string>;

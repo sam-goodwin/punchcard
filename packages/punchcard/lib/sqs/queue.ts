@@ -107,16 +107,20 @@ export class Queue<S extends Shape<any>> implements Resource<sqs.Queue> {
  * Namespace for `Queue` type aliases and its `Client` implementation.
  */
 export namespace Queue {
-  export type ConsumeAndSendClient<T extends Shape<any>> = Client<T>;
-  export type ConsumeClient<T extends Shape<any>> = Omit<Client<T>, 'sendMessage' | 'sendMessageBatch'>;
-  export type SendClient<T extends Shape<any>> = Omit<Client<T>, 'receiveMessage'>;
+  export interface ConsumeAndSendClient<T extends Shape<any>> extends Client<T> {}
+  export interface ConsumeClient<T extends Shape<any>> extends Omit<Client<T>, 'sendMessage' | 'sendMessageBatch'> {}
+  export interface SendClient<T extends Shape<any>> extends Omit<Client<T>, 'receiveMessage'> {}
 
-  export type ReceiveMessageRequest = Omit<AWS.SQS.ReceiveMessageRequest, 'QueueUrl'>;
+  export interface ReceiveMessageRequest extends Omit<AWS.SQS.ReceiveMessageRequest, 'QueueUrl'> {}
   export type ReceiveMessageResult<T extends Shape<any>> = Array<{Body: RuntimeShape<T>} & Omit<AWS.SQS.Message, 'Body'>>;
   export type SendMessageRequest<T extends Shape<any>> = {MessageBody: RuntimeShape<T>} & Omit<AWS.SQS.SendMessageRequest, 'QueueUrl' | 'MessageBody'>;
-  export type SendMessageResult = AWS.SQS.SendMessageResult;
-  export type SendMessageBatchRequest<T extends Shape<any>> = Array<{MessageBody: RuntimeShape<T>} & Omit<AWS.SQS.SendMessageBatchRequestEntry, 'MessageBody'>>;
-  export type SendMessageBatchResult = AWS.SQS.SendMessageBatchResult;
+  export interface SendMessageResult extends AWS.SQS.SendMessageResult {}
+
+  export interface SendMessageBatchRequestEntry<T extends Shape<any>> extends _SendMessageBatchRequestEntry<T> {}
+  type _SendMessageBatchRequestEntry<T extends Shape<any>> = {MessageBody: RuntimeShape<T>} & Omit<AWS.SQS.SendMessageBatchRequestEntry, 'MessageBody'>;
+
+  export interface SendMessageBatchRequest<T extends Shape<any>> extends Array<SendMessageBatchRequestEntry<T>> {}
+  export interface SendMessageBatchResult extends AWS.SQS.SendMessageBatchResult {}
 
   /**
    * Runtime representation of a SQS Queue.
@@ -156,7 +160,7 @@ export namespace Queue {
     /**
      * Delivers a batch of messages to the specified queue.
      */
-    public sendMessageBatch(request: SendMessageBatchRequest<T>): Promise<AWS.SQS.SendMessageBatchResult> {
+    public sendMessageBatch(request: SendMessageBatchRequest<T>): Promise<SendMessageBatchResult> {
       return this.client.sendMessageBatch({
         QueueUrl: this.queueUrl,
         Entries: request.map(record => ({

@@ -188,6 +188,7 @@ class Validator<S extends Shape<any>> {
   public readonly processor: Function<FirehoseEvent, FirehoseResponse, Dependency.None>;
 
   constructor(scope: Build<core.Construct>, id: string, props: ValidatorProps<S>) {
+    scope = scope.map(scope => new core.Construct(scope, id));
     const executorService = props.executorService || new ExecutorService({
       memorySize: 256,
       timeout: core.Duration.seconds(60)

@@ -9,7 +9,8 @@ import { Client } from '../core/client';
 import { Dependency } from '../core/dependency';
 import { Function, FunctionProps } from './function';
 
-export type ScheduleProps<D extends Dependency<any>> = FunctionProps<CloudWatch.Event, any, D> & {
+export interface ScheduleProps<D extends Dependency<any>> extends _ScheduleProps<D> {}
+type _ScheduleProps<D extends Dependency<any>> = FunctionProps<CloudWatch.Event, any, D> & {
   schedule: events.Schedule;
 };
 

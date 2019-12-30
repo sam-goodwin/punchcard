@@ -6,7 +6,8 @@ import { Stream as SStream } from '../util/stream';
 import { Event } from './event';
 import { Stream } from './stream';
 
-export type Config = SStream.Config & events.KinesisEventSourceProps;
+export interface Config extends _Config {}
+type _Config = SStream.Config & events.KinesisEventSourceProps;
 
 /**
  * A `Stream` of Records from a Kinesis Stream.

@@ -21,16 +21,16 @@ import { Sink } from '../util/sink';
 /**
  * A Glue Table's Columns.
  */
-export type Columns = {
+export interface Columns {
   [key: string]: Shape<any>;
-};
+}
 
 /**
  * A Glue Table's Partition Keys.
  */
-export type PartitionKeys = {
+export interface PartitionKeys {
   [key: string]: Shape<string> | Shape<number>;
-};
+}
 
 /**
  * Augmentation of `glue.TableProps`, using a `Shape` to define the
@@ -235,21 +235,21 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
   /**
    * Runtime dependency with read/write access to the Table and S3 Bucket.
    */
-  public readWriteAccess(): Dependency<Table.ReadWriteClient<C, P>> {
+  public readWriteAccess(): Dependency<Table.ReadWrite<C, P>> {
     return this.client((t, g) => t.grantReadWrite(g), this.bucket.readWriteAccess());
   }
 
   /**
    * Runtime dependency with read access to the Table and S3 Bucket.
    */
-  public readAccess(): Dependency<Table.ReadClient<C, P>> {
+  public readAccess(): Dependency<Table.ReadOnly<C, P>> {
     return this.client((t, g) => t.grantRead(g), this.bucket.readAccess());
   }
 
   /**
    * Runtime dependency with write access to the Table and S3 Bucket.
    */
-  public writeAccess(): Dependency<Table.WriteClient<C, P>> {
+  public writeAccess(): Dependency<Table.WriteOnly<C, P>> {
     return this.client((t, g) => t.grantWrite(g), this.bucket.writeAccess());
   }
 
@@ -279,22 +279,29 @@ export namespace Table {
   /**
    * Client type aliaes.
    */
-  export type ReadWriteClient<C extends Columns, P extends PartitionKeys> = Table.Client<C, P>;
-  export type ReadClient<C extends Columns, P extends PartitionKeys> = Omit<Table.Client<C, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'>;
-  export type WriteClient<C extends Columns, P extends PartitionKeys> = Omit<Table.Client<C, P>, 'getPartitions'>;
+  export interface ReadWrite<C extends Columns, P extends PartitionKeys> extends Table.Client<C, P> {}
+  export interface ReadOnly<C extends Columns, P extends PartitionKeys> extends Omit<Table.Client<C, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'> {}
+  export interface WriteOnly<C extends Columns, P extends PartitionKeys> extends Omit<Table.Client<C, P>, 'getPartitions'> {}
 
   /**
    * Request and Response aliases.
    */
-  export type GetPartitionsRequest = Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'>;
-  export type GetPartitionsResponse<P extends PartitionKeys> = {Partitions: Array<{
+  export interface GetPartitionsRequest extends Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'> {}
+  export interface GetPartitionsResponse<P extends PartitionKeys> extends _GetPartitionsResponse<P> {}
+  type _GetPartitionsResponse<P extends PartitionKeys> = {Partitions: Array<{
     Values: RuntimeShape<StructShape<P>>;
   } & Omit<AWS.Glue.Partition, 'Values'>>};
-  export type CreatePartitionRequest<P extends PartitionKeys> = {Partition: RuntimeShape<StructShape<P>>, Location: string, LastAccessTime?: Date} &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
-  export type CreatePartitionResponse = AWS.Glue.CreatePartitionResponse;
-  export type BatchCreatePartitionRequestEntry<P extends PartitionKeys> = CreatePartitionRequest<P>;
-  export type BatchCreatePartitionRequest<P extends PartitionKeys> = Array<BatchCreatePartitionRequestEntry<P>>;
-  export type UpdatePartitionRequest<P extends PartitionKeys> = {Partition: RuntimeShape<StructShape<P>>, UpdatedPartition: CreatePartitionRequest<P>};
+
+  export interface CreatePartitionRequest<P extends PartitionKeys> extends _CreatePartitionRequest<P> {}
+  type _CreatePartitionRequest<P extends PartitionKeys> = {Partition: RuntimeShape<StructShape<P>>, Location: string, LastAccessTime?: Date} &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
+
+  export interface CreatePartitionResponse extends AWS.Glue.CreatePartitionResponse {}
+  export interface BatchCreatePartitionRequestEntry<P extends PartitionKeys> extends CreatePartitionRequest<P> {}
+  export interface BatchCreatePartitionRequest<P extends PartitionKeys> extends Array<BatchCreatePartitionRequestEntry<P>> {}
+  export interface UpdatePartitionRequest<P extends PartitionKeys> {
+    Partition: RuntimeShape<StructShape<P>>,
+    UpdatedPartition: CreatePartitionRequest<P>
+  }
 
   /**
    * Client for interacting with a Glue Table:

@@ -19,15 +19,17 @@ import * as Dynamo from './mapper';
 /**
  * A Table's Attributes.
  */
-export type Attributes = {
+export interface Attributes {
   [attributeName: string]: Shape<any>;
-};
+}
+
+export interface TableOverrideProps extends Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'> {}
 
 export interface TableProps<PKey extends keyof A, SKey extends keyof A | undefined, A extends Attributes> {
   partitionKey: PKey;
   sortKey?: SKey;
   attributes: A;
-  tableProps?: Build<Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'>>
+  tableProps?: Build<TableOverrideProps>;
 }
 
 /**
@@ -115,28 +117,30 @@ export class Table<PKey extends keyof A, SKey extends keyof A | undefined, A ext
   /**
    * Take a *read-only* dependency on this table.
    */
-  public readAccess(): Dependency<Client<PKey, SKey, A>> {
+  public readAccess(): Dependency<Table.ReadOnly<PKey, SKey, A>> {
     return this.dependency((t, g) => t.grantReadData(g));
   }
 
   /**
    * Take a *read-write* dependency on this table.
    */
-  public readWriteAccess(): Dependency<Client<PKey, SKey, A>> {
+  public readWriteAccess(): Dependency<Table.ReadWrite<PKey, SKey, A>> {
     return this.dependency((t, g) => t.grantReadWriteData(g));
   }
 
   /**
    * Take a *write-only* dependency on this table.
    */
-  public writeAccess(): Dependency<Client<PKey, SKey, A>> {
+  public writeAccess(): Dependency<Table.WriteOnly<PKey, SKey, A>> {
     return this.dependency((t, g) => t.grantWriteData(g));
   }
 
   /**
    * Take a *full-access* dependency on this table.
+   *
+   * TODO: return type of Table.FullAccessClient?
    */
-  public fullAccess(): Dependency<Client<PKey, SKey, A>> {
+  public fullAccess(): Dependency<Table.ReadWrite<PKey, SKey, A>> {
     return this.dependency((t, g) => t.grantFullAccess(g));
   }
 
@@ -153,4 +157,25 @@ export class Table<PKey extends keyof A, SKey extends keyof A | undefined, A ext
           cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())) as Client<PKey, SKey, A>)
     };
   }
+}
+
+export namespace Table {
+  /**
+   * A DynamoDB Table with read-only permissions.
+   *
+   * Unavailable methods: `put`, `putBatch`, `delete`, `update`.
+   */
+  export interface ReadOnly<PKey extends keyof A, SKey extends keyof A | undefined, A extends Attributes> extends Omit<Client<PKey, SKey, A>, 'put' | 'putBatch' | 'delete' | 'update'> {}
+
+  /**
+   * A DynamoDB Table with write-only permissions.
+   *
+   * Unavailable methods: `batchGet`, `get`, `scan`, `query`
+   */
+  export interface WriteOnly<PKey extends keyof A, SKey extends keyof A | undefined, A extends Attributes> extends Omit<Client<PKey, SKey, A>, 'batchGet' | 'get' | 'scan' | 'query'> {}
+
+  /**
+   * A DynamODB Table with read and write permissions.
+   */
+  export interface ReadWrite<PKey extends keyof A, SKey extends keyof A | undefined, A extends Attributes> extends Client<PKey, SKey, A> {}
 }

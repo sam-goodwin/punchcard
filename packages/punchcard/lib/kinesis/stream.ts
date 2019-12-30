@@ -88,21 +88,21 @@ export class Stream<S extends Shape<any>> implements Resource<kinesis.Stream> {
   /**
    * Read and Write access to this stream.
    */
-  public readWriteAccess(): Dependency<Client<S>> {
+  public readWriteAccess(): Dependency<Stream.ReadWrite<S>> {
     return this.dependency((stream, g) => stream.grantReadWrite(g));
   }
 
   /**
    * Read-only access to this stream.
    */
-  public readAccess(): Dependency<Client<S>> {
+  public readAccess(): Dependency<Stream.ReadOnly<S>> {
     return this.dependency((stream, g) => stream.grantRead(g));
   }
 
   /**
    * Write-only access to this stream.
    */
-  public writeAccess(): Dependency<Client<S>> {
+  public writeAccess(): Dependency<Stream.WriteOnly<S>> {
     return this.dependency((stream, g) => stream.grantWrite(g));
   }
 
@@ -119,4 +119,10 @@ export class Stream<S extends Shape<any>> implements Resource<kinesis.Stream> {
           cache.getOrCreate('aws:kinesis', () => new AWS.Kinesis())) as any)
     };
   }
+}
+
+export namespace Stream {
+  export interface ReadOnly<S extends Shape<any>> extends Omit<Client<S>, 'putRecord' | 'putRecords' | 'sink'> {}
+  export interface WriteOnly<S extends Shape<any>> extends Omit<Client<S>, 'getRecords'> {}
+  export interface ReadWrite<S extends Shape<any>> extends Client<S> {}
 }
