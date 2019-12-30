@@ -166,7 +166,7 @@ export namespace Queue {
         Entries: request.map(record => ({
           ...record,
           MessageBody: this.mapper.write(record.MessageBody)
-        })) as any
+        }))
       }).promise();
     }
 
