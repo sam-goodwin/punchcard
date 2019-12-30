@@ -1,5 +1,3 @@
-import { Omit } from '../util/omit';
-
 export type ReadWriteClient = Client;
 export type DeleteClient = Pick<Client, 'deleteObject' | 'bucketName' | 'client'>;
 export type PutClient = Pick<Client, 'putObject' | 'bucketName' | 'client'>;

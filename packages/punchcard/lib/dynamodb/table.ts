@@ -11,7 +11,6 @@ import { Run } from '../core/run';
 import { Mapper } from '../shape/mapper/mapper';
 import { RuntimeShape, Shape } from '../shape/shape';
 import { struct, StructShape } from '../shape/struct';
-import { Omit } from '../util/omit';
 import { Client } from './client';
 import { DSL, toDSL } from './expression/path';
 import { Key, keyType } from './key';

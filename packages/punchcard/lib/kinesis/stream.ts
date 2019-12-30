@@ -4,9 +4,7 @@ import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
-import { Namespace } from '../core/assembly';
 import { Build } from '../core/build';
-import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
