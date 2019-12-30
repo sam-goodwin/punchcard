@@ -27,7 +27,7 @@ export class App {
         const app = Build.resolve(this.root);
         // code compilation is an asynchronous process so we initialize it here
         // before entering the Build domain containing Constructs.
-        Code.initCode(app, Array.from(this.externals), this.plugins, () => {
+        Code.initCode(app, Array.from(this.externals), this.plugins).then(() => {
           // resolve all nodes in the Build domain
           Build.walk(this.root);
           // synth the fully-constructed Construct tree.

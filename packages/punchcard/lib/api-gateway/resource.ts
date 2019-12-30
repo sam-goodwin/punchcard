@@ -44,7 +44,6 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
   }
 
   public async handle(event: any, context: any): Promise<any> {
-    console.log('resource handle', event);
     const upperHttpMethod = event.__httpMethod.toUpperCase();
     const handler = this.methods[upperHttpMethod];
     if (handler) {
@@ -113,6 +112,9 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
   }
 
   private addMethod<R extends Dependency<any>, T extends StructShape<any>, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
+    // eww, mutability
+    this.makeHandler(methodName, method as any);
+
     Build
       .concat(
         this.resource,
@@ -120,13 +122,6 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
         this.getRequestValidator,
         this.bodyRequestValidator)
       .map(([resource, integration, getRequestValidator, bodyRequestValidator]) => {
-        // eww, mutability
-        this.makeHandler(methodName, method as any);
-        if (isRuntime()) {
-          // don't do expensive work at runtime
-          return;
-        }
-
         const methodResource = resource.addMethod(methodName, integration);
         const cfnMethod = methodResource.node.findChild('Resource') as apigateway.CfnMethod;
 
