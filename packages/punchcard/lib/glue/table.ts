@@ -16,7 +16,6 @@ import * as S3 from '../s3';
 import { Json, Kind, Mapper, RuntimeShape, Shape, struct, StructShape } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
-import { Omit } from '../util/omit';
 import { Sink } from '../util/sink';
 
 /**

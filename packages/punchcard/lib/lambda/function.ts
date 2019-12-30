@@ -15,7 +15,11 @@ import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { Json, Mapper, Raw, Shape } from '../shape';
 import { RUNTIME_ENV } from '../util/constants';
-import { Omit } from '../util/omit';
+
+/**
+ * Overridable subset of @aws-cdk/aws-lambda.FunctionProps
+ */
+export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'handler'> {}
 
 export interface FunctionProps<T, U, D extends Dependency<any> | undefined = undefined> {
   /**
@@ -42,7 +46,7 @@ export interface FunctionProps<T, U, D extends Dependency<any> | undefined = und
   /**
    * Extra Lambda Function Props.
    */
-  functionProps?: Build<Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>>
+  functionProps?: Build<FunctionOverrideProps>
 }
 
 /**
@@ -84,10 +88,10 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
 
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
       const lambdaFunction = new lambda.Function(scope, id, {
-        ...functionProps,
         code: Code.tryGetCode(scope) || Code.mock,
         runtime: lambda.Runtime.NODEJS_10_X,
         handler: 'index.handler',
+        ...functionProps,
       });
       lambdaFunction.addEnvironment('is_runtime', 'true');
       lambdaFunction.addEnvironment('entrypoint_id', entrypointId);

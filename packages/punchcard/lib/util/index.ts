@@ -6,4 +6,3 @@ export * from './hlist';
 export * from './sink';
 export * from './stream';
 export * from './tree';
-export * from './omit';

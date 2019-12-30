@@ -1,11 +1,9 @@
-import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/core');
 
 import { Integration, LambdaIntegration, Resource } from '../api-gateway';
 import { Client } from '../core/client';
 import { Dependency } from '../core/dependency';
-import { Omit } from '../util/omit';
-import { Function, FunctionProps } from './function';
+import { Function, FunctionOverrideProps, FunctionProps } from './function';
 
 import * as CloudWatch from '../cloudwatch';
 import { Build } from '../core/build';
@@ -15,13 +13,13 @@ import { schedule, ScheduleProps } from './schedule';
  * Alias for creating a LambdaExecutorService
  * @param props
  */
-export function λ(props?: Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'>) {
+export function λ(props?: FunctionOverrideProps) {
   return new ExecutorService(props);
 }
 export const L = λ;
 
 export class ExecutorService {
-  constructor(private readonly props: Omit<lambda.FunctionProps, 'runtime' | 'code' | 'handler'> = {
+  constructor(private readonly props: FunctionOverrideProps = {
     memorySize: 128
   }) {}
 

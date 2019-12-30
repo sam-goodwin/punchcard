@@ -8,7 +8,6 @@ import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { Json, Mapper, RuntimeShape, Shape } from '../shape';
-import { Omit } from '../util/omit';
 import { sink, Sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 import { Messages } from './messages';

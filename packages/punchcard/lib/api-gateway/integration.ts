@@ -5,7 +5,6 @@ import { Dependency } from '../core/dependency';
 import { Resource as RResource } from '../core/resource';
 import * as Lambda from '../lambda';
 import { TreeFields } from '../util';
-import { Omit } from '../util/omit';
 import { Resource } from './resource';
 
 type ResourceMappings = {[key: string]: Resource};
