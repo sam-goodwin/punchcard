@@ -30,8 +30,8 @@
   ],
   "devDependencies": {
     "@aws-cdk/assert": "^1.19.0",
-    "@babel/core": "^7.0.0",
-    "@babel/preset-env": "^7.0.0",
+    "@babel/core": "^7.7.7",
+    "@babel/preset-env": "^7.7.7",
     "babel-core": "^7.0.0-bridge.0",
     "@types/jest": "^24.0.25",
     "@types/node": "^10.14.6",
