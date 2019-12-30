@@ -5,7 +5,8 @@ import { Stream } from '../util/stream';
 import { Event } from './event';
 import { Queue } from './queue';
 
-export type Config = Stream.Config & events.SqsEventSourceProps;
+export interface Config extends _Config {}
+type _Config = Stream.Config & events.SqsEventSourceProps;
 
 /**
  * A `Stream` of Messages from a SQS Queue.

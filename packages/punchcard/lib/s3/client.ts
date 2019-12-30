@@ -1,15 +1,15 @@
-export type ReadWriteClient = Client;
-export type DeleteClient = Pick<Client, 'deleteObject' | 'bucketName' | 'client'>;
-export type PutClient = Pick<Client, 'putObject' | 'bucketName' | 'client'>;
-export type ReadClient = Omit<Client, 'deleteObject' | 'putObject'>;
-export type WriteClient = Omit<Client, 'getObject' | 'headObject' | 'listObjectsV2' | 'listObjectsV2'>;
+export interface ReadWriteClient extends Client {}
+export interface DeleteClient extends Pick<Client, 'deleteObject' | 'bucketName' | 'client'> {}
+export interface PutClient extends Pick<Client, 'putObject' | 'bucketName' | 'client'> {}
+export interface ReadClient extends Omit<Client, 'deleteObject' | 'putObject'> {}
+export interface WriteClient extends Omit<Client, 'getObject' | 'headObject' | 'listObjectsV2' | 'listObjectsV2'> {}
 
-export type DeleteObjectRequest = Omit<AWS.S3.DeleteObjectRequest, 'Bucket'>;
-export type GetObjectRequest = Omit<AWS.S3.GetObjectRequest, 'Bucket'>;
-export type HeadObjectRequest = Omit<AWS.S3.HeadObjectRequest, 'Bucket'>;
-export type ListObjectsRequest = Omit<AWS.S3.ListObjectsRequest, 'Bucket'>;
-export type ListObjectsV2Request = Omit<AWS.S3.ListObjectsV2Request, 'Bucket'>;
-export type PutObjectRequest = Omit<AWS.S3.PutObjectRequest, 'Bucket'>;
+export interface DeleteObjectRequest extends Omit<AWS.S3.DeleteObjectRequest, 'Bucket'> {}
+export interface GetObjectRequest extends Omit<AWS.S3.GetObjectRequest, 'Bucket'> {}
+export interface HeadObjectRequest extends Omit<AWS.S3.HeadObjectRequest, 'Bucket'> {}
+export interface ListObjectsRequest extends Omit<AWS.S3.ListObjectsRequest, 'Bucket'> {}
+export interface ListObjectsV2Request extends Omit<AWS.S3.ListObjectsV2Request, 'Bucket'> {}
+export interface PutObjectRequest extends Omit<AWS.S3.PutObjectRequest, 'Bucket'> {}
 
 export class Client {
   constructor(

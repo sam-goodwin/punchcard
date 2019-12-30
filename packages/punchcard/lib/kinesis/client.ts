@@ -4,11 +4,6 @@ import { RuntimeShape, Shape } from '../shape';
 import { sink, Sink, SinkProps } from '../util/sink';
 import { Stream } from './stream';
 
-export type PutRecordInput<T> = {Data: T} & Pick<AWS.Kinesis.PutRecordInput, 'ExplicitHashKey' | 'SequenceNumberForOrdering'>;
-export type PutRecordOutput = AWS.Kinesis.PutRecordOutput;
-export type PutRecordsInput<T> = Array<{Data: T} & Pick<AWS.Kinesis.PutRecordsRequestEntry, 'ExplicitHashKey'>>;
-export type PutRecordsOutput = AWS.Kinesis.PutRecordsOutput;
-
 /**
  * A client to a specific Kinesis Stream of some type, `T`.
  *
@@ -21,6 +16,23 @@ export class Client<T extends Shape<any>> implements Sink<RuntimeShape<T>> {
     public readonly streamName: string,
     public readonly client: AWS.Kinesis
   ) {}
+
+  /**
+   * Gets and deserrializes data records from a Kinesis data stream's shard.
+   *
+   * @param request get records input request payload.
+   */
+  public async getRecords(request: GetRecordsInput): Promise<GetRecordsOutput<RuntimeShape<T>>> {
+    const response = await this.client.getRecords(request).promise();
+
+    return {
+      ...response,
+      Records: response.Records.map(r => ({
+        ...r,
+        Data: this.stream.mapper.read(r.Data as Buffer)
+      }))
+    };
+  }
 
   /**
    * Put a single record to the Stream.
@@ -88,3 +100,28 @@ export class Client<T extends Shape<any>> implements Sink<RuntimeShape<T>> {
     }, props, 500);
   }
 }
+
+export interface GetRecordsInput extends AWS.Kinesis.GetRecordsInput {}
+export interface GetRecordsOutput<T> extends _GetRecordsOutput<T> {}
+type _GetRecordsOutput<T> = AWS.Kinesis.GetRecordsOutput & {
+  Records: Array<_Record<T>>;
+};
+
+export interface Record<T> extends _Record<T> {}
+type _Record<T> = Omit<AWS.Kinesis.Record, 'Data'> & {
+  /**
+   * Deserialized record received from the Kinesis Stream.
+   */
+  Data: T;
+};
+
+export interface PutRecordInput<T> extends _PutRecordInput<T> {}
+type _PutRecordInput<T> = {Data: T} & Pick<AWS.Kinesis.PutRecordInput, 'ExplicitHashKey' | 'SequenceNumberForOrdering'>;
+
+export interface PutRecordOutput extends AWS.Kinesis.PutRecordOutput {}
+
+export interface PutRecordsInputItem<T>  extends _PutRecordsInputItem<T> {}
+type _PutRecordsInputItem<T> = {Data: T} & Pick<AWS.Kinesis.PutRecordsRequestEntry, 'ExplicitHashKey'>;
+
+export interface PutRecordsInput<T> extends Array<PutRecordsInputItem<T>> {}
+export interface PutRecordsOutput extends AWS.Kinesis.PutRecordsOutput {}

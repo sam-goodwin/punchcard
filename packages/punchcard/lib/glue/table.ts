@@ -21,16 +21,16 @@ import { Sink } from '../util/sink';
 /**
  * A Glue Table's Columns.
  */
-export type Columns = {
+export interface Columns {
   [key: string]: Shape<any>;
-};
+}
 
 /**
  * A Glue Table's Partition Keys.
  */
-export type PartitionKeys = {
+export interface PartitionKeys {
   [key: string]: Shape<string> | Shape<number>;
-};
+}
 
 /**
  * Augmentation of `glue.TableProps`, using a `Shape` to define the
@@ -235,21 +235,21 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
   /**
    * Runtime dependency with read/write access to the Table and S3 Bucket.
    */
-  public readWriteAccess(): Dependency<Table.ReadWriteClient<C, P>> {
+  public readWriteAccess(): Dependency<Table.ReadWrite<C, P>> {
     return this.client((t, g) => t.grantReadWrite(g), this.bucket.readWriteAccess());
   }
 
   /**
    * Runtime dependency with read access to the Table and S3 Bucket.
    */
-  public readAccess(): Dependency<Table.ReadClient<C, P>> {
+  public readAccess(): Dependency<Table.ReadOnly<C, P>> {
     return this.client((t, g) => t.grantRead(g), this.bucket.readAccess());
   }
 
   /**
    * Runtime dependency with write access to the Table and S3 Bucket.
    */
-  public writeAccess(): Dependency<Table.WriteClient<C, P>> {
+  public writeAccess(): Dependency<Table.WriteOnly<C, P>> {
     return this.client((t, g) => t.grantWrite(g), this.bucket.writeAccess());
   }
 
@@ -279,9 +279,9 @@ export namespace Table {
   /**
    * Client type aliaes.
    */
-  export type ReadWriteClient<C extends Columns, P extends PartitionKeys> = Table.Client<C, P>;
-  export type ReadClient<C extends Columns, P extends PartitionKeys> = Omit<Table.Client<C, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'>;
-  export type WriteClient<C extends Columns, P extends PartitionKeys> = Omit<Table.Client<C, P>, 'getPartitions'>;
+  export type ReadWrite<C extends Columns, P extends PartitionKeys> = Table.Client<C, P>;
+  export type ReadOnly<C extends Columns, P extends PartitionKeys> = Omit<Table.Client<C, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'>;
+  export type WriteOnly<C extends Columns, P extends PartitionKeys> = Omit<Table.Client<C, P>, 'getPartitions'>;
 
   /**
    * Request and Response aliases.

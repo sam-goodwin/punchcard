@@ -16,12 +16,14 @@ import { Sink, sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 import { Notifications } from './notifications';
 
-export type TopicProps<S extends Shape<any>> = {
+type _TopicProps<S extends Shape<any>> = {
   /**
    * Shape of notifications emitted from the Topic.
    */
   shape: S;
 } & sns.TopicProps;
+
+export interface TopicProps<S extends Shape<any>> extends _TopicProps<S> {}
 
 /**
  * A SNS `Topic` with notifications of type, `T`.
@@ -114,8 +116,10 @@ export class Topic<S extends Shape<any>> implements Resource<sns.Topic> {
 }
 
 export namespace Topic {
-  export type PublishInput<T> = {Message: T} & Pick<AWS.SNS.PublishInput, 'MessageAttributes' | 'MessageStructure'>;
-  export type PublishResponse = AWS.SNS.PublishResponse;
+  type _PublishInput<T> = {Message: T} & Pick<AWS.SNS.PublishInput, 'MessageAttributes' | 'MessageStructure'>;
+  export interface PublishInput<T>  extends _PublishInput<T> {}
+
+  export interface PublishResponse extends AWS.SNS.PublishResponse {}
 
   /**
    * A client to a specific SNS `Topic` with messages of some type, `T`.

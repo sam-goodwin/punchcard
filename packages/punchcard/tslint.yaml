@@ -7,6 +7,7 @@ rules:
     member-ordering: false
     ordered-imports: true
     max-line-length: false
+    no-empty-interface: false
 
     # Due to VSCode syntax highlighting we're unlikely to do this wrong, and it gets annoying
     # when trying to construct literal Fn::Sub() arguments.

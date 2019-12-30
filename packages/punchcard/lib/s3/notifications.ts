@@ -6,7 +6,8 @@ import { Stream } from '../util/stream';
 import { Bucket } from './bucket';
 import { Event } from './event';
 
-export type ObjectStreamConfig = Stream.Config & events.S3EventSourceProps;
+type _ObjectStreamConfig = Stream.Config & events.S3EventSourceProps;
+export interface ObjectStreamConfig extends _ObjectStreamConfig {}
 
 /**
  * A `Stream` of S3 Notifications from a S3 Bucket.

@@ -923,7 +923,7 @@ Object {
                     "ParameterName": "LambdaArn",
                     "ParameterValue": Object {
                       "Fn::GetAtt": Array [
-                        "LakeDatabasedataPointsToS3Processor72949AE3",
+                        "LakeDatabasedataPointsToS3ValidatorProcessor676DF886",
                         "Arn",
                       ],
                     },
@@ -1078,7 +1078,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsToS3Processor72949AE3",
+                  "LakeDatabasedataPointsToS3ValidatorProcessor676DF886",
                   "Arn",
                 ],
               },
@@ -1095,14 +1095,14 @@ Object {
       },
       "Type": "AWS::IAM::Policy",
     },
-    "LakeDatabasedataPointsToS3Processor72949AE3": Object {
+    "LakeDatabasedataPointsToS3ValidatorProcessor676DF886": Object {
       "Properties": Object {
         "Code": Object {
           "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "data-lake/Lake/Database/dataPoints/ToS3/Processor",
+            "bootstrap_construct_path": "data-lake/Lake/Database/dataPoints/ToS3/Validator/Processor",
             "entrypoint_id": "1",
             "is_runtime": "true",
           },
@@ -1111,7 +1111,7 @@ Object {
         "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
-            "LakeDatabasedataPointsToS3ProcessorServiceRole1138340D",
+            "LakeDatabasedataPointsToS3ValidatorProcessorServiceRoleD02004B2",
             "Arn",
           ],
         },
@@ -1120,7 +1120,7 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "LakeDatabasedataPointsToS3ProcessorServiceRole1138340D": Object {
+    "LakeDatabasedataPointsToS3ValidatorProcessorServiceRoleD02004B2": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [
@@ -4032,7 +4032,7 @@ Object {
                     "ParameterName": "LambdaArn",
                     "ParameterValue": Object {
                       "Fn::GetAtt": Array [
-                        "ToS3Processor14BA5FE8",
+                        "ToS3ValidatorProcessorD6994816",
                         "Arn",
                       ],
                     },
@@ -4187,7 +4187,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "ToS3Processor14BA5FE8",
+                  "ToS3ValidatorProcessorD6994816",
                   "Arn",
                 ],
               },
@@ -4204,14 +4204,14 @@ Object {
       },
       "Type": "AWS::IAM::Policy",
     },
-    "ToS3Processor14BA5FE8": Object {
+    "ToS3ValidatorProcessorD6994816": Object {
       "Properties": Object {
         "Code": Object {
           "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "stream-processing/ToS3/Processor",
+            "bootstrap_construct_path": "stream-processing/ToS3/Validator/Processor",
             "entrypoint_id": "14",
             "is_runtime": "true",
           },
@@ -4220,7 +4220,7 @@ Object {
         "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
-            "ToS3ProcessorServiceRoleECCCE576",
+            "ToS3ValidatorProcessorServiceRole49E084BB",
             "Arn",
           ],
         },
@@ -4229,7 +4229,7 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "ToS3ProcessorServiceRoleECCCE576": Object {
+    "ToS3ValidatorProcessorServiceRole49E084BB": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [

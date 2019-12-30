@@ -1,7 +1,7 @@
 
 import AWS = require('aws-sdk');
 
-import { RuntimeShape, Shape } from '../shape/shape';
+import { RuntimeShape } from '../shape/shape';
 import { StructShape } from '../shape/struct';
 import { CompiledExpression } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';
