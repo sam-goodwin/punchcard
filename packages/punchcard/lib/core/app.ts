@@ -1,20 +1,19 @@
 import cdk = require('@aws-cdk/core');
 
-import { Plugin } from 'webpack';
 import { Build } from './build';
 import { Code } from './code';
 
 export class App {
   public readonly root: Build<cdk.App>;
   public readonly externals: Set<string> = new Set();
-  public readonly plugins: Plugin[] = [];
+  public readonly plugins: any[] = [];
 
   constructor() {
     this.root = Build.lazy(() => new cdk.App({
       autoSynth: false
     }));
     if (process.env.is_runtime !== 'true') {
-      const webpack = require('webpack');
+      const webpack: any = require('webpack');
 
       this.addExternal('aws-sdk');
       this.addExternal('webpack');
@@ -45,7 +44,7 @@ export class App {
     this.externals.delete(external);
   }
 
-  public addPlugin(plugin: Plugin): void {
+  public addPlugin(plugin: any): void {
     this.plugins.push(plugin);
   }
 }
