@@ -33,7 +33,6 @@ export class LambdaIntegration<R extends Dependency<any>> implements Integration
 
   public mapResource(resource: Resource) {
     const id = resource[TreeFields.path].replace(/[^a-zA-Z_0-9]/g, '_');
-    console.log('map', id);
     this.resourceMappings[id] = resource; // TODO: mutability here seems bad
 
     return Build
@@ -49,7 +48,6 @@ export class LambdaIntegration<R extends Dependency<any>> implements Integration
     if (!this.index) {
       this.index = {};
       Object.keys(process.env).forEach(name => {
-        console.log(name);
         if (name.startsWith(resourceIdPrefix)) {
           const resourceId = process.env[name];
           if (resourceId === undefined) {
@@ -57,12 +55,10 @@ export class LambdaIntegration<R extends Dependency<any>> implements Integration
           }
           const uniqueId = name.substring(resourceIdPrefix.length);
 
-          console.log('uniqueId', uniqueId);
           this.index[resourceId] = this.resourceMappings[uniqueId];
         }
       });
     }
-    console.log('index', this.index);
     const resource = this.index[resourceId];
     if (!resource) {
       throw new Error(`could not find resource for resource id: ${resourceId}`);
