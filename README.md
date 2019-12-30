@@ -10,6 +10,10 @@ Punchcard is a TypeScript framework for building cloud applications with the [AW
 
 If you'd like to learn more about the philosophy behind this project, check out my blog series (WIP) [Punchcard: Imagining the future of cloud programming](https://bit.ly/punchcard-cdk).
 
+# Sample Repository
+
+https://github.com/punchcard/punchcard-example - fork to get started
+
 # Developer Guide
 
 To understand the internals, there is the guide:
