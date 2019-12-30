@@ -30,8 +30,8 @@
     "@aws-cdk/aws-sqs": "^1.19.0",
     "@aws-cdk/core": "^1.19.0",
     "@types/uuid": "^3.4.4",
-    "@punchcard/data-lake": "^0.10.0",
-    "punchcard": "^0.10.2",
+    "@punchcard/data-lake": "^0.11.0",
+    "punchcard": "^0.11.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {
