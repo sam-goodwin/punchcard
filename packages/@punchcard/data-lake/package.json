@@ -30,7 +30,7 @@
     "cloudformation"
   ],
   "devDependencies": {
-    "@types/node": "^10.14.6",
+    "@types/node": "^13.1.1",
     "@babel/core": "^7.4.5",
     "@babel/preset-env": "^7.4.5",
     "babel-core": "^7.0.0-bridge.0",
