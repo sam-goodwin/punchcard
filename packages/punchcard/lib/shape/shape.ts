@@ -2,7 +2,7 @@ import { DynamoPath } from '../dynamodb/expression/path';
 import { JsonPath } from './json/path';
 import { Kind } from './kind';
 
-export interface Shape<V> {
+export interface Shape<V = any> {
   kind: Kind;
   /**
    * TODO: improve return type for better error tracing

@@ -1,22 +1,23 @@
 
 import AWS = require('aws-sdk');
 
+import { Value } from '../shape/instance';
 import { RuntimeShape } from '../shape/shape';
 import { StructShape } from '../shape/struct';
 import { CompiledExpression } from './expression/compile-context';
 import { CompileContextImpl } from './expression/compiler';
 import { ActionType, Condition, DSL, UpdateAction } from './expression/path';
-import { Key } from './key';
+import { Key, KeyValue } from './key';
 import { compileQuery, KeyConditionExpression } from './query';
 import { Attributes, Table } from './table';
 
-export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A extends Attributes> {
+export class Client<A extends Attributes, PKey extends keyof A, SKey extends keyof A | undefined> {
   constructor(
-    public readonly table: Table<PKey, SKey, A>,
+    public readonly table: Table<A, PKey, SKey>,
     public readonly tableName: string,
     public readonly client: AWS.DynamoDB) {}
 
-  public async get(key: RuntimeShape<StructShape<Key<A, PKey, SKey>>>): Promise<RuntimeShape<StructShape<A>> | undefined> {
+  public async get(key: KeyValue<A, PKey, SKey>): Promise<Value<A> | undefined> {
     const result = await this.client.getItem({
       TableName: this.tableName,
       Key: this.table.keyMapper.write(key)
@@ -30,7 +31,7 @@ export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A ex
   }
 
   // TODO: retry behavior/more options/etc.
-  public async batchGet(keys: Array<RuntimeShape<StructShape<Key<A, PKey, SKey>>>>): Promise<Array<RuntimeShape<StructShape<A>> | undefined>> {
+  public async batchGet(keys: Array<KeyValue<A, PKey, SKey>>): Promise<Array<Value<A> | undefined>> {
     const result = await this.client.batchGetItem({
       RequestItems: {
         [this.tableName]: {
@@ -49,7 +50,7 @@ export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A ex
   }
 
   // TODO: Support paging, etc.
-  public async scan(): Promise<Array<RuntimeShape<StructShape<A>>>> {
+  public async scan(): Promise<Array<Value<A>>> {
     const result = await this.client.scan({
       TableName: this.tableName
     }).promise();
@@ -79,7 +80,7 @@ export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A ex
    * @param batch
    * @returns failed PutRequests
    */
-  public async putBatch(batch: Array<RuntimeShape<StructShape<A>>>): Promise<AWS.DynamoDB.WriteRequest[]> {
+  public async putBatch(batch: Array<Value<A>>): Promise<AWS.DynamoDB.WriteRequest[]> {
     try {
       const result = await this.client.batchWriteItem({
         RequestItems: {
@@ -104,7 +105,7 @@ export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A ex
     }
   }
 
-  public async update(update: Update<A, RuntimeShape<StructShape<Key<A, PKey, SKey>>>>): Promise<AWS.DynamoDB.UpdateItemOutput> {
+  public async update(update: Update<A, KeyValue<A, PKey, SKey>>): Promise<AWS.DynamoDB.UpdateItemOutput> {
     const actions = update.actions(this.table.facade);
     if (actions.length === 0) {
       throw new Error('must perform at least one update action');
@@ -157,7 +158,7 @@ export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A ex
     return await this.client.updateItem(updateRequest).promise();
   }
 
-  public async query(query: Query<A, PKey, SKey>): Promise<Array<RuntimeShape<StructShape<A>>>> {
+  public async query(query: Query<A, PKey, SKey>): Promise<Array<Value<A>>> {
     const result = await this.client.query({
       TableName: this.tableName,
       ...compileQuery(this.table as any, query as any)
@@ -172,7 +173,7 @@ export class Client<PKey extends keyof A, SKey extends keyof A | undefined, A ex
 }
 
 export interface PutRequest<A extends Attributes> {
-  item: RuntimeShape<StructShape<A>>;
+  item: Value<A>;
   if?: (facade: DSL<A>) => Condition;
 }
 

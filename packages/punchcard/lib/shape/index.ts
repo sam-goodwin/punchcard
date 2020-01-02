@@ -2,6 +2,7 @@ export * from './array';
 export * from './binary';
 export * from './boolean';
 export * from './dynamic';
+export * from './instance';
 export * from './kind';
 export * from './map';
 export * from './number';

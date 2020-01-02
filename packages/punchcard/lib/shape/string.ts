@@ -84,7 +84,7 @@ class FixedLength extends BaseStringShape {
 }
 
 const standardString = new StringShape();
-export function string(constraints?: StringTypeConstraints) {
+export function string(constraints?: StringTypeConstraints): StringShape {
   if (constraints) {
     return new StringShape(constraints);
   } else {
