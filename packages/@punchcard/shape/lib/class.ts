@@ -1,6 +1,9 @@
 import { Member } from "./member";
 import { ModelMetadata } from "./metadata";
-import { Shape } from "./shape";
+import { isShape, Shape } from "./shape";
+import { Visitor } from "./visitor";
+
+export const isClassShape = (a: any): a is ClassShape<any> => isShape(a) && a.Kind === 'classShape';
 
 /**
  * A Shape derived from a TypeScript `class`.
@@ -26,10 +29,10 @@ export class ClassShape<C extends ClassType> extends Shape {
       const type = new (clazz)();
       for (const [name, property] of Object.entries(type)) {
         let shape: Shape;
-        if (Shape.isNode(property)) {
+        if (isShape(property)) {
           shape = property;
         } else {
-          shape = ClassShape.of(property as any);
+          shape = ClassShape.of(property as any) as any;
         }
         members[name] = new Member(name, shape!, /* metadata */);
       }
@@ -38,7 +41,7 @@ export class ClassShape<C extends ClassType> extends Shape {
     return cache().get(clazz);
   }
 
-  public readonly Kind = 'struct';
+  public readonly Kind = 'classShape';
 
   constructor(
     /**
@@ -56,6 +59,10 @@ export class ClassShape<C extends ClassType> extends Shape {
     public readonly Metadata?: ModelMetadata | undefined
   ) {
     super();
+  }
+
+  public visit<V extends Visitor>(visitor: V): ReturnType<V[this["Kind"]]> {
+    return visitor.classShape(this) as ReturnType<V[this["Kind"]]>;
   }
 }
 

@@ -1,5 +1,6 @@
 import "jest";
 import { ClassShape, string } from "../lib";
+import { MaxLength } from "../lib/decorator";
 
 // tslint:disable: member-access
 
@@ -8,18 +9,24 @@ class OtherType {
 }
 
 class MyType {
+  @MaxLength(1)
   key = string;
+
   other = OtherType;
 }
 
-const a = ClassShape.of(MyType);
+const MyTypeShape = ClassShape.of(MyType);
+
+it('should have Kind, "class"', () => {
+  expect(MyTypeShape.Kind).toEqual('class');
+});
 
 it('should cache derived shapes', () => {
   expect(ClassShape.of(MyType) === ClassShape.of(MyType)).toBe(true);
 });
 
 it('should parse members', () => {
-  expect(a.Members.key.Name).toEqual('key');
-  expect(a.Members.other.Name).toEqual('other');
-  expect(a.Members.other.Type.Members.id.Name).toEqual('id');
+  expect(MyTypeShape.Members.key.Name).toEqual('key');
+  expect(MyTypeShape.Members.other.Name).toEqual('other');
+  expect(MyTypeShape.Members.other.Type.Members.id.Name).toEqual('id');
 });
