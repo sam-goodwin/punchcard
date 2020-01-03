@@ -29,6 +29,7 @@ export namespace Value {
     };
   }
 
+  export type TypeOf<V extends Value<any>> = V extends Value<infer T> ? T : never;
   export function typeOf<V extends Value<any>>(instance: V): V extends Value<infer T> ? T : never {
     return instance[Type];
   }

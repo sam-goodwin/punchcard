@@ -1,7 +1,7 @@
-import { Member } from "./member";
-import { ModelMetadata } from "./metadata";
-import { isShape, Shape } from "./shape";
-import { Visitor } from "./visitor";
+import { Member } from './member';
+import { ModelMetadata } from './metadata';
+import { isShape, Shape } from './shape';
+import { Visitor } from './visitor';
 
 export const isClassShape = (a: any): a is ClassShape<any> => isShape(a) && a.Kind === 'classShape';
 
@@ -61,8 +61,8 @@ export class ClassShape<C extends ClassType> extends Shape {
     super();
   }
 
-  public visit<V extends Visitor>(visitor: V): ReturnType<V[this["Kind"]]> {
-    return visitor.classShape(this) as ReturnType<V[this["Kind"]]>;
+  public visit<V extends Visitor>(visitor: V): ReturnType<V[this['Kind']]> {
+    return visitor.classShape(this) as ReturnType<V[this['Kind']]>;
   }
 }
 

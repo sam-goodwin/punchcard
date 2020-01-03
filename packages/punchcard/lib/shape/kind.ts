@@ -4,6 +4,7 @@ export enum Kind {
   Boolean = 'Boolean',
   Dynamic = 'Dynamic',
   Integer = 'Integer',
+  Long = 'Long',
   Map = 'Map',
   Number = 'Number',
   Optional = 'Optional',

@@ -1,10 +1,11 @@
 import { ArrayShape } from '../array';
+import { ClassType, Value } from '../instance';
 import { Kind } from '../kind';
 import { MapShape } from '../map';
 import { OptionalShape } from '../optional';
 import { SetShape } from '../set';
 import { RuntimeShape, Shape } from '../shape';
-import { StructShape } from '../struct';
+import { struct, StructShape } from '../struct';
 import { TypeSet } from '../typed-set';
 import { Mapper as IMapper, Reader as IReader, Writer as IWriter } from './mapper';
 import { TimestampFormat } from './timestamp';
@@ -26,8 +27,12 @@ export namespace Raw {
     return pass;
   }
 
-  export function forShape<S extends Shape<any>>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, any> {
+  export function forShape<S extends Shape>(shape: S, configuration?: Configuration): IMapper<RuntimeShape<S>, any> {
     return new Mapper(shape, configuration) as any;
+  }
+
+  export function forType<T>(type: ClassType<T>, configuration?: Configuration): IMapper<Value<T>, any> {
+    return new Mapper(struct(type), configuration);
   }
 
   export class Mapper<S extends Shape<any>> implements IMapper<any, string> {
@@ -121,8 +126,8 @@ export namespace Raw {
 
         const struct = shape as any as StructShape<any>;
         const result: any = {};
-        Object.keys(struct.fields).forEach(name => {
-          const field = struct.fields[name];
+        Object.keys(struct.type).forEach(name => {
+          const field = struct.type[name];
           const value = parsed[name];
           result[name] = this.read(field, value);
         });
@@ -201,8 +206,8 @@ export namespace Raw {
       } else if (shape.kind === Kind.Struct) {
         const s = shape as any as StructShape<any>;
         const result: any = {};
-        Object.keys(s.fields).forEach(name => {
-          const field = s.fields[name];
+        Object.keys(s.type).forEach(name => {
+          const field = s.type[name];
           const v = value[name];
           result[name] = this.write(field, v);
         });

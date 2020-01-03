@@ -1,6 +1,7 @@
 import { DynamoPath } from '../dynamodb/expression/path';
 import { JsonPath } from './json/path';
 import { Kind } from './kind';
+import { ShapeVisitor } from './walker/visitor';
 
 export interface Shape<V = any> {
   kind: Kind;
@@ -17,6 +18,8 @@ export interface Shape<V = any> {
   };
   hashCode(value: V): number;
   equals(a: V, b: V): boolean;
+
+  visit(visitor: ShapeVisitor): void;
 }
 
 export type RuntimeShape<T extends Shape<any>> = T extends Shape<infer V> ? V : never;

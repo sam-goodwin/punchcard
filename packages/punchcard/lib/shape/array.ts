@@ -4,6 +4,7 @@ import { Size } from '../dynamodb/expression/size';
 import { InferJsonPathType, JsonPath } from './json/path';
 import { Kind } from './kind';
 import { RuntimeShape, Shape } from './shape';
+import { ShapeVisitor } from './walker/visitor';
 
 export function array<T extends Shape<any>>(itemType: T, constraints: ArrayShapeConstraints = {}): ArrayShape<T> {
   return new ArrayShape(itemType, constraints);
@@ -18,6 +19,10 @@ export interface ArrayShapeConstraints {
 export class ArrayShape<T extends Shape<any>> implements Shape<Array<RuntimeShape<T>>> {
   public readonly kind = Kind.Array;
   constructor(public readonly itemType: T, private readonly constraints?: ArrayShapeConstraints) {}
+
+  public visit(visitor: ShapeVisitor) {
+    visitor.array>?(this);
+  }
 
   public validate(value: Array<RuntimeShape<T>>): void {
     value.forEach(v => this.itemType.validate(v));

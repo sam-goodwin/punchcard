@@ -1,6 +1,6 @@
 {
-  "name": "@punchcard/shape",
-  "description": "Punchcard's Shape Type System",
+  "name": "@punchcard/shape-jsonschema",
+  "description": "Maps a Punchcard Shape to its JSON schema representation",
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -40,7 +40,9 @@
     "tslint": "^5.16.0",
     "typescript": "^3.7.4"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@punchcard/shape": "0.1.0"
+  },
   "jest": {
     "testMatch": [
       "**/test/**/*.js"

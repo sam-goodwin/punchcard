@@ -98,6 +98,12 @@ export class IntegerShape extends WholeNumberShape {
   }
 }
 
+export class LongShape extends WholeNumberShape {
+  constructor(constraints: NumberConstraints = {}) {
+    super(Kind.Integer, constraints, 'integer', 'bigint');
+  }
+}
+
 export class SmallIntShape extends WholeNumberShape {
   constructor(constraints: NumberConstraints = {}) {
     super(Kind.Number, constraints, 'integer', 'smallint');

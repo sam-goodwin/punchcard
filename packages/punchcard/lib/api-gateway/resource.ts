@@ -209,7 +209,7 @@ function velocityTemplate<S extends Shape<any>>(
   if (StructShape.isStruct(shape)) {
     template += '{\n';
     let i = 0;
-    const keys = new Set(Object.keys(shape.fields).concat(Object.keys(mappings || {})));
+    const keys = new Set(Object.keys(shape.type).concat(Object.keys(mappings || {})));
     for (const childName of keys) {
       walk(shape, childName, (mappings as any)[childName], 1);
       if (i + 1 < keys.size) {
@@ -233,7 +233,7 @@ function velocityTemplate<S extends Shape<any>>(
       } else if (typeof mapping === 'object') {
         template += `"${name}": {\n`;
         Object.keys(mapping).forEach((childName, i) => {
-          const childShape = (shape.fields[childName] as StructShape<any>).fields;
+          const childShape = (shape.type[childName] as StructShape<any>).type;
           walk(childShape, childName, (mapping as any)[childName], depth + 1);
           if (i + 1 < Object.keys(mapping).length) {
             template += ',\n';
@@ -245,7 +245,7 @@ function velocityTemplate<S extends Shape<any>>(
         throw new Error(`unexpected type when generating velocity template: ${typeof mapping}`);
       }
     } else {
-      const field = shape.fields[name];
+      const field = shape.type[name];
       let path: string;
       if (field.kind === Kind.String || field.kind === Kind.Timestamp || field.kind === Kind.Binary) {
         path = `"$inputRoot.${name}"`;

@@ -1,6 +1,7 @@
 export * from './array';
 export * from './binary';
 export * from './boolean';
+export * from './decorators';
 export * from './dynamic';
 export * from './instance';
 export * from './kind';

@@ -2,7 +2,23 @@ import 'jest';
 // tslint:disable-next-line: max-line-length
 
 import { Shape } from '../../lib';
-import { struct } from '../../lib/shape';
+import { DataType, MaxLength, Raw, string, struct, Value } from '../../lib/shape';
+
+// tslint:disable: member-access
+
+@DataType({
+  version: 1
+})
+class TestType {
+  public static readonly new = Value.factory(TestType);
+
+  @MaxLength(16)
+  a = string();
+}
+
+Raw.forType(TestType).write(TestType.new({
+  a: 'string'
+}));
 
 it('any should pass through', () => {
   const mapper = Shape.Raw.forShape(Shape.dynamic);
@@ -246,7 +262,7 @@ describe('array', () => {
   shouldRead('if items match constraints', ['a'], undefined, {maxLength: 2});
 
   it('should read if all (complex items) are unique', () => {
-    expect(Shape.Raw.forShape(Shape.array(Shape.struct({a: Shape.string()}), {uniqueItems: true})).read([{a: 'a'}, {a: 'b'}])).toEqual([
+    expect(Shape.Raw.forShape(Shape.array(Shape.struct(TestType), {uniqueItems: true})).read([{a: 'a'}, {a: 'b'}])).toEqual([
       {a: 'a'},
       {a: 'b'}
     ]);
@@ -264,7 +280,7 @@ describe('array', () => {
   shouldThrow('if items do not match constraints', ['12'], undefined, {maxLength: 1});
 
   it('should throw if not all (complex items) are unique', () => {
-    expect(() => Shape.Raw.forShape(Shape.array(Shape.struct({a: Shape.string()}), {uniqueItems: true})).read([{a: 'a'}, {a: 'a'}])).toThrow();
+    expect(() => Shape.Raw.forShape(Shape.array(Shape.struct(TestType), {uniqueItems: true})).read([{a: 'a'}, {a: 'a'}])).toThrow();
   });
 });
 
@@ -331,7 +347,7 @@ describe('optional', () => {
 
 describe('struct', () => {
   it('should write struct', () => {
-    expect(Shape.Raw.forShape(Shape.struct({a: Shape.string()})).write({a: 'string'})).toEqual({a: 'string'});
+    expect(Shape.Raw.forShape(Shape.struct(TestType)).write(TestType.new({a: 'string'}))).toEqual({a: 'string'});
   });
 
   function shouldRead<S extends Shape.StructShape<any>>(desc: string, shape: S, a: Shape.RuntimeShape<S>) {
@@ -339,9 +355,9 @@ describe('struct', () => {
       expect(Shape.Raw.forShape(shape).read(a)).toEqual(a);
     });
   }
-  shouldRead('struct', struct({a: Shape.string()}), {a: 'a'});
-  shouldRead('nested struct', struct({a: Shape.struct({a: Shape.string()})}), {a: {a: 'a'}});
-  shouldRead('item constraints match', struct({a: Shape.string({maxLength: 2})}), {a: '1'});
+  shouldRead('struct', struct(TestType), TestType.new({a: 'a'}));
+  // shouldRead('nested struct', struct({a: Shape.struct(TestType)}), {a: {a: 'a'}});
+  // shouldRead('item constraints match', struct({a: Shape.string({maxLength: 2})}), {a: '1'});
 
   function shouldThrow<S extends Shape.StructShape<any>>(desc: string, shape: S, a: Shape.RuntimeShape<S>) {
     it(`should throw if ${desc}`, () => {
@@ -349,7 +365,7 @@ describe('struct', () => {
     });
   }
 
-  shouldThrow('not object', struct({a: Shape.string()}), 'not a struct' as any);
-  shouldThrow('item type does not match', struct({a: Shape.string()}), {a: 1} as any);
-  shouldThrow('item value invalid', struct({a: Shape.string({maxLength: 1})}), {a: '12'});
+  shouldThrow('not object', struct(TestType), 'not a struct' as any);
+  shouldThrow('item type does not match', struct(TestType), {a: 1} as any);
+  shouldThrow('item value invalid', struct(TestType), TestType.new({a: '12'}));
 });

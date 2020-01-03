@@ -1,4 +1,3 @@
-export * from './ast';
 export * from './class';
 export * from './member';
 export * from './primitive';

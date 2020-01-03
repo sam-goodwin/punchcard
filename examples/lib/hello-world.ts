@@ -1,32 +1,18 @@
 import cdk = require('@aws-cdk/core');
 import { Schedule } from '@aws-cdk/aws-events';
 import { Core, Lambda, DynamoDB, SQS } from 'punchcard';
-import { string, integer, Value, StringShape, OptionalShape, optional, Type } from 'punchcard/lib/shape';
+import { string, integer, Value, DataType, MaxLength, PropertyName, Type } from 'punchcard/lib/shape';
 import { Dependency } from 'punchcard/lib/core';
 
 export const app = new Core.App();
 const stack = app.root.map(app => new cdk.Stack(app, 'hello-world'));
 
-
-
-type A<T, K extends keyof T> = T[K] extends StringShape ? void : never;
-// const MaxLength = (length: number) => <T extends Object, K extends keyof T>(target: T, propertyKey: K): A<T, K> => {
-//   return null as any;
-// }
-
-
-type Is<T, K extends keyof T, V> =
-  T[K] extends V ? K :
-  T[K] extends OptionalShape<infer Inner> ? Inner extends V ? K : never
-  : never;
-
-const MaxLength = (length: number) => <T extends Object, K extends keyof T>(target: T, propertyKey: Is<T, K, StringShape>): void => {
-  
-}
-
 /**
  * Rate
  */
+@DataType({
+  version: 1
+})
 class RateType {
   public static readonly new = Value.factory(RateType);
 
@@ -34,7 +20,10 @@ class RateType {
    * Rate Key documentation goes here.
    */
   @MaxLength(1)
-  key = string();
+  @PropertyName('key_override')
+  key = string({
+    maxLength: 1
+  });
   
   rating = integer();
 }
@@ -60,7 +49,6 @@ Lambda.schedule(stack, 'MyFunction', {
 
   const hashItem = await hashTable.get('hash key');
   const sortedItem = await sortedTable.get(['hash key', 1]);
-
 });
 
 const rateValue: Value<RateType> = RateType.new({

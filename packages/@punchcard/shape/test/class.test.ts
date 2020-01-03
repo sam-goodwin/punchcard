@@ -18,7 +18,7 @@ class MyType {
 const MyTypeShape = ClassShape.of(MyType);
 
 it('should have Kind, "class"', () => {
-  expect(MyTypeShape.Kind).toEqual('class');
+  expect(MyTypeShape.Kind).toEqual('classShape');
 });
 
 it('should cache derived shapes', () => {

@@ -31,5 +31,3 @@ export namespace Member {
     ClassModel<T>[K] extends Shape ? Member<ClassModel<T>[K], K> :
     never;
 }
-
-type GetClassShape<T> = T extends ClassType ? ClassShape<T> : never;

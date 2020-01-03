@@ -1,42 +1,46 @@
 import 'jest';
 
 import {  Shape, Util } from '../../lib';
+import { Value } from '../../lib/shape/instance';
 
-const tree = Shape.struct({
-  stringField: Shape.string(),
-  intField: Shape.integer(),
-  numberField: Shape.float(),
-  boolField: Shape.boolean,
+// tslint:disable: member-access
 
-  stringArray: Shape.array(Shape.string()),
-  structArray: Shape.array(Shape.struct({
-    item: Shape.string()
-  })),
+class TestType {
+  stringField = Shape.string();
+  intField = Shape.integer();
+  numberField = Shape.float();
+  boolField = Shape.boolean;
+  timestampField = Shape.timestamp;
+  stringArray = Shape.array(Shape.string());
 
-  stringMap: Shape.map(Shape.string()),
-  structMap: Shape.map(Shape.struct({
-    item: Shape.string()
-  })),
+  structArray = Shape.array(Shape.struct(TestItemType));
+  stringMap = Shape.map(Shape.string());
+  structMap = Shape.map(Shape.struct(TestItemType));
+  struct = Shape.struct(NestedType);
 
-  optionalArray: Shape.optional(Shape.array(Shape.string())),
+  optionalArray = Shape.optional(Shape.array(Shape.string()));
+}
 
-  struct: Shape.struct({
-    stringField: Shape.string(),
-    intField: Shape.integer(),
-    numberField: Shape.float(),
-    boolField: Shape.boolean,
+class TestItemType {
+  item = Shape.string();
+}
 
-    stringArray: Shape.array(Shape.string()),
-    intArray: Shape.array(Shape.integer()),
-    numberArray: Shape.array(Shape.float()),
-    boolArray: Shape.array(Shape.boolean),
+class NestedType {
+  stringField = Shape.string();
+  intField = Shape.integer();
+  numberField = Shape.float();
+  boolField = Shape.boolean;
 
-    stringMap: Shape.map(Shape.string()),
-    intMap: Shape.map(Shape.integer()),
-    numberMap: Shape.map(Shape.float()),
-    boolMap: Shape.map(Shape.boolean),
-  })
-});
+  stringArray = Shape.array(Shape.string());
+  intArray = Shape.array(Shape.integer());
+  numberArray = Shape.array(Shape.float());
+  boolArray = Shape.array(Shape.boolean);
+
+  stringMap = Shape.map(Shape.string());
+  intMap = Shape.map(Shape.integer());
+  numberMap = Shape.map(Shape.float());
+  boolMap = Shape.map(Shape.boolean);
+}
 
 describe('json', () => {
   describe('schema', () => {
@@ -157,9 +161,9 @@ describe('json', () => {
     });
 
     it('struct', () => {
-      const schema = Shape.struct({
-        key: Shape.string(),
-        optional: Shape.optional(Shape.string())
+      const schema = Shape.struct(class {
+        key = Shape.string();
+        optional = Shape.optional(Shape.string());
       }).toJsonSchema();
 
       expect(schema).toEqual({
@@ -346,9 +350,13 @@ describe('json', () => {
         expect(() => Shape.array(Shape.string(), {uniqueItems: true}).validate(['1', '1'])).toThrow();
         Shape.array(Shape.string(), {uniqueItems: true}).validate(['1', '2']);
 
+        class T {
+          key = Shape.string();
+        }
+
         // test struct deep equals and hashCode
-        expect(() => Shape.array(Shape.struct({key: Shape.string()}), {uniqueItems: true}).validate([{key: '1'}, {key: '1'}])).toThrow();
-        Shape.array(Shape.struct({key: Shape.string()}), {uniqueItems: true}).validate([{key: '1'}]);
+        expect(() => Shape.array(Shape.struct(T), {uniqueItems: true}).validate([Value.of(T, {key: '1'}), Value.of(T, {key: '1'})])).toThrow();
+        Shape.array(Shape.struct(T), {uniqueItems: true}).validate([Value.of(T, {key: '1'})]);
       });
     });
     describe('map', () => {
