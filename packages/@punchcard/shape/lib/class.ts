@@ -60,10 +60,6 @@ export class ClassShape<C extends ClassType> extends Shape {
   ) {
     super();
   }
-
-  public visit<V extends Visitor>(visitor: V): ReturnType<V[this['Kind']]> {
-    return visitor.classShape(this) as ReturnType<V[this['Kind']]>;
-  }
 }
 
 /**
