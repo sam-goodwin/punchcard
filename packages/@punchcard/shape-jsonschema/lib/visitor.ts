@@ -5,6 +5,9 @@ import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { JsonSchema } from './json-schema';
 import { NumberSchema, StringSchema, TimestampSchema } from './primitive';
 
+/**
+ * Transforms a Shape into its corresponding JSON Schema representation.
+ */
 export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
   public stringShape(shape: StringShape): StringSchema {
     return {

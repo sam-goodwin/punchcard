@@ -23,4 +23,7 @@ declare module '@punchcard/shape/lib/primitive' {
   interface NumberShape {
     [SchemaTag]: NumberSchema;
   }
+  interface TimestampShape {
+    [SchemaTag]: TimestampSchema;
+  }
 }
