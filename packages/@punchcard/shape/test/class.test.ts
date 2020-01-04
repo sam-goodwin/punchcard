@@ -1,18 +1,24 @@
 import "jest";
-import { ClassShape, string } from "../lib";
+import { ClassShape, number, NumberShape, string, StringShape } from "../lib";
+import { array, ArrayShape, map, MapShape, set, SetShape } from "../lib/collection";
 import { MaxLength } from "../lib/decorator";
 
 // tslint:disable: member-access
 
-class OtherType {
-  id = string;
+class Nested {
+  a = string;
 }
 
 class MyType {
-  @MaxLength(1)
-  key = string;
-
-  other = OtherType;
+  id = string;
+  count = number;
+  nested = Nested;
+  array = array(string);
+  complexArray = array(Nested);
+  set = set(string);
+  complexSet = set(Nested);
+  map = map(string);
+  complexMap = map(Nested);
 }
 
 const MyTypeShape = ClassShape.of(MyType);
@@ -26,7 +32,62 @@ it('should cache derived shapes', () => {
 });
 
 it('should parse members', () => {
-  expect(MyTypeShape.Members.key.Name).toEqual('key');
-  expect(MyTypeShape.Members.other.Name).toEqual('other');
-  expect(MyTypeShape.Members.other.Type.Members.id.Name).toEqual('id');
+  expect(MyTypeShape.Members.id).toEqual({
+    Name: 'id',
+    Type: new StringShape(),
+    Metadata: {}
+  });
+
+  expect(MyTypeShape.Members.count).toEqual({
+    Name: 'count',
+    Type: new NumberShape(),
+    Metadata: {}
+  });
+
+  const nestedShape = new ClassShape(Nested, {
+    a: {
+      Name: 'a',
+      Type: new StringShape(),
+      Metadata: {}
+    }
+  });
+
+  expect(MyTypeShape.Members.nested).toEqual({
+    Name: 'nested',
+    Type: nestedShape,
+    Metadata: {}
+  });
+
+  expect(MyTypeShape.Members.array).toEqual({
+    Name: 'array',
+    Type: new ArrayShape(new StringShape()),
+    Metadata: {}
+  });
+  expect(MyTypeShape.Members.complexArray).toEqual({
+    Name: 'complexArray',
+    Type: new ArrayShape(nestedShape),
+    Metadata: {}
+  });
+
+  expect(MyTypeShape.Members.set).toEqual({
+    Name: 'set',
+    Type: new SetShape(new StringShape()),
+    Metadata: {}
+  });
+  expect(MyTypeShape.Members.complexSet).toEqual({
+    Name: 'complexSet',
+    Type: new SetShape(nestedShape),
+    Metadata: {}
+  });
+
+  expect(MyTypeShape.Members.map).toEqual({
+    Name: 'map',
+    Type: new MapShape(new StringShape()),
+    Metadata: {}
+  });
+  expect(MyTypeShape.Members.complexMap).toEqual({
+    Name: 'complexMap',
+    Type: new MapShape(nestedShape),
+    Metadata: {}
+  });
 });

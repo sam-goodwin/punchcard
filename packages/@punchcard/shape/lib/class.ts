@@ -23,7 +23,7 @@ export const isClassShape = (a: any): a is ClassShape<any> => isShape(a) && a.Ki
  * ```
  */
 export class ClassShape<C extends ClassType> extends Shape {
-  public static of<C extends ClassType>(clazz: C): ClassShape<C> {
+  public static forClassType<C extends ClassType>(clazz: C): ClassShape<C> {
     if (!cache().has(clazz)) {
       const members: any = {};
       const type = new (clazz)();

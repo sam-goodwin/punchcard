@@ -1,4 +1,5 @@
-import { Shape } from "./shape";
+import { ClassShape, ClassType } from './class';
+import { isShape, Shape } from './shape';
 
 /**
  * A Collection of Shapes.
@@ -6,7 +7,7 @@ import { Shape } from "./shape";
 export abstract class CollectionShape<T extends Shape> extends Shape {
   public abstract readonly Kind: 'arrayShape' | 'setShape' | 'mapShape';
 
-  constructor(public readonly items: T) {
+  constructor(public readonly Items: T) {
     super();
   }
 }
@@ -17,9 +18,8 @@ export abstract class CollectionShape<T extends Shape> extends Shape {
 export class ArrayShape<T extends Shape> extends CollectionShape<T> {
   public readonly Kind = 'arrayShape';
 }
-export function array<T extends Shape>(items: T): ArrayShape<T> {
-  return new ArrayShape(items);
-}
+export const array = <T extends Shape | ClassType>(items: T) => new ArrayShape(Shape.of(items));
+export const isArrayShape = (a: any): a is ArrayShape<any> => a.Kind === 'arrayShape';
 
 /**
  * Set of unique itemss.
@@ -27,9 +27,8 @@ export function array<T extends Shape>(items: T): ArrayShape<T> {
 export class SetShape<T extends Shape> extends CollectionShape<T> {
   public readonly Kind = 'setShape';
 }
-export function set<T extends Shape>(items: T): SetShape<T> {
-  return new SetShape(items);
-}
+export const set = <T extends Shape | ClassType>(items: T) => new SetShape(Shape.of(items));
+export const isSetShape = (a: any): a is SetShape<any> => a.Kind === 'setShape';
 
 /**
  * Map of `string` keys to some shape, `T`.
@@ -37,6 +36,5 @@ export function set<T extends Shape>(items: T): SetShape<T> {
 export class MapShape<T extends Shape> extends CollectionShape<T> {
   public readonly Kind = 'mapShape';
 }
-export function map<T extends Shape>(items: T): MapShape<T> {
-  return new MapShape(items);
-}
+export const map = <T extends Shape | ClassType>(items: T) => new MapShape(Shape.of(items));
+export const isMapShape = (a: any): a is MapShape<any> => a.Kind === 'mapShape';

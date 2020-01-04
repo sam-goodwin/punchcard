@@ -1,14 +1,21 @@
-import { ClassShape, NumberShape, StringShape, Visitor } from '@punchcard/shape';
+import { ClassShape, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { ObjectSchema } from './class';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { JsonSchema } from './json-schema';
-import { NumberSchema, StringSchema } from './primitive';
+import { NumberSchema, StringSchema, TimestampSchema } from './primitive';
 
 export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
   public stringShape(shape: StringShape): StringSchema {
     return {
       type: 'string'
+    };
+  }
+
+  public timestampShape(shape: TimestampShape): TimestampSchema {
+    return {
+      type: 'string',
+      format: 'date-time'
     };
   }
 
@@ -22,7 +29,7 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
     return {
       type: 'array',
       uniqueItems: false,
-      items: shape.items.visit(this)
+      items: shape.Items.visit(this)
     };
   }
 
@@ -30,7 +37,7 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
     return {
       type: 'array',
       uniqueItems: true,
-      items: shape.items.visit(this)
+      items: shape.Items.visit(this)
     };
   }
 
@@ -38,7 +45,7 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
     return {
       type: 'object',
       properties: {}, // TODO: null or empty object?
-      additionalProperties: shape.items.visit(this),
+      additionalProperties: shape.Items.visit(this),
       allowAdditionalProperties: true,
     };
   }

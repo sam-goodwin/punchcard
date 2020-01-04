@@ -1,10 +1,11 @@
 import { ClassShape } from "./class";
 import { ArrayShape, MapShape, SetShape } from "./collection";
-import { NumberShape, StringShape } from "./primitive";
+import { NumberShape, StringShape, TimestampShape } from "./primitive";
 
 export interface Visitor<T = unknown> {
   stringShape(shape: StringShape): T;
   numberShape(shape: NumberShape): T;
+  timestampShape(shape: TimestampShape): T;
 
   arrayShape(shape: ArrayShape<any>): T;
   setShape(shape: SetShape<any>): T;

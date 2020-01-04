@@ -7,10 +7,6 @@ import { AssertIsKey } from './util';
  * Represents a Member of a model defined with a Class.
  */
 export class Member<T extends Shape = any, Name extends Member.Name = any> {
-  public static isInstance = (a: any): a is Member => a.NodeType === 'member';
-
-  public readonly NodeType: 'member' = 'member';
-
   constructor(
     public readonly Name: Name,
     public readonly Type: T,
