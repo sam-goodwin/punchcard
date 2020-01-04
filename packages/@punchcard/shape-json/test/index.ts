@@ -1,6 +1,7 @@
 import 'jest';
 
-import { ClassShape, number, string } from '@punchcard/shape';
+import { number, string } from '@punchcard/shape';
+import { MaxLength } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema } from '../lib';
 
@@ -10,6 +11,7 @@ class Nested {
 }
 
 class MyType {
+  @MaxLength(1)
   id = string;
   count = number;
   nested = Nested;
@@ -28,7 +30,9 @@ it('should render JSON schema', () => {
     type: 'object',
     properties: {
       id: {
-        type: 'string'
+        type: 'string',
+        maxLength: 1,
+        exclusiveMaximum: false
       },
       count: {
         type: 'number'

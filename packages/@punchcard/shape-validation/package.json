@@ -1,6 +1,6 @@
 {
-  "name": "@punchcard/shape-aws-dynamodb",
-  "description": "Type-safe DSL Abstract Syntax Tree for AWS DynamoDB",
+  "name": "@punchcard/shape-validation",
+  "description": "Validation decorators for Punchcard Shapes",
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -41,7 +41,8 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "@punchcard/shape": "0.1.0"
+    "reflect-metadata": "^0.1.13",
+    "@punchcard/shape": "^0.1.0"
   },
   "jest": {
     "testMatch": [

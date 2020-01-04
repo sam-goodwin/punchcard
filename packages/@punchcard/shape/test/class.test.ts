@@ -1,7 +1,6 @@
 import "jest";
-import { ClassShape, number, NumberShape, string, StringShape } from "../lib";
+import { ClassShape, Member, number, NumberShape, string, StringShape } from "../lib";
 import { array, ArrayShape, map, MapShape, set, SetShape } from "../lib/collection";
-import { MaxLength } from "../lib/decorator";
 
 // tslint:disable: member-access
 
@@ -44,12 +43,8 @@ it('should parse members', () => {
     Metadata: {}
   });
 
-  const nestedShape = new ClassShape(Nested, {
-    a: {
-      Name: 'a',
-      Type: new StringShape(),
-      Metadata: {}
-    }
+  const nestedShape = new ClassShape(Nested,  {
+    a: new Member('a', new StringShape(), {})
   });
 
   expect(MyTypeShape.Members.nested).toEqual({

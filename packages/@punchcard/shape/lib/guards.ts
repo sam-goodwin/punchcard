@@ -13,3 +13,8 @@ export namespace ShapeGuards {
   export const isStringShape = (a: any): a is StringShape => isShape(a) && a.Kind === 'stringShape';
   export const isTimestampShape = (a: any): a is TimestampShape => isShape(a) && a.Kind === 'timestampShape';
 }
+
+export namespace MetadataGuards {
+  const a = '';
+  // to be augmented by supplemental libraries
+}

@@ -2,12 +2,15 @@ import { ClassShape, ClassType } from './class';
 import { ShapeGuards } from './guards';
 import { Visitor } from './visitor';
 
+// Track this issue for the emitting of generic metadata by the TS compiler.
+// https://github.com/Microsoft/TypeScript/issues/7169
+
 /**
  * Root of the Shape type-system.
  */
 export abstract class Shape {
   public static of<T extends Shape | ClassType>(items: T): Shape.Of<T> {
-    return ShapeGuards.isShape(items) ? items as Shape.Of<T> : ClassShape.ofType(items as ClassType) as Shape.Of<T>;
+    return (ShapeGuards.isShape(items) ? items : ClassShape.ofType(items as ClassType)) as Shape.Of<T>;
   }
 
   public readonly NodeType: 'shape' = 'shape';

@@ -1,7 +1,7 @@
 import { ClassType } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
-import { ObjectSchema } from './class';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
+import { ObjectSchema } from './object';
 import { NumberSchema, StringSchema, TimestampSchema } from './primitive';
 import { ToJsonSchemaVisitor } from './visitor';
 
@@ -17,6 +17,7 @@ export type JsonSchema =
   | TimestampSchema
   | StringSchema
   ;
+
 export namespace JsonSchema {
   export type Of<T extends {[SchemaTag]: any}> = T[SchemaTag] extends JsonSchema ? T[SchemaTag] : never;
 

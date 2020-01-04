@@ -10,7 +10,8 @@ export class Member<T extends Shape = any, Name extends Member.Name = any> {
   constructor(
     public readonly Name: Name,
     public readonly Type: T,
-    public readonly Metadata: ModelMetadata = {}) {}
+    public readonly Metadata: ModelMetadata = {}) {
+  }
 }
 export namespace Member {
   /**

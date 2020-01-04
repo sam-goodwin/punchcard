@@ -40,7 +40,9 @@
     "tslint": "^5.16.0",
     "typescript": "^3.7.4"
   },
-  "dependencies": {},
+  "dependencies": {
+    "reflect-metadata": "^0.1.13"
+  },
   "jest": {
     "testMatch": [
       "**/test/**/*.js"

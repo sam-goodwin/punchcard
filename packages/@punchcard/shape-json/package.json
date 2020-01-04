@@ -1,6 +1,6 @@
 {
-  "name": "@punchcard/shape-jsonschema",
-  "description": "Maps a Punchcard Shape to its JSON schema representation",
+  "name": "@punchcard/shape-json",
+  "description": "Adds support for JSON de/serialization, JSON Schema validation and JSON Path queries to Punchcard Shapes",
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -41,7 +41,8 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "@punchcard/shape": "0.1.0"
+    "@punchcard/shape": "0.1.0",
+    "@punchcard/shape-validation": "0.1.0"
   },
   "jest": {
     "testMatch": [
