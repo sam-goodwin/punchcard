@@ -1,5 +1,6 @@
 import { ClassShape, ClassType } from './class';
 import { ShapeGuards } from './guards';
+import { ModelMetadata } from './metadata';
 import { Visitor } from './visitor';
 
 // Track this issue for the emitting of generic metadata by the TS compiler.
@@ -8,12 +9,13 @@ import { Visitor } from './visitor';
 /**
  * Root of the Shape type-system.
  */
-export abstract class Shape {
+export abstract class Shape<M extends ModelMetadata = any> {
   public static of<T extends Shape | ClassType>(items: T): Shape.Of<T> {
     return (ShapeGuards.isShape(items) ? items : ClassShape.ofType(items as ClassType)) as Shape.Of<T>;
   }
 
   public readonly NodeType: 'shape' = 'shape';
+
   public abstract readonly Kind: keyof Visitor;
 
   public visit<V extends Visitor>(visitor: V): ReturnType<V[this['Kind']]> {

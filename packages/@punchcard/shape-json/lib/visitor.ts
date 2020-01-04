@@ -73,6 +73,8 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
           } else if (MetadataGuards.isMinLengthConstraint(metadataValue)) {
             schema.minLength = metadataValue.length;
             schema.exclusiveMinimum = !metadataValue.comparison.endsWith('=');
+          } else if (MetadataGuards.isPatternConstraint(metadataValue)) {
+            schema.pattern = metadataValue.pattern.source;
           }
         }
         return { [name]: schema };
