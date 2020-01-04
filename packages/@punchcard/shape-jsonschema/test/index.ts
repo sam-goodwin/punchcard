@@ -2,7 +2,7 @@ import 'jest';
 
 import { ClassShape, number, string } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
-import { toJsonSchema } from '../lib';
+import { JsonSchema } from '../lib';
 
 // tslint:disable: member-access
 class Nested {
@@ -21,7 +21,7 @@ class MyType {
   complexMap = map(Nested);
 }
 
-const schema = toJsonSchema(ClassShape.of(MyType));
+const schema = JsonSchema.of(MyType);
 
 it('should render JSON schema', () => {
   expect(schema).toEqual({

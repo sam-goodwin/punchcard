@@ -1,4 +1,4 @@
-import { JsonSchema, SchemaTag } from './json-schema';
+import { JsonSchema, SchemaTag, ToJsonSchema } from './json-schema';
 
 export interface ObjectSchemaProperties {
   [p: string]: JsonSchema;
@@ -11,7 +11,7 @@ export interface ObjectSchema<P extends ObjectSchemaProperties> {
 declare module '@punchcard/shape/lib/class' {
   interface ClassShape<C extends ClassType> {
     [SchemaTag]: ObjectSchema<{
-      [member in keyof this['Members']]: JsonSchema.Of<this['Members'][member]['Type']>
+      [member in keyof this['Members']]: ToJsonSchema<this['Members'][member]['Type']>
     }>;
   }
 }

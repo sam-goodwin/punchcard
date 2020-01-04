@@ -6,7 +6,7 @@ import { Visitor } from './visitor';
  */
 export abstract class Shape {
   public static of<T extends Shape | ClassType>(items: T): Shape.Of<T> {
-    return isShape(items) ? items as Shape.Of<T> : ClassShape.forClassType(items as ClassType) as Shape.Of<T>;
+    return isShape(items) ? items as Shape.Of<T> : ClassShape.ofType(items as ClassType) as Shape.Of<T>;
   }
 
   public readonly NodeType: 'shape' = 'shape';
