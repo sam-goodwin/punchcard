@@ -1,9 +1,7 @@
+import { ShapeGuards } from './guards';
 import { Member } from './member';
 import { ModelMetadata } from './metadata';
-import { isShape, Shape } from './shape';
-import { Visitor } from './visitor';
-
-export const isClassShape = (a: any): a is ClassShape<any> => isShape(a) && a.Kind === 'classShape';
+import { Shape } from './shape';
 
 /**
  * A Shape derived from a TypeScript `class`.
@@ -29,7 +27,7 @@ export class ClassShape<C extends ClassType> extends Shape {
       const type = new (clazz)();
       for (const [name, property] of Object.entries(type)) {
         let shape: Shape;
-        if (isShape(property)) {
+        if (ShapeGuards.isShape(property)) {
           shape = property;
         } else {
           shape = ClassShape.of(property as any) as any;

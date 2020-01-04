@@ -1,4 +1,5 @@
 import { ClassShape, ClassType } from './class';
+import { ShapeGuards } from './guards';
 import { Visitor } from './visitor';
 
 /**
@@ -6,7 +7,7 @@ import { Visitor } from './visitor';
  */
 export abstract class Shape {
   public static of<T extends Shape | ClassType>(items: T): Shape.Of<T> {
-    return isShape(items) ? items as Shape.Of<T> : ClassShape.ofType(items as ClassType) as Shape.Of<T>;
+    return ShapeGuards.isShape(items) ? items as Shape.Of<T> : ClassShape.ofType(items as ClassType) as Shape.Of<T>;
   }
 
   public readonly NodeType: 'shape' = 'shape';
@@ -19,4 +20,3 @@ export abstract class Shape {
 export namespace Shape {
   export type Of<T extends Shape | ClassType> = T extends ClassType<any> ? ClassShape<T> : T;
 }
-export const isShape = (a: any): a is Shape => a.NodeType === 'shape';
