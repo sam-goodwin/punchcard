@@ -30,6 +30,7 @@ export class PatternConstraint {
 
   constructor(public readonly pattern: RegExp) {}
 }
+
 export class PatternValidator implements Validator<string> {
   constructor(private readonly constraint: PatternConstraint) {}
   public validate(value: string): void | ValidationErrors {

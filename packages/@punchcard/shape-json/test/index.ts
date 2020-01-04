@@ -1,8 +1,8 @@
 import 'jest';
 
-import { number, string } from '@punchcard/shape';
-import { MaxLength, Pattern } from '@punchcard/shape-validation';
+import { number, string, StringShape } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
+import { Annotation } from '@punchcard/shape/lib/metadata';
 import { JsonSchema } from '../lib';
 
 // tslint:disable: member-access
@@ -10,10 +10,15 @@ class Nested {
   a = string;
 }
 
+function MaxLength<L extends number>(length: L): Annotation<StringShape, {maxLength: L}> {
+  return {
+    maxLength: length,
+  } as any;
+}
+
 class MyType {
-  @MaxLength(1)
-  @Pattern(/.*/)
-  id = string;
+  id = string
+    .meta(MaxLength(1));
 
   count = number;
   nested = Nested;
