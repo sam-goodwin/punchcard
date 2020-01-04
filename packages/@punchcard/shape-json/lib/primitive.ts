@@ -1,16 +1,16 @@
-import { Decorated } from "@punchcard/shape/lib/metadata";
+import { Meta } from "@punchcard/shape/lib/metadata";
 import { SchemaTag } from "./json-schema";
 
 interface StringSchemaConstraints {
   maxLength?: number;
   minLength?: number;
-  pattern?: string;
+  pattern?: string | undefined;
 }
 
 export type StringSchema<C extends StringSchemaConstraints = {}> = {
   type: 'string';
   format?: string;
-} & C;
+} & Pick<C, 'maxLength' | 'minLength' | 'pattern'>;
 
 export interface NumberSchema {
   type: 'number';
@@ -25,10 +25,14 @@ type Assert<T, Is> = T extends Is ? T : never;
 
 declare module '@punchcard/shape/lib/primitive' {
   interface StringShape {
-    [SchemaTag]: this extends Decorated<StringShape, infer M> ?
-      M extends StringSchemaConstraints ? StringSchema<M> : never :
-      never
-      ;
+    [SchemaTag]: StringSchema<Meta.Get<this, {}>>;
+    
+    // this extends Metadata.Apply<StringShape, infer M> ?
+    //   M extends StringSchemaConstraints ? StringSchema<M> : never :
+    //   never
+    // ;
+    
+    
   }
   interface NumberShape {
     [SchemaTag]: NumberSchema;

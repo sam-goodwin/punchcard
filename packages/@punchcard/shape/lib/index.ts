@@ -6,6 +6,6 @@ export * from './shape';
 export * from './util';
 export * from './visitor';
 
-export { ModelMetadata } from './metadata';
+export * from './metadata';
 
 import 'reflect-metadata';

@@ -1,6 +1,6 @@
 import { ShapeGuards } from './guards';
 import { Member } from './member';
-import { getClassMetadata, getPropertyMetadata, ModelMetadata } from './metadata';
+import { getClassMetadata, getPropertyMetadata, Meta, Metadata } from './metadata';
 import { Shape } from './shape';
 
 /**
@@ -32,10 +32,8 @@ export class ClassShape<C extends ClassType> extends Shape {
         } else {
           shape = ClassShape.of(property as any) as any;
         }
-
         members[name] = new Member(name, shape!, getPropertyMetadata(clazz.prototype, name));
       }
-
       cache().set(clazz, new ClassShape(clazz, members, getClassMetadata(clazz)));
     }
     return cache().get(clazz);
@@ -56,7 +54,7 @@ export class ClassShape<C extends ClassType> extends Shape {
       [property in keyof ClassModel<C>]: Member.Of<C, property>;
     },
 
-    public readonly Metadata: ModelMetadata = {}
+    public readonly Metadata: Metadata = {}
   ) {
     super();
   }

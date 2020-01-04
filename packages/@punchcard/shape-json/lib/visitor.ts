@@ -1,4 +1,4 @@
-import { ClassShape, Member, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
+import { ClassShape, Member, NumberShape, StringShape, TimestampShape, Visitor, Meta } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { ObjectSchema } from './class';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
@@ -15,8 +15,9 @@ import { MetadataGuards } from '@punchcard/shape/lib/guards';
 export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
   public stringShape(shape: StringShape): StringSchema {
     return {
-      type: 'string'
-    };
+      type: 'string',
+      ...(Meta.get(shape, ['minLength', 'maxLength', 'pattern']) || {})
+    } as any;
   }
 
   public timestampShape(shape: TimestampShape): TimestampSchema {

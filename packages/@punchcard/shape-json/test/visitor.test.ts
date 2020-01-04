@@ -1,24 +1,43 @@
 import 'jest';
 
-import { number, string, StringShape } from '@punchcard/shape';
+import { number, Shape, string, StringShape } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
-import { Annotation } from '@punchcard/shape/lib/metadata';
-import { JsonSchema } from '../lib';
+import { Meta, Trait } from '@punchcard/shape/lib/metadata';
+import { JsonSchema, StringSchema } from '../lib';
 
 // tslint:disable: member-access
 class Nested {
   a = string;
 }
 
-function MaxLength<L extends number>(length: L): Annotation<StringShape, {maxLength: L}> {
+// type MaxLength<L extends number> = Trait<StringShape, {maxLength: L}>;
+interface MaxLength<L extends number> extends Trait<StringShape, {maxLength: L}> {}
+interface MinLength<L extends number> extends Trait<StringShape, {minLength: L}> {}
+
+function MaxLength<L extends number>(length: L): MaxLength<L> {
   return {
-    maxLength: length,
+    maxLength: length
+  } as any;
+}
+
+function MinLength<L extends number>(length: L): MinLength<L> {
+  return {
+    minLength: length,
+  } as any;
+}
+
+interface Pattern<P extends string> extends Trait<StringShape, {pattern: P}> {}
+function Pattern<P extends string>(pattern: P): Pattern<P> {
+  return {
+    pattern
   } as any;
 }
 
 class MyType {
   id = string
-    .meta(MaxLength(1));
+    .apply(MaxLength(1))
+    .apply(MinLength(0))
+    .apply(Pattern('.*'));
 
   count = number;
   nested = Nested;
@@ -30,7 +49,9 @@ class MyType {
   complexMap = map(Nested);
 }
 
-const schema = JsonSchema.of(MyType);
+const type = Shape.of(MyType);
+
+const schema = JsonSchema.of(type);
 
 it('should render JSON schema', () => {
   expect(schema).toEqual({
@@ -39,7 +60,7 @@ it('should render JSON schema', () => {
       id: {
         type: 'string',
         maxLength: 1,
-        exclusiveMaximum: false,
+        minLength: 0,
         pattern: '.*'
       },
       count: {

@@ -1,6 +1,6 @@
 import { ClassShape, ClassType } from './class';
 import { ShapeGuards } from './guards';
-import { Annotation, decorate, Decorated } from './metadata';
+import { Meta, Trait } from './metadata';
 import { Visitor } from './visitor';
 
 // Track this issue for the emitting of generic metadata by the TS compiler.
@@ -22,8 +22,8 @@ export abstract class Shape {
     return visitor[this.Kind](this as any) as ReturnType<V[this['Kind']]>;
   }
 
-  public meta<M extends Annotation<this, A>, A>(metadata: M): this extends Decorated<this, infer M2> ? Decorated<this, M & M2> : Decorated<this, M> {
-    return decorate(this, metadata) as any;
+  public apply<T extends Trait<this, any>>(trait: T): Meta.Apply<this, Trait.GetData<T>> {
+    return Meta.apply(this, trait) as any;
   }
 }
 export namespace Shape {

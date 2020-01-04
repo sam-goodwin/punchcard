@@ -1,7 +1,6 @@
 import "jest";
 import { ClassShape, Member, number, NumberShape, string, StringShape } from "../lib";
 import { array, ArrayShape, map, MapShape, set, SetShape } from "../lib/collection";
-import { decorate } from "../lib/metadata";
 
 // tslint:disable: member-access
 
@@ -13,9 +12,7 @@ class MyType {
   id = string;
   count = number;
   nested = Nested;
-  array = array(decorate(string, {
-    maxLength: 1
-  }));
+  array = array(string);
   complexArray = array(Nested);
   set = set(string);
   complexSet = set(Nested);
