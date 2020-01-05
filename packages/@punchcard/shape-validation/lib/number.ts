@@ -7,21 +7,27 @@ export interface MultipleOf<M extends number> extends Trait<NumberShape, {multip
 
 export function Maximum<L extends number, E extends boolean = false>(length: L, exclusive?: E): Maximum<L, E> {
   return {
-    maximum: length,
-    exclusiveMaximum: exclusive === true
-  } as any;
+    [Trait.Data]: {
+      maximum: length,
+      exclusiveMaximum: (exclusive === true) as E
+    }
+  };
 }
 
 export function Minimum<L extends number, E extends boolean = false>(length: L, exclusive?: E): Minimum<L, E> {
   return {
-    minimum: length,
-    exclusiveMinimum: exclusive === true
-  } as any;
+    [Trait.Data]: {
+      minimum: length,
+      exclusiveMinimum: (exclusive === true) as E
+    }
+  };
 }
 export function MultipleOf<M extends number>(multipleOf: M): MultipleOf<M> {
   return {
-    multipleOf
-  } as any;
+    [Trait.Data]: {
+      multipleOf
+    }
+  };
 }
 
 export const Even = MultipleOf(2);

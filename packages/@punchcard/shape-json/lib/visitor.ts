@@ -1,13 +1,11 @@
-import { ClassShape, Member, Meta, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
+import { ClassShape, Meta, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { ObjectSchema } from './object';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { JsonSchema } from './json-schema';
+import { ObjectSchema } from './object';
 import { NumberSchema, StringSchema, TimestampSchema } from './primitive';
 
 import '@punchcard/shape-validation';
-
-import { MetadataGuards } from '@punchcard/shape/lib/guards';
 
 /**
  * Transforms a Shape into its corresponding JSON Schema representation.

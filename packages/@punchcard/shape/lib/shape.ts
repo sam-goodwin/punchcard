@@ -23,7 +23,7 @@ export abstract class Shape {
   }
 
   public apply<T extends Trait<this, any>>(trait: T): Apply<this, Trait.GetData<T>> {
-    return Meta.apply(this, trait as any);
+    return Meta.apply(this, trait[Trait.Data]);
   }
 }
 export namespace Shape {

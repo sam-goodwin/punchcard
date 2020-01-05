@@ -17,7 +17,7 @@ export type JsonSchema =
 
 export namespace JsonSchema {
   export type Tag = typeof Tag;
-  export const Tag = Symbol.for('@punchcard/shape-jsonschema');
+  export const Tag = Symbol.for('@punchcard/shape-json.Tag');
 
   export type Of<T extends {[Tag]: any}> = T[Tag] extends JsonSchema ? T[Tag] : never;
   export type OfType<T> = Of<ClassShape<ClassType<T>>>;

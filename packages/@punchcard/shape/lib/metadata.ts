@@ -1,5 +1,3 @@
-import { Shape } from './shape';
-
 import 'reflect-metadata';
 
 /**

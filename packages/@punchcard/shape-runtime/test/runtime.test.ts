@@ -26,6 +26,8 @@ class MyType {
   complexMap = map(Nested);
 }
 
+interface MyManufacturedInterface extends Runtime.OfType<MyType> {}
+
 it('should derive runtime type recursively', () => {
   // compile-time unit test
   const actual: Runtime.OfType<MyType> = null as any;
@@ -52,4 +54,6 @@ it('should derive runtime type recursively', () => {
       a: string;
     }; };
   } = actual;
+
+  const expectedManufactured: MyManufacturedInterface = actual;
 });
