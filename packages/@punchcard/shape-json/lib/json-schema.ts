@@ -5,8 +5,7 @@ import { ObjectSchema } from './object';
 import { NumberSchema, StringSchema, TimestampSchema } from './primitive';
 import { ToJsonSchemaVisitor } from './visitor';
 
-export type SchemaTag = typeof SchemaTag;
-export const SchemaTag = Symbol.for('@punchcard/shape-jsonschema');
+
 
 export type JsonSchema =
   | MapSchema<any>
@@ -19,7 +18,10 @@ export type JsonSchema =
   ;
 
 export namespace JsonSchema {
-  export type Of<T extends {[SchemaTag]: any}> = T[SchemaTag] extends JsonSchema ? T[SchemaTag] : never;
+  export type Tag = typeof Tag;
+  export const Tag = Symbol.for('@punchcard/shape-jsonschema');
+
+  export type Of<T extends {[Tag]: any}> = T[Tag] extends JsonSchema ? T[Tag] : never;
   export type OfType<T> = Of<ClassShape<ClassType<T>>>;
 
   export function of<T extends Shape | ClassType>(item: T): JsonSchema.Of<Shape.Of<T>> {
@@ -29,6 +31,6 @@ export namespace JsonSchema {
 
 declare module '@punchcard/shape/lib/shape' {
   interface Shape {
-    [SchemaTag]: JsonSchema;
+    [JsonSchema.Tag]: JsonSchema;
   }
 }

@@ -1,6 +1,6 @@
 {
-  "name": "@punchcard/shape-validation",
-  "description": "Validation decorators for Punchcard Shapes",
+  "name": "@punchcard/shape-runtime",
+  "description": "Maps Punchcard Shape to a Runtime value (JavaScript AST)",
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -41,9 +41,7 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "reflect-metadata": "^0.1.13",
-    "@punchcard/shape": "^0.1.0",
-    "@punchcard/shape-runtime": "^0.1.0"
+    "@punchcard/shape": "0.1.0"
   },
   "jest": {
     "testMatch": [

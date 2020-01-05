@@ -1,5 +1,5 @@
 import { Meta } from "@punchcard/shape/lib/metadata";
-import { SchemaTag } from "./json-schema";
+import { JsonSchema } from "./json-schema";
 
 export interface StringSchemaConstraints {
   maxLength?: number;
@@ -31,12 +31,12 @@ export interface TimestampSchema {
 
 declare module '@punchcard/shape/lib/primitive' {
   interface StringShape {
-    [SchemaTag]: StringSchema<Meta.GetData<this>>;
+    [JsonSchema.Tag]: StringSchema<Meta.GetData<this>>;
   }
   interface NumberShape {
-    [SchemaTag]: NumberSchema<Meta.GetData<this>>;
+    [JsonSchema.Tag]: NumberSchema<Meta.GetData<this>>;
   }
   interface TimestampShape {
-    [SchemaTag]: TimestampSchema;
+    [JsonSchema.Tag]: TimestampSchema;
   }
 }

@@ -23,3 +23,5 @@ export function MultipleOf<M extends number>(multipleOf: M): MultipleOf<M> {
     multipleOf
   } as any;
 }
+
+export const Even = MultipleOf(2);

@@ -1,7 +1,7 @@
 import 'jest';
 
 import { number, Shape, string } from '@punchcard/shape';
-import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape-validation';
+import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern, Validator } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema, NumberSchema } from '../lib';
 
@@ -17,13 +17,15 @@ class MyType {
   id = string
     .apply(MaxLength(1))
     .apply(MinLength(0))
-    .apply(Pattern('.*'));
+    .apply(Pattern('.*'))
+    ;
 
   count = number
     .apply(Maximum(1))
     .apply(Minimum(1, true))
     .apply(MultipleOf(2))
     ;
+
   nested = Nested;
   array = array(string);
   complexArray = array(Nested);
