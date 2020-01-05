@@ -52,7 +52,7 @@
   },
   "jest": {
     "testMatch": [
-      "**/test/**/*.js"
+      "**/test/**/*.test.js"
     ]
   }
 }

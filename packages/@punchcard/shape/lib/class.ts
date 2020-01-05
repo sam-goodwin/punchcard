@@ -1,7 +1,15 @@
 import { ShapeGuards } from './guards';
 import { Member } from './member';
-import { getClassMetadata, getPropertyMetadata, Meta, Metadata } from './metadata';
+import { getClassMetadata, getPropertyMetadata, Metadata } from './metadata';
 import { Shape } from './shape';
+
+// augment shape to avoid circular dependency
+declare module './shape' {
+  namespace Shape {
+    export function of<T extends Shape | ClassType>(items: T): Shape.Of<T>;
+  }
+}
+Shape.of = <T extends Shape | ClassType>(items: T): Shape.Of<T> => (ShapeGuards.isShape(items) ? items : ClassShape.ofType(items as ClassType)) as Shape.Of<T>;
 
 /**
  * A Shape derived from a TypeScript `class`.

@@ -1,34 +1,12 @@
 import 'jest';
 
-import { number, string, StringShape } from '@punchcard/shape';
-import { array, ArrayShape, map, set } from '@punchcard/shape/lib/collection';
-
 import { AttributeValue } from '../lib';
-
-// tslint:disable: member-access
-class Nested {
-  a = string;
-}
-
-class MyType {
-  /**
-   * Field documentation.
-   */
-  id = string;
-  count = number;
-
-  nested = Nested;
-  array = array(string);
-  complexArray = array(Nested);
-  stringSet = set(string);
-  numberSet = set(number);
-  map = map(string);
-  complexMap = map(Nested);
-}
+import { MyType } from './mock';
 
 it('should map Shape AST to AttributeValue AST', () => {
   const actual: AttributeValue.ValueOfType<MyType> = null as any;
 
+  // compile-time unit test
   const expected: AttributeValue.Struct<{
     id: AttributeValue.StringValue,
     count: AttributeValue.NumberValue,

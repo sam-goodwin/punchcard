@@ -10,10 +10,6 @@ import { Visitor } from './visitor';
  * Root of the Shape type-system.
  */
 export abstract class Shape {
-  public static of<T extends Shape | ClassType>(items: T): Shape.Of<T> {
-    return (ShapeGuards.isShape(items) ? items : ClassShape.ofType(items as ClassType)) as Shape.Of<T>;
-  }
-
   public readonly NodeType: 'shape' = 'shape';
 
   public abstract readonly Kind: keyof Visitor;

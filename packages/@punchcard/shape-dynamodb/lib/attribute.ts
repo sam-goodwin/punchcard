@@ -1,11 +1,8 @@
 import { ClassShape, ClassType } from '@punchcard/shape/lib/class';
 
-export type Tag = typeof Tag;
-export const Tag = Symbol.for('@punchcard/shape-dynamodb.AttributeValue.Tag');
-
 declare module '@punchcard/shape/lib/shape' {
   export interface Shape {
-    [Tag]: AttributeValue.Type;
+    [AttributeValue.Tag]: AttributeValue.Type;
   }
 }
   // tslint:disable: ban-types
@@ -25,6 +22,9 @@ declare module '@punchcard/shape/lib/shape' {
 export const Kind = Symbol.for('@punchcard/shape-dynamodb.AttributeValue.Kind');
 
 export namespace AttributeValue {
+  export type Tag = typeof Tag;
+  export const Tag = Symbol.for('@punchcard/shape-dynamodb.AttributeValue.Tag');
+
   export type Type =
     | AttributeValue.Binary
     | AttributeValue.BinarySet
@@ -64,12 +64,12 @@ export namespace AttributeValue {
     N: string;
   }
   export interface NumberSet {
-    NS: Set<number>
+    NS: number[];
   }
   export interface StringValue {
-    S: string
+    S: string;
   }
   export interface StringSet {
-    SS: Set<string>
+    SS: string[];
   }
 }
