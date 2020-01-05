@@ -8,8 +8,6 @@ declare module '@punchcard/shape/lib/shape' {
 
 // tslint:disable: ban-types
 
-export const Kind = Symbol.for('@punchcard/shape-dynamodb.AttributeValue.Kind');
-
 export namespace AttributeValue {
   export type Tag = typeof Tag;
   export const Tag = Symbol.for('@punchcard/shape-dynamodb.AttributeValue.Tag');
@@ -26,8 +24,8 @@ export namespace AttributeValue {
     | AttributeValue.StringSet
     ;
 
-  export type ValueOf<T> = T extends { [Tag]: infer T2 } ? T2 : never;
-  export type ValueOfType<T> = ValueOf<ClassShape<ClassType<T>>>;
+  export type Of<T> = T extends { [Tag]: infer T2 } ? T2 : never;
+  export type OfType<T> = Of<ClassShape<ClassType<T>>>;
 
   export interface Binary {
     B: Buffer;

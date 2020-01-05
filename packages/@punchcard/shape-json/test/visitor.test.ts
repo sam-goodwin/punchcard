@@ -131,4 +131,92 @@ it('should render JSON schema', () => {
       }
     }
   });
+
+  // how fking awesome is it that the type-signature is the same as the value ^^
+  const expected: {
+    type: 'object',
+    properties: {
+      id: {
+        type: 'string',
+        maxLength: 1,
+        minLength: 0,
+        pattern: '.*'
+      },
+      count: {
+        type: 'number',
+        maximum: 1,
+        exclusiveMaximum: false,
+        minimum: 1,
+        exclusiveMinimum: true,
+        multipleOf: 2
+      },
+      nested: {
+        type: 'object',
+        properties: {
+          a: {
+            type: 'string'
+          }
+        }
+      },
+      array: {
+        type: 'array',
+        items: {
+          type: 'string'
+        },
+        uniqueItems?: false
+      },
+      complexArray: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            a: {
+              type: 'string'
+            }
+          }
+        },
+        uniqueItems?: false
+      },
+      set: {
+        type: 'array',
+        items: {
+          type: 'string'
+        },
+        uniqueItems: true
+      },
+      complexSet: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            a: {
+              type: 'string'
+            }
+          }
+        },
+        uniqueItems: true
+      },
+      map: {
+        type: 'object',
+        properties: {},
+        additionalProperties: {
+          type: 'string'
+        },
+        allowAdditionalProperties: true
+      },
+      complexMap: {
+        type: 'object',
+        properties: {},
+        additionalProperties: {
+          type: 'object',
+          properties: {
+            a: {
+              type: 'string'
+            }
+          }
+        },
+        allowAdditionalProperties: true
+      }
+    }
+  } = schema;
 });

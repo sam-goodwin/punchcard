@@ -5,8 +5,8 @@ import { Shape } from "@punchcard/shape/lib/shape";
 import { AttributeValue } from "./attribute";
 
 export interface Mapper<T extends Shape> {
-  read(value: AttributeValue.ValueOf<T>): Runtime.Of<T>;
-  write(value: Runtime.Of<T>): AttributeValue.ValueOf<T>;
+  read(value: AttributeValue.Of<T>): Runtime.Of<T>;
+  write(value: Runtime.Of<T>): AttributeValue.Of<T>;
 }
 
 export function mapper<T extends ClassType | Shape>(type: T, cache: WeakMap<any, any> = new WeakMap()): Mapper<Shape.Of<T>> {

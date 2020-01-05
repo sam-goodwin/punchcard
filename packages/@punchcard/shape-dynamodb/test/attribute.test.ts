@@ -4,7 +4,7 @@ import { AttributeValue } from '../lib';
 import { MyType } from './mock';
 
 it('should map Shape AST to AttributeValue AST', () => {
-  const actual: AttributeValue.ValueOfType<MyType> = null as any;
+  const actual: AttributeValue.OfType<MyType> = null as any;
 
   // compile-time unit test
   const expected: AttributeValue.Struct<{

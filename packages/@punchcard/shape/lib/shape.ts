@@ -1,5 +1,4 @@
 import { ClassShape, ClassType } from './class';
-import { ShapeGuards } from './guards';
 import { Apply, Meta, Trait } from './metadata';
 import { Visitor } from './visitor';
 

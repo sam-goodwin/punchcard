@@ -1,6 +1,10 @@
 import { Meta } from "@punchcard/shape/lib/metadata";
 import { JsonSchema } from "./json-schema";
 
+export interface BoolSchema {
+  type: 'boolean';
+}
+
 export interface StringSchemaConstraints {
   maxLength?: number;
   minLength?: number;
@@ -30,6 +34,9 @@ export interface TimestampSchema {
 }
 
 declare module '@punchcard/shape/lib/primitive' {
+  interface BoolShape {
+    [JsonSchema.Tag]: BoolSchema;
+  }
   interface StringShape {
     [JsonSchema.Tag]: StringSchema<Meta.GetData<this>>;
   }

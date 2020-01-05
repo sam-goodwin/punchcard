@@ -8,7 +8,7 @@ import './class';
 
 declare module '@punchcard/shape/lib/shape' {
   export interface Shape {
-    [Query.Tag]: Query.Ast;
+    [Query.Tag]: Query.Node;
   }
 }
 
@@ -21,11 +21,11 @@ export namespace Query {
     return (Shape.of(type) as any).visit(new DslVisitor() as any) as any;
   }
 
-  export class DslVisitor implements Visitor<Ast> {
+  export class DslVisitor implements Visitor<Node> {
     public arrayShape(shape: ArrayShape<any>): List<any> {
       return new List(shape);
     }
-    public boolShape(shape: BoolShape): Instance<BoolShape> {
+    public boolShape(shape: BoolShape): Bool {
       return new Instance(shape);
     }
     public classShape(shape: ClassShape<any>): Struct<any, any> {
@@ -42,29 +42,23 @@ export namespace Query {
     public numberShape(shape: NumberShape): Ord<NumberShape> {
       return new Ord(shape);
     }
-    public setShape(shape: SetShape<any>): Ast {
+    public setShape(shape: SetShape<any>): Node {
       return new Set(shape.Items);
     }
-    public stringShape(shape: StringShape): Ast {
+    public stringShape(shape: StringShape): Node {
       // tslint:disable: no-construct
       return new String(shape);
     }
-    public timestampShape(shape: TimestampShape): Ast {
+    public timestampShape(shape: TimestampShape): Node {
       // TODO
       return new String(string);
     }
   }
 
-  export type Ast =
-    | ExpressionNode<any>
-    | Instance<any>
-    | Literal<any>
-    | { [key in string | symbol]: Instance<any>; }
-    ;
-
   export const NodeType = Symbol.for('@punchcard/shape-dynamodb.Query.NodeType');
   export const ExpressionNodeType = Symbol.for('@punchcard/shape-dynamodb.Query.ExpressionNodeType');
   export const ExpressionType = Symbol.for('@punchcard/shape-dynamodb.Query.ExpressionType');
+  export const Expression = Symbol.for('@punchcard/shape-dynamodb.Query.Expression');
 
   export interface Node {
     [NodeType]: string;
@@ -118,56 +112,64 @@ export namespace Query {
     public readonly [NodeType] = 'expression';
     public readonly [ExpressionNodeType] = 'instance';
     public readonly [ExpressionType]: T;
+    public readonly [Expression]?: ExpressionNode<T>;
 
-    constructor(expressionType: T) {
-      this[ExpressionType] = expressionType;
+    constructor(shape: T, expression?: ExpressionNode<T>) {
+      this[ExpressionType] = shape;
+      this[Expression] = expression;
     }
 
-    public equals(other: Expression<T>): Equals<T> {
-      return {
+    public equals(other: Expression<T>): Bool {
+      return new Bool({
         [NodeType]: 'expression',
         [ExpressionNodeType]: 'equals',
         [ExpressionType]: bool,
         lhs: this,
         rhs: other,
-      };
+      } as any);
+    }
+  }
+
+  export class Bool extends Instance<BoolShape> {
+    constructor(expression?: ExpressionNode<BoolShape>) {
+      super(bool, expression);
     }
   }
 
   export type AssertInstance<T> = T extends Instance<any> ? T : never;
 
   export class Ord<T extends Shape> extends Instance<T> {
-    public greaterThan(other: Expression<NumberShape>): Gt<T> {
-      return this.numberComparison(other, 'greaterThan') as Gt<T>;
+    public greaterThan(other: Expression<NumberShape>): Bool {
+      return this.numberComparison(other, 'greaterThan');
     }
-    public greaterThanOrEqual(other: Expression<NumberShape>): Gte<T> {
-      return this.numberComparison(other, 'greaterThanOrEqual') as Gte<T>;
+    public greaterThanOrEqual(other: Expression<NumberShape>): Bool {
+      return this.numberComparison(other, 'greaterThanOrEqual');
     }
-    public lessThan(other: Expression<NumberShape>): Lt<T> {
-      return this.numberComparison(other, 'lessThan') as Lt<T>;
+    public lessThan(other: Expression<NumberShape>): Bool {
+      return this.numberComparison(other, 'lessThan');
     }
-    public lessThanOrEqual(other: Expression<NumberShape>): Lte<T> {
-      return this.numberComparison(other, 'lessThanOrEqual') as Lte<T>;
+    public lessThanOrEqual(other: Expression<NumberShape>): Bool {
+      return this.numberComparison(other, 'lessThanOrEqual');
     }
-    public between(lowerBound: Expression<T>, upperBound: Expression<T>): Between<T> {
-      return {
+    public between(lowerBound: Expression<T>, upperBound: Expression<T>): Bool {
+      return new Bool({
         [NodeType]: 'expression',
         [ExpressionNodeType]: 'between',
         [ExpressionType]: bool,
         lhs: this,
         lowerBound,
         upperBound
-      };
+      } as Between<T>);
     }
 
-    private numberComparison<S extends string>(other: Expression<NumberShape>, expressionNodeType: S) {
-      return {
+    private numberComparison<S extends string>(other: Expression<NumberShape>, expressionNodeType: S): Bool {
+      return new Bool({
         [NodeType]: 'expression',
         [ExpressionNodeType]: expressionNodeType,
         [ExpressionType]: bool,
         lhs: this,
         rhs: other,
-      };
+      } as any);
     }
   }
 
@@ -175,14 +177,14 @@ export namespace Query {
     [ExpressionNodeType]: 'beginsWith';
   }
   export class String extends Ord<StringShape> {
-    public beginsWith(value: Expression<StringShape>): BeginsWith {
-      return {
+    public beginsWith(value: Expression<StringShape>): Bool {
+      return new Bool({
         [NodeType]: 'expression',
         [ExpressionType]: bool,
         [ExpressionNodeType]: 'beginsWith',
         lhs: this,
         rhs: isNode(value) ? value : new Literal(this[ExpressionType], value)
-      };
+      } as any);
     }
   }
 
@@ -192,14 +194,14 @@ export namespace Query {
     index: ExpressionNode<NumberShape>;
   }
   export class List<T extends Shape> extends Instance<ArrayShape<T>> {
-    public get(index: Expression<NumberShape>): ListGet<T> {
-      return {
+    public get(index: Expression<NumberShape>): Instance<T> {
+      return new Instance(this[ExpressionType].Items, {
         [NodeType]: 'expression',
         [ExpressionNodeType]: 'list.get',
         [ExpressionType]: this[ExpressionType].Items,
         list: this,
         index: isNode(index) ? index : new Literal(number, index)
-      };
+      } as ListGet<T>);
     }
   }
 
@@ -213,14 +215,14 @@ export namespace Query {
     key: ExpressionNode<StringShape>;
   }
   export class Map<T extends Shape> extends Instance<MapShape<T>> {
-    public get(key: ExpressionNode<StringShape>): MapGet<T> {
-      return {
+    public get(key: ExpressionNode<StringShape>): Instance<T> {
+      return new Instance(this[ExpressionType].Items, {
         [NodeType]: 'expression',
         [ExpressionNodeType]: 'map.get',
         [ExpressionType]: this[ExpressionType].Items,
         map: this,
         key: isNode(key) ? key : new Literal(string, key)
-      };
+      } as MapGet<T>);
     }
   }
 
