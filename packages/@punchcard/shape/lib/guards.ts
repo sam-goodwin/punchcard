@@ -12,6 +12,15 @@ export namespace ShapeGuards {
   export const isShape = (a: any): a is Shape => a.NodeType === 'shape';
   export const isStringShape = (a: any): a is StringShape => isShape(a) && a.Kind === 'stringShape';
   export const isTimestampShape = (a: any): a is TimestampShape => isShape(a) && a.Kind === 'timestampShape';
+
+  export type IsArrayShape<T> = T extends ArrayShape<any> ? T : never;
+  export type IsClassShape<T> = T extends ClassShape<any> ? T : never;
+  export type IsMapShape<T> = T extends MapShape<any> ? T : never;
+  export type IsNumberShape<T> = T extends NumberShape ? T : never;
+  export type IsSetShape<T> = T extends SetShape<any> ? T : never;
+  export type IsShape<T> = T extends Shape ? T : never;
+  export type IsStringShape<T> = T extends StringShape ? T : never;
+  export type IsTimestampShape<T> = T extends TimestampShape ? T : never;
 }
 
 export namespace MetadataGuards {
