@@ -33,22 +33,63 @@ export namespace Meta {
     return target[Decorated.Data];
   }
 
+  /**
+   * Applies a Trait to a Shape.
+   *
+   * @param shape target to apply Trait to.
+   * @param metadata payload of metadata to merge into the shape's metadata store
+   */
   export function apply<Target extends Object, T extends Trait<Target, M>, M extends Metadata>(shape: Target, metadata: T): Apply<T, M> {
-    metadata = {
-      ...((shape as any)[Decorated.Data] || {}),
-      ...metadata // overwrite previous values
-    };
+    const mergedMetadata = mergeMetadataValue((shape as any)[Decorated.Data] || {}, metadata);
+
     // is this a really bad idea?
     const wrapper = new Proxy(shape, {
       get: (obj: any, prop) => {
         if (prop === Decorated.Data) {
-          return metadata;
+          return mergedMetadata;
         } else {
           return obj[prop];
         }
       }
     });
     return wrapper as any;
+  }
+
+  /**
+   * Merges two metadata values to support declaration merging.
+   *
+   * Logic is as follows:
+   * * Primtiives are overwritten with the new value.
+   * * Arrays are concatenated.
+   * * Objects are combined recursively with this algorithm.
+   *
+   * @param a old metadata value
+   * @param b new metadata value
+   */
+  export function mergeMetadataValue<A, B>(a: A, b: B) {
+    if (Array.isArray(a) && Array.isArray(b)) {
+      // collect arrays of meta data values, useful for things like validators
+      return b.concat(a);
+    } else if (typeof a === 'object' && typeof b === 'object') {
+      a = {
+        ...a
+      };
+      for (const [name, value] of Object.entries(b)) {
+        if ((a as any)[name] !== undefined) {
+          (a as any)[name] = mergeMetadataValue((a as any)[name], value);
+        } else {
+          (a as any)[name] = value;
+        }
+      }
+      // merge the keys of objects, useful for constructing nested objects
+      return {
+        ...b,
+        ...a
+      };
+    } else {
+      return b; // overwrite by default? maybe the compiler can enforce invalid merges are impossible?
+      // throw new Error(`cannot merge metadata values of type: (${typeof a} => ${typeof b})`);
+    }
   }
 
   export type GetType<T> = T extends Decorated<infer T2, any> ? T2 : T;
