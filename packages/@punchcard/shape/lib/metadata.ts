@@ -1,5 +1,7 @@
 import { Shape } from './shape';
 
+import 'reflect-metadata';
+
 /**
  * Metadata extracted from a Class of a Class Member.
  */

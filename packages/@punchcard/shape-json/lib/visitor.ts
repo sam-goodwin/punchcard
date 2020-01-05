@@ -1,6 +1,6 @@
 import { ClassShape, Member, Meta, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { ObjectSchema } from './class';
+import { ObjectSchema } from './object';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { JsonSchema } from './json-schema';
 import { NumberSchema, StringSchema, TimestampSchema } from './primitive';

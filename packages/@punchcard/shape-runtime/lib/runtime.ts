@@ -6,7 +6,7 @@ export namespace Runtime {
   export type Tag = typeof Tag;
   export const Tag = Symbol.for('@punchcard/shape-runtime.Tag');
 
-  export type Of<T extends {[Tag]: any}> = Omit<T, Tag>;
+  export type Of<T extends {[Tag]: any}> = T extends {[Tag]: infer T2} ? T2 : never;
   export type OfType<T> = Of<ClassShape<ClassType<T>>>;
 }
 

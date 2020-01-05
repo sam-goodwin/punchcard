@@ -5,8 +5,6 @@ import { ObjectSchema } from './object';
 import { NumberSchema, StringSchema, TimestampSchema } from './primitive';
 import { ToJsonSchemaVisitor } from './visitor';
 
-
-
 export type JsonSchema =
   | MapSchema<any>
   | SetSchema<any>
