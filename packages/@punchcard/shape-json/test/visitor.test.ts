@@ -1,9 +1,9 @@
 import 'jest';
 
-import { number, Shape, string, Meta } from '@punchcard/shape';
-import { MaxLength, MinLength, Pattern } from '@punchcard/shape-validation';
+import { number, Shape, string } from '@punchcard/shape';
+import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
-import { JsonSchema } from '../lib';
+import { JsonSchema, NumberSchema } from '../lib';
 
 // tslint:disable: member-access
 class Nested {
@@ -19,7 +19,11 @@ class MyType {
     .apply(MinLength(0))
     .apply(Pattern('.*'));
 
-  count = number;
+  count = number
+    .apply(Maximum(1))
+    .apply(Minimum(1, true))
+    .apply(MultipleOf(2))
+    ;
   nested = Nested;
   array = array(string);
   complexArray = array(Nested);
@@ -30,7 +34,13 @@ class MyType {
 }
 
 const type = Shape.of(MyType);
-const schema = JsonSchema.of(type);
+const schema: JsonSchema.OfType<MyType> = JsonSchema.of(MyType);
+
+function requireEven(schema: NumberSchema<{multipleOf: 2}>) {
+  // no-op
+}
+
+requireEven(schema.properties.count);
 
 it('should render JSON schema', () => {
   expect(schema).toEqual({
@@ -43,7 +53,12 @@ it('should render JSON schema', () => {
         pattern: '.*'
       },
       count: {
-        type: 'number'
+        type: 'number',
+        maximum: 1,
+        exclusiveMaximum: false,
+        minimum: 1,
+        exclusiveMinimum: true,
+        multipleOf: 2
       },
       nested: {
         type: 'object',

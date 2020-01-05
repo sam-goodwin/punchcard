@@ -25,7 +25,7 @@ export namespace Member {
   export type Of<T extends ClassType, K extends keyof ClassModel<T>> =
     ClassModel<T>[K] extends ClassType ? Member<ClassShape<ClassModel<T>[K]>, AssertIsKey<ClassShape<ClassModel<T>[K]>, K>> :
 
-    ClassModel<T>[K] extends Shape ? Member<ClassModel<T>[K], K, AssertMetadata<Meta.Get<ClassModel<T>[K], {}>>> :
+    ClassModel<T>[K] extends Shape ? Member<ClassModel<T>[K], K, AssertMetadata<Meta.GetDataOrElse<ClassModel<T>[K], {}>>> :
     never;
 }
 

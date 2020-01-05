@@ -29,8 +29,9 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
 
   public numberShape(shape: NumberShape): NumberSchema {
     return {
-      type: 'number'
-    };
+      type: 'number',
+      ...(Meta.get(shape, ['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf']) || {})
+    } as any;
   }
 
   public arrayShape(shape: ArrayShape<any>): ArraySchema {

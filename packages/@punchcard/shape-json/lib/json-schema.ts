@@ -1,4 +1,4 @@
-import { ClassType } from '@punchcard/shape';
+import { ClassShape, ClassType } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { ObjectSchema } from './object';
@@ -20,6 +20,7 @@ export type JsonSchema =
 
 export namespace JsonSchema {
   export type Of<T extends {[SchemaTag]: any}> = T[SchemaTag] extends JsonSchema ? T[SchemaTag] : never;
+  export type OfType<T> = Of<ClassShape<ClassType<T>>>;
 
   export function of<T extends Shape | ClassType>(item: T): JsonSchema.Of<Shape.Of<T>> {
     return (Shape.of(item) as any).visit(new ToJsonSchemaVisitor());
