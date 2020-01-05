@@ -1,4 +1,4 @@
-import { ClassShape, Member, NumberShape, StringShape, TimestampShape, Visitor, Meta } from '@punchcard/shape';
+import { ClassShape, Member, Meta, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { ObjectSchema } from './class';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
@@ -61,25 +61,9 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
   public classShape(shape: ClassShape<any>): ObjectSchema<any> {
     return {
       type: 'object',
-      properties: Object.entries(shape.Members).map(([name, member]) => {
-        const mem = member as Member;
-        const schema: any = mem.Type.visit(this);
-
-        for (const metadataKey of Reflect.ownKeys(mem.Metadata)) {
-          const metadataValue = mem.Metadata[metadataKey as any];
-
-          if (MetadataGuards.isMaxLengthConstraint(metadataValue)) {
-            schema.maxLength = metadataValue.length;
-            schema.exclusiveMaximum = !metadataValue.comparison.endsWith('=');
-          } else if (MetadataGuards.isMinLengthConstraint(metadataValue)) {
-            schema.minLength = metadataValue.length;
-            schema.exclusiveMinimum = !metadataValue.comparison.endsWith('=');
-          } else if (MetadataGuards.isPatternConstraint(metadataValue)) {
-            schema.pattern = metadataValue.pattern.source;
-          }
-        }
-        return { [name]: schema };
-      }).reduce((a, b) => ({...a, ...b}))
+      properties: Object.entries(shape.Members)
+        .map(([name, member]) => ({ [name]: (member as any).Type.visit(this) }))
+        .reduce((a, b) => ({...a, ...b}))
     };
   }
 }

@@ -21,18 +21,9 @@ export interface TimestampSchema {
   format: 'date-time';
 }
 
-type Assert<T, Is> = T extends Is ? T : never;
-
 declare module '@punchcard/shape/lib/primitive' {
   interface StringShape {
     [SchemaTag]: StringSchema<Meta.Get<this, {}>>;
-    
-    // this extends Metadata.Apply<StringShape, infer M> ?
-    //   M extends StringSchemaConstraints ? StringSchema<M> : never :
-    //   never
-    // ;
-    
-    
   }
   interface NumberShape {
     [SchemaTag]: NumberSchema;

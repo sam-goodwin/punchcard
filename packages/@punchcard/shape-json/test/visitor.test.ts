@@ -1,39 +1,19 @@
 import 'jest';
 
-import { number, Shape, string, StringShape } from '@punchcard/shape';
+import { number, Shape, string, Meta } from '@punchcard/shape';
+import { MaxLength, MinLength, Pattern } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
-import { Meta, Trait } from '@punchcard/shape/lib/metadata';
-import { JsonSchema, StringSchema } from '../lib';
+import { JsonSchema } from '../lib';
 
 // tslint:disable: member-access
 class Nested {
   a = string;
 }
 
-// type MaxLength<L extends number> = Trait<StringShape, {maxLength: L}>;
-interface MaxLength<L extends number> extends Trait<StringShape, {maxLength: L}> {}
-interface MinLength<L extends number> extends Trait<StringShape, {minLength: L}> {}
-
-function MaxLength<L extends number>(length: L): MaxLength<L> {
-  return {
-    maxLength: length
-  } as any;
-}
-
-function MinLength<L extends number>(length: L): MinLength<L> {
-  return {
-    minLength: length,
-  } as any;
-}
-
-interface Pattern<P extends string> extends Trait<StringShape, {pattern: P}> {}
-function Pattern<P extends string>(pattern: P): Pattern<P> {
-  return {
-    pattern
-  } as any;
-}
-
 class MyType {
+  /**
+   * Field documentation.
+   */
   id = string
     .apply(MaxLength(1))
     .apply(MinLength(0))
@@ -50,7 +30,6 @@ class MyType {
 }
 
 const type = Shape.of(MyType);
-
 const schema = JsonSchema.of(type);
 
 it('should render JSON schema', () => {

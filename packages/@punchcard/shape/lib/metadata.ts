@@ -34,6 +34,7 @@ export namespace Meta {
   }
 
   export const Data = Symbol.for('@punchcard/shape.Metadata.Data');
+  export const Type = Symbol.for('@punchcard/shape.Metadata.Type');
   export const Target = Symbol.for('@punchcard/shape.Metadata.Target');
 
   export function apply<Target extends Object, T extends Trait<Target, M>, M extends Metadata>(shape: Target, metadata: T): Apply<T, M> {
@@ -54,9 +55,20 @@ export namespace Meta {
     return wrapper as any;
   }
 
-  export type Apply<T, D> = T & {
-    [Meta.Data]?: D; // & GetOrElse<T, {}>;
-  };
+  /**
+   * Apply metadata to a Type.
+   */
+  export type Apply<T, D> =
+    T extends {
+      [Meta.Type]?: infer T2;
+      [Meta.Data]?: infer D2;
+    } ? T2 & {
+      [Meta.Type]?: T2;
+      [Meta.Data]?: D & D2;
+    } : T & {
+      [Meta.Type]?: T;
+      [Meta.Data]?: D;
+    };
 
   export type Get<T, OrElse = {}> =
     T extends { [Meta.Data]?: infer D; } ?
@@ -73,7 +85,7 @@ export namespace Meta {
 export interface Trait<Target, Data> {
   [Meta.Target]?: Target;
   [Meta.Data]?: Data
-};
+}
 
 export namespace Trait {
   export type GetTarget<T extends Trait<any, any>> = T extends Trait<infer T, any> ? T : never;
