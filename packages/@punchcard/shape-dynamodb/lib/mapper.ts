@@ -9,10 +9,6 @@ export interface Mapper<T extends Shape> {
   write(value: Runtime.Of<T>): AttributeValue.ValueOf<T>;
 }
 
-export interface Validator<T extends Shape> {
-  validate(a: any): a is AttributeValue.ValueOf<T>;
-}
-
 export function mapper<T extends ClassType | Shape>(type: T, cache: WeakMap<any, any> = new WeakMap()): Mapper<Shape.Of<T>> {
   const shape = Shape.of(type);
 

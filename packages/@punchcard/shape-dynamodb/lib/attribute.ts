@@ -5,19 +5,8 @@ declare module '@punchcard/shape/lib/shape' {
     [AttributeValue.Tag]: AttributeValue.Type;
   }
 }
-  // tslint:disable: ban-types
 
-// export type AttributeValue.Type =
-//   | AttributeValue.Binary
-//   | AttributeValue.BinarySet
-//   | AttributeValue.Bool
-//   | AttributeValue.List<any>
-//   | AttributeValue.Map<any>
-//   | AttributeValue.NumberValue
-//   | AttributeValue.NumberSet
-//   | AttributeValue.StringValue
-//   | AttributeValue.StringSet
-//   ;
+// tslint:disable: ban-types
 
 export const Kind = Symbol.for('@punchcard/shape-dynamodb.AttributeValue.Kind');
 
