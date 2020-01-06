@@ -138,3 +138,15 @@ export namespace Trait {
   export type GetTarget<T extends Trait<any, any>> = T extends Trait<infer T2, any> ? T2 : never;
   export type GetData<T extends Trait<any, any>> = T extends Trait<any, infer D> ? D : never;
 }
+
+// tslint:disable: ban-types
+// tslint:disable: variable-name
+
+type Is<T, K extends keyof T, V> =
+  T[K] extends V ? K :
+  ['expected a', V, 'type, but received', T[K], never]; // <- hacky way to provide better errors to consumers
+
+// ordinary decorator that can be restricted to a property type
+export function PropertyAnnotation<Prop>(f: (target: Object, propertyKey: string) => void): <T extends Object, K extends keyof T>(target: T, propertyKey: Is<T, K, Prop>) => void {
+  return f as any;
+}

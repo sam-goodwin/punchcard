@@ -36,7 +36,11 @@ class MyType {
 }
 
 const type = Shape.of(MyType);
-const schema: JsonSchema.OfType<MyType> = JsonSchema.of(MyType);
+
+// "stamp" an interface representing the JSON schema of MyType - sick code generation!
+interface MyTypeJsonSchema extends JsonSchema.OfType<MyType> {}
+
+const schema: MyTypeJsonSchema = JsonSchema.of(MyType);
 
 function requireEven(schema: NumberSchema<{multipleOf: 2}>) {
   // no-op
