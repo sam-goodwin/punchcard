@@ -9,7 +9,7 @@ declare module './shape' {
     export function of<T extends Shape | ClassType>(items: T): Shape.Of<T>;
   }
 }
-Shape.of = <T extends Shape | ClassType>(items: T): Shape.Of<T> => (ShapeGuards.isShape(items) ? items : ClassShape.ofType(items as ClassType)) as Shape.Of<T>;
+Shape.of = <T extends Shape | ClassType>(items: T, noCache: boolean = false): Shape.Of<T> => (ShapeGuards.isShape(items) ? items : ClassShape.ofType(items as ClassType, noCache)) as Shape.Of<T>;
 
 /**
  * A Shape derived from a TypeScript `class`.
@@ -29,8 +29,16 @@ Shape.of = <T extends Shape | ClassType>(items: T): Shape.Of<T> => (ShapeGuards.
  * ```
  */
 export class ClassShape<C extends ClassType> extends Shape {
-  public static ofType<C extends ClassType>(clazz: C): ClassShape<C> {
+  public static ofType<C extends ClassType>(clazz: C, noCache: boolean = false): ClassShape<C> {
+    if (noCache) {
+      return make();
+    }
     if (!cache().has(clazz)) {
+      cache().set(clazz, make());
+    }
+    return cache().get(clazz);
+
+    function make() {
       const members: any = {};
       const type = new (clazz)();
       for (const [name, property] of Object.entries(type)) {
@@ -42,9 +50,8 @@ export class ClassShape<C extends ClassType> extends Shape {
         }
         members[name] = new Member(name, shape!, getPropertyMetadata(clazz.prototype, name));
       }
-      cache().set(clazz, new ClassShape(clazz, members, getClassMetadata(clazz)));
+      return new ClassShape(clazz, members, getClassMetadata(clazz));
     }
-    return cache().get(clazz);
   }
 
   public readonly Kind = 'classShape';

@@ -26,11 +26,11 @@ class MyType {
   complexMap = map(Nested);
 }
 
-interface MyManufacturedInterface extends Runtime.OfType<MyType> {}
+interface MyManufacturedInterface extends Runtime.OfType<typeof MyType> {}
 
 it('should derive runtime type recursively', () => {
   // compile-time unit test
-  const actual: Runtime.OfType<MyType> = null as any;
+  const actual: Runtime.OfType<typeof MyType> = null as any;
   const expected: {
     id: string;
     count: number;
