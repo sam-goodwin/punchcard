@@ -2,17 +2,27 @@ import AWS = require('aws-sdk');
 import { DSL } from './dsl';
 import { Writer } from './writer';
 
-export namespace Filter {
-  export interface Expression extends Pick<AWS.DynamoDB.QueryInput, 'FilterExpression' | 'ExpressionAttributeValues' | 'ExpressionAttributeNames'> {}
+export namespace Condition {
+  export interface Expression {
+    Expression: string;
+    ExpressionAttributeNames: { [name: string]: string };
+    ExpressionAttributeValues: { [id: string]: AWS.DynamoDB.AttributeValue; }
+  }
 
-  export function compile(expression: DSL.Bool): Filter.Expression {
+  export function compile(expression: DSL.Bool): Condition.Expression {
     const writer = new Writer();
-    expression.synthesize(writer);
+    write(expression, writer);
     const expr = writer.toExpression();
     return {
-      FilterExpression: expr.Expression,
+      Expression: expr.Expression,
       ExpressionAttributeNames: expr.ExpressionAttributeNames,
       ExpressionAttributeValues: expr.ExpressionAttributeValues
     };
+  }
+
+  export function write(expression: DSL.ExpressionNode<any> | DSL.StatementNode, writer?: Writer): Writer {
+    writer = writer || new Writer();
+    expression.synthesize(writer);
+    return writer;
   }
 }

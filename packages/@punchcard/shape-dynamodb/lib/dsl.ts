@@ -75,11 +75,13 @@ export namespace DSL {
   export const DataType = Symbol.for('@punchcard/shape-dynamodb.Query.Type');
   export const InstanceExpression = Symbol.for('@punchcard/shape-dynamodb.Query.InstanceExpression');
 
-  export class Node<T extends string = string> {
+  export abstract class Node<T extends string = string> {
     public readonly [NodeType]: T;
     constructor(nodeType: T) {
       this[NodeType] = nodeType;
     }
+
+    public abstract synthesize(writer: Writer): void;
   }
 
   export abstract class StatementNode extends Node<'statement'> {
@@ -87,7 +89,6 @@ export namespace DSL {
     constructor() {
       super('statement');
     }
-    public abstract synthesize(writer: Writer): void;
   }
 
   export abstract class ExpressionNode<S extends Shape> extends Node<'expression'> {
@@ -98,7 +99,6 @@ export namespace DSL {
       super('expression');
       this[DataType] = shape;
     }
-    public abstract synthesize(writer: Writer): void;
   }
 
   export class Literal<T extends Shape> extends ExpressionNode<T> {
