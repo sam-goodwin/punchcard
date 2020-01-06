@@ -13,6 +13,10 @@ declare module '@punchcard/shape/lib/collection' {
       T extends StringShape ? AttributeValue.StringSet :
       T extends NumberShape ? AttributeValue.NumberSet :
       never;
+
+    [Query.Tag]:
+      T extends StringShape | NumberShape ? Query.Set<T> :
+      never;
   }
   export interface MapShape<T extends Shape> {
     [AttributeValue.Tag]: AttributeValue.Map<T[AttributeValue.Tag]>;

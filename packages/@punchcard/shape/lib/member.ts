@@ -3,10 +3,23 @@ import { Meta, Metadata } from './metadata';
 import { Shape } from './shape';
 import { AssertIsKey } from './util';
 
+const isMember = Symbol.for('@punchcard/shape.Member');
+
 /**
  * Represents a Member of a model defined with a Class.
  */
 export class Member<T extends Shape = any, Name extends Member.Name = any, M extends Metadata = Metadata> {
+  public static isInstance(a: any): a is Member {
+    return a[isMember] === true;
+  }
+  public static assertInstance(a: any): asserts a is Member {
+    if (!(Member.isInstance(a)))  {
+      throw new Error(`${a} is not of type Member`);
+    }
+  }
+
+  public [isMember]: true = true;
+
   constructor(
     public readonly Name: Name,
     public readonly Type: T,

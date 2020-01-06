@@ -13,8 +13,8 @@ export abstract class Shape {
 
   public abstract readonly Kind: keyof Visitor;
 
-  public visit<V extends Visitor>(visitor: V): ReturnType<V[this['Kind']]> {
-    return visitor[this.Kind](this as any) as ReturnType<V[this['Kind']]>;
+  public visit<V extends Visitor>(visitor: V, context: Visitor.ContextType<V>): ReturnType<V[this['Kind']]> {
+    return visitor[this.Kind](this as any, context) as ReturnType<V[this['Kind']]>;
   }
 
   public apply<T extends Trait<this, any>>(trait: T): Apply<this, Trait.GetData<T>> {

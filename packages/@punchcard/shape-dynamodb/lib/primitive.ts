@@ -5,7 +5,7 @@ import { Query } from './query';
 declare module '@punchcard/shape/lib/primitive' {
   export interface BoolShape extends Shape {
     [AttributeValue.Tag]: AttributeValue.Bool;
-    [Query.Tag]: Query.Instance<BoolShape>;
+    [Query.Tag]: Query.Bool;
   }
   export interface StringShape extends Shape {
     [AttributeValue.Tag]: AttributeValue.StringValue;

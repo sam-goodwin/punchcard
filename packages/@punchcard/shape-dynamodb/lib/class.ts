@@ -9,8 +9,9 @@ declare module '@punchcard/shape/lib/class' {
     [AttributeValue.Tag]: AttributeValue.Struct<{
       [member in keyof this['Members']]: this['Members'][member]['Type'][AttributeValue.Tag]
     }>;
-    [Query.Tag]: Query.Struct<this, {
-      [member in keyof this['Members']]: this['Members'][member]['Type'][Query.Tag]
-    }>
+    [Query.Tag]: Query.Struct<this>
+    // , {
+    //   [member in keyof this['Members']]: this['Members'][member]['Type'][Query.Tag]
+    // }>
   }
 }
