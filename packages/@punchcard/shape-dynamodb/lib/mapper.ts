@@ -8,6 +8,7 @@ export interface Mapper<T extends Shape> {
   read(value: AttributeValue.Of<T>): Runtime.Of<T>;
   write(value: Runtime.Of<T>): AttributeValue.Of<T>;
 }
+
 export namespace Mapper {
   export function of<T extends ClassType | Shape>(type: T, cache: WeakMap<any, any> = new WeakMap()): Mapper<Shape.Of<T>> {
     const shape = Shape.of(type);
