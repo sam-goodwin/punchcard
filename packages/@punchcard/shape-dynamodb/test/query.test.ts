@@ -1,12 +1,12 @@
 import 'jest';
 
-import { DSL, Query } from '../lib';
+import { DSL, Filter } from '../lib';
 import { MyType } from './mock';
 
 const _ = DSL.of(MyType);
 
 test('stringProperty = stringLiteral', () => {
-  expect(Query.compile(_.id.equals('value'))).toEqual({
+  expect(Filter.compile(_.id.equals('value'))).toEqual({
     FilterExpression: '#1=:1',
     ExpressionAttributeNames: {
       '#1': 'id'
@@ -21,7 +21,7 @@ test('stringProperty = stringLiteral', () => {
 });
 
 test('array[index] = stringiteral', () => {
-  expect(Query.compile(_.array.get(0).equals('string'))).toEqual({
+  expect(Filter.compile(_.array.get(0).equals('string'))).toEqual({
     FilterExpression: '#1[:1]=:2',
     ExpressionAttributeNames: {
       '#1': 'array'
@@ -38,7 +38,7 @@ test('array[index] = stringiteral', () => {
 });
 
 test('struct.field = stringLiteral', () => {
-  expect(Query.compile(_.nested.fields.a.equals('string'))).toEqual({
+  expect(Filter.compile(_.nested.fields.a.equals('string'))).toEqual({
     FilterExpression: '#1.#2=:1',
     ExpressionAttributeNames: {
       '#1': 'nested',
@@ -53,7 +53,7 @@ test('struct.field = stringLiteral', () => {
 });
 
 test('struct.field = array.get(index)', () => {
-  expect(Query.compile(_.nested.fields.a.equals(_.array.get(0)))).toEqual({
+  expect(Filter.compile(_.nested.fields.a.equals(_.array.get(0)))).toEqual({
     FilterExpression: '#1.#2=#3[:1]',
     ExpressionAttributeNames: {
       '#1': 'nested',

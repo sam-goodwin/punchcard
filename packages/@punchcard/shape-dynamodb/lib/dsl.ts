@@ -5,7 +5,7 @@ import { bool, BoolShape, number, NumberShape, string, StringShape, TimestampSha
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
-import { Query } from './query';
+import { Writer } from './writer';
 
 import './class';
 
@@ -71,8 +71,8 @@ export namespace DSL {
   export type Expression<T extends Shape> = ExpressionNode<T> | Runtime.Of<T>;
 
   export const NodeType = Symbol.for('@punchcard/shape-dynamodb.Query.NodeType');
+  export const SubNodeType = Symbol.for('@punchcard/shape-dynamodb.Query.SubNodeType');
   export const DataType = Symbol.for('@punchcard/shape-dynamodb.Query.Type');
-  export const ExpressionNodeType = Symbol.for('@punchcard/shape-dynamodb.Query.ExpressionNodeType');
   export const InstanceExpression = Symbol.for('@punchcard/shape-dynamodb.Query.InstanceExpression');
 
   export class Node<T extends string = string> {
@@ -82,38 +82,44 @@ export namespace DSL {
     }
   }
 
+  export abstract class StatementNode extends Node<'statement'> {
+    constructor() {
+      super('statement');
+    }
+    public abstract synthesize(writer: Writer): void;
+  }
+
   export abstract class ExpressionNode<S extends Shape> extends Node<'expression'> {
     public readonly [DataType]: S;
+    public abstract readonly [SubNodeType]: string;
+
     constructor(shape: S) {
       super('expression');
       this[DataType] = shape;
     }
-
-    public abstract readonly [ExpressionNodeType]: string;
-
-  public abstract synthesize(writer: Query.Writer): void;
+    public abstract synthesize(writer: Writer): void;
   }
 
   export class Literal<T extends Shape> extends ExpressionNode<T> {
-    public readonly [ExpressionNodeType] = 'literal';
+    public readonly [SubNodeType] = 'literal';
 
     constructor(type: T, public readonly value: AttributeValue.Of<T>) {
       super(type);
     }
 
-  public synthesize(writer: Query.Writer): void {
+  public synthesize(writer: Writer): void {
       writer.writeValue(this.value as AWS.DynamoDB.AttributeValue);
     }
   }
 
   export class RootProperty<T extends Shape> extends ExpressionNode<T> {
-    public [ExpressionNodeType] = 'root-property';
+    public [SubNodeType] = 'root-property';
 
     constructor(type: T, public readonly name: string) {
       super(type);
     }
 
-  public synthesize(writer: Query.Writer): void {
+  public synthesize(writer: Writer): void {
       writer.writeName(this.name);
     }
   }
@@ -123,12 +129,12 @@ export namespace DSL {
   }
 
   export class FunctionCall<T extends Shape> extends ExpressionNode<T> {
-    public [ExpressionNodeType] = 'function-call';
+    public [SubNodeType] = 'function-call';
     constructor(public readonly name: string, public readonly returnType: T, public readonly parameters: Array<ExpressionNode<any>>) {
       super(returnType);
     }
 
-  public synthesize(writer: Query.Writer): void {
+  public synthesize(writer: Writer): void {
       writer.writeToken(this.name);
       writer.writeToken('(');
       if (this.parameters.length > 0) {
@@ -143,7 +149,7 @@ export namespace DSL {
   }
 
   export class Object<T extends Shape> extends ExpressionNode<T> {
-    public readonly [ExpressionNodeType] = 'object';
+    public readonly [SubNodeType] = 'object';
     public readonly [InstanceExpression]: ExpressionNode<T>;
 
     constructor(type: T, instanceExpression: ExpressionNode<T>) {
@@ -151,7 +157,7 @@ export namespace DSL {
       this[InstanceExpression] = instanceExpression;
     }
 
-  public synthesize(writer: Query.Writer): void {
+  public synthesize(writer: Writer): void {
       this[InstanceExpression].synthesize(writer);
     }
 
@@ -170,7 +176,7 @@ export namespace DSL {
       super(bool);
     }
 
-  public synthesize(writer: Query.Writer): void {
+  public synthesize(writer: Writer): void {
       this.left.synthesize(writer);
       writer.writeToken(this.operator);
       this.right.synthesize(writer);
@@ -179,7 +185,7 @@ export namespace DSL {
 
   export class Equals<T extends Shape> extends Comparison<T, T> {
     protected readonly operator = '=';
-    public readonly [ExpressionNodeType] = 'equals';
+    public readonly [SubNodeType] = 'equals';
   }
 
   export function size(path: Object<any>) {
@@ -216,7 +222,7 @@ export namespace DSL {
         super(bool);
       }
 
-    public synthesize(writer: Query.Writer): void {
+    public synthesize(writer: Writer): void {
         writer.writeToken('(');
         for (const op of this.operands) {
           op.synthesize(writer);
@@ -229,20 +235,20 @@ export namespace DSL {
 
     export class And extends Operands {
       public readonly operator = 'AND';
-      public [ExpressionNodeType] = 'and';
+      public [SubNodeType] = 'and';
     }
     export class Or extends Operands {
       public readonly operator = 'OR';
-      public [ExpressionNodeType] = 'or';
+      public [SubNodeType] = 'or';
     }
     export class Not extends ExpressionNode<BoolShape> {
-      public [ExpressionNodeType] = 'or';
+      public [SubNodeType] = 'or';
 
       constructor(public readonly operand: ExpressionNode<BoolShape>) {
         super(bool);
       }
 
-    public synthesize(writer: Query.Writer): void {
+    public synthesize(writer: Writer): void {
         writer.writeToken('NOT');
         writer.writeToken('(');
         this.operand.synthesize(writer);
@@ -280,22 +286,22 @@ export namespace DSL {
   export namespace Ord {
     export class Gt<T extends Shape> extends Comparison<T, NumberShape> {
       protected readonly operator = '>';
-      public readonly [ExpressionNodeType] = 'greaterThan';
+      public readonly [SubNodeType] = 'greaterThan';
     }
     export class Gte<T extends Shape> extends Comparison<T, NumberShape> {
       protected readonly operator = '>=';
-      public readonly [ExpressionNodeType] = 'greaterThanOrEqual';
+      public readonly [SubNodeType] = 'greaterThanOrEqual';
     }
     export class Lt<T extends Shape> extends Comparison<T, NumberShape> {
       protected readonly operator = '<';
-      public readonly [ExpressionNodeType] = 'lessThan';
+      public readonly [SubNodeType] = 'lessThan';
     }
     export class Lte<T extends Shape> extends Comparison<T, NumberShape> {
       protected readonly operator = '<=';
-      public readonly [ExpressionNodeType] = 'lessThanOrEqual';
+      public readonly [SubNodeType] = 'lessThanOrEqual';
     }
     export class Between<T extends Shape> extends ExpressionNode<BoolShape> {
-      public readonly [ExpressionNodeType] = 'between';
+      public readonly [SubNodeType] = 'between';
       constructor(
         public readonly lhs: ExpressionNode<T>,
         public readonly lowerBound: ExpressionNode<T>,
@@ -304,7 +310,7 @@ export namespace DSL {
         super(bool);
       }
 
-    public synthesize(writer: Query.Writer): void {
+    public synthesize(writer: Writer): void {
         this.lhs.synthesize(writer);
         writer.writeToken('BEGTWEEN');
         writer.writeToken('(');
@@ -332,7 +338,7 @@ export namespace DSL {
   }
   export namespace String {
     export class BeginsWith extends FunctionCall<BoolShape> {
-      public readonly [ExpressionNodeType] = 'string-begins-with';
+      public readonly [SubNodeType] = 'string-begins-with';
 
       constructor(lhs: ExpressionNode<StringShape>, rhs: ExpressionNode<StringShape>) {
         super('begins_with', bool, [lhs, rhs]);
@@ -351,13 +357,13 @@ export namespace DSL {
   }
   export namespace List {
     export class Item<T extends Shape> extends ExpressionNode<T> {
-      public readonly [ExpressionNodeType] = 'list-item';
+      public readonly [SubNodeType] = 'list-item';
 
       constructor(public readonly list: List<T>, public readonly index: ExpressionNode<NumberShape>) {
         super(list[DataType].Items);
       }
 
-    public synthesize(writer: Query.Writer): void {
+    public synthesize(writer: Writer): void {
         this.list.synthesize(writer);
         writer.writeToken('[');
         this.index.synthesize(writer);
@@ -386,12 +392,12 @@ export namespace DSL {
   }
   export namespace Map {
     export class MapValue<T extends Shape> extends ExpressionNode<T> {
-      public readonly [ExpressionNodeType] = 'map-value';
+      public readonly [SubNodeType] = 'map-value';
       constructor(public readonly map: Map<T>, public readonly key: ExpressionNode<StringShape>) {
         super(map[DataType].Items);
       }
 
-    public synthesize(writer: Query.Writer): void {
+    public synthesize(writer: Writer): void {
         this.map.synthesize(writer);
         writer.writeToken('.');
         this.key.synthesize(writer);
@@ -415,13 +421,13 @@ export namespace DSL {
   }
   export namespace Struct {
     export class Field<T extends Shape> extends ExpressionNode<T> {
-      public readonly [ExpressionNodeType] = 'struct-field';
+      public readonly [SubNodeType] = 'struct-field';
 
       constructor(public readonly struct: Struct<any>, type: T, public readonly name: string) {
         super(type);
       }
 
-    public synthesize(writer: Query.Writer): void {
+    public synthesize(writer: Writer): void {
         this.struct.synthesize(writer);
         writer.writeToken('.');
         writer.writeName(this.name);
