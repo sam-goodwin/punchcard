@@ -5,6 +5,9 @@ import '../lib';
 
 // tslint:disable: member-access
 export class Nested {
+  /**
+   * This is a nested string.
+   */
   a = string;
 }
 

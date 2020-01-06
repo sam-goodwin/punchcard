@@ -3,24 +3,67 @@ import 'jest';
 import { Query } from '../lib';
 import { MyType } from './mock';
 
-const underTest = Query.dsl(MyType).Fields;
-it('should', () => {
-  underTest.id.equals('value');
-  underTest.id.equals(underTest.map.get('key'));
-  underTest.id.equals(underTest.complexMap.get('key').Fields.a);
+const _ = Query.dsl(MyType);
 
-  underTest.complexMap.get('key').equals({
-    a: 'value'
+test('stringProperty = stringLiteral', () => {
+  expect(Query.compile(_.id.equals('value'))).toEqual({
+    FilterExpression: '#1=:1',
+    ExpressionAttributeNames: {
+      '#1': 'id'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        S: 'value'
+      }
+    },
   });
-  underTest.map.get('key').equals(underTest.id);
-  underTest.map.get('key').equals('some value');
-  underTest.map.equals({
-    key: 'string'
-  });
-  underTest.map.equals(underTest.map);
 
-  underTest.array.get(1).equals('string');
-  underTest.array.get(underTest.count).equals('string');
-  underTest.array.equals(['a', 'b']);
-  underTest.array.equals(underTest.array);
+});
+
+test('array[index] = stringiteral', () => {
+  expect(Query.compile(_.array.get(0).equals('string'))).toEqual({
+    FilterExpression: '#1[:1]=:2',
+    ExpressionAttributeNames: {
+      '#1': 'array'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        N: '0'
+      },
+      ':2': {
+        S: 'string'
+      }
+    },
+  });
+});
+
+test('struct.field = stringLiteral', () => {
+  expect(Query.compile(_.nested.fields.a.equals('string'))).toEqual({
+    FilterExpression: '#1.#2=:1',
+    ExpressionAttributeNames: {
+      '#1': 'nested',
+      '#2': 'a'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        S: 'string'
+      },
+    },
+  });
+});
+
+test('struct.field = array.get(index)', () => {
+  expect(Query.compile(_.nested.fields.a.equals(_.array.get(0)))).toEqual({
+    FilterExpression: '#1.#2=#3[:1]',
+    ExpressionAttributeNames: {
+      '#1': 'nested',
+      '#2': 'a',
+      '#3': 'array'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        N: '0'
+      },
+    },
+  });
 });
