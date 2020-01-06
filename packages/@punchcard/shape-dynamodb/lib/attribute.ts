@@ -1,3 +1,4 @@
+import { Shape } from '@punchcard/shape';
 import { ClassShape, ClassType } from '@punchcard/shape/lib/class';
 import { AssertIsMember } from '@punchcard/shape/lib/util';
 
@@ -37,12 +38,12 @@ export namespace AttributeValue {
   export interface Bool {
     BOOL: boolean;
   }
-  export interface List<T extends AttributeValue.Type> {
-    L: T[];
+  export interface List<T extends Shape> {
+    L: Array<Of<T>>;
   }
-  export interface Map<T extends AttributeValue.Type> {
+  export interface Map<T extends Shape> {
     M: {
-      [key: string]: T;
+      [key: string]: Of<T>;
     };
   }
   export interface Struct<T extends ClassShape<any>> {
@@ -54,7 +55,7 @@ export namespace AttributeValue {
     N: string;
   }
   export interface NumberSet {
-    NS: number[];
+    NS: string[];
   }
   export interface StringValue {
     S: string;

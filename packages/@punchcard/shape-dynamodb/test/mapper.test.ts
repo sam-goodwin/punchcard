@@ -49,7 +49,7 @@ it('should read attribute values', () => {
         }
       },
       numberSet: {
-        NS: [1, 2]
+        NS: ['1', '2']
       },
       stringSet: {
         SS: ['1', '2']

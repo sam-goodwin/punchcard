@@ -18,22 +18,38 @@ it('should map Shape AST to AttributeValue AST', () => {
         }
       },
 
-      array: AttributeValue.List<AttributeValue.StringValue>,
-      complexArray: AttributeValue.List<{
-        M: {
-          a: AttributeValue.StringValue;
-        }
-      }>,
+      array: {
+        L: AttributeValue.StringValue[];
+      },
+      complexArray: {
+        L: Array<{
+          M: {
+            a: AttributeValue.StringValue;
+          }
+        }>
+      },
 
-      stringSet: AttributeValue.StringSet;
-      numberSet: AttributeValue.NumberSet;
+      stringSet: {
+        SS: string[];
+      };
+      numberSet: {
+        NS: string[];
+      };
 
-      map: AttributeValue.Map<AttributeValue.StringValue>;
-      complexMap: AttributeValue.Map<{
+      map: {
         M: {
-          a: AttributeValue.StringValue;
+          [key: string]: AttributeValue.StringValue;
         }
-      }>;
+      };
+      complexMap: {
+        M: {
+          [key: string]: {
+            M: {
+              a: AttributeValue.StringValue
+            }
+          }
+        }
+      };
     }
   } = actual;
 });
