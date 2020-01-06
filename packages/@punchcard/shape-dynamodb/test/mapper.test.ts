@@ -1,8 +1,8 @@
 import 'jest';
-import { mapper } from '../lib';
+import { Mapper } from '../lib';
 import { MyType } from './mock';
 
-const underTest = mapper(MyType);
+const underTest = Mapper.of(MyType);
 
 it('should read attribute values', () => {
   const complexValue = {

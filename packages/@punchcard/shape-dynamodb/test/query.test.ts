@@ -1,9 +1,9 @@
 import 'jest';
 
-import { Query } from '../lib';
+import { DSL, Query } from '../lib';
 import { MyType } from './mock';
 
-const _ = Query.dsl(MyType);
+const _ = DSL.of(MyType);
 
 test('stringProperty = stringLiteral', () => {
   expect(Query.compile(_.id.equals('value'))).toEqual({

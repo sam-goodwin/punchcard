@@ -1,12 +1,12 @@
 import { NumberShape, StringShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
-import { Query } from './query';
+import { DSL } from './dsl';
 
 declare module '@punchcard/shape/lib/collection' {
   export interface ArrayShape<T extends Shape> {
     [AttributeValue.Tag]: AttributeValue.List<T[AttributeValue.Tag]>;
-    [Query.Tag]: Query.List<T>;
+    [DSL.Tag]: DSL.List<T>;
   }
   export interface SetShape<T extends Shape> {
     [AttributeValue.Tag]:
@@ -14,12 +14,12 @@ declare module '@punchcard/shape/lib/collection' {
       T extends NumberShape ? AttributeValue.NumberSet :
       never;
 
-    [Query.Tag]:
-      T extends StringShape | NumberShape ? Query.Set<T> :
+    [DSL.Tag]:
+      T extends StringShape | NumberShape ? DSL.Set<T> :
       never;
   }
   export interface MapShape<T extends Shape> {
     [AttributeValue.Tag]: AttributeValue.Map<T[AttributeValue.Tag]>;
-    [Query.Tag]: Query.Map<T>;
+    [DSL.Tag]: DSL.Map<T>;
   }
 }
