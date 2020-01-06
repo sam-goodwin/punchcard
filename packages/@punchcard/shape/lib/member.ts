@@ -1,4 +1,4 @@
-import { ClassModel, ClassShape, ClassType } from './class';
+import {  ClassShape, ClassType } from './class';
 import { Meta, Metadata } from './metadata';
 import { Shape } from './shape';
 import { AssertIsKey } from './util';
@@ -35,10 +35,18 @@ export namespace Member {
   /**
    * Construct new Member type for a property on a ClassType.
    */
-  export type Of<T extends ClassType, K extends keyof ClassModel<T>> =
-    ClassModel<T>[K] extends ClassType ? Member<ClassShape<ClassModel<T>[K]>, AssertIsKey<ClassShape<ClassModel<T>[K]>, K>> :
+  export type Of<T extends ClassType, K extends keyof InstanceType<T>> =
+    InstanceType<T>[K] extends ClassType ? Member<
+      ClassShape<InstanceType<T>[K]>,
+      AssertIsKey<ClassShape<InstanceType<T>[K]>, K>
+    > :
 
-    ClassModel<T>[K] extends Shape ? Member<ClassModel<T>[K], K, AssertIsMetadata<Meta.GetDataOrElse<ClassModel<T>[K], {}>>> :
+    InstanceType<T>[K] extends Shape ? Member<
+      InstanceType<T>[K],
+      K,
+      AssertIsMetadata<Meta.GetDataOrElse<InstanceType<T>[K], {}>>
+    > :
+
     never;
 }
 

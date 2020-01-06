@@ -66,7 +66,7 @@ export class ClassShape<C extends ClassType> extends Shape {
      * Members of the Class.
      */
     public readonly Members: {
-      [property in keyof ClassModel<C>]: Member.Of<C, property>;
+      [property in keyof InstanceType<C>]: Member.Of<C, property>;
     },
 
     public readonly Metadata: Metadata = {}
@@ -88,8 +88,6 @@ export class ClassShape<C extends ClassType> extends Shape {
  * ```
  */
 export type ClassType<T = any> = new () => T;
-
-export type ClassModel<C extends ClassType> = C extends ClassType<infer T> ? T : never;
 
 /**
  * Global cache of all derived classes.
