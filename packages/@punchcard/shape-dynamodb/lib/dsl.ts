@@ -83,6 +83,7 @@ export namespace DSL {
   }
 
   export abstract class StatementNode extends Node<'statement'> {
+    public abstract [SubNodeType]: string;
     constructor() {
       super('statement');
     }
@@ -107,7 +108,7 @@ export namespace DSL {
       super(type);
     }
 
-  public synthesize(writer: Writer): void {
+    public synthesize(writer: Writer): void {
       writer.writeValue(this.value as AWS.DynamoDB.AttributeValue);
     }
   }
@@ -119,7 +120,7 @@ export namespace DSL {
       super(type);
     }
 
-  public synthesize(writer: Writer): void {
+    public synthesize(writer: Writer): void {
       writer.writeName(this.name);
     }
   }
@@ -134,7 +135,7 @@ export namespace DSL {
       super(returnType);
     }
 
-  public synthesize(writer: Writer): void {
+    public synthesize(writer: Writer): void {
       writer.writeToken(this.name);
       writer.writeToken('(');
       if (this.parameters.length > 0) {
@@ -157,35 +158,56 @@ export namespace DSL {
       this[InstanceExpression] = instanceExpression;
     }
 
-  public synthesize(writer: Writer): void {
+    public synthesize(writer: Writer): void {
       this[InstanceExpression].synthesize(writer);
     }
 
     public equals(other: Expression<T>): Bool {
-      return new Bool(new Equals(this, resolveExpression(this[DataType], other)));
+      return new Bool(new Object.Equals(this, resolveExpression(this[DataType], other)));
     }
 
     public size(): Number {
       return new Number(new FunctionCall('size', number, [this]));
     }
-  }
 
-  export abstract class Comparison<T extends Shape, U extends Shape> extends ExpressionNode<BoolShape> {
-    protected abstract operator: string;
-    constructor(public readonly left: ExpressionNode<T>, public readonly right: ExpressionNode<U>) {
-      super(bool);
-    }
-
-  public synthesize(writer: Writer): void {
-      this.left.synthesize(writer);
-      writer.writeToken(this.operator);
-      this.right.synthesize(writer);
+    public set(value: Expression<T>): Object.Assign<T> {
+      return new Object.Assign(this, resolveExpression(this[DataType], value));
     }
   }
+  export namespace Object {
+    export class Assign<T extends Shape> extends StatementNode {
+      public [SubNodeType] = 'assign';
 
-  export class Equals<T extends Shape> extends Comparison<T, T> {
-    protected readonly operator = '=';
-    public readonly [SubNodeType] = 'equals';
+      constructor(private readonly instance: Object<T>, private readonly value: ExpressionNode<T>) {
+        super();
+      }
+
+      public synthesize(writer: Writer): void {
+        writer.writeToken('SET ');
+        this.instance.synthesize(writer);
+        writer.writeToken('=');
+        this.value.synthesize(writer);
+      }
+    }
+  }
+  export namespace Object {
+    export abstract class Comparison<T extends Shape, U extends Shape> extends ExpressionNode<BoolShape> {
+      protected abstract operator: string;
+      constructor(public readonly left: ExpressionNode<T>, public readonly right: ExpressionNode<U>) {
+        super(bool);
+      }
+
+      public synthesize(writer: Writer): void {
+        this.left.synthesize(writer);
+        writer.writeToken(this.operator);
+        this.right.synthesize(writer);
+      }
+    }
+
+    export class Equals<T extends Shape> extends Object.Comparison<T, T> {
+      protected readonly operator = '=';
+      public readonly [SubNodeType] = 'equals';
+    }
   }
 
   export function size(path: Object<any>) {
@@ -222,7 +244,7 @@ export namespace DSL {
         super(bool);
       }
 
-    public synthesize(writer: Writer): void {
+      public synthesize(writer: Writer): void {
         writer.writeToken('(');
         for (const op of this.operands) {
           op.synthesize(writer);
@@ -248,7 +270,7 @@ export namespace DSL {
         super(bool);
       }
 
-    public synthesize(writer: Writer): void {
+      public synthesize(writer: Writer): void {
         writer.writeToken('NOT');
         writer.writeToken('(');
         this.operand.synthesize(writer);
@@ -284,19 +306,19 @@ export namespace DSL {
     }
   }
   export namespace Ord {
-    export class Gt<T extends Shape> extends Comparison<T, NumberShape> {
+    export class Gt<T extends Shape> extends Object.Comparison<T, NumberShape> {
       protected readonly operator = '>';
       public readonly [SubNodeType] = 'greaterThan';
     }
-    export class Gte<T extends Shape> extends Comparison<T, NumberShape> {
+    export class Gte<T extends Shape> extends Object.Comparison<T, NumberShape> {
       protected readonly operator = '>=';
       public readonly [SubNodeType] = 'greaterThanOrEqual';
     }
-    export class Lt<T extends Shape> extends Comparison<T, NumberShape> {
+    export class Lt<T extends Shape> extends Object.Comparison<T, NumberShape> {
       protected readonly operator = '<';
       public readonly [SubNodeType] = 'lessThan';
     }
-    export class Lte<T extends Shape> extends Comparison<T, NumberShape> {
+    export class Lte<T extends Shape> extends Object.Comparison<T, NumberShape> {
       protected readonly operator = '<=';
       public readonly [SubNodeType] = 'lessThanOrEqual';
     }
@@ -310,7 +332,7 @@ export namespace DSL {
         super(bool);
       }
 
-    public synthesize(writer: Writer): void {
+      public synthesize(writer: Writer): void {
         this.lhs.synthesize(writer);
         writer.writeToken('BEGTWEEN');
         writer.writeToken('(');
@@ -322,9 +344,82 @@ export namespace DSL {
     }
   }
 
+  export type SetValue<T extends Shape> = ExpressionNode<T> | Computation<T>;
+
+  export abstract class Computation<T extends Shape> extends StatementNode {
+    public readonly [SubNodeType] = 'computation';
+
+    public abstract readonly operator: string;
+
+    constructor(public readonly lhs: SetValue<T>, public readonly rhs: SetValue<T>) {
+      super();
+    }
+
+    public synthesize(writer: Writer): void {
+      this.lhs.synthesize(writer);
+    }
+  }
+
+  export class ComputationExpression<T extends Shape> extends ExpressionNode<T> {
+    public [SubNodeType] = 'computation-expression';
+
+    constructor(shape: T, public readonly computation: Computation<T>) {
+      super(shape);
+    }
+
+    public synthesize(writer: Writer): void {
+      this.computation.synthesize(writer);
+    }
+  }
+
+  abstract class Action<T extends Shape> extends StatementNode {
+    public abstract readonly actionName: string;
+
+    public synthesize(writer: Writer): void {
+      writer.writeToken(`[${this.actionName}`);
+      this.synthesizeAction(writer);
+      writer.writeToken(']');
+    }
+
+    protected abstract synthesizeAction(writer: Writer): void;
+  }
+  export class SetAction<T extends Shape> extends Action<T> {
+    public [SubNodeType]: string;
+    public [SubNodeType] = 'set-action';
+
+    public readonly actionName = 'SET';
+
+    constructor(public readonly path: ExpressionNode<T>, public readonly value: SetValue<T>) {
+      super();
+    }
+
+    protected synthesizeAction(writer: Writer): void {
+      this.path.synthesize(writer);
+      writer.writeToken('=');
+      this.value.synthesize(writer);
+    }
+  }
+
   export class Number extends Ord<NumberShape> {
     constructor(expression: ExpressionNode<NumberShape>, shape?: NumberShape) {
       super(shape || number, expression);
+    }
+
+    public plus(value: Expression<NumberShape>): Number.Plus {
+      return new Number.Plus(this, resolveExpression(this[DataType], value));
+    }
+
+    public minus(value: Expression<NumberShape>): Number.Minus {
+      return new Number.Minus(this, resolveExpression(this[DataType], value));
+    }
+  }
+  export namespace Number {
+    export class Plus extends Computation<NumberShape> {
+      public operator: '+' = '+';
+    }
+
+    export class Minus extends Computation<NumberShape> {
+      public operator: '-' = '-';
     }
   }
 
@@ -363,7 +458,7 @@ export namespace DSL {
         super(list[DataType].Items);
       }
 
-    public synthesize(writer: Writer): void {
+      public synthesize(writer: Writer): void {
         this.list.synthesize(writer);
         writer.writeToken('[');
         this.index.synthesize(writer);
@@ -397,7 +492,7 @@ export namespace DSL {
         super(map[DataType].Items);
       }
 
-    public synthesize(writer: Writer): void {
+      public synthesize(writer: Writer): void {
         this.map.synthesize(writer);
         writer.writeToken('.');
         this.key.synthesize(writer);
@@ -427,7 +522,7 @@ export namespace DSL {
         super(type);
       }
 
-    public synthesize(writer: Writer): void {
+      public synthesize(writer: Writer): void {
         this.struct.synthesize(writer);
         writer.writeToken('.');
         writer.writeName(this.name);

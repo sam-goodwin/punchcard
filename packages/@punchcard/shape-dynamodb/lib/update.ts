@@ -7,8 +7,11 @@ export namespace Update {
 
   export function compile(statements: DSL.StatementNode[]): Update.Expression {
     const writer = new Writer();
-    for (const statement of statements) {
-      statement.synthesize(writer);
+    for (let i = 0; i < statements.length; i++) {
+      statements[i].synthesize(writer);
+      if (i + 1 < statements.length) {
+        writer.writeToken(' ');
+      }
     }
     const expr = writer.toExpression();
     return {
