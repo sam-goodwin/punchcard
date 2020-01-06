@@ -376,9 +376,8 @@ export namespace DSL {
     public abstract readonly actionName: string;
 
     public synthesize(writer: Writer): void {
-      writer.writeToken(`[${this.actionName}`);
+      writer.writeToken(`${this.actionName} `);
       this.synthesizeAction(writer);
-      writer.writeToken(']');
     }
 
     protected abstract synthesizeAction(writer: Writer): void;
@@ -387,7 +386,7 @@ export namespace DSL {
     public [SubNodeType]: string;
     public [SubNodeType] = 'set-action';
 
-    public readonly actionName = 'SET';
+    public readonly actionName: 'SET' = 'SET';
 
     constructor(public readonly path: ExpressionNode<T>, public readonly value: SetValue<T>) {
       super();
@@ -395,7 +394,7 @@ export namespace DSL {
 
     protected synthesizeAction(writer: Writer): void {
       this.path.synthesize(writer);
-      writer.writeToken('=');
+      writer.writeToken(' = ');
       this.value.synthesize(writer);
     }
   }
@@ -449,6 +448,14 @@ export namespace DSL {
     public get(index: Expression<NumberShape>): Of<T> {
       return new Object(this[DataType].Items, new List.Item(this, resolveExpression(number, index))) as Of<T>;
     }
+
+    public push(item: Expression<T>): SetAction<T> {
+      return new SetAction(this.get(1) as any, resolveExpression(this[DataType].Items, item))
+    }
+
+    public concat(list: Expression<ArrayShape<T>>): SetAction<ArrayShape<T>> {
+      return new SetAction(this, new List.Append(this, resolveExpression(this[DataType], list) as List<T>));
+    }
   }
   export namespace List {
     export class Item<T extends Shape> extends ExpressionNode<T> {
@@ -463,6 +470,13 @@ export namespace DSL {
         writer.writeToken('[');
         this.index.synthesize(writer);
         writer.writeToken(']');
+      }
+    }
+    export class Append<T extends Shape> extends FunctionCall<ArrayShape<T>> {
+      public [SubNodeType]: 'list-concat' = 'list-concat';
+
+      constructor(public readonly list: List<T>, public readonly values: List<T>) {
+        super('list_append', list[DataType], [list, values]);
       }
     }
   }

@@ -4,6 +4,9 @@ export class Writer {
   private readonly aliases: {
     [alias: string]: string;
   } = {};
+  private readonly aliasReverseLookup: {
+    [name: string]: string;
+  } = {};
   private readonly values: {
     [id: string]: AWS.DynamoDB.AttributeValue;
   } = {};
@@ -39,8 +42,12 @@ export class Writer {
   }
 
   public writeName(name: string): string {
-    const alias = this.newNameAlias();
-    this.aliases[alias] = name;
+    let alias = this.aliasReverseLookup[name];
+    if (alias === undefined) {
+      alias = this.newNameAlias();
+      this.aliases[alias] = name;
+      this.aliasReverseLookup[name] = alias;
+    }
     this.writeToken(alias);
     return alias;
   }

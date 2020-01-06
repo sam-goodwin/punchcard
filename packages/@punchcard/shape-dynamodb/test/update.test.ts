@@ -27,10 +27,9 @@ test('repeated clauses', () => {
     _.id.set('value'),
     _.id.set('value'),
   ])).toEqual({
-    UpdateExpression: 'SET #1=:1 SET #2=:2',
+    UpdateExpression: 'SET #1=:1 SET #1=:2',
     ExpressionAttributeNames: {
-      '#1': 'id',
-      '#2': 'id'
+      '#1': 'id'
     },
     ExpressionAttributeValues: {
       ':1': {
@@ -38,6 +37,43 @@ test('repeated clauses', () => {
       },
       ':2': {
         S: 'value'
+      }
+    },
+  });
+});
+
+test('list-push', () => {
+  expect(Update.compile([
+    _.array.push('value')
+  ])).toEqual({
+    UpdateExpression: 'SET #1[:1] = :2',
+    ExpressionAttributeNames: {
+      '#1': 'array'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        N: '1'
+      },
+      ':2': {
+        S: 'value'
+      }
+    },
+  });
+});
+
+test('list-append', () => {
+  expect(Update.compile([
+    _.array.concat(['value'])
+  ])).toEqual({
+    UpdateExpression: 'SET #1 = list_append(#1,:1)',
+    ExpressionAttributeNames: {
+      '#1': 'array'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        L: [{
+          S: 'value'
+        }]
       }
     },
   });
