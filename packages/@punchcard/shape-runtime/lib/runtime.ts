@@ -1,5 +1,5 @@
 
-import { ClassShape, ClassType } from '@punchcard/shape/lib/class';
+import { ClassType } from '@punchcard/shape/lib/class';
 import { Shape } from '@punchcard/shape/lib/shape';
 
 export namespace Runtime {
@@ -7,7 +7,8 @@ export namespace Runtime {
   export const Tag = Symbol.for('@punchcard/shape-runtime.Tag');
 
   export type Of<T extends {[Tag]: any}> = T extends {[Tag]: infer T2} ? T2 : never;
-  export type OfType<T> = Of<ClassShape<ClassType<T>>>;
+  // export type OfClass<T extends ClassType> = Of<ClassShape<T>>
+  export type OfType<T extends ClassType> = Of<Shape.Of<T>>;
 }
 
 declare module '@punchcard/shape/lib/shape' {

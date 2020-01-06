@@ -189,8 +189,6 @@ export namespace DSL {
         this.value.synthesize(writer);
       }
     }
-  }
-  export namespace Object {
     export abstract class Comparison<T extends Shape, U extends Shape> extends ExpressionNode<BoolShape> {
       protected abstract operator: string;
       constructor(public readonly left: ExpressionNode<T>, public readonly right: ExpressionNode<U>) {
@@ -203,9 +201,8 @@ export namespace DSL {
         this.right.synthesize(writer);
       }
     }
-
     export class Equals<T extends Shape> extends Object.Comparison<T, T> {
-      protected readonly operator = '=';
+      protected readonly operator: '=' = '=';
       public readonly [SubNodeType] = 'equals';
     }
   }
@@ -307,19 +304,19 @@ export namespace DSL {
   }
   export namespace Ord {
     export class Gt<T extends Shape> extends Object.Comparison<T, NumberShape> {
-      protected readonly operator = '>';
+      protected readonly operator: '>' = '>';
       public readonly [SubNodeType] = 'greaterThan';
     }
     export class Gte<T extends Shape> extends Object.Comparison<T, NumberShape> {
-      protected readonly operator = '>=';
+      protected readonly operator: '>=' = '>=';
       public readonly [SubNodeType] = 'greaterThanOrEqual';
     }
     export class Lt<T extends Shape> extends Object.Comparison<T, NumberShape> {
-      protected readonly operator = '<';
+      protected readonly operator: '<' = '<';
       public readonly [SubNodeType] = 'lessThan';
     }
     export class Lte<T extends Shape> extends Object.Comparison<T, NumberShape> {
-      protected readonly operator = '<=';
+      protected readonly operator: '<=' = '<=';
       public readonly [SubNodeType] = 'lessThanOrEqual';
     }
     export class Between<T extends Shape> extends ExpressionNode<BoolShape> {
@@ -450,7 +447,7 @@ export namespace DSL {
     }
 
     public push(item: Expression<T>): SetAction<T> {
-      return new SetAction(this.get(1) as any, resolveExpression(this[DataType].Items, item))
+      return new SetAction(this.get(1) as any, resolveExpression(this[DataType].Items, item));
     }
 
     public concat(list: Expression<ArrayShape<T>>): SetAction<ArrayShape<T>> {
