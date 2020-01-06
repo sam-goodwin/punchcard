@@ -1,4 +1,5 @@
 import { ClassShape, ClassType } from '@punchcard/shape/lib/class';
+import { AssertIsMember } from '@punchcard/shape/lib/util';
 
 declare module '@punchcard/shape/lib/shape' {
   export interface Shape {
@@ -44,8 +45,10 @@ export namespace AttributeValue {
       [key: string]: T;
     };
   }
-  export interface Struct<T extends { [key: string]: AttributeValue.Type; }> {
-    M: T;
+  export interface Struct<T extends ClassShape<any>> {
+    M: {
+      [member in keyof T['Members']]: AssertIsMember<T['Members'][member]>['Type'][AttributeValue.Tag]
+    };
   }
   export interface NumberValue {
     N: string;
