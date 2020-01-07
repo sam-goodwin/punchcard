@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@punchcard/shape": "0.1.0",
+    "@punchcard/shape-runtime": "0.1.0",
     "@punchcard/shape-validation": "0.1.0"
   },
   "jest": {

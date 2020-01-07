@@ -5,8 +5,8 @@ import { Runtime } from "@punchcard/shape-runtime";
 import { DSL } from "./dsl";
 import { Condition } from './filter';
 import { Mapper } from './mapper';
-import { Writer } from './writer';
 import { Update } from './update';
+import { Writer } from './writer';
 
 export class Table<T extends ClassType, K extends Table.Key<InstanceType<T>>> {
   private readonly dsl: DSL.OfType<T>["fields"];

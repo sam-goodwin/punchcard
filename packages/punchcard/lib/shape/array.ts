@@ -21,7 +21,7 @@ export class ArrayShape<T extends Shape<any>> implements Shape<Array<RuntimeShap
   constructor(public readonly itemType: T, private readonly constraints?: ArrayShapeConstraints) {}
 
   public visit(visitor: ShapeVisitor) {
-    visitor.array>?(this);
+    visitor.array(this);
   }
 
   public validate(value: Array<RuntimeShape<T>>): void {
