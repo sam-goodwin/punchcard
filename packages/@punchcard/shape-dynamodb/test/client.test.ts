@@ -2,7 +2,7 @@ import 'jest';
 
 import sinon = require('sinon');
 
-import { array, map, number, string } from '@punchcard/shape';
+import { any, array, map, number, string } from '@punchcard/shape';
 import { DSL } from '../lib';
 import { Table } from '../lib/client';
 
@@ -12,6 +12,7 @@ class Type {
   count = number;
   list = array(string);
   dict = map(string);
+  dynamic = any;
 }
 
 const table = new Table(Type, ['key', 'count'], {
@@ -68,7 +69,8 @@ test('putIf', async () => {
     list: ['a', 'b'],
     dict: {
       key: 'value'
-    }
+    },
+    dynamic: 'dynamic-value'
   }, _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.a.equals('value')));
 
   expect(putItem.args[0][0]).toEqual({
@@ -77,7 +79,8 @@ test('putIf', async () => {
       key: { S: 'key' },
       count: { N: '1' },
       list: { L: [ {S: 'a'}, {S: 'b'} ] },
-      dict: { M: { key: { S: 'value' } } }
+      dict: { M: { key: { S: 'value' } } },
+      dynamic: { S: 'dynamic-value' }
     },
     ConditionExpression: '((#1=1 AND #2[0]<=0) AND #3.#4=:1)',
     ExpressionAttributeNames: {
@@ -100,7 +103,8 @@ test('update', async () => {
   });
 
   await table.update(['key', 1], item => [
-    item.list.push('item')
+    item.list.push('item'),
+    item.dynamic.as(string).set('dynamic-value')
   ]);
 
   expect(updateItem.args[0][0]).toEqual({
@@ -109,12 +113,14 @@ test('update', async () => {
       key: { S: 'key' },
       count: { N: '1' },
     },
-    UpdateExpression: 'SET #1[1] = :1',
+    UpdateExpression: 'SET #1[1]=:1 SET #2=:2',
     ExpressionAttributeNames: {
-      '#1': 'list'
+      '#1': 'list',
+      '#2': 'dynamic'
     },
     ExpressionAttributeValues: {
-      ':1': { S: 'item' }
+      ':1': { S: 'item' },
+      ':2': { S: 'dynamic-value' }
     }
   });
 });

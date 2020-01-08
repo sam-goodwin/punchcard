@@ -46,7 +46,7 @@ test('list-push', () => {
   expect(Update.compile([
     _.array.push('value')
   ])).toEqual({
-    UpdateExpression: 'SET #1[1] = :1',
+    UpdateExpression: 'SET #1[1]=:1',
     ExpressionAttributeNames: {
       '#1': 'array'
     },
@@ -62,7 +62,7 @@ test('list-append', () => {
   expect(Update.compile([
     _.array.concat(['value'])
   ])).toEqual({
-    UpdateExpression: 'SET #1 = list_append(#1,:1)',
+    UpdateExpression: 'SET #1=list_append(#1,:1)',
     ExpressionAttributeNames: {
       '#1': 'array'
     },

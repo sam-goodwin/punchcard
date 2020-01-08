@@ -16,9 +16,6 @@ export abstract class BaseStringShape extends PrimitiveShape<string> {
     super(Kind.String);
   }
 
-  public toDynamoPath(parent: DynamoPath, name: string): StringDynamoPath<this> {
-    return new StringDynamoPath(parent, name, this);
-  }
 
   public toJsonSchema(): object {
     const schema: any = {

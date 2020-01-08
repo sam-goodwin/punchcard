@@ -2,7 +2,7 @@ import { ClassType, OptionalKeys, RequiredKeys, Visitor as ShapeVisitor } from '
 import { HashSet, Runtime } from '@punchcard/shape-runtime';
 import { ClassShape } from '@punchcard/shape/lib/class';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { BoolShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { BinaryShape, BoolShape, DynamicShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 
 export namespace Json {
@@ -32,6 +32,23 @@ export namespace Json {
   }
 
   export class SerializerVisitor implements ShapeVisitor<Mapper<any>> {
+    public dynamicShape(shape: DynamicShape<any>, context: undefined): Mapper<any> {
+      return {
+        read: JSON.parse,
+        write: JSON.stringify
+      };
+    }
+    public binaryShape(shape: BinaryShape, context: undefined): Mapper<any> {
+      return {
+        read: (b: any) => {
+          if (typeof b !== 'string') {
+            throw new Error(`expected base64 encoded string for Binary Payload`);
+          }
+          return Buffer.from(b, 'base64');
+        },
+        write: (b: Buffer) => b.toString('base64')
+      };
+    }
     public arrayShape(shape: ArrayShape<any>): Mapper<any> {
       const item = Json.mapper(shape.Items);
       return {
@@ -160,6 +177,12 @@ declare module '@punchcard/shape/lib/shape' {
   }
 }
 declare module '@punchcard/shape/lib/primitive' {
+  export interface DynamicShape<T extends unknown | any> {
+    [Json.Tag]: T;
+  }
+  export interface BinaryShape {
+    [Json.Tag]: string;
+  }
   export interface BoolShape {
     [Json.Tag]: boolean;
   }

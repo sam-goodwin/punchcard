@@ -1,12 +1,13 @@
+import { Shape } from "@punchcard/shape";
 import { Trait } from "@punchcard/shape/lib/metadata";
 import { StringShape } from "@punchcard/shape/lib/primitive";
-import { ValidationMetadata, Validator } from "./validator";
+import { ValidationMetadata } from "./validator";
 
-export interface MaxLength<L extends number> extends Trait<StringShape, { maxLength: L} & ValidationMetadata<StringShape>> {}
-export interface MinLength<L extends number> extends Trait<StringShape, { minLength: L} & ValidationMetadata<StringShape>> {}
+export interface MaxLength<L extends number> extends Trait<any, { maxLength: L} & ValidationMetadata<Shape>> {}
+export interface MinLength<L extends number> extends Trait<any, { minLength: L} & ValidationMetadata<Shape>> {}
 export interface Pattern<P extends string> extends Trait<StringShape, { pattern: P } & ValidationMetadata<StringShape>> {}
 
-function validateLength(s: string, length: number, operation: '<' | '>') {
+function validateLength(s: string | Buffer, length: number, operation: '<' | '>') {
   const isValid = operation === '>' ? s.length > length : s.length < length;
   if (!isValid) {
     return [new Error(`expected string with length ${operation} ${length}, but received: ${s}`)];
@@ -18,7 +19,7 @@ export function MaxLength<L extends number>(length: L): MaxLength<L> {
   return {
     [Trait.Data]: {
       maxLength: length,
-      validator: [(s: string) => validateLength(s, length, '>')]
+      validator: [(s: string | Buffer) => validateLength(s, length, '>')]
     }
   };
 }
@@ -27,7 +28,7 @@ export function MinLength<L extends number>(length: L): MinLength<L> {
   return {
     [Trait.Data]: {
       minLength: length,
-      validator: [(s: string) => validateLength(s, length, '<')]
+      validator: [(s: string | Buffer) => validateLength(s, length, '<')]
     }
   };
 }

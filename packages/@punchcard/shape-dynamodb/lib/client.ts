@@ -104,7 +104,7 @@ export class Table<T extends ClassType, K extends Table.Key<InstanceType<T>>> {
     if (props.filter) {
       const filterWriter = new Writer(namespace);
 
-      props.filter(this.dsl).synthesize(filterWriter);
+      props.filter(this.dsl)[DSL.Synthesize](filterWriter);
       filterExpr = filterWriter.toExpression();
     }
 

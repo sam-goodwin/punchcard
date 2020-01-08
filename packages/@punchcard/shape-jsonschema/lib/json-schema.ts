@@ -2,10 +2,12 @@ import { ClassShape, ClassType } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { ObjectSchema } from './object';
-import { BoolSchema, NumberSchema, StringSchema, TimestampSchema } from './primitive';
+import { AnySchema, BinarySchema, BoolSchema, NumberSchema, StringSchema, TimestampSchema } from './primitive';
 import { ToJsonSchemaVisitor } from './visitor';
 
 export type JsonSchema =
+  | AnySchema
+  | BinarySchema<any>
   | BoolSchema
   | MapSchema<any>
   | SetSchema<any>

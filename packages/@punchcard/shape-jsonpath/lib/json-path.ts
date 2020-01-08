@@ -2,7 +2,7 @@ import { Member, Visitor as ShapeVisitor } from '@punchcard/shape';
 import { Runtime } from '@punchcard/shape-runtime';
 import { ClassShape, ClassType } from '@punchcard/shape/lib/class';
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { bool, BoolShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { BinaryShape, bool, BoolShape, DynamicShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Writer } from './writer';
 
@@ -121,6 +121,14 @@ export namespace JsonPath {
       public readonly [SubNodeType] = 'not-equals';
     }
   }
+
+  export class Dynamic<T extends DynamicShape<any | unknown>> extends Object<T> {
+    public as<S extends Shape>(shape: S): JsonPath.Of<S> {
+      return shape.visit(visitor as any, this);
+    }
+  }
+
+  export class Binary extends Object<BinaryShape> {}
 
   export class Bool extends Object<BoolShape> {
     constructor(expression: ExpressionNode<BoolShape>, boolShape?: BoolShape) {
@@ -377,6 +385,12 @@ export namespace JsonPath {
 }
 
 class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
+  public dynamicShape(shape: DynamicShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Dynamic<any> {
+    return new JsonPath.Dynamic(shape, expression);
+  }
+  public binaryShape(shape: BinaryShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Binary {
+    return new JsonPath.Binary(shape, expression);
+  }
   public arrayShape(shape: ArrayShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Array<any> {
     return new Proxy(new JsonPath.Array(shape, expression), {
       get: (target, prop) => {

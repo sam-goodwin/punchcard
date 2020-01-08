@@ -1,4 +1,4 @@
-import { ArrayShape, BoolShape, ClassShape, ClassType, MapShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, DynamicShape, MapShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, Visitor as ShapeVisitor } from '@punchcard/shape';
 import { Runtime } from './runtime';
 
 export type Equals<T extends Shape> = (a: Runtime.Of<T>, b: Runtime.Of<T>) => boolean;
@@ -22,6 +22,65 @@ export namespace Equals {
   }
 
   export class Visitor implements ShapeVisitor<Equals<any>> {
+    public dynamicShape(shape: DynamicShape<any>, context: undefined): Equals<any> {
+      return function equals(a: any, b: any): boolean {
+        const type = typeof a;
+        if (type !== typeof b) {
+          return false;
+        }
+        switch (type) {
+          case 'undefined': return true;
+          case 'string':
+          case 'number':
+          case 'bigint':
+          case 'boolean':
+            return a === b;
+          case 'object':
+            if (Array.isArray(a) && Array.isArray(b)) {
+              if (a.length !== b.length) {
+                return false;
+              }
+              for (let i = 0; i < a.length; i++) {
+                if (!equals(a[i], b[i])) {
+                  return false;
+                }
+              }
+              return true;
+            } else if (Array.isArray(a) || Array.isArray(b)) {
+              return false;
+            }
+            const aKeys = Object.keys(a);
+            const bKeys = new Set(Object.keys(b));
+            if (aKeys.length !== bKeys.size) {
+              return false;
+            }
+            for (const k of aKeys) {
+              if (!bKeys.has(k)) {
+                return false;
+              }
+              if (!equals(a[k], b[k])) {
+                return false;
+              }
+            }
+            return true;
+          default:
+            throw new Error(`unsupported value in any type: '${type}'`);
+        }
+      };
+    }
+    public binaryShape(shape: BinaryShape, context: undefined): Equals<any> {
+      return ((a: Buffer, b: Buffer) => {
+        if (a.length !== b.length) {
+          return false;
+        }
+        for (let i = 0; i < a.length; i++) {
+          if (a.readUInt8(i) !== b.readUInt8(i)) {
+            return false;
+          }
+        }
+        return true;
+      }) as any;
+    }
     public arrayShape(shape: ArrayShape<any>): Equals<any> {
       const itemEq = of(shape.Items);
       return ((a: any[], b: any[]) => {

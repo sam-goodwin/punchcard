@@ -8,7 +8,7 @@ export namespace Update {
   export function compile(statements: DSL.StatementNode[]): Update.Expression {
     const writer = new Writer();
     for (let i = 0; i < statements.length; i++) {
-      statements[i].synthesize(writer);
+      statements[i][DSL.Synthesize](writer);
       if (i + 1 < statements.length) {
         writer.writeToken(' ');
       }

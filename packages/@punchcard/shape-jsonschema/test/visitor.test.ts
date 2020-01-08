@@ -1,6 +1,6 @@
 import 'jest';
 
-import { number, Optional, Shape, string } from '@punchcard/shape';
+import { any, binary, number, Optional, Shape, string } from '@punchcard/shape';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema, NumberSchema } from '../lib';
@@ -35,6 +35,10 @@ class MyType {
   map = map(string);
   complexMap = map(Nested)
     .apply(Optional());
+
+  binary = binary
+    .apply(MaxLength(1));
+  any = any;
 }
 
 const type = Shape.of(MyType);
@@ -60,7 +64,9 @@ it('should render JSON schema', () => {
       'complexArray',
       'set',
       'complexSet',
-      'map'
+      'map',
+      'binary',
+      'any'
     ],
     properties: {
       id: {
@@ -143,6 +149,14 @@ it('should render JSON schema', () => {
           }
         },
         allowAdditionalProperties: true
+      },
+      binary: {
+        type: 'string',
+        format: 'base64',
+        maxLength: 1
+      },
+      any: {
+        type: {}
       }
     }
   });
@@ -232,6 +246,14 @@ it('should render JSON schema', () => {
           }
         },
         allowAdditionalProperties: true
+      },
+      binary: {
+        type: 'string',
+        format: 'base64',
+        maxLength: 1
+      },
+      any: {
+        type: {}
       }
     }
   } = schema;

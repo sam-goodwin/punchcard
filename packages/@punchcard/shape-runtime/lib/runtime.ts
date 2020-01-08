@@ -20,8 +20,14 @@ declare module '@punchcard/shape/lib/shape' {
 }
 
 declare module '@punchcard/shape/lib/primitive' {
+  export interface DynamicShape<T extends unknown | any> {
+    [Runtime.Tag]: T;
+  }
   export interface BoolShape {
     [Runtime.Tag]: boolean;
+  }
+  export interface BinaryShape {
+    [Runtime.Tag]: Buffer;
   }
   export interface StringShape {
     [Runtime.Tag]: string;

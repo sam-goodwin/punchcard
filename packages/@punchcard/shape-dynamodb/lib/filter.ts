@@ -22,7 +22,7 @@ export namespace Condition {
 
   export function write(expression: DSL.ExpressionNode<any> | DSL.StatementNode, writer?: Writer): Writer {
     writer = writer || new Writer();
-    expression.synthesize(writer);
+    expression[DSL.Synthesize](writer);
     return writer;
   }
 }

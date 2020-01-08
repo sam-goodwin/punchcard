@@ -1,9 +1,22 @@
 import { Meta } from "@punchcard/shape/lib/metadata";
 import { JsonSchema } from "./json-schema";
 
+export interface AnySchema {
+  type: {};
+}
+
 export interface BoolSchema {
   type: 'boolean';
 }
+
+export interface BinarySchemaConstraints {
+  maxLength?: number;
+  minLength?: number;
+}
+export type BinarySchema<C extends BinarySchemaConstraints> = {
+  type: 'string';
+  format: 'base64';
+} & Pick<C, 'maxLength' | 'minLength'>;
 
 export interface StringSchemaConstraints {
   maxLength?: number;
@@ -34,6 +47,12 @@ export interface TimestampSchema {
 }
 
 declare module '@punchcard/shape/lib/primitive' {
+  interface DynamicShape<T extends any | unknown> {
+    [JsonSchema.Tag]: AnySchema;
+  }
+  interface BinaryShape {
+    [JsonSchema.Tag]: BinarySchema<Meta.GetData<this>>;
+  }
   interface BoolShape {
     [JsonSchema.Tag]: BoolSchema;
   }

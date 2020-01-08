@@ -50,6 +50,14 @@ it('should map Shape AST to AttributeValue AST', () => {
           } | undefined;
         }
       };
+      binaryField: {
+        B: Buffer;
+      },
+      binarySet: {
+        BS: Buffer[];
+      },
+      anyField: AttributeValue.Type;
+      unknownField: AttributeValue.Type;
     }
   } = actual;
 });

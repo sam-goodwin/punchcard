@@ -1,10 +1,38 @@
 import { ClassShape } from './class';
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { Member } from './member';
-import { BoolShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { AnyShape, BinaryShape, BoolShape, DynamicShape, NumberShape, StringShape, TimestampShape, UnknownShape } from './primitive';
 import { Shape } from './shape';
 
 export namespace ShapeGuards {
+  export const isDynamicShape = (a: any): a is DynamicShape<unknown> => isShape(a) && a.Kind === 'dynamicShape';
+  export const assertDynamicShape = (a: any): asserts a is DynamicShape<unknown> => {
+    if (!isDynamicShape(a)) {
+      throw new Error(`${a} is not of type: DynamicShape`);
+    }
+  };
+
+  export const isAnyShape = (a: any): a is AnyShape => isDynamicShape(a) && a.Tag === 'any';
+  export const assertAnyShape = (a: any): asserts a is AnyShape => {
+    if (!isAnyShape(a)) {
+      throw new Error(`${a} is not of type: AnyShape`);
+    }
+  };
+
+  export const isUnknownShape = (a: any): a is UnknownShape => isDynamicShape(a) && a.Tag === 'unknown';
+  export const assertUnknownShape = (a: any): asserts a is UnknownShape => {
+    if (!isUnknownShape(a)) {
+      throw new Error(`${a} is not of type: UnknownShape`);
+    }
+  };
+
+  export const isBinaryShape = (a: any): a is BinaryShape => isShape(a) && a.Kind === 'binaryShape';
+  export const assertBinaryShape = (a: any): asserts a is BinaryShape => {
+    if (!isBinaryShape(a)) {
+      throw new Error(`${a} is not of type: BinaryShape`);
+    }
+  };
+
   export const isArrayShape = (a: any): a is ArrayShape<any> => a.Kind === 'arrayShape';
   export const assertArrayShape = (a: any): asserts a is ArrayShape<any> => {
     if (!isArrayShape(a)) {

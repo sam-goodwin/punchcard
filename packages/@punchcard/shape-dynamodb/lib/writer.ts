@@ -22,7 +22,7 @@ export class Writer {
   }
 
   public writeNode(value: DSL.Node): void {
-    value.synthesize(this);
+    value[DSL.Synthesize](this);
   }
 
   public writeToken(token: string): void {

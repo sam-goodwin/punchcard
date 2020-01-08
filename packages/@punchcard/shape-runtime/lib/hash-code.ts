@@ -1,10 +1,12 @@
-import { ArrayShape, BoolShape, ClassShape, ClassType, MapShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, DynamicShape, MapShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, Visitor as ShapeVisitor } from '@punchcard/shape';
 import { Runtime } from './runtime';
 
 /**
  * Computes the Hash Code for a runtime value of some Shape.
  */
 export type HashCode<T extends Shape> = (value: Runtime.Of<T>) => number;
+
+// tslint:disable: no-bitwise
 
 export namespace HashCode {
   const cache = new WeakMap();
@@ -24,11 +26,10 @@ export namespace HashCode {
     }
   }
 
-  export function hashCode(value: string): number {
+  export function stringHashCode(value: string): number {
     let hash = 0;
     for (let i = 0; i < value.length; i++) {
       const character = value.charCodeAt(i);
-  // tslint:disable: no-bitwise
       hash = ((hash << 5) - hash) + character;
       hash = hash & hash; // Convert to 32bit integer
     }
@@ -36,6 +37,46 @@ export namespace HashCode {
   }
 
   export class Visitor implements ShapeVisitor<HashCode<any>> {
+    public dynamicShape(shape: DynamicShape<any>, context: undefined): HashCode<any> {
+      return hashCode;
+
+      function hashCode(value: any) {
+        switch (typeof value) {
+          case 'string': return stringHashCode(value);
+          case 'boolean': return value ? 1 : 0;
+          case 'number': return value;
+          case 'undefined': return 0;
+          case 'object':
+            if (Array.isArray(value)) {
+              const prime = 31;
+              let result = 1;
+              value.forEach(item => result += prime * result + hashCode(item));
+              return result;
+            } else {
+              const prime = 31;
+              let result = 1;
+              Object.keys(value).forEach(key => {
+                result += prime * result + stringHashCode(key);
+                result += prime * result + hashCode(value[key]);
+              });
+              return result;
+            }
+          default:
+            throw new Error(`unsupported value in any type: '${typeof value}'`);
+        }
+      }
+    }
+
+    public binaryShape(shape: BinaryShape, context: undefined): HashCode<any> {
+      return ((value: Buffer) => {
+        let hash = 0;
+        for (const byte of value) {
+          hash = ((hash << 5) - hash) + byte;
+          hash = hash & hash; // Convert to 32bit integer
+        }
+        return hash;
+      }) as any;
+    }
     public arrayShape(shape: ArrayShape<any>): HashCode<any> {
       const hashItem = of(shape.Items);
 
@@ -60,7 +101,7 @@ export namespace HashCode {
         const prime = 31;
         let result = 1;
         Object.keys(value).forEach(key => {
-          result += prime * result + hashCode(key);
+          result += prime * result + stringHashCode(key);
           result += prime * result + (fields[key])((value as any)[key]);
         });
         return result;
@@ -73,7 +114,7 @@ export namespace HashCode {
         const prime = 31;
         let result = 1;
         Object.keys(value).forEach((key: any) => {
-          result += prime * result + hashCode(key);
+          result += prime * result + stringHashCode(key);
           result += prime * result + hashValue(value[key]);
         });
         return result;
@@ -94,7 +135,7 @@ export namespace HashCode {
       }) as any;
     }
     public stringShape(shape: StringShape): HashCode<any> {
-      return s => hashCode(s as string);
+      return s => stringHashCode(s as string);
     }
     public timestampShape(shape: TimestampShape): HashCode<any> {
       return (((a: Date, b: Date) => a.getTime() === b.getTime())) as any;

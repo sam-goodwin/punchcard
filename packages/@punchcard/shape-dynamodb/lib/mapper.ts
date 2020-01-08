@@ -1,4 +1,6 @@
-import { Runtime } from '@punchcard/shape-runtime';
+import AWS = require('aws-sdk');
+
+import { HashSet, Runtime } from '@punchcard/shape-runtime';
 import { ClassType } from "@punchcard/shape/lib/class";
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
 import { Shape } from "@punchcard/shape/lib/shape";
@@ -74,22 +76,32 @@ export namespace Mapper {
           })
         } as any;
       } else if (ShapeGuards.isSetShape(shape)) {
-        if (ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isNumberShape(shape.Items)) {
-          const key = ShapeGuards.isStringShape(shape.Items) ? 'SS' : 'NS';
+        if (ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isNumberShape(shape.Items) || ShapeGuards.isBinaryShape(shape.Items)) {
+          const key =
+            ShapeGuards.isStringShape(shape.Items) ? 'SS' :
+            ShapeGuards.isBinaryShape(shape.Items) ? 'BS' :
+            'NS';
 
-          const read = ShapeGuards.isStringShape(shape.Items)
-            ? (s: any) => s as string
-            : (n: any) => parseFloat(n)
+          const read =
+            ShapeGuards.isStringShape(shape.Items) ? (s: any) => s as string :
+            ShapeGuards.isBinaryShape(shape.Items) ? (b: any) => b as Buffer :
+            (n: any) => parseFloat(n)
             ;
 
-          const write = ShapeGuards.isStringShape(shape.Items)
-            ? (s: string) => s
-            : (n: any) => n.toString()
+          const write =
+            ShapeGuards.isStringShape(shape.Items) ? (s: string) => s :
+            ShapeGuards.isBinaryShape(shape.Items) ? (b: Buffer) => b :
+            (n: any) => n.toString()
             ;
 
           return {
             read: (value: any) => {
               assertHasKey(key, value);
+              if (ShapeGuards.isBinaryShape(shape.Items)) {
+                const s = new HashSet(shape.Items);
+                value[key].forEach((v: any) => s.add(v));
+                return s;
+              }
               return new Set(value[key].map(read));
             },
             write: (value: Set<any>) => ({
@@ -159,6 +171,26 @@ export namespace Mapper {
           write: (value: Date) => {
             return {
               S: value.toISOString()
+            };
+          }
+        } as any;
+      } else if (ShapeGuards.isDynamicShape(shape)) {
+        return {
+          read: AWS.DynamoDB.Converter.output,
+          write: AWS.DynamoDB.Converter.input,
+        };
+      } else if (ShapeGuards.isBinaryShape(shape)) {
+        return {
+          read: (value: { B: Buffer }) => {
+            assertHasKey('B', value);
+            if (!Buffer.isBuffer(value.B)) {
+              throw new Error(`expected { B: Buffer }, but got { B: ${typeof value.B} }`);
+            }
+            return value.B;
+          },
+          write: (B: Buffer) => {
+            return {
+              B
             };
           }
         } as any;

@@ -34,6 +34,11 @@ export class MyType {
 
 const _ = JsonPath.of(MyType);
 
+test(`$['id']`, () => {
+  const  jp = _.id;
+  expect(JsonPath.compile(jp)).toEqual(`$['id']`);
+});
+
 test(`$.array[?(@=='value')]`, () => {
   const jp = _.array.filter(_ => _.equals('value'));
   expect(JsonPath.compile(jp)).toEqual(`$['array'][?(@=='value')]`);

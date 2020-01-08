@@ -1,4 +1,4 @@
-import { NumberShape, StringShape } from '@punchcard/shape/lib/primitive';
+import { BinaryShape, NumberShape, StringShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { DSL } from './dsl';
@@ -10,6 +10,7 @@ declare module '@punchcard/shape/lib/collection' {
   }
   export interface SetShape<T extends Shape> {
     [AttributeValue.Tag]:
+      T extends BinaryShape ? AttributeValue.BinarySet :
       T extends StringShape ? AttributeValue.StringSet :
       T extends NumberShape ? AttributeValue.NumberSet :
       never;

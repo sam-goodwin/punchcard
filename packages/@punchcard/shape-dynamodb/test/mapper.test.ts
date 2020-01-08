@@ -1,4 +1,7 @@
 import 'jest';
+
+import { HashSet } from '@punchcard/shape-runtime';
+import { binary } from '@punchcard/shape/lib/primitive';
 import { Mapper } from '../lib';
 import { MyType } from './mock';
 
@@ -53,6 +56,18 @@ it('should read attribute values', () => {
       },
       stringSet: {
         SS: ['1', '2']
+      },
+      binaryField: {
+        B: Buffer.from('binaryField', 'utf8')
+      },
+      binarySet: {
+        BS: [Buffer.from('binarySet', 'utf8')]
+      },
+      anyField: {
+        S: 'any'
+      },
+      unknownField: {
+        N: '1'
       }
     }
   });
@@ -76,7 +91,11 @@ it('should read attribute values', () => {
       a: 'nested value'
     },
     numberSet: new Set([1, 2]),
-    stringSet: new Set(['1', '2'])
+    stringSet: new Set(['1', '2']),
+    binaryField: Buffer.from('binaryField', 'utf8'),
+    binarySet: new HashSet(binary).add(Buffer.from('binarySet', 'utf8')),
+    anyField: 'any',
+    unknownField: 1
   };
 
   expect(actual).toEqual(expected);

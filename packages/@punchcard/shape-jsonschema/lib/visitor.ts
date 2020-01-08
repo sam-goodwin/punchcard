@@ -1,9 +1,9 @@
-import { BoolShape, ClassShape, Meta, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
+import { BinaryShape, BoolShape, ClassShape, DynamicShape, Meta, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { JsonSchema } from './json-schema';
 import { ObjectSchema } from './object';
-import { BoolSchema, NumberSchema, StringSchema, TimestampSchema } from './primitive';
+import { AnySchema, BinarySchema, BoolSchema, NumberSchema, StringSchema, TimestampSchema } from './primitive';
 
 import '@punchcard/shape-validation';
 
@@ -11,6 +11,18 @@ import '@punchcard/shape-validation';
  * Transforms a Shape into its corresponding JSON Schema representation.
  */
 export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
+  public dynamicShape(shape: DynamicShape<any>, context: undefined): AnySchema {
+    return {
+      type: {}
+    };
+  }
+  public binaryShape(shape: BinaryShape, context: undefined): BinarySchema<any> {
+    return {
+      ...(Meta.get(shape, ['minLength', 'maxLength']) || {}),
+      type: 'string',
+      format: 'base64'
+    } as any;
+  }
   public boolShape(shape: BoolShape): BoolSchema {
     return {
       type: 'boolean'

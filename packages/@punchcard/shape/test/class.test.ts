@@ -1,5 +1,5 @@
 import "jest";
-import { ClassShape, Member, number, NumberShape, Optional, string, StringShape } from "../lib";
+import { any, AnyShape, binary, ClassShape, Member, number, NumberShape, Optional, string, StringShape, unknown, UnknownShape } from "../lib";
 import { array, ArrayShape, map, MapShape, set, SetShape } from "../lib/collection";
 
 // tslint:disable: member-access
@@ -9,6 +9,9 @@ class Nested {
 }
 
 class MyType {
+  anyType = any;
+  unknownType = unknown;
+  binaryType = binary;
   id = string;
   count = number
     .apply(Optional());
@@ -32,6 +35,14 @@ it('should cache derived shapes', () => {
 });
 
 it('should parse members', () => {
+  expect(MyTypeShape.Members.anyType).toEqual(new Member(
+    'anyType', new AnyShape(), {}
+  ));
+
+  expect(MyTypeShape.Members.unknownType).toEqual(new Member(
+    'unknownType', new UnknownShape(), {}
+  ));
+
   expect(MyTypeShape.Members.id).toEqual(new Member(
     'id', new StringShape(), {}
   ));

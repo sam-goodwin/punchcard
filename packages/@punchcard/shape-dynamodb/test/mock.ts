@@ -1,4 +1,4 @@
-import { number, Optional, string } from '@punchcard/shape';
+import { any, binary, number, Optional, string, unknown } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import '../lib';
@@ -27,4 +27,9 @@ export class MyType {
   numberSet = set(number);
   map = map(string);
   complexMap = map(Nested);
+
+  binaryField = binary;
+  binarySet = set(binary);
+  anyField = any;
+  unknownField = unknown;
 }

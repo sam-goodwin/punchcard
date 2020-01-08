@@ -1,7 +1,7 @@
 import { ClassShape, ClassType, Member, Visitor } from '@punchcard/shape';
 import { Runtime } from '@punchcard/shape-runtime';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { bool, BoolShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { BinaryShape, bool, BoolShape, DynamicShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
@@ -36,6 +36,12 @@ export namespace DSL {
   }
 
   export const DslVisitor: Visitor<Node, ExpressionNode<any>> = {
+    dynamicShape: (shape: DynamicShape<any>, expression: ExpressionNode<any>): Dynamic<any> => {
+      return new Dynamic(shape, expression);
+    },
+    binaryShape: (shape: BinaryShape, expression: ExpressionNode<any>): Binary => {
+      return new Binary(shape, expression);
+    },
     arrayShape: (shape: ArrayShape<any>, expression: ExpressionNode<any>): List<any> => {
       return new Proxy(new List(shape, expression), {
         get: (target, prop) => {
@@ -95,6 +101,7 @@ export namespace DSL {
   export const SubNodeType = Symbol.for('@punchcard/shape-dynamodb.DSL.SubNodeType');
   export const DataType = Symbol.for('@punchcard/shape-dynamodb.DSL.DataType');
   export const InstanceExpression = Symbol.for('@punchcard/shape-dynamodb.DSL.InstanceExpression');
+  export const Synthesize = Symbol.for('@punchcard/shape-dynamodb.DSL.Synthesize');
 
   export abstract class Node<T extends string = string> {
     public readonly [NodeType]: T;
@@ -102,7 +109,7 @@ export namespace DSL {
       this[NodeType] = nodeType;
     }
 
-    public abstract synthesize(writer: Writer): void;
+    public abstract [Synthesize](writer: Writer): void;
   }
 
   export abstract class StatementNode extends Node<'statement'> {
@@ -129,7 +136,7 @@ export namespace DSL {
       super(string);
     }
 
-    public synthesize(writer: Writer): void {
+    public [Synthesize](writer: Writer): void {
       writer.writeName(this.value);
     }
   }
@@ -141,7 +148,7 @@ export namespace DSL {
       super(type);
     }
 
-    public synthesize(writer: Writer): void {
+    public [Synthesize](writer: Writer): void {
       writer.writeValue(this.value as AWS.DynamoDB.AttributeValue);
     }
   }
@@ -153,7 +160,7 @@ export namespace DSL {
       super(type);
     }
 
-    public synthesize(writer: Writer): void {
+    public [Synthesize](writer: Writer): void {
       writer.writeName(this.name);
     }
   }
@@ -168,12 +175,12 @@ export namespace DSL {
       super(returnType);
     }
 
-    public synthesize(writer: Writer): void {
+    public [Synthesize](writer: Writer): void {
       writer.writeToken(this.name);
       writer.writeToken('(');
       if (this.parameters.length > 0) {
         this.parameters.forEach(p => {
-          p.synthesize(writer);
+          p[Synthesize](writer);
           writer.writeToken(',');
         });
         writer.pop();
@@ -191,8 +198,8 @@ export namespace DSL {
       this[InstanceExpression] = instanceExpression;
     }
 
-    public synthesize(writer: Writer): void {
-      this[InstanceExpression].synthesize(writer);
+    public [Synthesize](writer: Writer): void {
+      this[InstanceExpression][Synthesize](writer);
     }
 
     public equals(other: Expression<T>): Bool {
@@ -215,11 +222,11 @@ export namespace DSL {
         super();
       }
 
-      public synthesize(writer: Writer): void {
+      public [Synthesize](writer: Writer): void {
         writer.writeToken('SET ');
-        this.instance.synthesize(writer);
+        this.instance[Synthesize](writer);
         writer.writeToken('=');
-        this.value.synthesize(writer);
+        this.value[Synthesize](writer);
       }
     }
     export abstract class Comparison<T extends Shape, U extends Shape> extends ExpressionNode<BoolShape> {
@@ -228,10 +235,10 @@ export namespace DSL {
         super(bool);
       }
 
-      public synthesize(writer: Writer): void {
-        this.left.synthesize(writer);
+      public [Synthesize](writer: Writer): void {
+        this.left[Synthesize](writer);
         writer.writeToken(this.operator);
-        this.right.synthesize(writer);
+        this.right[Synthesize](writer);
       }
     }
     export class Equals<T extends Shape> extends Object.Comparison<T, T> {
@@ -274,10 +281,10 @@ export namespace DSL {
         super(bool);
       }
 
-      public synthesize(writer: Writer): void {
+      public [Synthesize](writer: Writer): void {
         writer.writeToken('(');
         for (const op of this.operands) {
-          op.synthesize(writer);
+          op[Synthesize](writer);
           writer.writeToken(` ${this.operator} `);
         }
         writer.pop();
@@ -300,10 +307,10 @@ export namespace DSL {
         super(bool);
       }
 
-      public synthesize(writer: Writer): void {
+      public [Synthesize](writer: Writer): void {
         writer.writeToken('NOT');
         writer.writeToken('(');
-        this.operand.synthesize(writer);
+        this.operand[Synthesize](writer);
         writer.writeToken(')');
       }
     }
@@ -362,13 +369,13 @@ export namespace DSL {
         super(bool);
       }
 
-      public synthesize(writer: Writer): void {
-        this.lhs.synthesize(writer);
+      public [Synthesize](writer: Writer): void {
+        this.lhs[Synthesize](writer);
         writer.writeToken('BEGTWEEN');
         writer.writeToken('(');
-        this.lowerBound.synthesize(writer);
+        this.lowerBound[Synthesize](writer);
         writer.writeToken(',');
-        this.upperBound.synthesize(writer);
+        this.upperBound[Synthesize](writer);
         writer.writeToken(')');
       }
     }
@@ -385,8 +392,8 @@ export namespace DSL {
       super();
     }
 
-    public synthesize(writer: Writer): void {
-      this.lhs.synthesize(writer);
+    public [Synthesize](writer: Writer): void {
+      this.lhs[Synthesize](writer);
     }
   }
 
@@ -397,15 +404,15 @@ export namespace DSL {
       super(shape);
     }
 
-    public synthesize(writer: Writer): void {
-      this.computation.synthesize(writer);
+    public [Synthesize](writer: Writer): void {
+      this.computation[Synthesize](writer);
     }
   }
 
   abstract class Action<T extends Shape> extends StatementNode {
     public abstract readonly actionName: string;
 
-    public synthesize(writer: Writer): void {
+    public [Synthesize](writer: Writer): void {
       writer.writeToken(`${this.actionName} `);
       this.synthesizeAction(writer);
     }
@@ -423,9 +430,9 @@ export namespace DSL {
     }
 
     protected synthesizeAction(writer: Writer): void {
-      this.path.synthesize(writer);
-      writer.writeToken(' = ');
-      this.value.synthesize(writer);
+      this.path[Synthesize](writer);
+      writer.writeToken('=');
+      this.value[Synthesize](writer);
     }
   }
 
@@ -450,6 +457,10 @@ export namespace DSL {
     export class Minus extends Computation<NumberShape> {
       public operator: '-' = '-';
     }
+  }
+
+  export class Binary extends Object<BinaryShape> {
+
   }
 
   export class String extends Ord<StringShape> {
@@ -499,10 +510,10 @@ export namespace DSL {
         super(list[DataType].Items);
       }
 
-      public synthesize(writer: Writer): void {
-        this.list.synthesize(writer);
+      public [Synthesize](writer: Writer): void {
+        this.list[Synthesize](writer);
         writer.writeToken('[');
-        this.index.synthesize(writer);
+        this.index[Synthesize](writer);
         writer.writeToken(']');
       }
     }
@@ -540,10 +551,10 @@ export namespace DSL {
         super(map[DataType].Items);
       }
 
-      public synthesize(writer: Writer): void {
-        this.map.synthesize(writer);
+      public [Synthesize](writer: Writer): void {
+        this.map[Synthesize](writer);
         writer.writeToken('.');
-        this.key.synthesize(writer);
+        this.key[Synthesize](writer);
       }
     }
   }
@@ -570,11 +581,25 @@ export namespace DSL {
         super(type);
       }
 
-      public synthesize(writer: Writer): void {
-        this.struct.synthesize(writer);
+      public [Synthesize](writer: Writer): void {
+        this.struct[Synthesize](writer);
         writer.writeToken('.');
         writer.writeName(this.name);
       }
+    }
+  }
+
+  export class Dynamic<T extends DynamicShape<any | unknown>> extends Object<T> {
+    public as<S extends Shape>(shape: S): DSL.Of<S> {
+      return shape.visit(DslVisitor as any, this);
+    }
+
+    public equals(args: never): never {
+      throw new Error('equals is not supported on a dynamic type, you must first cast with `as(shape)`');
+    }
+
+    public set(args: never): never {
+      throw new Error('equals is not supported on a dynamic type, you must first cast with `as(shape)`');
     }
   }
 }

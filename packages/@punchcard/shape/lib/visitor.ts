@@ -1,9 +1,11 @@
 import { ClassShape } from "./class";
 import { ArrayShape, MapShape, SetShape } from "./collection";
-import { BoolShape, NumberShape, StringShape, TimestampShape } from "./primitive";
+import { BinaryShape, BoolShape, DynamicShape, NumberShape, StringShape, TimestampShape } from "./primitive";
 
 export interface Visitor<T = unknown, C = undefined> {
+  dynamicShape(shape: DynamicShape<any>, context: C): T;
   arrayShape(shape: ArrayShape<any>, context: C): T;
+  binaryShape(shape: BinaryShape, context: C): T;
   boolShape(shape: BoolShape, context: C): T;
   classShape(shape: ClassShape<any>, context: C): T;
   mapShape(shape: MapShape<any>, context: C): T;
