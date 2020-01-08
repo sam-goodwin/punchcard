@@ -1,5 +1,5 @@
 import "jest";
-import { ClassShape, Member, number, NumberShape, string, StringShape } from "../lib";
+import { ClassShape, Member, number, NumberShape, Optional, string, StringShape } from "../lib";
 import { array, ArrayShape, map, MapShape, set, SetShape } from "../lib/collection";
 
 // tslint:disable: member-access
@@ -10,7 +10,8 @@ class Nested {
 
 class MyType {
   id = string;
-  count = number;
+  count = number
+    .apply(Optional());
   nested = Nested;
   array = array(string);
   complexArray = array(Nested);
@@ -36,7 +37,9 @@ it('should parse members', () => {
   ));
 
   expect(MyTypeShape.Members.count).toEqual(new Member(
-    'count', new NumberShape(), {}
+    'count', new NumberShape(), {
+      nullable: true
+    }
   ));
 
   const nestedShape = new ClassShape(Nested,  {

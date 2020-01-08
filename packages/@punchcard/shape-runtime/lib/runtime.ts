@@ -1,6 +1,8 @@
 
+import { BoolShape, NumberShape, StringShape } from '@punchcard/shape';
 import { ClassType } from '@punchcard/shape/lib/class';
 import { Shape } from '@punchcard/shape/lib/shape';
+import { HashSet } from './set';
 
 export namespace Runtime {
   export type Tag = typeof Tag;
@@ -18,6 +20,9 @@ declare module '@punchcard/shape/lib/shape' {
 }
 
 declare module '@punchcard/shape/lib/primitive' {
+  export interface BoolShape {
+    [Runtime.Tag]: boolean;
+  }
   export interface StringShape {
     [Runtime.Tag]: string;
   }
@@ -34,10 +39,12 @@ declare module '@punchcard/shape/lib/collection' {
     [Runtime.Tag]: Array<T[Runtime.Tag]>;
   }
   export interface SetShape<T extends Shape> {
-    [Runtime.Tag]: Set<T[Runtime.Tag]>;
+    [Runtime.Tag]: T extends StringShape | NumberShape | BoolShape ? Set<T[Runtime.Tag]> : HashSet<T>;
   }
   export interface MapShape<T extends Shape> {
-    [Runtime.Tag]: { [key: string]: T[Runtime.Tag] };
+    [Runtime.Tag]: {
+      [key: string]: T[Runtime.Tag];
+    };
   }
 }
 

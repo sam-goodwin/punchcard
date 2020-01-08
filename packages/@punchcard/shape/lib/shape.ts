@@ -24,3 +24,11 @@ export abstract class Shape {
 export namespace Shape {
   export type Of<T extends Shape | ClassType> = T extends ClassType<any> ? ClassShape<T> : T;
 }
+
+export function Optional(): Trait<any, { nullable: true }> {
+  return {
+    [Trait.Data]: {
+      nullable: true
+    }
+  };
+}

@@ -1,7 +1,6 @@
 import 'jest';
 
-import { number, string } from '@punchcard/shape';
-import { array, map, set } from '@punchcard/shape/lib/collection';
+import { array, bool, map, number, Optional, set, string } from '@punchcard/shape';
 
 import { Runtime } from '../lib';
 
@@ -14,8 +13,11 @@ class MyType {
   /**
    * Field documentation.
    */
-  id = string;
+  id = string
+    .apply(Optional());
+
   count = number;
+  bool = bool;
 
   nested = Nested;
   array = array(string);
@@ -32,8 +34,9 @@ it('should derive runtime type recursively', () => {
   // compile-time unit test
   const actual: Runtime.OfType<typeof MyType> = null as any;
   const expected: {
-    id: string;
+    id?: string;
     count: number;
+    bool: boolean;
 
     nested: {
       a: string;

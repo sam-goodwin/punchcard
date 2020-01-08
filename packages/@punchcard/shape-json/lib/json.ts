@@ -1,5 +1,5 @@
-import { ClassType, Visitor as ShapeVisitor } from '@punchcard/shape';
-import { Runtime, ShapeSet } from '@punchcard/shape-runtime';
+import { ClassType, OptionalKeys, RequiredKeys, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { HashSet, Runtime } from '@punchcard/shape-runtime';
 import { ClassShape } from '@punchcard/shape/lib/class';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BoolShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
@@ -12,7 +12,7 @@ export namespace Json {
   export type Of<T extends ClassType | Shape> =  Shape.Of<T> extends { [Tag]: infer J } ? J : never;
 
   const cache = new WeakMap();
-  export function codec<T extends ClassType | Shape>(type: T, noCache: boolean = false): Codec<Shape.Of<T>> {
+  export function mapper<T extends ClassType | Shape>(type: T, noCache: boolean = false): Mapper<Shape.Of<T>> {
     if (noCache) {
       return make();
     }
@@ -26,20 +26,20 @@ export namespace Json {
     }
   }
 
-  export interface Codec<T extends Shape> {
+  export interface Mapper<T extends Shape> {
     write(value: Runtime.Of<T>): Json.Of<T>;
     read(value: Json.Of<T>): Runtime.Of<T>;
   }
 
-  export class SerializerVisitor implements ShapeVisitor<Codec<any>> {
-    public arrayShape(shape: ArrayShape<any>): Codec<any> {
-      const item = codec(shape.Items);
+  export class SerializerVisitor implements ShapeVisitor<Mapper<any>> {
+    public arrayShape(shape: ArrayShape<any>): Mapper<any> {
+      const item = Json.mapper(shape.Items);
       return {
         write: (arr: any[]) => arr.map(i => item.write(i)),
         read: (arr: any[]) => arr.map(i => item.read(i)),
       };
     }
-    public boolShape(shape: BoolShape): Codec<any> {
+    public boolShape(shape: BoolShape): Mapper<any> {
       return {
         read: (b: any) => {
           if (typeof b !== 'boolean') {
@@ -50,10 +50,10 @@ export namespace Json {
         write: (b: boolean) => b
       };
     }
-    public classShape(shape: ClassShape<any>): Codec<any> {
+    public classShape(shape: ClassShape<any>): Mapper<any> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
-          [name]: codec(member.Type)
+          [name]: mapper(member.Type)
         }))
         .reduce((a, b) => ({...a, ...b}));
 
@@ -79,10 +79,32 @@ export namespace Json {
         }
       };
     }
-    public mapShape(shape: MapShape<any>): Codec<any> {
-      throw new Error("Method not implemented.");
+    public mapShape(shape: MapShape<any>): Mapper<any> {
+      const valueMapper = mapper(shape.Items);
+
+      return {
+        read: (map: any) => {
+          if (typeof valueMapper !== 'object') {
+            throw new Error(`expected object but got ${typeof valueMapper}`);
+          }
+          const res: any = {};
+          // TODO: optionals
+          for (const [name, value] of Object.entries(map)) {
+            res[name] = valueMapper.read(map[name]);
+          }
+          return res;
+        },
+        write: (map: any) => {
+          const res: any = {};
+          // TODO: optionals
+          for (const [name, codec] of Object.entries(map)) {
+            res[name] = valueMapper.write(map[name]);
+          }
+          return res;
+        }
+      } as any;
     }
-    public numberShape(shape: NumberShape): Codec<any> {
+    public numberShape(shape: NumberShape): Mapper<any> {
       return {
         read: (n: any) => {
           if (typeof n !== 'number') {
@@ -93,18 +115,21 @@ export namespace Json {
         write: (n: number) => n
       };
     }
-    public setShape(shape: SetShape<any>): Codec<any> {
-      const item = codec(shape.Items);
+    public setShape(shape: SetShape<any>): Mapper<any> {
+      const item = mapper(shape.Items);
       return {
         write: (arr: Set<any>) => Array.from(arr).map(i => item.write(i)),
         read: (arr: any[]) => {
-          const s = ShapeSet.forType(shape);
-          arr.forEach(i => s.add(i));
-          return s;
+          const set =
+            shape.Items.Kind === 'stringShape' ||
+            shape.Items.Kind === 'numberShape' ||
+            shape.Items.Kind === 'boolShape' ? new Set() : new HashSet(shape.Items);
+          arr.forEach(i => set.add(i));
+          return set;
         }
       };
     }
-    public stringShape(shape: StringShape): Codec<any> {
+    public stringShape(shape: StringShape): Mapper<any> {
       return {
         read: (s: any) => {
           if (typeof s !== 'string') {
@@ -115,7 +140,7 @@ export namespace Json {
         write: (s: string) => s
       };
     }
-    public timestampShape(shape: TimestampShape): Codec<any> {
+    public timestampShape(shape: TimestampShape): Mapper<any> {
       return {
         read: (d: any) => {
           if (typeof d !== 'string') {
@@ -136,12 +161,15 @@ declare module '@punchcard/shape/lib/shape' {
 }
 declare module '@punchcard/shape/lib/primitive' {
   export interface BoolShape {
-    [Json.Tag]: number;
+    [Json.Tag]: boolean;
   }
   export interface NumberShape {
     [Json.Tag]: number;
   }
   export interface StringShape {
+    [Json.Tag]: string;
+  }
+  export interface TimestampShape {
     [Json.Tag]: string;
   }
 }
@@ -151,7 +179,7 @@ declare module '@punchcard/shape/lib/collection' {
     [Json.Tag]: Array<Json.Of<T>>;
   }
   export interface SetShape<T extends Shape> {
-    [Json.Tag]: Set<Json.Of<T>>
+    [Json.Tag]: Array<Json.Of<T>>
   }
   export interface MapShape<T extends Shape> {
     [Json.Tag]: {
@@ -163,7 +191,9 @@ declare module '@punchcard/shape/lib/collection' {
 declare module '@punchcard/shape/lib/class' {
   export interface ClassShape<C extends ClassType> {
     [Json.Tag]: {
-      [member in keyof this['Members']]: Json.Of<this['Members'][member]['Type']>;
+      [member in RequiredKeys<this['Members']>]: this['Members'][member]['Type'][Json.Tag];
+    } & {
+      [member in OptionalKeys<this['Members']>]+?: this['Members'][member]['Type'][Json.Tag];
     };
   }
 }

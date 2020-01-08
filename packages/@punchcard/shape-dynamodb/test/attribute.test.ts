@@ -10,7 +10,7 @@ it('should map Shape AST to AttributeValue AST', () => {
   const expected: {
     M: {
       id: AttributeValue.StringValue,
-      count: AttributeValue.NumberValue,
+      count?: AttributeValue.NumberValue,
 
       nested: {
         M: {
@@ -38,7 +38,7 @@ it('should map Shape AST to AttributeValue AST', () => {
 
       map: {
         M: {
-          [key: string]: AttributeValue.StringValue;
+          [key: string]: AttributeValue.StringValue | undefined;
         }
       };
       complexMap: {
@@ -47,7 +47,7 @@ it('should map Shape AST to AttributeValue AST', () => {
             M: {
               a: AttributeValue.StringValue
             }
-          }
+          } | undefined;
         }
       };
     }

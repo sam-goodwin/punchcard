@@ -1,6 +1,6 @@
 import { ShapeGuards } from './guards';
 import { Member } from './member';
-import { getClassMetadata, getPropertyMetadata, Metadata } from './metadata';
+import { Decorated, getClassMetadata, getPropertyMetadata, Meta, Metadata } from './metadata';
 import { Shape } from './shape';
 
 // augment shape to avoid circular dependency
@@ -46,9 +46,12 @@ export class ClassShape<C extends ClassType> extends Shape {
         if (ShapeGuards.isShape(property)) {
           shape = property;
         } else {
-          shape = ClassShape.of(property as any) as any;
+          shape = Shape.of(property as any) as any;
         }
-        members[name] = new Member(name, shape!, getPropertyMetadata(clazz.prototype, name));
+        members[name] = new Member(name, shape, Meta.mergeMetadataValue(
+          getPropertyMetadata(clazz.prototype, name),
+          Meta.get(shape) || {} // favor type-safe decorators
+        ));
       }
       return new ClassShape(clazz, members, getClassMetadata(clazz));
     }

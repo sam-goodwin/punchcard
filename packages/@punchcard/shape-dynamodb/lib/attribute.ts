@@ -1,6 +1,6 @@
 import { Shape } from '@punchcard/shape';
 import { ClassShape, ClassType } from '@punchcard/shape/lib/class';
-import { AssertIsMember } from '@punchcard/shape/lib/util';
+import { OptionalKeys, RequiredKeys } from '@punchcard/shape/lib/util';
 
 declare module '@punchcard/shape/lib/shape' {
   export interface Shape {
@@ -20,10 +20,11 @@ export namespace AttributeValue {
     | AttributeValue.Bool
     | AttributeValue.List<any>
     | AttributeValue.Map<any>
-    | AttributeValue.NumberValue
     | AttributeValue.NumberSet
-    | AttributeValue.StringValue
+    | AttributeValue.NumberValue
     | AttributeValue.StringSet
+    | AttributeValue.StringValue
+    | AttributeValue.Struct<any>
     ;
 
   export type Of<T> = T extends { [Tag]: infer T2 } ? T2 : never;
@@ -43,12 +44,14 @@ export namespace AttributeValue {
   }
   export interface Map<T extends Shape> {
     M: {
-      [key: string]: Of<T>;
+      [key: string]: Of<T> | undefined;
     };
   }
   export interface Struct<T extends ClassShape<any>> {
     M: {
-      [member in keyof T['Members']]: AssertIsMember<T['Members'][member]>['Type'][AttributeValue.Tag]
+      [member in RequiredKeys<T['Members']>]: T['Members'][member]['Type'][AttributeValue.Tag];
+    } & {
+      [member in OptionalKeys<T['Members']>]+?: T['Members'][member]['Type'][AttributeValue.Tag];
     };
   }
   export interface NumberValue {

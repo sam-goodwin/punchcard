@@ -63,11 +63,21 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
   }
 
   public classShape(shape: ClassShape<any>): ObjectSchema<any> {
-    return {
+    const required = Object.values(shape.Members)
+      .map((value) => {
+        return value.Metadata.nullable === true ? [] : [value.Name];
+      })
+      .reduce((a, b) => a.concat(b), []);
+
+    const schema: any = {
       type: 'object',
       properties: Object.entries(shape.Members)
         .map(([name, member]) => ({ [name]: (member as any).Type.visit(this) }))
-        .reduce((a, b) => ({...a, ...b}))
+        .reduce((a, b) => ({...a, ...b}), {})
     };
+    if (required.length > 0) {
+      schema.required = required;
+    }
+    return schema;
   }
 }

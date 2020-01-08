@@ -1,4 +1,4 @@
-import { number, string } from '@punchcard/shape';
+import { number, Optional, string } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import '../lib';
@@ -16,7 +16,9 @@ export class MyType {
    * Field documentation.
    */
   id = string;
-  count = number;
+
+  count = number
+    .apply(Optional());
 
   nested = Nested;
   array = array(string);

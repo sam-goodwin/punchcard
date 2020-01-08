@@ -19,4 +19,4 @@ export class TimestampShape extends Shape {
 export const bool = new BoolShape();
 export const string = new StringShape();
 export const number = new NumberShape();
-export const timestamop = new TimestampShape();
+export const timestamp = new TimestampShape();

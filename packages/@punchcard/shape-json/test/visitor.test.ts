@@ -1,13 +1,14 @@
 import 'jest';
 
-import { number, Shape, string } from '@punchcard/shape';
+import { number, Optional, Shape, string } from '@punchcard/shape';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern, Validator } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema, NumberSchema } from '../lib';
 
 // tslint:disable: member-access
 class Nested {
-  a = string;
+  a = string
+    .apply(Optional());
 }
 
 class MyType {
@@ -32,7 +33,8 @@ class MyType {
   set = set(string);
   complexSet = set(Nested);
   map = map(string);
-  complexMap = map(Nested);
+  complexMap = map(Nested)
+    .apply(Optional());
 }
 
 const type = Shape.of(MyType);
@@ -41,7 +43,6 @@ const type = Shape.of(MyType);
 interface MyTypeJsonSchema extends JsonSchema.OfType<MyType> {}
 
 const schema: MyTypeJsonSchema = JsonSchema.of(MyType);
-
 function requireEven(schema: NumberSchema<{multipleOf: 2}>) {
   // no-op
 }
@@ -51,6 +52,16 @@ requireEven(schema.properties.count);
 it('should render JSON schema', () => {
   expect(schema).toEqual({
     type: 'object',
+    required: [
+      'id',
+      'count',
+      'nested',
+      'array',
+      'complexArray',
+      'set',
+      'complexSet',
+      'map'
+    ],
     properties: {
       id: {
         type: 'string',
@@ -139,6 +150,7 @@ it('should render JSON schema', () => {
   // how fking awesome is it that the type-signature is the same as the value ^^
   const expected: {
     type: 'object',
+    required: string[],
     properties: {
       id: {
         type: 'string',

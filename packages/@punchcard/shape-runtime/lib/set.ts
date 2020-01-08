@@ -3,72 +3,8 @@ import { Equals } from './equals';
 import { HashCode } from './hash-code';
 import { Runtime } from './runtime';
 
-export interface ShapeSet<T extends Shape> extends Set<Runtime.Of<T>> {
-  readonly itemType: T;
-}
-export namespace ShapeSet {
-  const primitives = ['boolShape', 'numberShape', 'stringShape'];
-  export const forType = <T extends Shape>(type: T): ShapeSet<T> => {
-    if (primitives.find(v => v === type.Kind)) {
-      return new PrimitiveSet(type);
-    } else {
-      return new GeneralSet(type);
-    }
-  };
-}
-
-class PrimitiveSet<T extends Shape> implements Set<Runtime.Of<T>> {
-  public readonly [Symbol.toStringTag]: 'Set' = 'Set';
-  public size: number = 0;
-
-  private readonly delegate: Set<Runtime.Of<T>> = new Set();
-
-  constructor(public readonly itemType: T) {}
-
-  public add(value: Runtime.Of<T>): this {
-    this.delegate.add(value);
-    this.size = this.delegate.size;
-    return this;
-  }
-
-  public has(value: Runtime.Of<T>): boolean {
-    return this.delegate.has(value);
-  }
-
-  public delete(value: Runtime.Of<T>): boolean {
-    const res = this.delegate.delete(value);
-    this.size = this.delegate.size;
-    return res;
-  }
-
-  public clear(): void {
-    this.delegate.clear();
-    this.size = 0;
-  }
-
-  public [Symbol.iterator](): IterableIterator<Runtime.Of<T>> {
-    return this.delegate[Symbol.iterator]();
-  }
-
-  public entries(): IterableIterator<[Runtime.Of<T>, Runtime.Of<T>]> {
-    return this.delegate.entries();
-  }
-
-  public keys(): IterableIterator<Runtime.Of<T>> {
-    return this.delegate.keys();
-  }
-
-  public values(): IterableIterator<Runtime.Of<T>> {
-    return this.delegate.values();
-  }
-
-  public forEach(callbackfn: (value: Runtime.Of<T>, value2: Runtime.Of<T>, set: Set<Runtime.Of<T>>) => void, thisArg?: any): void {
-    this.delegate.forEach(callbackfn, thisArg);
-  }
-}
-
-class GeneralSet<T extends Shape> implements Set<Runtime.Of<T>> {
-  public readonly [Symbol.toStringTag]: 'Set' = 'Set';
+export class HashSet<T extends Shape> {
+  public readonly [Symbol.toStringTag]: 'HashSet' = 'HashSet';
 
   public size: number = 0;
 
@@ -79,6 +15,7 @@ class GeneralSet<T extends Shape> implements Set<Runtime.Of<T>> {
 
   constructor(public readonly itemType: T) {
     this.itemEquals = Equals.of(itemType) as Equals<T>;
+    this.itemHashCode = HashCode.of(itemType) as HashCode<T>;
   }
 
   public add(value: Runtime.Of<T>): this {

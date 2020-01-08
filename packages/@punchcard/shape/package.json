@@ -41,7 +41,8 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "reflect-metadata": "^0.1.13"
+    "reflect-metadata": "^0.1.13",
+    "typelevel-ts": "^0.4.0"
   },
   "jest": {
     "testMatch": [

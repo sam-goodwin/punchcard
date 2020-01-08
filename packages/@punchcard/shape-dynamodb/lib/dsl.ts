@@ -513,7 +513,7 @@ export namespace DSL {
 
   export class Struct<T extends ClassShape<any>> extends Object<T> {
     public readonly fields: {
-      [fieldName in keyof T['Members']]: Of<AssertIsMember<T['Members'][fieldName]>['Type']>
+      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]['Type']>;
     };
 
     constructor(type: T, expression: ExpressionNode<T>) {

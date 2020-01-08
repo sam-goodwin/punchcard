@@ -6,6 +6,7 @@ export interface ObjectSchemaProperties {
 export interface ObjectSchema<P extends ObjectSchemaProperties> {
   type: 'object';
   properties: P;
+  required: string[];
 }
 
 declare module '@punchcard/shape/lib/class' {

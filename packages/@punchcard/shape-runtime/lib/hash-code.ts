@@ -54,18 +54,17 @@ export namespace HashCode {
         .map(([name, member]) => ({
           [name]: of(member.Type)
         }))
-        .reduce((a, b) => ({...a, ...b}));
+        .reduce((a, b, {}) => ({...a, ...b}));
 
       return ((value: any) => {
         const prime = 31;
         let result = 1;
         Object.keys(value).forEach(key => {
           result += prime * result + hashCode(key);
-          result += prime * result + (fields as any)[key].hashCode((value as any)[key]);
+          result += prime * result + (fields[key])((value as any)[key]);
         });
         return result;
       }) as any;
-
     }
     public mapShape(shape: MapShape<any>): HashCode<any> {
       const hashValue = of(shape.Items);

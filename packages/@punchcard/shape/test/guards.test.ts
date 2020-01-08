@@ -1,5 +1,5 @@
 import 'jest';
-import { number, Shape, string, timestamop } from '../lib';
+import { number, Shape, string, timestamp } from '../lib';
 import { array, map, set } from '../lib/collection';
 import { ShapeGuards } from '../lib/guards';
 
@@ -14,7 +14,7 @@ test('isNumberShape', () => {
 });
 
 test('isTimestampShape', () => {
-  expect(ShapeGuards.isTimestampShape(timestamop)).toBe(true);
+  expect(ShapeGuards.isTimestampShape(timestamp)).toBe(true);
   expect(ShapeGuards.isTimestampShape(string)).toBe(false);
 });
 

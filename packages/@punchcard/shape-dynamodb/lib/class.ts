@@ -1,6 +1,7 @@
 import { AttributeValue } from './attribute';
 import { DSL } from './dsl';
 
+import './attribute';
 import './collection';
 import './primitive';
 
