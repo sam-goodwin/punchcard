@@ -1,6 +1,6 @@
 {
-  "name": "@punchcard/shape-json",
-  "description": "Adds support for Json Serialization and Deserialization for Punchcard Shapes",
+  "name": "@punchcard/shape-jsonpath",
+  "description": "Type-Safe Json Path generation for Punchcard Shapes",
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -43,12 +43,14 @@
   "dependencies": {
     "@punchcard/shape": "0.1.0",
     "@punchcard/shape-runtime": "0.1.0",
-    "@punchcard/shape-validation": "0.1.0"
+    "@punchcard/shape-validation": "0.1.0",
+    "@punchcard/shape-json": "0.1.0"
   },
   "peerDependencies": {
     "@punchcard/shape": "0.1.0",
     "@punchcard/shape-runtime": "0.1.0",
-    "@punchcard/shape-validation": "0.1.0"
+    "@punchcard/shape-validation": "0.1.0",
+    "@punchcard/shape-json": "0.1.0"
   },
   "jest": {
     "testMatch": [

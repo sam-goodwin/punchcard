@@ -1,6 +1,6 @@
 {
-  "name": "@punchcard/shape-json",
-  "description": "Adds support for Json Serialization and Deserialization for Punchcard Shapes",
+  "name": "@punchcard/shape-jsonschema",
+  "description": "Adds support for JSON Schema generation adn validation to Punchcard Shapes",
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -41,11 +41,6 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "@punchcard/shape": "0.1.0",
-    "@punchcard/shape-runtime": "0.1.0",
-    "@punchcard/shape-validation": "0.1.0"
-  },
-  "peerDependencies": {
     "@punchcard/shape": "0.1.0",
     "@punchcard/shape-runtime": "0.1.0",
     "@punchcard/shape-validation": "0.1.0"
