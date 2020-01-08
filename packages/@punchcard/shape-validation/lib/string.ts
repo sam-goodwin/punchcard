@@ -3,33 +3,40 @@ import { Trait } from "@punchcard/shape/lib/metadata";
 import { StringShape } from "@punchcard/shape/lib/primitive";
 import { ValidationMetadata } from "./validator";
 
-export interface MaxLength<L extends number> extends Trait<any, { maxLength: L} & ValidationMetadata<Shape>> {}
-export interface MinLength<L extends number> extends Trait<any, { minLength: L} & ValidationMetadata<Shape>> {}
+export interface MaxLength<L extends number, E extends boolean> extends Trait<any, { maxLength: L, exclusiveMaximum: E; } & ValidationMetadata<Shape>> {}
+export interface MinLength<L extends number, E extends boolean> extends Trait<any, { minLength: L, exclusiveMinimum: E; } & ValidationMetadata<Shape>> {}
 export interface Pattern<P extends string> extends Trait<StringShape, { pattern: P } & ValidationMetadata<StringShape>> {}
 
-function validateLength(s: string | Buffer, length: number, operation: '<' | '>') {
-  const isValid = operation === '>' ? s.length > length : s.length < length;
+function validateLength(s: string | Buffer, length: number, operation: '<' | '<=' | '>' | '>=') {
+  const isValid =
+     operation === '>' ? s.length > length :
+     operation === '>=' ? s.length >= length :
+     operation === '<' ? s.length < length :
+     s.length <= length;
+
   if (!isValid) {
     return [new Error(`expected string with length ${operation} ${length}, but received: ${s}`)];
   }
-  return undefined;
+  return [];
 }
 
-export function MaxLength<L extends number>(length: L): MaxLength<L> {
+export function MaxLength<L extends number, E extends boolean = false>(length: L, exclusive: E = false as any): MaxLength<L, E> {
   return {
     [Trait.Data]: {
       maxLength: length,
-      validator: [(s: string | Buffer) => validateLength(s, length, '>')]
-    }
+      exclusiveMaximum: exclusive === true,
+      validator: [(s: string | Buffer) => validateLength(s, length, exclusive ? '<' : '<=')]
+    } as any
   };
 }
 
-export function MinLength<L extends number>(length: L): MinLength<L> {
+export function MinLength<L extends number, E extends boolean = false>(length: L, exclusive: E = false as any): MinLength<L, E> {
   return {
     [Trait.Data]: {
       minLength: length,
-      validator: [(s: string | Buffer) => validateLength(s, length, '<')]
-    }
+      exclusiveMinimum: exclusive === true,
+      validator: [(s: string | Buffer) => validateLength(s, length, exclusive ? '>' : '>=')]
+    } as any
   };
 }
 
@@ -42,7 +49,7 @@ export function Pattern<P extends string>(pattern: P): Pattern<P> {
         if (!s.match(regex)) {
           return [new Error(`expected string to match regex pattern: ${pattern}`)];
         }
-        return undefined;
+        return [];
       }]
     }
   };
