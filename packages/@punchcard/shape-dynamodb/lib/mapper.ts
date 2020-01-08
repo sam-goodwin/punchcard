@@ -1,5 +1,4 @@
 import { Runtime } from '@punchcard/shape-runtime';
-import { ShapeSet } from '@punchcard/shape-runtime';
 import { ClassType } from "@punchcard/shape/lib/class";
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
 import { Shape } from "@punchcard/shape/lib/shape";

@@ -1,7 +1,7 @@
 import 'jest';
 
 import { number, Optional, Shape, string } from '@punchcard/shape';
-import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern, Validator } from '@punchcard/shape-validation';
+import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema, NumberSchema } from '../lib';
 

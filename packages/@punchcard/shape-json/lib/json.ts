@@ -194,6 +194,7 @@ declare module '@punchcard/shape/lib/class' {
       [member in RequiredKeys<this['Members']>]: this['Members'][member]['Type'][Json.Tag];
     } & {
       [member in OptionalKeys<this['Members']>]+?: this['Members'][member]['Type'][Json.Tag];
-    };
+    }
+;
   }
 }

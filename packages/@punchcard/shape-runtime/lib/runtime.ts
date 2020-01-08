@@ -1,5 +1,5 @@
 
-import { BoolShape, NumberShape, StringShape } from '@punchcard/shape';
+import { BoolShape, NumberShape, OptionalKeys, RequiredKeys, StringShape } from '@punchcard/shape';
 import { ClassType } from '@punchcard/shape/lib/class';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { HashSet } from './set';
@@ -51,7 +51,9 @@ declare module '@punchcard/shape/lib/collection' {
 declare module '@punchcard/shape/lib/class' {
   export interface ClassShape<C extends ClassType> {
     [Runtime.Tag]: {
-      [member in keyof this['Members']]: Runtime.Of<this['Members'][member]['Type']>
-    }
+      [member in RequiredKeys<this['Members']>]: this['Members'][member]['Type'][Runtime.Tag];
+    } & {
+      [member in OptionalKeys<this['Members']>]+?: this['Members'][member]['Type'][Runtime.Tag];
+    };
   }
 }

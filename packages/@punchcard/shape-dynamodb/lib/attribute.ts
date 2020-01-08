@@ -1,6 +1,5 @@
-import { Shape } from '@punchcard/shape';
+import { OptionalKeys, RequiredKeys, Shape } from '@punchcard/shape';
 import { ClassShape, ClassType } from '@punchcard/shape/lib/class';
-import { OptionalKeys, RequiredKeys } from '@punchcard/shape/lib/util';
 
 declare module '@punchcard/shape/lib/shape' {
   export interface Shape {

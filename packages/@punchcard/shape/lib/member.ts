@@ -1,7 +1,7 @@
 import {  ClassShape, ClassType } from './class';
 import { Meta, Metadata } from './metadata';
 import { Shape } from './shape';
-import { AssertIsKey } from './util';
+import { AssertIsKey, OptionalKeys, RequiredKeys } from './util';
 
 const isMember = Symbol.for('@punchcard/shape.Member');
 

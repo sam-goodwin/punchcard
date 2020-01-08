@@ -222,11 +222,11 @@ export namespace DSL {
     }
 
     public and(...conditions: Array<Expression<BoolShape>>): Bool {
-      return new Bool(new Bool.And([this, ...conditions]));
+      return new Bool(new Bool.And([this, ...(conditions.map(c => resolveExpression(bool, c)))]));
     }
 
     public or(...conditions: Array<Expression<BoolShape>>): Bool {
-      return new Bool(new Bool.Or([this, ...conditions]));
+      return new Bool(new Bool.Or([this, ...(conditions.map(c => resolveExpression(bool, c)))]));
     }
 
     public not(): Bool {
