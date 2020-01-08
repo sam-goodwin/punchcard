@@ -19,8 +19,8 @@ export class Table<T extends ClassType, K extends Table.Key<InstanceType<T>>> {
 
   public readonly hashKeyMapper: Mapper<Table.HashKeyShape<T, K>>;
   public readonly sortKeyMapper: Mapper<Table.SortKeyShape<T, K>>;
-  public readonly keyWriter: (key: Table.KeyValue<T, K>) => any;
-  public readonly keyReader: (key: any) => Table.KeyValue<T, K>;
+  public readonly writeKey: (key: Table.KeyValue<T, K>) => any;
+  public readonly readKey: (key: AWS.DynamoDB.Key) => Table.KeyValue<T, K>;
 
   constructor(public readonly type: T, public readonly key: K, config: Table.Props)  {
     const shape = Shape.of(type);
@@ -28,13 +28,14 @@ export class Table<T extends ClassType, K extends Table.Key<InstanceType<T>>> {
     this.client = config.client || new AWS.DynamoDB();
     this.tableArn = config.tableArn;
     this.mapper = Mapper.of(type);
+
     if (typeof key === 'string') {
-      const hashKeyMapper = Mapper.of(type.prototype[key]);
-      this.keyWriter = k => ({
+      const hashKeyMapper = Mapper.of(shape.Members[key].Type);
+      this.writeKey = k => ({
         [key]: hashKeyMapper.write(k)
       });
-      this.keyReader = k => ({
-        [key]: hashKeyMapper.read(k)
+      this.readKey = (k: any) => ({
+        [key]: hashKeyMapper.read(k[key])
       }) as any;
     } else {
       const hk = (key as any)[0];
@@ -42,13 +43,13 @@ export class Table<T extends ClassType, K extends Table.Key<InstanceType<T>>> {
       const hashKeyMapper = Mapper.of(shape.Members[hk].Type);
       const sortKeyMapper = Mapper.of(shape.Members[sk].Type);
 
-      this.keyWriter = (k: any) => ({
+      this.writeKey = (k: any) => ({
         [hk]: hashKeyMapper.write(k[0]),
         [sk]: sortKeyMapper.write(k[1])
       });
-      this.keyReader = k => ({
-        [hk]: hashKeyMapper.read(k[0]),
-        [sk]: sortKeyMapper.read(k[1])
+      this.readKey = (k: AWS.DynamoDB.Key) => ({
+        [hk]: hashKeyMapper.read(k[hk]),
+        [sk]: sortKeyMapper.read(k[sk])
       }) as any;
     }
   }
@@ -56,7 +57,7 @@ export class Table<T extends ClassType, K extends Table.Key<InstanceType<T>>> {
   public async get(key: Table.KeyValue<T, K>): Promise<Runtime.OfType<T> | undefined> {
     const result = await this.client.getItem({
       TableName: this.tableArn,
-      Key: this.keyWriter(key)
+      Key: this.writeKey(key)
     }).promise();
 
     if (result.Item) {
@@ -87,7 +88,7 @@ export class Table<T extends ClassType, K extends Table.Key<InstanceType<T>>> {
   public async update(key: Table.KeyValue<T, K>, update: Table.Update<T>) {
     return await this.client.updateItem({
       TableName: this.tableArn,
-      Key: this.keyWriter(key),
+      Key: this.writeKey(key),
       ...(Update.compile(update(this.dsl)))
     }).promise();
   }
@@ -129,13 +130,13 @@ export class Table<T extends ClassType, K extends Table.Key<InstanceType<T>>> {
       FilterExpression: filterExpr?.Expression,
       ExpressionAttributeNames: queryExpr?.ExpressionAttributeNames,
       ExpressionAttributeValues: queryExpr?.ExpressionAttributeValues,
-      ExclusiveStartKey: props.exclusiveStartKey === undefined ? undefined : this.keyWriter(props.exclusiveStartKey)
+      ExclusiveStartKey: props.exclusiveStartKey === undefined ? undefined : this.writeKey(props.exclusiveStartKey)
     }).promise();
 
     return {
       ...result,
       Items: result.Items?.map(v => this.mapper.read({M : v} as any)),
-      LastEvaluatedKey: result.LastEvaluatedKey === undefined ? undefined : this.keyReader(result.LastEvaluatedKey) as any
+      LastEvaluatedKey: result.LastEvaluatedKey === undefined ? undefined : this.readKey(result.LastEvaluatedKey) as any
     };
   }
 }

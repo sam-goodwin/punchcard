@@ -34,7 +34,11 @@ export class Writer {
   }
 
   public writeValue(value: AWS.DynamoDB.AttributeValue): void {
-    this.writeToken(this.namespace.addValue(value));
+    if (value.N) {
+      this.tokens.push(value.N);
+    } else {
+      this.writeToken(this.namespace.addValue(value));
+    }
   }
 }
 export namespace Writer {

@@ -1,4 +1,4 @@
-import { AssertIsMember, ClassShape, ClassType, Member, Visitor } from '@punchcard/shape';
+import { ClassShape, ClassType, Member, Visitor } from '@punchcard/shape';
 import { Runtime } from '@punchcard/shape-runtime';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { bool, BoolShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
@@ -37,7 +37,18 @@ export namespace DSL {
 
   export const DslVisitor: Visitor<Node, ExpressionNode<any>> = {
     arrayShape: (shape: ArrayShape<any>, expression: ExpressionNode<any>): List<any> => {
-      return new List(shape, expression);
+      return new Proxy(new List(shape, expression), {
+        get: (target, prop) => {
+          if (typeof prop === 'string') {
+            if (!isNaN(prop as any)) {
+              return target.get(parseInt(prop, 10));
+            }
+          } else if (typeof prop === 'number' && prop % 1 === 0) {
+            return target.get(prop);
+          }
+          return (target as any)[prop];
+        }
+      });
     },
     boolShape: (shape: BoolShape, expression: ExpressionNode<any>): Bool => {
       return new Bool(expression, shape);
@@ -46,7 +57,17 @@ export namespace DSL {
       return new Struct(shape, expression);
     },
     mapShape: (shape: MapShape<any>, expression: ExpressionNode<any>): Map<any> => {
-      return new Map(shape, expression);
+      return new Proxy(new Map(shape, expression), {
+        get: (target, prop) => {
+          if (typeof prop === 'string') {
+            if (typeof (target as any)[prop] === 'function') {
+              return (target as any)[prop];
+            }
+            return target.get(prop);
+          }
+          return (target as any)[prop];
+        }
+      });
     },
     numberShape: (shape: NumberShape, expression: ExpressionNode<any>): Ord<NumberShape> => {
       return new Ord(shape, expression);
@@ -70,10 +91,10 @@ export namespace DSL {
 
   export type Expression<T extends Shape> = ExpressionNode<T> | Runtime.Of<T>;
 
-  export const NodeType = Symbol.for('@punchcard/shape-dynamodb.Query.NodeType');
-  export const SubNodeType = Symbol.for('@punchcard/shape-dynamodb.Query.SubNodeType');
-  export const DataType = Symbol.for('@punchcard/shape-dynamodb.Query.Type');
-  export const InstanceExpression = Symbol.for('@punchcard/shape-dynamodb.Query.InstanceExpression');
+  export const NodeType = Symbol.for('@punchcard/shape-dynamodb.DSL.NodeType');
+  export const SubNodeType = Symbol.for('@punchcard/shape-dynamodb.DSL.SubNodeType');
+  export const DataType = Symbol.for('@punchcard/shape-dynamodb.DSL.DataType');
+  export const InstanceExpression = Symbol.for('@punchcard/shape-dynamodb.DSL.InstanceExpression');
 
   export abstract class Node<T extends string = string> {
     public readonly [NodeType]: T;
@@ -98,6 +119,18 @@ export namespace DSL {
     constructor(shape: S) {
       super('expression');
       this[DataType] = shape;
+    }
+  }
+
+  export class Id extends ExpressionNode<StringShape> {
+    public readonly [SubNodeType] = 'identifier';
+
+    constructor(public readonly value: string) {
+      super(string);
+    }
+
+    public synthesize(writer: Writer): void {
+      writer.writeName(this.value);
     }
   }
 
@@ -245,7 +278,7 @@ export namespace DSL {
         writer.writeToken('(');
         for (const op of this.operands) {
           op.synthesize(writer);
-          writer.writeToken(this.operator);
+          writer.writeToken(` ${this.operator} `);
         }
         writer.pop();
         writer.writeToken(')');
@@ -442,8 +475,12 @@ export namespace DSL {
   }
 
   export class List<T extends Shape> extends Object<ArrayShape<T>> {
+    constructor(type: ArrayShape<T>, expression: ExpressionNode<ArrayShape<T>>) {
+      super(type, expression);
+    }
+
     public get(index: Expression<NumberShape>): Of<T> {
-      return new Object(this[DataType].Items, new List.Item(this, resolveExpression(number, index))) as Of<T>;
+      return this[DataType].Items.visit(DSL.DslVisitor as any, new List.Item(this, resolveExpression(number, index)));
     }
 
     public push(item: Expression<T>): SetAction<T> {
@@ -493,11 +530,11 @@ export namespace DSL {
 
   export class Map<T extends Shape> extends Object<MapShape<T>> {
     public get(key: Expression<StringShape>): Of<T> {
-      return new Object(this[DataType].Items, new Map.MapValue(this, resolveExpression(string, key))) as Of<T>;
+      return this[DataType].Items.visit(DSL.DslVisitor as any, typeof key === 'string' ? new Map.GetValue(this, new Id(key)) as any : new Map.GetValue(this, resolveExpression(string, key)));
     }
   }
   export namespace Map {
-    export class MapValue<T extends Shape> extends ExpressionNode<T> {
+    export class GetValue<T extends Shape> extends ExpressionNode<T> {
       public readonly [SubNodeType] = 'map-value';
       constructor(public readonly map: Map<T>, public readonly key: ExpressionNode<StringShape>) {
         super(map[DataType].Items);

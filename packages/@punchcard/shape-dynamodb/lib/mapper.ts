@@ -48,14 +48,18 @@ export namespace Mapper {
         }
 
         const reader = traverse((mapper, value) => (mapper as any).read(value));
-        const writer = traverse((mapper, value) => (mapper as any).write(value));
+        const writer = traverse((mapper, value) => {
+          return (mapper as any).write(value);
+        });
 
         return {
           read: (value: any) => {
             assertHasKey('M', value);
             return reader(value.M);
           },
-          write: (value: any) => ({ M: writer(value) }),
+          write: (value: any) => {
+            return { M: writer(value) };
+          },
         } as any;
       } else if (ShapeGuards.isArrayShape(shape)) {
         const itemMapper: any = Mapper.of(shape.Items);
@@ -108,8 +112,8 @@ export namespace Mapper {
           },
           write: (value: any) => {
             const result: any = {};
-            for (const [name, v] of Object.entries(value.M)) {
-              result[name] = valueMapper.read(v);
+            for (const [name, v] of Object.entries(value)) {
+              result[name] = valueMapper.write(v);
             }
             return {
               M: result

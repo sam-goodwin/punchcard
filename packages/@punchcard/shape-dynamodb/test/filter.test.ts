@@ -21,16 +21,13 @@ test('stringProperty = stringLiteral', () => {
 });
 
 test('array[index] = stringiteral', () => {
-  expect(Condition.compile(_.array.get(0).equals('string'))).toEqual({
-    Expression: '#1[:1]=:2',
+  expect(Condition.compile(_.array[0].equals('string'))).toEqual({
+    Expression: '#1[0]=:1',
     ExpressionAttributeNames: {
       '#1': 'array'
     },
     ExpressionAttributeValues: {
       ':1': {
-        N: '0'
-      },
-      ':2': {
         S: 'string'
       }
     },
@@ -54,16 +51,12 @@ test('struct.field = stringLiteral', () => {
 
 test('struct.field = array.get(index)', () => {
   expect(Condition.compile(_.nested.fields.a.equals(_.array.get(0)))).toEqual({
-    Expression: '#1.#2=#3[:1]',
+    Expression: '#1.#2=#3[0]',
     ExpressionAttributeNames: {
       '#1': 'nested',
       '#2': 'a',
       '#3': 'array'
     },
-    ExpressionAttributeValues: {
-      ':1': {
-        N: '0'
-      },
-    },
+    ExpressionAttributeValues: {},
   });
 });

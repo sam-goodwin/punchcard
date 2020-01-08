@@ -2,7 +2,8 @@ import 'jest';
 
 import sinon = require('sinon');
 
-import { array, number, string } from '@punchcard/shape';
+import { array, map, number, string } from '@punchcard/shape';
+import { DSL } from '../lib';
 import { Table } from '../lib/client';
 
 // tslint:disable: member-access
@@ -10,6 +11,7 @@ class Type {
   key = string;
   count = number;
   list = array(string);
+  dict = map(string);
 }
 
 const table = new Table(Type, ['key', 'count'], {
@@ -17,23 +19,6 @@ const table = new Table(Type, ['key', 'count'], {
 });
 
 // leaving this here as a compile time test for now
-async function testDDB() {
-  const a = await table.get(['a', 1]);
-
-  await table.put({
-    key: 'key',
-    count: 1,
-    list: ['a', 'b']
-  });
-
-  await table.putIf({
-    key: 'key',
-    count: 1,
-    list: ['a', 'b']
-  }, _ => _.count.equals(1));
-
-  await table.query(['key', _ => _.greaterThan(1)]);
-}
 
 function mockClient(fake: { [K in keyof AWS.DynamoDB]?: sinon.SinonSpy; }) {
   (table as any).client = fake;
@@ -80,22 +65,29 @@ test('putIf', async () => {
   await table.putIf({
     key: 'key',
     count: 1,
-    list: ['a', 'b']
-  }, _ => _.count.equals(1));
+    list: ['a', 'b'],
+    dict: {
+      key: 'value'
+    }
+  }, _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.a.equals('value')));
 
   expect(putItem.args[0][0]).toEqual({
     TableName: 'my-table-arn',
     Item: {
       key: { S: 'key' },
       count: { N: '1' },
-      list: { L: [ {S: 'a'}, {S: 'b'} ] }
+      list: { L: [ {S: 'a'}, {S: 'b'} ] },
+      dict: { M: { key: { S: 'value' } } }
     },
-    ConditionExpression: '#1=:1',
+    ConditionExpression: '((#1=1 AND #2[0]<=0) AND #3.#4=:1)',
     ExpressionAttributeNames: {
-      '#1': 'count'
+      '#1': 'count',
+      '#2': 'list',
+      '#3': 'dict',
+      '#4': 'a'
     },
     ExpressionAttributeValues: {
-      ':1': { N: '1' }
+      ':1': { S: 'value' }
     }
   });
 });
@@ -117,13 +109,12 @@ test('update', async () => {
       key: { S: 'key' },
       count: { N: '1' },
     },
-    UpdateExpression: 'SET #1[:1] = :2',
+    UpdateExpression: 'SET #1[1] = :1',
     ExpressionAttributeNames: {
       '#1': 'list'
     },
     ExpressionAttributeValues: {
-      ':1': { N: '1' },
-      ':2': { S: 'item' }
+      ':1': { S: 'item' }
     }
   });
 });
