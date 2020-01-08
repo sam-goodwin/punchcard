@@ -31,7 +31,9 @@ test('getItem', async () => {
     Item: {
       key: { S: 'value' },
       count: { N: '1' },
-      list: { L: [ {S: 'list value'} ] }
+      list: { L: [ {S: 'list value'} ] },
+      dict: { M: { key: { S: 'string' } } },
+      dynamic: { S: 'value' }
     }
   });
   const getItem = sinon.fake.returns({ promise: getItemPromise });
@@ -44,7 +46,9 @@ test('getItem', async () => {
   expect(result).toEqual({
     key: 'value',
     count: 1,
-    list: ['list value']
+    list: ['list value'],
+    dict: { key: 'string' },
+    dynamic: 'value'
   });
 
   expect(getItem.args[0][0]).toEqual({

@@ -1,6 +1,7 @@
 import AWS = require('aws-sdk');
 
 import { HashSet, Runtime } from '@punchcard/shape-runtime';
+import { Validator } from '@punchcard/shape-validation/lib/validator';
 import { ClassType } from "@punchcard/shape/lib/class";
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
 import { Shape } from "@punchcard/shape/lib/shape";
@@ -11,14 +12,43 @@ export interface Mapper<T extends Shape> {
   write(value: Runtime.Of<T>): AttributeValue.Of<T>;
 }
 
+class ValidatingMapper<T extends Shape> implements Mapper<T> {
+  constructor(private readonly mapper: Mapper<T>, private readonly validator: Validator<T>) {}
+
+  public read(value: AttributeValue.Of<T>): Runtime.Of<T> {
+    return this.assertIsValid(this.mapper.read(value));
+  }
+
+  public write(value: Runtime.Of<T>): AttributeValue.Of<T> {
+    return this.mapper.write(this.assertIsValid(value));
+  }
+
+  private assertIsValid(value: Runtime.Of<T>): Runtime.Of<T> {
+    const errors = this.validator(value);
+    if (errors.length > 0) {
+      throw new Error(errors.map(e => e.message).join('\n'));
+    }
+    return value;
+  }
+}
+
 export namespace Mapper {
-  export function of<T extends ClassType | Shape>(type: T, cache: WeakMap<any, any> = new WeakMap()): Mapper<Shape.Of<T>> {
+  export interface Options {
+    validate: boolean;
+    cache: WeakMap<any, any>;
+  }
+
+  export function of<T extends ClassType | Shape>(type: T, options: Options = { validate: true, cache: new WeakMap() }): Mapper<Shape.Of<T>> {
     const shape = Shape.of(type);
 
-    if (!cache.has(shape)) {
-      cache.set(shape, resolveShape());
+    if (!options.cache.has(shape)) {
+      let m = resolveShape();
+      if (options.validate) {
+        m = new ValidatingMapper(m, Validator.of(type));
+      }
+      options.cache.set(shape, m);
     }
-    return cache.get(shape);
+    return options.cache.get(shape);
 
     function assertHasKey<K extends string>(key: K, value: any): value is {[k in K]: any } {
       if (value[key] === undefined) {
@@ -36,7 +66,7 @@ export namespace Mapper {
     function resolveShape() {
       if (ShapeGuards.isClassShape(shape)) {
         const mappers: {[key: string]: Mapper<any>; } = Object.values(shape.Members)
-          .map(m => ({ [m.Name]: Mapper.of(m.Type) }))
+          .map(m => ({ [m.Name]: Mapper.of(m.Type, options) }))
           .reduce((a, b) => ({...a, ...b}));
 
         function traverse(f: (mapper: Mapper<any>, value: any) => any): (value: any) => any {
@@ -64,7 +94,7 @@ export namespace Mapper {
           },
         } as any;
       } else if (ShapeGuards.isArrayShape(shape)) {
-        const itemMapper: any = Mapper.of(shape.Items);
+        const itemMapper: any = Mapper.of(shape.Items, options);
 
         return {
           read: (value: { L: any[] }) => {
@@ -112,7 +142,7 @@ export namespace Mapper {
           throw new Error(`invalid DynamoDB set type: ${shape.Items}`);
         }
       } else if (ShapeGuards.isMapShape(shape)) {
-        const valueMapper: any = Mapper.of(shape.Items);
+        const valueMapper: any = Mapper.of(shape.Items, options);
         return {
           read: (value: any) => {
             assertHasKey('M', value);

@@ -1,7 +1,8 @@
 import 'jest';
 
 import { HashSet } from '@punchcard/shape-runtime';
-import { binary } from '@punchcard/shape/lib/primitive';
+import { MaxLength } from '@punchcard/shape-validation';
+import { binary, string } from '@punchcard/shape/lib/primitive';
 import { Mapper } from '../lib';
 import { MyType } from './mock';
 
@@ -99,4 +100,20 @@ it('should read attribute values', () => {
   };
 
   expect(actual).toEqual(expected);
+});
+
+class T {
+  public readonly id = string.apply(MaxLength(1));
+}
+
+it('should validate', () => {
+  const m = Mapper.of(T);
+
+  expect(() => m.read({
+    M: {
+      id: {
+        S: '01'
+      }
+    }
+  })).toThrowError('expected string with length <= 1, but received: 01');
 });

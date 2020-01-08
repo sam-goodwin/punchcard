@@ -22,7 +22,7 @@ export namespace Validator {
     const shape = Shape.of(type);
     const decoratedValidators =  (Meta.get(shape, ['validator']) || {}).validator || [];
 
-    const validators = decoratedValidators.concat((Shape.of(type) as any).visit(visitor, null));
+    const validators = decoratedValidators.concat((shape as any).visit(visitor, null));
 
     return (a: any) => validators
       .map((v: Validator<any>) => v(a))
@@ -34,7 +34,7 @@ export namespace Validator {
       return [];
     }
     public arrayShape(shape: ArrayShape<any>, context: any): Array<Validator<any>> {
-      const item = of(shape);
+      const item = of(shape.Items);
       return [(arr: any[]) => arr.map(i => item(i) as any[]).reduce((a: any[], b: any[]) => a.concat(b), [])];
     }
     public binaryShape(shape: BinaryShape, context: any): Array<Validator<any>> {
@@ -59,14 +59,17 @@ export namespace Validator {
       }];
     }
     public mapShape(shape: MapShape<any>, context: any): Array<Validator<any>> {
-      const item = of(shape);
-      return [(arr: {[key: string]: any}) => Object.values(arr).map(i => item(i) as any[]).reduce((a: any[], b: any[]) => a.concat(b), [])];
+      const item = of(shape.Items);
+      return [(arr: {[key: string]: any}) => Object
+        .values(arr)
+        .map(i => item(i) as any[])
+        .reduce((a: any[], b: any[]) => a.concat(b), [])];
     }
     public numberShape(shape: NumberShape, context: any): Array<Validator<any>> {
       return [];
     }
     public setShape(shape: SetShape<any>, context: any): Array<Validator<any>> {
-      const item = of(shape);
+      const item = of(shape.Items);
       return [(set: Set<any>) => Array.from(set).map(i => item(i) as any[]).reduce((a: any[], b: any[]) => a.concat(b), [])];
     }
     public stringShape(shape: StringShape, context: any): Array<Validator<any>> {
