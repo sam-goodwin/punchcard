@@ -61,7 +61,7 @@ it('should read attribute values', () => {
         B: Buffer.from('binaryField', 'utf8')
       },
       binarySet: {
-        BS: [Buffer.from('binarySet', 'utf8')]
+        BS: [Buffer.from('binarySet', 'utf8')] // test de-dupe
       },
       anyField: {
         S: 'any'

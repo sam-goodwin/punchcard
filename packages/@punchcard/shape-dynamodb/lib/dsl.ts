@@ -459,9 +459,7 @@ export namespace DSL {
     }
   }
 
-  export class Binary extends Object<BinaryShape> {
-
-  }
+  export class Binary extends Object<BinaryShape> {}
 
   export class String extends Ord<StringShape> {
     constructor(expression: ExpressionNode<StringShape>, shape?: StringShape) {
