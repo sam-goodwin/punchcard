@@ -5,7 +5,7 @@ import { Visitor as ShapeVisitor } from '@punchcard/shape/lib/visitor';
 
 export interface ValidationErrors extends Array<Error> {}
 
-export type Validator<T> = (value: T) => ValidationErrors;
+export type Validator<T> = (value: T, path: string) => ValidationErrors;
 
 export interface ValidationMetadata<T extends Shape> {
   validator: Array<Validator<Runtime.Of<T>>>;
@@ -22,60 +22,60 @@ export namespace Validator {
     const shape = Shape.of(type);
     const decoratedValidators =  (Meta.get(shape, ['validator']) || {}).validator || [];
 
-    const validators = decoratedValidators.concat((shape as any).visit(visitor, null));
+    const validators = decoratedValidators.concat((shape as any).visit(visitor, '$'));
 
-    return (a: any) => validators
-      .map((v: Validator<any>) => v(a))
+    return (a: any, path) => validators
+      .map((v: Validator<any>) => v(a, path))
       .reduce((a: any[], b: any[]) => a.concat(b), []);
   }
 
-  class Visitor implements ShapeVisitor<Array<Validator<any>>, any> {
-    public dynamicShape(shape: DynamicShape<any>, context: any): Array<Validator<any>> {
+  class Visitor implements ShapeVisitor<Array<Validator<any>>, string> {
+    public dynamicShape(shape: DynamicShape<any>): Array<Validator<any>> {
       return [];
     }
-    public arrayShape(shape: ArrayShape<any>, context: any): Array<Validator<any>> {
-      const item = of(shape.Items);
-      return [(arr: any[]) => arr.map(i => item(i) as any[]).reduce((a: any[], b: any[]) => a.concat(b), [])];
+    public arrayShape(shape: ArrayShape<any>): Array<Validator<any>> {
+      const validateItem = of(shape.Items);
+      return [(arr: any[], path: string) => arr.map((item, i) => validateItem(item, `${path}[${i}]`) as any[]).reduce((a: any[], b: any[]) => a.concat(b), [])];
     }
-    public binaryShape(shape: BinaryShape, context: any): Array<Validator<any>> {
+    public binaryShape(shape: BinaryShape): Array<Validator<any>> {
       return [];
     }
-    public boolShape(shape: BoolShape, context: any): Array<Validator<any>> {
+    public boolShape(shape: BoolShape): Array<Validator<any>> {
       return [];
     }
-    public classShape(shape: ClassShape<any>, context: any): Array<Validator<any>> {
+    public classShape(shape: ClassShape<any>): Array<Validator<any>> {
       const validators: {
         [key: string]: Array<Validator<any>>;
       } = {};
       for (const member of Object.values(shape.Members)) {
         validators[member.Name] = [of(member.Type) as any];
       }
-      return [(obj) => {
+      return [(obj, path) => {
         return Object.entries(validators)
           .map(([name, vs]) => vs
-            .map((v: any) => v(obj[name]))
+            .map((v: Validator<any>) => v(obj[name], `${path}['${name}']`))
             .reduce((a: any[], b: any[]) => a.concat(b), []))
           .reduce((a: any[], b: any[]) => a.concat(b), []);
       }];
     }
-    public mapShape(shape: MapShape<any>, context: any): Array<Validator<any>> {
+    public mapShape(shape: MapShape<any>): Array<Validator<any>> {
       const item = of(shape.Items);
-      return [(arr: {[key: string]: any}) => Object
+      return [(arr: {[key: string]: any}, path) => Object
         .values(arr)
-        .map(i => item(i) as any[])
+        .map(key => item(key, `${path}['${key}']`) as any[])
         .reduce((a: any[], b: any[]) => a.concat(b), [])];
     }
-    public numberShape(shape: NumberShape, context: any): Array<Validator<any>> {
+    public numberShape(shape: NumberShape): Array<Validator<any>> {
       return [];
     }
-    public setShape(shape: SetShape<any>, context: any): Array<Validator<any>> {
+    public setShape(shape: SetShape<any>): Array<Validator<any>> {
       const item = of(shape.Items);
-      return [(set: Set<any>) => Array.from(set).map(i => item(i) as any[]).reduce((a: any[], b: any[]) => a.concat(b), [])];
+      return [(set: Set<any>, path) => Array.from(set).map(i => item(i, `${path}['${path}']`) as any[]).reduce((a: any[], b: any[]) => a.concat(b), [])];
     }
-    public stringShape(shape: StringShape, context: any): Array<Validator<any>> {
+    public stringShape(shape: StringShape): Array<Validator<any>> {
       return [];
     }
-    public timestampShape(shape: TimestampShape, context: any): Array<Validator<any>> {
+    public timestampShape(shape: TimestampShape): Array<Validator<any>> {
       return [];
     }
   }

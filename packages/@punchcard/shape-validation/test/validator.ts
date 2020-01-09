@@ -21,17 +21,17 @@ test('validator', () => {
     str: '0',
     int: 1,
     arr: ['a']
-  })).toEqual([]);
+  }, '$')).toEqual([]);
 
   expect(validator({
     str: '012',
     int: 1,
     arr: ['a']
-  })).toEqual([new Error(`expected string with length <= 1, but received: 012`)]);
+  }, '$')).toEqual([new Error(`at $['str']: expected string with length <= 1, but received: 012`)]);
 
   expect(validator({
     str: '0',
     int: 1,
     arr: ['aa']
-  })).toEqual([new Error(`expected string with length <= 1, but received: aa`)]);
+  }, '$')).toEqual([new Error(`at $['arr'][0]: expected string with length <= 1, but received: aa`)]);
 });
