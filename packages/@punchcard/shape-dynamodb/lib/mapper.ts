@@ -24,7 +24,7 @@ class ValidatingMapper<T extends Shape> implements Mapper<T> {
   }
 
   private assertIsValid(value: Runtime.Of<T>): Runtime.Of<T> {
-    const errors = this.validator(value);
+    const errors = this.validator(value, '$');
     if (errors.length > 0) {
       throw new Error(errors.map(e => e.message).join('\n'));
     }
