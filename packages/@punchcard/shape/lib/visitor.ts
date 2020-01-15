@@ -1,14 +1,16 @@
-import { ClassShape } from "./class";
-import { ArrayShape, MapShape, SetShape } from "./collection";
-import { BinaryShape, BoolShape, DynamicShape, NumberShape, StringShape, TimestampShape } from "./primitive";
+import { ClassShape } from './class';
+import { ArrayShape, MapShape, SetShape } from './collection';
+import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 
 export interface Visitor<T = unknown, C = undefined> {
-  dynamicShape(shape: DynamicShape<any>, context: C): T;
   arrayShape(shape: ArrayShape<any>, context: C): T;
   binaryShape(shape: BinaryShape, context: C): T;
   boolShape(shape: BoolShape, context: C): T;
   classShape(shape: ClassShape<any>, context: C): T;
+  dynamicShape(shape: DynamicShape<any>, context: C): T;
+  integerShape(shape: IntegerShape, context: C): T;
   mapShape(shape: MapShape<any>, context: C): T;
+  nothingShape(shape: NothingShape, context: C): T;
   numberShape(shape: NumberShape, context: C): T;
   setShape(shape: SetShape<any>, context: C): T;
   stringShape(shape: StringShape, context: C): T;
@@ -16,5 +18,5 @@ export interface Visitor<T = unknown, C = undefined> {
 }
 export namespace Visitor {
   export type YieldType<V extends Visitor> = V extends Visitor<infer T, any>  ? T : never;
-  export type ContextType<V extends Visitor> = V extends Visitor<any, infer C>  ? C : never;
+  export type ContextType<V extends Visitor> = V extends Visitor<any, infer C>  ? C : null;
 }

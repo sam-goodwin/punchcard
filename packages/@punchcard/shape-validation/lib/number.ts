@@ -1,9 +1,8 @@
 import { Trait } from "@punchcard/shape/lib/metadata";
-import { NumberShape } from "@punchcard/shape/lib/primitive";
 
-export interface Maximum<M extends number, E extends boolean = false> extends Trait<NumberShape, {maximum: M, exclusiveMaximum: E}> {}
-export interface Minimum<M extends number, E extends boolean = false> extends Trait<NumberShape, {minimum: M, exclusiveMinimum: E}> {}
-export interface MultipleOf<M extends number> extends Trait<NumberShape, {multipleOf: M}> {}
+export interface Maximum<M extends number, E extends boolean = false> extends Trait<any, {maximum: M, exclusiveMaximum: E}> {}
+export interface Minimum<M extends number, E extends boolean = false> extends Trait<any, {minimum: M, exclusiveMinimum: E}> {}
+export interface MultipleOf<M extends number> extends Trait<any, {multipleOf: M}> {}
 
 export function Maximum<L extends number, E extends boolean = false>(length: L, exclusive?: E): Maximum<L, E> {
   return {

@@ -21,7 +21,7 @@ export function getPropertyMetadata(target: Object, key: string | symbol): Metad
 }
 
 export namespace Meta {
-  export function get(target: any, keys?: string[]): Metadata | undefined {
+  export function get(target: any, keys?: string[]): Metadata {
     const meta = target[Decorated.Data] || {};
 
     if (keys) {

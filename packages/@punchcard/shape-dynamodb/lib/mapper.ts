@@ -1,29 +1,29 @@
 import AWS = require('aws-sdk');
 
-import { HashSet, Runtime } from '@punchcard/shape-runtime';
+import { HashSet, Value } from '@punchcard/shape-runtime';
 import { Validator } from '@punchcard/shape-validation/lib/validator';
 import { ClassType } from "@punchcard/shape/lib/class";
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
 import { Shape } from "@punchcard/shape/lib/shape";
 import { AttributeValue } from "./attribute";
 
-export interface Mapper<T extends Shape> {
-  read(value: AttributeValue.Of<T>): Runtime.Of<T>;
-  write(value: Runtime.Of<T>): AttributeValue.Of<T>;
+export interface Mapper<T extends Shape | ClassType> {
+  read(value: AttributeValue.Of<T>): Value.Of<T>;
+  write(value: Value.Of<T>): AttributeValue.Of<T>;
 }
 
 class ValidatingMapper<T extends Shape> implements Mapper<T> {
   constructor(private readonly mapper: Mapper<T>, private readonly validator: Validator<T>) {}
 
-  public read(value: AttributeValue.Of<T>): Runtime.Of<T> {
+  public read(value: AttributeValue.Of<T>): Value.Of<T> {
     return this.assertIsValid(this.mapper.read(value));
   }
 
-  public write(value: Runtime.Of<T>): AttributeValue.Of<T> {
+  public write(value: Value.Of<T>): AttributeValue.Of<T> {
     return this.mapper.write(this.assertIsValid(value));
   }
 
-  private assertIsValid(value: Runtime.Of<T>): Runtime.Of<T> {
+  private assertIsValid(value: Value.Of<T>): Value.Of<T> {
     const errors = this.validator(value, '$');
     if (errors.length > 0) {
       throw new Error(errors.map(e => e.message).join('\n'));
@@ -38,7 +38,7 @@ export namespace Mapper {
     cache: WeakMap<any, any>;
   }
 
-  export function of<T extends ClassType | Shape>(type: T, options: Options = { validate: true, cache: new WeakMap() }): Mapper<Shape.Of<T>> {
+  export function of<T extends ClassType | Shape>(type: T, options: Options = { validate: true, cache: new WeakMap() }): Mapper<T> {
     const shape = Shape.of(type);
 
     if (!options.cache.has(shape)) {

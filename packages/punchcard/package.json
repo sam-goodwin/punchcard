@@ -47,6 +47,7 @@
     "@punchcard/constructs": "^0.2.0",
     "@punchcard/shape": "^0.1.0",
     "@punchcard/shape-dynamodb": "^0.1.0",
+    "@punchcard/shape-glue": "^0.1.0",
     "@punchcard/shape-json": "^0.1.0",
     "@punchcard/shape-jsonpath": "^0.1.0",
     "@punchcard/shape-jsonschema": "^0.1.0",

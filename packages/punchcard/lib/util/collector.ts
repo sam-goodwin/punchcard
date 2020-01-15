@@ -1,9 +1,9 @@
 import core = require('@aws-cdk/core');
 
+import { Shape } from '@punchcard/shape';
 import { Build } from '../core/build';
 import * as Firehose from '../firehose';
 import * as Kinesis from '../kinesis';
-import { Shape } from '../shape/shape';
 import * as SNS from '../sns';
 import * as SQS from '../sqs';
 import { Stream } from './stream';
@@ -30,7 +30,7 @@ export namespace Collectors {
    *
    * @param props queue properties
    */
-  export function toSQSQueue<T extends Shape<any>>(props: SQS.QueueProps<T>): SQS.QueueCollector<T, any> {
+  export function toSQSQueue<T extends Shape>(props: SQS.QueueProps<T>): SQS.QueueCollector<T, any> {
     return new SQS.QueueCollector<T, any>(props);
   }
 
@@ -39,7 +39,7 @@ export namespace Collectors {
    *
    * @param props stream properties
    */
-  export function toKinesisStream<T extends Shape<any>>(props: Kinesis.StreamProps<T>): Kinesis.StreamCollector<T, any> {
+  export function toKinesisStream<T extends Shape>(props: Kinesis.StreamProps<T>): Kinesis.StreamCollector<T, any> {
     return new Kinesis.StreamCollector<T, any>(props);
   }
 
@@ -48,7 +48,7 @@ export namespace Collectors {
    *
    * @param props stream properties
    */
-  export function toFirehoseDeliveryStream<T extends Shape<any>>(props: Firehose.DeliveryStreamDirectPut<T>): Firehose.DeliveryStreamCollector<T, any> {
+  export function toFirehoseDeliveryStream<T extends Shape>(props: Firehose.DeliveryStreamDirectPut<T>): Firehose.DeliveryStreamCollector<T, any> {
     return new Firehose.DeliveryStreamCollector<T, any>(props);
   }
 
@@ -57,7 +57,7 @@ export namespace Collectors {
    *
    * @param props topic properties
    */
-  export function toSNSTopic<T extends Shape<any>>(props: SNS.TopicProps<T>): SNS.TopicCollector<T, any> {
+  export function toSNSTopic<T extends Shape>(props: SNS.TopicProps<T>): SNS.TopicCollector<T, any> {
     return new SNS.TopicCollector<T, any>(props);
   }
 }

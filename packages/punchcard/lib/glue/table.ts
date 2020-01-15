@@ -8,65 +8,34 @@ import iam = require('@aws-cdk/aws-iam');
 import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/core');
 
+import { ClassShape, ClassType, Shape, ShapeGuards } from '@punchcard/shape';
+import { DataType, PartitionKeys, Schema, schema } from '@punchcard/shape-glue';
+import { Mapper, Value } from '@punchcard/shape-runtime';
+import { Validator } from '../../../@punchcard/shape-validation/lib/validator';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import * as S3 from '../s3';
-import { Json, Kind, Mapper, RuntimeShape, Shape, struct, StructShape } from '../shape';
-import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Sink } from '../util/sink';
-
-/**
- * A Glue Table's Columns.
- */
-export interface Columns {
-  [key: string]: Shape<any>;
-}
-
-/**
- * A Glue Table's Partition Keys.
- */
-export interface PartitionKeys {
-  [key: string]: Shape<string> | Shape<number>;
-}
 
 /**
  * Augmentation of `glue.TableProps`, using a `Shape` to define the
  * schema and partitionKeys.
  */
-export type TableProps<C extends Columns, P extends PartitionKeys> = {
+export type TableProps<T extends ClassType> = {
   /**
-   * Data columns of the data stored in the table.
+   * Type of data stored in the Table.
    */
-  columns: C;
-
-  /**
-   * Validate each record before writing to this table.
-   */
-  validate?: (record: RuntimeShape<StructShape<C>>) => void;
-
-  /**
-   * Shape of the partition keys of the table.
-   */
-  partition: {
-    /**
-     * Partition keys of the table.
-     */
-    keys: P;
-    /**
-     * Get a record's partitition.
-     */
-    get: (record: RuntimeShape<StructShape<C>>) => RuntimeShape<StructShape<P>>;
-  };
+  type: T;
 
   /**
    * Data codec of the table.
    *
-   * @default Json
+   * @default JsonCodec
    */
-  codec?: Codec;
+  codec?: DataType;
 
   /**
    * Type of compression.
@@ -80,6 +49,11 @@ export type TableProps<C extends Columns, P extends PartitionKeys> = {
    */
   database: Build<glue.Database>;
 
+  /**
+   * Optionally set the S3 Bucket containing this Table's objects.
+   *
+   * @default - one is created for you.
+   */
   bucket?: Build<s3.Bucket>;
 
   /**
@@ -103,46 +77,31 @@ export type TableProps<C extends Columns, P extends PartitionKeys> = {
 /**
  * Represents a partitioned Glue Table.
  */
-export class Table<C extends Columns, P extends PartitionKeys> implements Resource<glue.Table> {
+export class Table<T extends ClassType> implements Resource<glue.Table> {
   /**
    * Type of compression.
    */
   public readonly compression: Compression;
+
   /**
    * Rich model of the columns and partitions of the table.
    */
-  public readonly shape: {
-    /**
-     * Shape of the table's columns.
-     */
-    columns: C;
-    /**
-     * Shape of the table's partition keys.
-     */
-    partitions: P;
-  };
+  public readonly shape: Shape.Of<T>;
+
   /**
-   * Mapper for serializing and deserializing a record.
+   * Schema of the table.
    */
-  public readonly mapper: Mapper<RuntimeShape<StructShape<C>>, Buffer>;
+  public readonly type: T;
+
   /**
-   * Mappers for reading and writing partition keys to/from strings.
+   * Columns of this Table.
    */
-  public readonly partitionMappers: {
-    [K in keyof P]: Mapper<RuntimeShape<P[K]>, string>
-  };
+  public readonly schema: Schema<T>;
+
   /**
-   * Codec for reading and writing records (in a queue/stream/topic/etc.) and blobs (s3 objects).
+   * Data Type for reading and writing records (in a queue/stream/topic/etc.) and blobs (s3 objects).
    */
-  public readonly codec: Codec;
-  /**
-   * Get the partition columns from a record.
-   */
-  public readonly partition: (record: RuntimeShape<StructShape<C>>) => RuntimeShape<StructShape<P>>;
-  /**
-   * Optional function to validate data prior to writing into this table.
-   */
-  public readonly validate?: (record: RuntimeShape<StructShape<C>>) => void;
+  public readonly dataType: DataType;
 
   /**
    * The underlying `glue.Table` construct.
@@ -159,9 +118,14 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
    */
   public readonly s3Prefix?: string;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<C, P>) {
+  constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<T>) {
     const compression = (props.compression || Compression.None);
-    const codec = (props.codec || Codec.Json);
+    const codec = (props.codec || DataType.Json);
+
+    this.dataType = codec;
+    this.type = props.type;
+    this.schema = schema(this.type);
+    this.compression = compression;
 
     this.s3Prefix = props.s3Prefix || props.tableName + '/';
     this.resource = scope.chain(scope => props.database.chain(database => {
@@ -173,26 +137,24 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
           dataFormat: codec.format,
           compressed: compression.isCompressed,
           s3Prefix: this.s3Prefix,
-          columns: Object.entries(props.columns).map(([name, schema]) => ({
+
+          columns: Object.values(this.schema.columns),
+          partitionKeys: Object.entries(this.schema.partitionKeys).map(([name, schema]) => ({
             name,
-            type: schema.toGlueType()
-          })),
-          partitionKeys: Object.entries(props.partition.keys).map(([name, schema]) => {
-            switch (schema.kind) {
-              case Kind.String:
-              case Kind.Boolean:
-              case Kind.Timestamp:
-              case Kind.Integer:
-              case Kind.Number:
-                break;
-              default:
+            type: (() => {
+              if (ShapeGuards.isBoolShape(schema)) {
+                return glue.Schema.BOOLEAN;
+              } else if (ShapeGuards.isStringShape(schema)) {
+                return glue.Schema.STRING;
+              } else if (ShapeGuards.isNumberShape(schema)) {
+                return glue.Schema.DOUBLE; // TODO: really need an integer type
+              } else if (ShapeGuards.isTimestampShape(schema)) {
+                return glue.Schema.TIMESTAMP;
+              } else {
                 throw new Error(`invalid type for partition key ${schema}, must be string, numeric, boolean or timestamp`);
-            }
-            return {
-              name,
-              type: schema.toGlueType()
-            };
-          }),
+              }
+            })()
+          })),
         });
 
         (table as any).grant = (grantee: iam.IGrantable, actions: string[]) => {
@@ -215,41 +177,26 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
     }));
 
     this.bucket = new S3.Bucket(this.resource.map(table => table.bucket as any));
-
-    this.shape = {
-      columns: props.columns,
-      partitions: props.partition.keys
-    };
-    this.partition = props.partition.get;
-    this.validate = props.validate;
-
-    this.compression = compression;
-    this.codec = codec;
-    this.mapper = this.codec.mapper(struct(this.shape.columns));
-    this.partitionMappers = {} as any;
-    Object.entries(this.shape.partitions).forEach(([name, shape]) => {
-      this.partitionMappers[name as keyof P] = Json.forShape(shape) as any;
-    });
   }
 
   /**
    * Runtime dependency with read/write access to the Table and S3 Bucket.
    */
-  public readWriteAccess(): Dependency<Table.ReadWrite<C, P>> {
+  public readWriteAccess(): Dependency<Table.ReadWrite<T>> {
     return this.client((t, g) => t.grantReadWrite(g), this.bucket.readWriteAccess());
   }
 
   /**
    * Runtime dependency with read access to the Table and S3 Bucket.
    */
-  public readAccess(): Dependency<Table.ReadOnly<C, P>> {
+  public readAccess(): Dependency<Table.ReadOnly<T>> {
     return this.client((t, g) => t.grantRead(g), this.bucket.readAccess());
   }
 
   /**
    * Runtime dependency with write access to the Table and S3 Bucket.
    */
-  public writeAccess(): Dependency<Table.WriteOnly<C, P>> {
+  public writeAccess(): Dependency<Table.WriteOnly<T>> {
     return this.client((t, g) => t.grantWrite(g), this.bucket.writeAccess());
   }
 
@@ -268,10 +215,40 @@ export class Table<C extends Columns, P extends PartitionKeys> implements Resour
         ns.get('catalogId'),
         ns.get('databaseName'),
         ns.get('tableName'),
-        this,
-        await Run.resolve(bucket.bootstrap)(ns.namespace('bucket'), cache)
+        await Run.resolve(bucket.bootstrap)(ns.namespace('bucket'), cache),
+        this
       ) as any)
     };
+  }
+}
+
+function partitionKeyMapper<T extends Shape>(type: T): Mapper<T, string> {
+  if (ShapeGuards.isBoolShape(type)) {
+    return {
+      read: (str: string) => {
+        const lower = str.toLowerCase();
+        if (lower === 'true') {
+          return true;
+        } else if (lower === 'false') {
+          return false;
+        } else {
+          throw new Error(`invalid boolean format: ${str}`);
+        }
+      },
+      write: (bool: boolean) => bool.toString()
+    } as any;
+  } else if (ShapeGuards.isStringShape(type)) {
+    return {
+      read: (s: string) => s,
+      write: (s: string) => s
+    } as any;
+  } else if (ShapeGuards.isNumberShape(type)) {
+    return {
+      read: (s: string) => parseFloat(s), // TODO: really need an integer type
+      write: (n: number) => n.toString(10)
+    } as any;
+  } else {
+    throw new Error(`invalid type for partition key ${type}, must be string, numeric, boolean`);
   }
 }
 
@@ -279,28 +256,36 @@ export namespace Table {
   /**
    * Client type aliaes.
    */
-  export interface ReadWrite<C extends Columns, P extends PartitionKeys> extends Table.Client<C, P> {}
-  export interface ReadOnly<C extends Columns, P extends PartitionKeys> extends Omit<Table.Client<C, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'> {}
-  export interface WriteOnly<C extends Columns, P extends PartitionKeys> extends Omit<Table.Client<C, P>, 'getPartitions'> {}
+  export interface ReadWrite<C extends ClassType> extends Table.Client<C> {}
+  export interface ReadOnly<C extends ClassType> extends Omit<Table.Client<C>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'> {}
+  export interface WriteOnly<C extends ClassType> extends Omit<Table.Client<C>, 'getPartitions'> {}
+
+  export type PartitionValue<T extends ClassType> = {
+    [PK in PartitionKeys<T>]: Value.Of<InstanceType<T>[PK]>
+  };
 
   /**
    * Request and Response aliases.
    */
   export interface GetPartitionsRequest extends Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'> {}
-  export interface GetPartitionsResponse<P extends PartitionKeys> extends _GetPartitionsResponse<P> {}
-  type _GetPartitionsResponse<P extends PartitionKeys> = {Partitions: Array<{
-    Values: RuntimeShape<StructShape<P>>;
-  } & Omit<AWS.Glue.Partition, 'Values'>>};
+  export type GetPartitionsResponse<T extends ClassType> = {
+    Partitions: Array<{
+      Values: PartitionValue<T>;
+    } & Omit<AWS.Glue.Partition, 'Values'>>
+  };
 
-  export interface CreatePartitionRequest<P extends PartitionKeys> extends _CreatePartitionRequest<P> {}
-  type _CreatePartitionRequest<P extends PartitionKeys> = {Partition: RuntimeShape<StructShape<P>>, Location: string, LastAccessTime?: Date} &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
+  export type CreatePartitionRequest<T extends ClassType> = {
+    Partition: PartitionValue<T>,
+    Location: string,
+    LastAccessTime?: Date
+  } &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
 
   export interface CreatePartitionResponse extends AWS.Glue.CreatePartitionResponse {}
-  export interface BatchCreatePartitionRequestEntry<P extends PartitionKeys> extends CreatePartitionRequest<P> {}
-  export interface BatchCreatePartitionRequest<P extends PartitionKeys> extends Array<BatchCreatePartitionRequestEntry<P>> {}
-  export interface UpdatePartitionRequest<P extends PartitionKeys> {
-    Partition: RuntimeShape<StructShape<P>>,
-    UpdatedPartition: CreatePartitionRequest<P>
+  export interface BatchCreatePartitionRequestEntry<T extends ClassType> extends CreatePartitionRequest<T> {}
+  export interface BatchCreatePartitionRequest<T extends ClassType> extends Array<BatchCreatePartitionRequestEntry<T>> {}
+  export interface UpdatePartitionRequest<T extends ClassType> {
+    Partition: PartitionValue<T>,
+    UpdatedPartition: CreatePartitionRequest<T>
   }
 
   /**
@@ -308,7 +293,24 @@ export namespace Table {
    * * create, update, delete and query partitions.
    * * write objects to the table (properly partitioned S3 Objects and Glue Partitions).
    */
-  export class Client<C extends Columns, P extends PartitionKeys> implements Sink<RuntimeShape<StructShape<C>>> {
+  export class Client<T extends ClassType> implements Sink<Value.Of<T>> {
+    /**
+     * Validates a Record.
+     */
+    public readonly validator: Validator<Value.Of<T>>;
+
+    /**
+     * Mapper for writing a Record as a Buffer.
+     */
+    public readonly mapper: Mapper<ClassShape<T>, Buffer>;
+
+    /**
+     * Mappers for reading and writing partition keys to/from strings.
+     */
+    public readonly partitionMappers: {
+      [K in PartitionKeys<T>]: Mapper<InstanceType<T>[K], string>
+    };
+
     private readonly partitions: string[];
 
     constructor(
@@ -316,10 +318,16 @@ export namespace Table {
       public readonly catalogId: string,
       public readonly databaseName: string,
       public readonly tableName: string,
-      public readonly table: Table<C, P>,
-      public readonly bucket: S3.Client
+      public readonly bucket: S3.Client,
+      public readonly table: Table<T>
     ) {
-      this.partitions = Object.keys(table.shape.partitions);
+      this.partitions = Object.keys(table.schema.partitionKeys);
+      this.validator = Validator.of(table.type);
+      this.mapper = table.dataType.mapper(table.shape);
+      this.partitionMappers = {} as any;
+      Object.entries(table.shape.Members).forEach(([name, schema]) => {
+        this.partitionMappers[name as PartitionKeys<T>] = partitionKeyMapper(schema.Type);
+      });
     }
 
     /**
@@ -333,18 +341,22 @@ export namespace Table {
      *
      * @param records to write to the glue table
      */
-    public async sink(records: Iterable<RuntimeShape<StructShape<C>>>) {
+    public async sink(records: Iterable<Value.Of<T>>) {
       const partitions: Map<string, {
-        partition: RuntimeShape<StructShape<P>>;
-        records: Array<RuntimeShape<StructShape<C>>>;
+        partition: PartitionValue<T>;
+        records: Array<Value.Of<T>>;
       }> = new Map();
 
       for (const record of records) {
-        if (this.table.validate) {
-          this.table.validate(record);
+        const errors = this.validator(record, '$');
+        if (errors) {
+          throw new Error(`invalid record: ${errors.map(e => e.message).join('\n')}`);
         }
-        const partition = this.table.partition(record);
-        const key = Object.values(partition).map(value => (value as any).toString()).join('');
+        const partition: any = this.partitions
+          .map(p => ({ [p]: record[p].toString() }))
+          .reduce((a, b) => ({...a, ...b}), {});
+
+        const key = this.partitions.map(p => record[p].toString()).join('');
         if (!partitions.has(key)) {
           partitions.set(key, {
             partition,
@@ -356,7 +368,7 @@ export namespace Table {
       await Promise.all(Array.from(partitions.values()).map(async ({partition, records}) => {
         // determine the partition location in S3
         const partitionPath = Object.entries(partition).map(([name, value]) => {
-          return `${name}=${this.table.partitionMappers[name].write(value as any)}`;
+          return `${name}=${(this.partitionMappers as any)[name].write(value)}`;
         }).join('/');
         let location = this.table.s3Prefix ? path.join(this.table.s3Prefix, partitionPath) : partitionPath;
         if (!location.endsWith('/')) {
@@ -366,10 +378,10 @@ export namespace Table {
         // serialize the content and compute a sha256 hash of the content
         // TODO: client-side encryption
         const content = await this.table.compression.compress(
-          this.table.codec.join(records.map(record => this.table.mapper.write(record))));
+          this.table.dataType.join(records.map(record => this.mapper.write(record))));
         const sha256 = crypto.createHash('sha256');
         sha256.update(content);
-        const extension = this.table.compression.isCompressed ? `${this.table.codec.extension}.${this.table.compression.extension!}` : this.table.codec.extension;
+        const extension = this.table.compression.isCompressed ? `${this.table.dataType.extension}.${this.table.compression.extension!}` : this.table.dataType.extension;
 
         await this.bucket.putObject({
           // write objects based on sha256 to avoid duplicates during retries
@@ -391,7 +403,7 @@ export namespace Table {
       }));
     }
 
-    public async getPartitions(request: GetPartitionsRequest): Promise<GetPartitionsResponse<P>> {
+    public async getPartitions(request: GetPartitionsRequest): Promise<GetPartitionsResponse<T>> {
       const response = await this.client.getPartitions({
         ...request,
         CatalogId: this.catalogId,
@@ -404,7 +416,7 @@ export namespace Table {
           const values: any = {};
           partition.Values!.forEach((value, i) => {
             const name = this.partitions[i];
-            values[name] = this.table.partitionMappers[name].read(value);
+            values[name] = (this.partitionMappers as any)[name].read(value);
           });
           return {
             ...partition,
@@ -414,7 +426,7 @@ export namespace Table {
       };
     }
 
-    public createPartition(request: CreatePartitionRequest<P>): Promise<AWS.Glue.CreatePartitionResponse> {
+    public createPartition(request: CreatePartitionRequest<T>): Promise<AWS.Glue.CreatePartitionResponse> {
       return this.client.createPartition({
         PartitionInput: this.createPartitionInput(request),
         CatalogId: this.catalogId,
@@ -423,7 +435,7 @@ export namespace Table {
       }).promise();
     }
 
-    public batchCreatePartition(partitions: BatchCreatePartitionRequest<P>): Promise<AWS.Glue.BatchCreatePartitionResponse> {
+    public batchCreatePartition(partitions: BatchCreatePartitionRequest<T>): Promise<AWS.Glue.BatchCreatePartitionResponse> {
       return this.client.batchCreatePartition({
         CatalogId: this.catalogId,
         DatabaseName: this.databaseName,
@@ -432,7 +444,7 @@ export namespace Table {
       }).promise();
     }
 
-    public updatePartition(request: UpdatePartitionRequest<P>): Promise<AWS.Glue.UpdatePartitionResponse> {
+    public updatePartition(request: UpdatePartitionRequest<T>): Promise<AWS.Glue.UpdatePartitionResponse> {
       return this.client.updatePartition({
         CatalogId: this.catalogId,
         DatabaseName: this.databaseName,
@@ -442,7 +454,7 @@ export namespace Table {
       }).promise();
     }
 
-    private createPartitionInput(request: CreatePartitionRequest<P>): AWS.Glue.PartitionInput {
+    private createPartitionInput(request: CreatePartitionRequest<T>): AWS.Glue.PartitionInput {
       const partitionValues = Object.values(request.Partition).map(value => (value as any).toString());
       return {
         Values: partitionValues,
@@ -450,16 +462,11 @@ export namespace Table {
         StorageDescriptor: {
           Compressed: this.table.compression.isCompressed,
           Location: request.Location,
-          Columns: Object.entries(this.table.shape.columns).map(([name, type]) => {
-            return {
-              Name: name,
-              Type: type.toGlueType().inputString
-            };
-          }),
-          InputFormat: this.table.codec.format.inputFormat.className,
-          OutputFormat: this.table.codec.format.outputFormat.className,
+          Columns: Object.values(this.table.schema.columns),
+          InputFormat: this.table.dataType.format.inputFormat.className,
+          OutputFormat: this.table.dataType.format.outputFormat.className,
           SerdeInfo: {
-            SerializationLibrary: this.table.codec.format.serializationLibrary.className
+            SerializationLibrary: this.table.dataType.format.serializationLibrary.className
           }
         }
       };

@@ -1,5 +1,5 @@
-import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, DynamicShape, MapShape, Meta, NumberShape, SetShape, StringShape, TimestampShape } from '@punchcard/shape';
-import { Runtime } from '@punchcard/shape-runtime';
+import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, DynamicShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, SetShape, StringShape, TimestampShape } from '@punchcard/shape';
+import { Value } from '@punchcard/shape-runtime';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Visitor as ShapeVisitor } from '@punchcard/shape/lib/visitor';
 
@@ -8,17 +8,17 @@ export interface ValidationErrors extends Array<Error> {}
 export type Validator<T> = (value: T, path: string) => ValidationErrors;
 
 export interface ValidationMetadata<T extends Shape> {
-  validator: Array<Validator<Runtime.Of<T>>>;
+  validator: Array<Validator<Value.Of<T>>>;
 }
 
-export function MakeValidator<T extends Shape>(validator: Validator<Runtime.Of<T>>): ValidationMetadata<T> {
+export function MakeValidator<T extends Shape>(validator: Validator<Value.Of<T>>): ValidationMetadata<T> {
   return {
     validator: [validator]
   };
 }
 
 export namespace Validator {
-  export function of<T extends ClassType | Shape>(type: T): Validator<Runtime.Of<Shape.Of<T>>> {
+  export function of<T extends ClassType | Shape>(type: T): Validator<Value.Of<T>> {
     const shape = Shape.of(type);
     const decoratedValidators =  (Meta.get(shape, ['validator']) || {}).validator || [];
 
@@ -30,6 +30,9 @@ export namespace Validator {
   }
 
   class Visitor implements ShapeVisitor<Array<Validator<any>>, string> {
+    public nothingShape(shape: NothingShape, context: string): Array<Validator<any>> {
+      return [];
+    }
     public dynamicShape(shape: DynamicShape<any>): Array<Validator<any>> {
       return [];
     }
@@ -67,6 +70,9 @@ export namespace Validator {
     }
     public numberShape(shape: NumberShape): Array<Validator<any>> {
       return [];
+    }
+    public integerShape(shape: IntegerShape, context: string): Array<Validator<any>> {
+      return [(v: number) => v % 1 === 0 ? [] : [new Error(`integers must be whole numbers, but got: ${v}`)]];
     }
     public setShape(shape: SetShape<any>): Array<Validator<any>> {
       const item = of(shape.Items);

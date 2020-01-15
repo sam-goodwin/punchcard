@@ -2,8 +2,37 @@ import glue = require('@aws-cdk/aws-glue');
 import core = require('@aws-cdk/core');
 
 import 'jest';
-import { Glue, Shape, Util } from '../../lib';
+
+import { array, binary, bool, integer, map, Shape, string, timestamp } from '@punchcard/shape';
+import { Glue, } from '../../lib';
 import { Build } from '../../lib/core/build';
+// tslint:disable-next-line: ordered-imports
+import { bigint, tinyint, smallint, char, varchar, float, double, Partition, JsonDataType, DataType } from '@punchcard/shape-glue';
+
+class Struct {
+  a = integer;
+}
+
+class MyTable {
+  boolean = bool;
+  binary = binary;
+  str = string;
+  timestamp = timestamp;
+  int = integer;
+  smallint = smallint;
+  tinyint = tinyint;
+  bigint = bigint;
+  float = float;
+  double = double;
+  char = char(10);
+  varchar = varchar(10);
+  array = array(string);
+  map = map(string);
+  struct = Struct;
+
+  year = smallint.apply(Partition);
+  month = smallint.apply(Partition);
+}
 
 it('should map columns and partition keys to their respective types', () => {
   const stack = Build.of(new core.Stack(new core.App({ autoSynth: false}), 'stack'));
@@ -13,37 +42,8 @@ it('should map columns and partition keys to their respective types', () => {
 
   const table = new Glue.Table(stack, 'Table', {
     database,
-    codec: Util.Codec.Json,
     tableName: 'table_name',
-    columns: {
-      boolean: Shape.boolean,
-      binary: Shape.binary(),
-      str: Shape.string(),
-      timestamp: Shape.timestamp,
-      int: Shape.integer(),
-      smallint: Shape.smallint(),
-      tinyint: Shape.tinyint(),
-      bigint: Shape.bigint(),
-      float: Shape.float(),
-      double: Shape.double(),
-      char: Shape.char(10),
-      varchar: Shape.varchar(10),
-      array: Shape.array(Shape.string()),
-      map: Shape.map(Shape.string()),
-      struct: Shape.struct({
-        a: Shape.integer()
-      })
-    },
-    partition: {
-      keys: {
-        year: Shape.smallint(),
-        month: Shape.smallint()
-      },
-      get: ({timestamp}) => ({
-        year: timestamp.getUTCFullYear(),
-        month: timestamp.getUTCMonth()
-      })
-    },
+    type: MyTable,
   });
 
   expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.Json);
@@ -162,24 +162,14 @@ it('should default to Json Codec', () => {
   const table = new Glue.Table(stack, 'Table', {
     database,
     tableName: 'table_name',
-    columns: {
-      str: Shape.string()
-    },
-    partition: {
-      keys: {
-        year: Shape.integer()
-      },
-      get: () => ({
-        year: 1989
-      })
-    }
+    type: MyTable
   });
 
-  expect(table.codec).toEqual(Util.Codec.Json);
+  expect(table.dataType).toEqual(DataType.Json);
   expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.Json);
 });
 
-function partitionTest(type: Shape.Shape<any>): void {
+function partitionTest(type: Shape): void {
   const stack = Build.of(new core.Stack(new core.App({ autoSynth: false }), 'stack'));
   const database = stack.map(stack => new glue.Database(stack, 'Database', {
     databaseName: 'database'
@@ -187,40 +177,22 @@ function partitionTest(type: Shape.Shape<any>): void {
 
   const table = new Glue.Table(stack, 'Table', {
     database,
-    codec: Util.Codec.Json,
     tableName: 'table_name',
-    columns: {
-      str: Shape.string()
-    },
-    partition: {
-      keys: {
-        year: type
-      },
-      get: () => ({
-        year: 1989
-      })
-    }
+    type: MyTable
   });
 
   Build.resolve(table.resource);
 }
 
 it('should not throw if valid partition key type', () => {
-  partitionTest(Shape.boolean);
-  partitionTest(Shape.timestamp);
-  partitionTest(Shape.string());
-  partitionTest(Shape.integer());
-  partitionTest(Shape.smallint());
-  partitionTest(Shape.tinyint());
-  partitionTest(Shape.float());
-  partitionTest(Shape.double());
-  partitionTest(Shape.char(10));
-  partitionTest(Shape.varchar(10));
-});
-
-it('should throw if invalid partition key type', () => {
-  expect(() => partitionTest(Shape.binary())).toThrow();
-  expect(() => partitionTest(Shape.struct({key: Shape.string()}))).toThrow();
-  expect(() => partitionTest(Shape.array(Shape.string()))).toThrow();
-  expect(() => partitionTest(Shape.map(Shape.string()))).toThrow();
+  partitionTest(bool);
+  partitionTest(timestamp);
+  partitionTest(string);
+  partitionTest(integer);
+  partitionTest(smallint);
+  partitionTest(tinyint);
+  partitionTest(float);
+  partitionTest(double);
+  partitionTest(char(10));
+  partitionTest(varchar(10));
 });

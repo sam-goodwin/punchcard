@@ -1,10 +1,10 @@
-import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, DynamicShape, MapShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, Visitor as ShapeVisitor } from '@punchcard/shape';
-import { Runtime } from './runtime';
+import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, DynamicShape, IntegerShape, MapShape, NothingShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { Value } from './value';
 
 /**
  * Computes the Hash Code for a runtime value of some Shape.
  */
-export type HashCode<T extends Shape> = (value: Runtime.Of<T>) => number;
+export type HashCode<T extends Shape> = (value: Value.Of<T>) => number;
 
 // tslint:disable: no-bitwise
 
@@ -37,7 +37,10 @@ export namespace HashCode {
   }
 
   export class Visitor implements ShapeVisitor<HashCode<any>> {
-    public dynamicShape(shape: DynamicShape<any>, context: undefined): HashCode<any> {
+    public nothingShape(shape: NothingShape, context: undefined): HashCode<NothingShape> {
+      return _ => 0;
+    }
+    public dynamicShape(shape: DynamicShape<any>): HashCode<DynamicShape<any>> {
       return hashCode;
 
       function hashCode(value: any) {
@@ -67,7 +70,7 @@ export namespace HashCode {
       }
     }
 
-    public binaryShape(shape: BinaryShape, context: undefined): HashCode<any> {
+    public binaryShape(shape: BinaryShape): HashCode<BinaryShape> {
       return ((value: Buffer) => {
         let hash = 0;
         for (const byte of value) {
@@ -77,7 +80,7 @@ export namespace HashCode {
         return hash;
       }) as any;
     }
-    public arrayShape(shape: ArrayShape<any>): HashCode<any> {
+    public arrayShape(shape: ArrayShape<any>): HashCode<ArrayShape<any>> {
       const hashItem = of(shape.Items);
 
       return ((value: any[]) => {
@@ -87,10 +90,10 @@ export namespace HashCode {
         return result;
       }) as any;
     }
-    public boolShape(shape: BoolShape): HashCode<any> {
+    public boolShape(shape: BoolShape): HashCode<BoolShape> {
       return b => b ? 1 : 0;
     }
-    public classShape(shape: ClassShape<any>): HashCode<any> {
+    public classShape(shape: ClassShape<any>): HashCode<ClassShape<any>> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
           [name]: of(member.Type)
@@ -107,7 +110,7 @@ export namespace HashCode {
         return result;
       }) as any;
     }
-    public mapShape(shape: MapShape<any>): HashCode<any> {
+    public mapShape(shape: MapShape<any>): HashCode<MapShape<any>> {
       const hashValue = of(shape.Items);
 
       return ((value: any[]) => {
@@ -120,10 +123,13 @@ export namespace HashCode {
         return result;
       }) as any;
     }
-    public numberShape(shape: NumberShape): HashCode<any> {
+    public numberShape(shape: NumberShape): HashCode<NumberShape> {
       return n => n as number;
     }
-    public setShape(shape: SetShape<any>): HashCode<any> {
+    public integerShape(shape: IntegerShape): HashCode<IntegerShape> {
+      return n => n as number;
+    }
+    public setShape(shape: SetShape<any>): HashCode<SetShape<any>> {
       const hashItem = of(shape.Items);
 
       return ((v: Set<any>) => {
@@ -134,10 +140,10 @@ export namespace HashCode {
         return result;
       }) as any;
     }
-    public stringShape(shape: StringShape): HashCode<any> {
+    public stringShape(shape: StringShape): HashCode<StringShape> {
       return s => stringHashCode(s as string);
     }
-    public timestampShape(shape: TimestampShape): HashCode<any> {
+    public timestampShape(shape: TimestampShape): HashCode<TimestampShape> {
       return (((a: Date, b: Date) => a.getTime() === b.getTime())) as any;
     }
   }

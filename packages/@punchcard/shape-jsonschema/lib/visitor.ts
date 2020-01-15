@@ -1,9 +1,9 @@
-import { BinaryShape, BoolShape, ClassShape, DynamicShape, Meta, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
+import { BinaryShape, BoolShape, ClassShape, DynamicShape, IntegerShape, Meta, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { JsonSchema } from './json-schema';
 import { ObjectSchema } from './object';
-import { AnySchema, BinarySchema, BoolSchema, NumberSchema, StringSchema, TimestampSchema } from './primitive';
+import { AnySchema, BinarySchema, BoolSchema, IntegerSchema, NothingSchema, NumberSchema, StringSchema, TimestampSchema } from './primitive';
 
 import '@punchcard/shape-validation';
 
@@ -42,9 +42,22 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
     };
   }
 
+  public nothingShape(): NothingSchema {
+    return {
+      type: 'null'
+    };
+  }
+
   public numberShape(shape: NumberShape): NumberSchema {
     return {
       type: 'number',
+      ...(Meta.get(shape, ['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf']) || {})
+    } as any;
+  }
+
+  public integerShape(shape: IntegerShape): IntegerSchema {
+    return {
+      type: 'integer',
       ...(Meta.get(shape, ['minimum', 'maximum', 'exclusiveMinimum', 'exclusiveMaximum', 'multipleOf']) || {})
     } as any;
   }

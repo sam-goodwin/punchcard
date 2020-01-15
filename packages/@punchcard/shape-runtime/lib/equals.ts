@@ -1,7 +1,7 @@
-import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, DynamicShape, MapShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, Visitor as ShapeVisitor } from '@punchcard/shape';
-import { Runtime } from './runtime';
+import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, DynamicShape, IntegerShape, MapShape, NothingShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { Value } from './value';
 
-export type Equals<T extends Shape> = (a: Runtime.Of<T>, b: Runtime.Of<T>) => boolean;
+export type Equals<T extends Shape> = (a: Value.Of<T>, b: Value.Of<T>) => boolean;
 
 export namespace Equals {
   const cache = new WeakMap();
@@ -22,7 +22,10 @@ export namespace Equals {
   }
 
   export class Visitor implements ShapeVisitor<Equals<any>> {
-    public dynamicShape(shape: DynamicShape<any>, context: undefined): Equals<any> {
+    public nothingShape(shape: NothingShape, context: undefined): Equals<NothingShape> {
+      return (a, b) => a === b && a === undefined;
+    }
+    public dynamicShape(shape: DynamicShape<any>, context: undefined): Equals<DynamicShape<any>> {
       return function equals(a: any, b: any): boolean {
         const type = typeof a;
         if (type !== typeof b) {
@@ -68,7 +71,7 @@ export namespace Equals {
         }
       };
     }
-    public binaryShape(shape: BinaryShape, context: undefined): Equals<any> {
+    public binaryShape(shape: BinaryShape, context: undefined): Equals<BinaryShape> {
       return ((a: Buffer, b: Buffer) => {
         if (a.length !== b.length) {
           return false;
@@ -81,7 +84,7 @@ export namespace Equals {
         return true;
       }) as any;
     }
-    public arrayShape(shape: ArrayShape<any>): Equals<any> {
+    public arrayShape(shape: ArrayShape<any>): Equals<ArrayShape<any>> {
       const itemEq = of(shape.Items);
       return ((a: any[], b: any[]) => {
         if (a.length !== b.length) {
@@ -97,10 +100,10 @@ export namespace Equals {
         return true;
       }) as any;
     }
-    public boolShape(shape: BoolShape): Equals<any> {
+    public boolShape(shape: BoolShape): Equals<BoolShape> {
       return (a, b) => a === b;
     }
-    public classShape(shape: ClassShape<any>): Equals<any> {
+    public classShape(shape: ClassShape<any>): Equals<ClassShape<any>> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
           [name]: of(member.Type)
@@ -148,10 +151,13 @@ export namespace Equals {
         return true;
       }) as any;
     }
-    public numberShape(shape: NumberShape): Equals<any> {
+    public numberShape(shape: NumberShape): Equals<NumberShape> {
       return (a, b) => a === b;
     }
-    public setShape(shape: SetShape<any>): Equals<any> {
+    public integerShape(shape: IntegerShape): Equals<IntegerShape> {
+      return (a, b) => a === b;
+    }
+    public setShape(shape: SetShape<any>): Equals<SetShape<any>> {
       return ((a: any, b: any) => {
         if (a.size !== b.size) {
           return false;
@@ -164,10 +170,10 @@ export namespace Equals {
         return true;
       }) as any;
     }
-    public stringShape(shape: StringShape): Equals<any> {
+    public stringShape(shape: StringShape): Equals<StringShape> {
       return (a, b) => a === b;
     }
-    public timestampShape(shape: TimestampShape): Equals<any> {
+    public timestampShape(shape: TimestampShape): Equals<TimestampShape> {
       return (((a: Date, b: Date) => a.getTime() === b.getTime())) as any;
     }
   }

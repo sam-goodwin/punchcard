@@ -21,7 +21,7 @@ export class MyType {
   id = string;
 
   count = number
-    .apply(Optional());
+    .apply(Optional);
 
   nested = Nested;
   array = array(string);

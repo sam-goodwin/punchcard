@@ -1,5 +1,5 @@
 import { Description, number, string } from '@punchcard/shape';
-import { Glue } from '../lib';
+import Glue = require('../lib');
 
 import glue = require('@aws-cdk/aws-glue');
 
@@ -16,14 +16,13 @@ class Data {
   nested = Nested;
 
   count = number
-    .apply(Glue.Partition());
+    .apply(Glue.Partition);
 }
 
-const schema = Glue.table('DataTable', Data);
+const schema = Glue.schema(Data);
 
 test('Glue Schema from Shape', () => {
   expect(schema).toEqual({
-    name: 'DataTable',
     columns: {
       id: {
         name: 'id',
@@ -37,7 +36,7 @@ test('Glue Schema from Shape', () => {
           type: glue.Schema.STRING
         }]),
         comment: undefined
-      }
+      },
     },
     partitionKeys: {
       count: {
@@ -50,7 +49,6 @@ test('Glue Schema from Shape', () => {
 
   // compile-time test
   const expected: {
-    name: 'DataTable',
     columns: {
       id: {
         name: 'id',
@@ -61,7 +59,7 @@ test('Glue Schema from Shape', () => {
         name: 'nested',
         type: glue.Type;
         comment?: undefined
-      }
+      },
     },
     partitionKeys: {
       count: {

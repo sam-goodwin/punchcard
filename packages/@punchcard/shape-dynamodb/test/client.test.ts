@@ -3,8 +3,7 @@ import 'jest';
 import sinon = require('sinon');
 
 import { any, array, map, number, string } from '@punchcard/shape';
-import { DSL } from '../lib';
-import { Table } from '../lib/client';
+import { DynamoDBClient } from '../lib/client';
 
 // tslint:disable: member-access
 class Type {
@@ -15,8 +14,8 @@ class Type {
   dynamic = any;
 }
 
-const table = new Table(Type, ['key', 'count'], {
-  tableArn: 'my-table-arn'
+const table = new DynamoDBClient(Type, ['key', 'count'], {
+  tableName: 'my-table-name'
 });
 
 // leaving this here as a compile time test for now
@@ -52,7 +51,7 @@ test('getItem', async () => {
   });
 
   expect(getItem.args[0][0]).toEqual({
-    TableName: 'my-table-arn',
+    TableName: 'my-table-name',
     Key: {
       key: { S: 'value' },
       count: { N: '1' }
@@ -78,7 +77,7 @@ test('putIf', async () => {
   }, _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.a.equals('value')));
 
   expect(putItem.args[0][0]).toEqual({
-    TableName: 'my-table-arn',
+    TableName: 'my-table-name',
     Item: {
       key: { S: 'key' },
       count: { N: '1' },
@@ -112,7 +111,7 @@ test('update', async () => {
   ]);
 
   expect(updateItem.args[0][0]).toEqual({
-    TableName: 'my-table-arn',
+    TableName: 'my-table-name',
     Key: {
       key: { S: 'key' },
       count: { N: '1' },

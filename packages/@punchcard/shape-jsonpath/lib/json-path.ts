@@ -1,8 +1,8 @@
 import { Member, Visitor as ShapeVisitor } from '@punchcard/shape';
-import { Runtime } from '@punchcard/shape-runtime';
+import { Value } from '@punchcard/shape-runtime';
 import { ClassShape, ClassType } from '@punchcard/shape/lib/class';
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { BinaryShape, bool, BoolShape, DynamicShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Writer } from './writer';
 
@@ -34,11 +34,11 @@ export namespace JsonPath {
 
   export const isNode = (a: any): a is Node => a[NodeType] !== undefined;
 
-  function resolveExpression<T extends StringShape | NumberShape>(type: T, expression: Expression<T>): ExpressionNode<T> {
+  function resolveExpression<T extends StringShape | NumberShape | IntegerShape>(type: T, expression: Expression<T>): ExpressionNode<T> {
     return isNode(expression) ? expression : new Id(type, typeof expression === 'number' ? expression.toString() : `'${expression}'`) as any;
   }
 
-  export type Expression<T extends Shape> = ExpressionNode<T> | Runtime.Of<T>;
+  export type Expression<T extends Shape> = ExpressionNode<T> | Value.Of<T>;
 
   export const NodeType = Symbol.for('@punchcard/shape-jsonpath.JsonPath.NodeType');
   export const SubNodeType = Symbol.for('@punchcard/shape-jsonpath.JsonPath.SubNodeType');
@@ -198,40 +198,42 @@ export namespace JsonPath {
     return new Bool(new Bool.Not(operand));
   }
 
-  export class Number extends Object<NumberShape> {
-    public greaterThan(other: Expression<NumberShape>): Bool {
+  export class Number extends Object<Number.Shape> {
+    public greaterThan(other: Expression<Number.Shape>): Bool {
       return new Bool(new Number.Gt(this, resolveExpression(number, other)));
     }
-    public greaterThanOrEqual(other: Expression<NumberShape>): Bool {
+    public greaterThanOrEqual(other: Expression<Number.Shape>): Bool {
       return new Bool(new Number.Gte(this, resolveExpression(number, other)));
     }
-    public lessThan(other: Expression<NumberShape>): Bool {
+    public lessThan(other: Expression<Number.Shape>): Bool {
       return new Bool(new Number.Lt(this, resolveExpression(number, other)));
     }
-    public lessThanOrEqual(other: Expression<NumberShape>): Bool {
+    public lessThanOrEqual(other: Expression<Number.Shape>): Bool {
       return new Bool(new Number.Lte(this, resolveExpression(number, other)));
     }
-    public equals(other: Expression<NumberShape>): Bool {
+    public equals(other: Expression<Number.Shape>): Bool {
       return new Bool(new Object.Equals(this, resolveExpression(number, other as any)));
     }
-    public notEquals(other: Expression<NumberShape>): Bool {
+    public notEquals(other: Expression<Number.Shape>): Bool {
       return new Bool(new Object.NotEquals(this, resolveExpression(number, other as any)));
     }
   }
   export namespace Number {
-    export class Gt<T extends Shape> extends Object.Comparison<T, NumberShape> {
+    export type Shape = NumberShape | IntegerShape;
+
+    export class Gt<T extends Shape> extends Object.Comparison<T, Number.Shape> {
       protected readonly operator: '>' = '>';
       public readonly [SubNodeType] = 'greaterThan';
     }
-    export class Gte<T extends Shape> extends Object.Comparison<T, NumberShape> {
+    export class Gte<T extends Shape> extends Object.Comparison<T, Number.Shape> {
       protected readonly operator: '>=' = '>=';
       public readonly [SubNodeType] = 'greaterThanOrEqual';
     }
-    export class Lt<T extends Shape> extends Object.Comparison<T, NumberShape> {
+    export class Lt<T extends Shape> extends Object.Comparison<T, Number.Shape> {
       protected readonly operator: '<' = '<';
       public readonly [SubNodeType] = 'lessThan';
     }
-    export class Lte<T extends Shape> extends Object.Comparison<T, NumberShape> {
+    export class Lte<T extends Shape> extends Object.Comparison<T, Number.Shape> {
       protected readonly operator: '<=' = '<=';
       public readonly [SubNodeType] = 'lessThanOrEqual';
     }
@@ -385,6 +387,9 @@ export namespace JsonPath {
 }
 
 class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
+  public nothingShape(shape: NothingShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Object<NothingShape> {
+    return new JsonPath.Object(shape, expression);
+  }
   public dynamicShape(shape: DynamicShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Dynamic<any> {
     return new JsonPath.Dynamic(shape, expression);
   }
@@ -430,6 +435,9 @@ class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
         return (target as any)[prop];
       }
     });
+  }
+  public integerShape(shape: IntegerShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Number {
+    return new JsonPath.Number(shape, expression);
   }
   public numberShape(shape: NumberShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Number {
     return new JsonPath.Number(shape, expression);

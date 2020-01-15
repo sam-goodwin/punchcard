@@ -1,6 +1,6 @@
 {
   "name": "@punchcard/shape-runtime",
-  "description": "Maps Punchcard Shape to a Runtime value (JavaScript AST)",
+  "description": "Maps a Shape to its Runtime representation",
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -44,7 +44,9 @@
     "@punchcard/shape": "^0.1.0"
   },
   "peerDependencies": {
-    "@punchcard/shape": "^0.1.0"
+    "@punchcard/shape": "^0.1.0",
+    "@punchcard/shape-runtime": "^0.1.0",
+    "@punchcard/shape-validation": "^0.1.0"
   },
   "jest": {
     "testMatch": [

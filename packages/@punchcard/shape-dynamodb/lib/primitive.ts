@@ -19,9 +19,17 @@ declare module '@punchcard/shape/lib/primitive' {
     [AttributeValue.Tag]: AttributeValue.StringValue;
     [DSL.Tag]: DSL.String;
   }
+  export interface NothingShape {
+    [AttributeValue.Tag]: AttributeValue.NothingValue;
+    [DSL.Tag]: DSL.Object<NothingShape>;
+  }
   export interface NumberShape {
     [AttributeValue.Tag]: AttributeValue.NumberValue;
     [DSL.Tag]: DSL.Ord<NumberShape>;
+  }
+  export interface IntegerShape {
+    [AttributeValue.Tag]: AttributeValue.NumberValue;
+    [DSL.Tag]: DSL.Ord<IntegerShape>;
   }
   export interface TimestampShape {
     [AttributeValue.Tag]: AttributeValue.StringValue;

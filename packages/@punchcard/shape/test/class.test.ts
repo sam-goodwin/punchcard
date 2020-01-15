@@ -1,5 +1,5 @@
 import "jest";
-import { any, AnyShape, binary, ClassShape, Member, number, NumberShape, Optional, string, StringShape, unknown, UnknownShape } from "../lib";
+import { any, AnyShape, binary, ClassShape, enumeration, EnumShape, Member, number, NumberShape, Optional, string, StringShape, union, UnionShape, unknown, UnknownShape } from "../lib";
 import { array, ArrayShape, map, MapShape, set, SetShape } from "../lib/collection";
 
 // tslint:disable: member-access
@@ -14,7 +14,7 @@ class MyType {
   binaryType = binary;
   id = string;
   count = number
-    .apply(Optional());
+    .apply(Optional);
   nested = Nested;
   array = array(string);
   complexArray = array(Nested);
@@ -22,6 +22,9 @@ class MyType {
   complexSet = set(Nested);
   map = map(string);
   complexMap = map(Nested);
+
+  enum = enumeration('a', 'b');
+  union = union(string, number);
 }
 
 const MyTypeShape = ClassShape.of(MyType);
@@ -35,6 +38,14 @@ it('should cache derived shapes', () => {
 });
 
 it('should parse members', () => {
+  expect(MyTypeShape.Members.enum).toEqual(new Member(
+    'anyType', new EnumShape(['a', 'b']), {}
+  ));
+
+  expect(MyTypeShape.Members.union).toEqual(new Member(
+    'anyType', new UnionShape([string, number]), {}
+  ));
+
   expect(MyTypeShape.Members.anyType).toEqual(new Member(
     'anyType', new AnyShape(), {}
   ));

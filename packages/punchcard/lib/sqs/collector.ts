@@ -1,9 +1,10 @@
 import core = require('@aws-cdk/core');
 
+import { AnyShape, Shape } from '@punchcard/shape';
+import { Value } from '@punchcard/shape-runtime';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Function } from '../lambda/function';
-import { RuntimeShape, Shape } from '../shape';
 import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
 import { DependencyType, EventType, Stream } from '../util/stream';
@@ -23,7 +24,7 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to queue
      */
-    toSQSQueue<DataType extends Shape<T>>(scope: Build<core.Construct>, id: string, queueProps: QueueProps<DataType>, runtimeProps?: C): CollectedQueue<DataType, this>;
+    toSQSQueue<DataType extends Shape & { [Value.Tag]: T; }>(scope: Build<core.Construct>, id: string, queueProps: QueueProps<DataType>, runtimeProps?: C): CollectedQueue<DataType, this>;
   }
 }
 Stream.prototype.toSQSQueue = function(scope: Build<core.Construct>, id: string, props: QueueProps<any>): any {
@@ -35,7 +36,7 @@ Stream.prototype.toSQSQueue = function(scope: Build<core.Construct>, id: string,
  *
  * @typeparam T type of messages in the SQS Queue.
  */
-export class QueueCollector<T extends Shape<any>, S extends Stream<any, RuntimeShape<T>, any, any>> implements Collector<CollectedQueue<T, S>, S> {
+export class QueueCollector<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<CollectedQueue<T, S>, S> {
   constructor(private readonly props: QueueProps<T>) { }
 
   public collect(scope: Build<core.Construct>, id: string, stream: S): CollectedQueue<T, S> {
@@ -49,7 +50,7 @@ export class QueueCollector<T extends Shape<any>, S extends Stream<any, RuntimeS
 /**
  * Properties for creating a collected `Queue`.
  */
-export interface CollectedQueueProps<T extends Shape<any>, S extends Stream<any, RuntimeShape<T>, any, any>> extends QueueProps<T> {
+export interface CollectedQueueProps<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> extends QueueProps<T> {
   /**
    * Source of the data; a `Stream`.
    */
@@ -60,8 +61,8 @@ export interface CollectedQueueProps<T extends Shape<any>, S extends Stream<any,
  * A SQS `Queue` produced by collecting data from an `Stream`.
  * @typeparam T type of notififcations sent to, and emitted from, the SQS Queue.
  */
-export class CollectedQueue<T extends Shape<any>, S extends Stream<any, any, any, any>> extends Queue<T> {
-  public readonly sender: Function<EventType<S>, void, Dependency.Concat<Cons<DependencyType<S>, Dependency<Queue.Client<T>>>>>;
+export class CollectedQueue<T extends Shape, S extends Stream<any, any, any, any>> extends Queue<T> {
+  public readonly sender: Function<EventType<S>, AnyShape /* TODO: VoidShape? */, Dependency.Concat<Cons<DependencyType<S>, Dependency<Queue.Client<T>>>>>;
 
   constructor(scope: Build<core.Construct>, id: string, props: CollectedQueueProps<T, S>) {
     super(scope, id, props);

@@ -1,38 +1,34 @@
+import { timestamp } from '@punchcard/shape';
+
 import glue = require('@aws-cdk/aws-glue');
 import core = require('@aws-cdk/core');
 
+import { smallint } from '@punchcard/shape-glue';
 import 'jest';
 import sinon = require('sinon');
-import { Glue, S3, Shape, Util } from '../../lib';
+import { Glue, S3 } from '../../lib';
 import { Build } from '../../lib/core/build';
-const { timestamp } = Shape;
 
 const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 const database = stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'database'
 }));
 
+class MyTable {
+  timestamp = timestamp;
+
+  year = smallint;
+  month = smallint;
+}
+
 const table = new Glue.Table(stack, 'Table', {
   database,
-  codec: Util.Codec.Json,
   tableName: 'table_name',
-  columns: {
-    timestamp,
-  },
-  partition: {
-    keys: {
-      year: Shape.smallint(),
-      month: Shape.smallint()
-    },
-    get: ({timestamp}) => ({
-      year: timestamp.getUTCFullYear(),
-      month: timestamp.getUTCMonth()
-    })
-  }
+  type: MyTable
 });
 
 function makeClient(glue: AWS.Glue, mockBucket?: S3.Client) {
-  return new Glue.Table.Client(glue, 'catalogId', 'databaseName', 'tableName', table, mockBucket as any);
+  return new Glue.Table.Client(glue, 'catalogId', 'databaseName', 'tableName', mockBucket as any, table);
 }
 
 describe('getPartitions', () => {
@@ -255,7 +251,9 @@ describe('write', () => {
     const client = makeClient(mockTable as any, mockBucket as any);
     const createPartitionSpy = sinon.spy(client, 'createPartition');
     await client.sink([{
-      timestamp: new Date(Date.parse('2019-01-01T00:00:00.000Z'))
+      timestamp: new Date(Date.parse('2019-01-01T00:00:00.000Z')),
+      year: 2019,
+      month: 1
     }]);
 
     expect(mockBucket.putObject.calledOnce);

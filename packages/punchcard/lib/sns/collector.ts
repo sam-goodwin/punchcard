@@ -1,9 +1,10 @@
 import core = require('@aws-cdk/core');
 
+import { NothingShape, Shape } from '@punchcard/shape';
+import { Value } from '@punchcard/shape-runtime';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Function } from '../lambda/function';
-import { RuntimeShape, Shape } from '../shape';
 import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
 import { DependencyType, EventType, Stream } from '../util/stream';
@@ -23,7 +24,7 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to topic
      */
-    toSNSTopic<DataType extends Shape<T>>(scope: Build<core.Construct>, id: string, topicProps: TopicProps<DataType>, runtimeProps?: C): CollectedTopic<DataType, this>;
+    toSNSTopic<DataType extends Shape & { [Value.Tag]: T; }>(scope: Build<core.Construct>, id: string, topicProps: TopicProps<DataType>, runtimeProps?: C): CollectedTopic<DataType, this>;
   }
 }
 Stream.prototype.toSNSTopic = function(scope: Build<core.Construct>, id: string, props: TopicProps<any>): any {
@@ -35,7 +36,7 @@ Stream.prototype.toSNSTopic = function(scope: Build<core.Construct>, id: string,
  *
  * @typeparam T type of notififcations sent to (and emitted from) the SNS Topic.
  */
-export class TopicCollector<T extends Shape<any>, S extends Stream<any, RuntimeShape<T>, any, any>> implements Collector<CollectedTopic<T, S>, S> {
+export class TopicCollector<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<CollectedTopic<T, S>, S> {
   constructor(private readonly props: TopicProps<T>) { }
 
   public collect(scope: Build<core.Construct>, id: string, stream: S): CollectedTopic<T, S> {
@@ -49,7 +50,7 @@ export class TopicCollector<T extends Shape<any>, S extends Stream<any, RuntimeS
 /**
  * Properties for creating a collected `Topic`.
  */
-export interface CollectedTopicProps<T extends Shape<any>, S extends Stream<any, RuntimeShape<T>, any, any>> extends TopicProps<T> {
+export interface CollectedTopicProps<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> extends TopicProps<T> {
   /**
    * Source of the data; a `Stream`.
    */
@@ -60,8 +61,8 @@ export interface CollectedTopicProps<T extends Shape<any>, S extends Stream<any,
  * A SNS `Topic` produced by collecting data from an `Stream`.
  * @typeparam T type of notififcations sent to, and emitted from, the SNS Topic.
  */
-export class CollectedTopic<T extends Shape<any>, S extends Stream<any, any, any, any>> extends Topic<T> {
-  public readonly sender: Function<EventType<S>, void, Dependency.Concat<Cons<DependencyType<S>, Dependency<Topic.Client<T>>>>>;
+export class CollectedTopic<T extends Shape, S extends Stream<any, any, any, any>> extends Topic<T> {
+  public readonly sender: Function<EventType<S>, NothingShape, Dependency.Concat<Cons<DependencyType<S>, Dependency<Topic.Client<T>>>>>;
 
   constructor(scope: Build<core.Construct>, id: string, props: CollectedTopicProps<T, S>) {
     super(scope, id, props);

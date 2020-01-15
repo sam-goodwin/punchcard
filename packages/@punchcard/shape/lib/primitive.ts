@@ -30,10 +30,19 @@ export class NumberShape extends Shape {
   public readonly Kind: 'numberShape' = 'numberShape';
 }
 
+export class IntegerShape extends Shape {
+  public readonly Kind: 'integerShape' = 'integerShape';
+}
+
 export class TimestampShape extends Shape {
   public readonly Kind: 'timestampShape' = 'timestampShape';
 }
 
+export class NothingShape extends Shape {
+  public readonly Kind: 'nothingShape' = 'nothingShape';
+}
+
+export const nothing = new NothingShape();
 export const any = new AnyShape();
 export const unknown = new UnknownShape();
 
@@ -41,4 +50,6 @@ export const binary = new BinaryShape();
 export const bool = new BoolShape();
 export const string = new StringShape();
 export const number = new NumberShape();
+export const int = new IntegerShape();
+export const integer = new IntegerShape();
 export const timestamp = new TimestampShape();

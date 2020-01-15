@@ -22,10 +22,13 @@ export namespace JsonSchema {
   export type Tag = typeof Tag;
   export const Tag = Symbol.for('@punchcard/shape-json.Tag');
 
-  export type Of<T extends {[Tag]: any}> = T[Tag] extends JsonSchema ? T[Tag] : never;
-  export type OfType<T> = Of<ClassShape<ClassType<T>>>;
+  export type Of<T extends {[Tag]: any} | ClassType> =
+    T extends { [Tag]: infer J } ? J :
+    T extends ClassType ? ClassShape<T> extends { [Tag]: infer J } ? J : never :
+    never
+    ;
 
-  export function of<T extends Shape | ClassType>(item: T): JsonSchema.Of<Shape.Of<T>> {
+  export function of<T extends Shape | ClassType>(item: T): JsonSchema.Of<T> {
     return (Shape.of(item) as any).visit(new ToJsonSchemaVisitor());
   }
 }

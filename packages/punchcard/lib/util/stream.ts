@@ -1,5 +1,6 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import core = require('@aws-cdk/core');
+import { any, Shape } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Client, Clients } from '../core/client';
 import { Dependency } from '../core/dependency';
@@ -19,7 +20,7 @@ export type DependencyType<E extends Stream<any, any, any, any>> = E extends Str
  * @typeparam D runtime dependencies
  * @typeparam R runtime configuration
  */
-export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
+export abstract class Stream<E extends Shape, T, D extends any[], C extends Stream.Config> {
   constructor(
       protected readonly previous: Stream<E, any, any, C>,
       protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,
@@ -122,6 +123,8 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
       timeout: core.Duration.seconds(10)
     });
     const l = executorService.spawn(scope, id, {
+      request: any,
+      response: any,
       depends: input.depends === undefined
         ? Dependency.concat(...this.dependencies)
         : Dependency.concat(input.depends, ...this.dependencies),

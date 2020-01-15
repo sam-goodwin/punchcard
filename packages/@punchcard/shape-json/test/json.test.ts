@@ -1,16 +1,17 @@
 import 'jest';
 
-import { bool, number, Optional, Shape, string } from '@punchcard/shape';
+import { bool, nothing, number, Optional, Shape, string } from '@punchcard/shape';
 import { HashSet } from '@punchcard/shape-runtime';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
-import { Json } from '../lib/json';
+
+import json = require('../lib');
 
 // tslint:disable: member-access
 
 class Nested {
   a = string
-    .apply(Optional());
+    .apply(Optional);
 }
 
 class MyType {
@@ -38,11 +39,13 @@ class MyType {
   complexSet = set(Nested);
   map = map(string);
   complexMap = map(Nested);
+
+  null = nothing;
 }
 
-const mapper = Json.mapper(MyType);
+const mapper = json.mapper(MyType);
 
-const json = {
+const jsonRepr = {
   id: 'id',
   count: 1,
   boolean: true,
@@ -58,10 +61,11 @@ const json = {
     key: {
       a: 'complexMap'
     }
-  }
+  },
+  null: null
 };
 
-const runtime = {
+const runtimeRepr = {
   id: 'id',
   count: 1,
   boolean: true,
@@ -77,13 +81,14 @@ const runtime = {
     key: {
       a: 'complexMap'
     }
-  }
+  },
+  null: undefined
 };
 
 test('should read shape from json', () => {
-  expect(mapper.read(json)).toEqual(runtime);
+  expect(mapper.read(jsonRepr)).toEqual(runtimeRepr);
 });
 
 test('should write shape to json', () => {
-  expect(mapper.write(runtime)).toEqual(json);
+  expect(mapper.write(runtimeRepr)).toEqual(jsonRepr);
 });

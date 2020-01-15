@@ -13,8 +13,8 @@ export abstract class Shape {
 
   public abstract readonly Kind: keyof Visitor;
 
-  public visit<V extends Visitor>(visitor: V, context: Visitor.ContextType<V>): ReturnType<V[this['Kind']]> {
-    return visitor[this.Kind](this as any, context) as ReturnType<V[this['Kind']]>;
+  public visit<V extends Visitor<T, C>, T, C>(visitor: V, context: C): T {
+    return visitor[this.Kind](this as any, context) as T;
   }
 
   public apply<T extends Trait<this, any>>(trait: T): Apply<this, Trait.GetData<T>> {
@@ -23,12 +23,4 @@ export abstract class Shape {
 }
 export namespace Shape {
   export type Of<T extends Shape | ClassType> = T extends ClassType<any> ? ClassShape<T> : T;
-}
-
-export function Optional(): Trait<any, { nullable: true }> {
-  return {
-    [Trait.Data]: {
-      nullable: true
-    }
-  };
 }

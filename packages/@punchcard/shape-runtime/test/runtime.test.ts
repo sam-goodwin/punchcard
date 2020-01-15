@@ -1,8 +1,8 @@
 import 'jest';
 
-import { array, bool, map, number, Optional, set, string } from '@punchcard/shape';
+import { array, bool, map, number, Optional, set, string, } from '@punchcard/shape';
 
-import { Runtime } from '../lib';
+import { Value } from '../lib';
 
 // tslint:disable: member-access
 class Nested {
@@ -14,7 +14,7 @@ class MyType {
    * Field documentation.
    */
   id = string
-    .apply(Optional());
+    .apply(Optional);
 
   count = number;
   bool = bool;
@@ -28,11 +28,11 @@ class MyType {
   complexMap = map(Nested);
 }
 
-interface MyManufacturedInterface extends Runtime.OfType<typeof MyType> {}
+interface MyManufacturedInterface extends Value.Of<typeof MyType> {}
 
 it('should derive runtime type recursively', () => {
   // compile-time unit test
-  const actual: Runtime.OfType<typeof MyType> = null as any;
+  const actual: Value.Of<typeof MyType> = null as any;
   const expected: {
     id?: string;
     count: number;

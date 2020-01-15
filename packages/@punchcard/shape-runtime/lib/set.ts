@@ -1,14 +1,14 @@
 import { Shape } from '@punchcard/shape';
 import { Equals } from './equals';
 import { HashCode } from './hash-code';
-import { Runtime } from './runtime';
+import { Value } from './value';
 
 export class HashSet<T extends Shape> {
   public readonly [Symbol.toStringTag]: 'HashSet' = 'HashSet';
 
   public size: number = 0;
 
-  private readonly map = new Map<number, Array<Runtime.Of<T>>>();
+  private readonly map = new Map<number, Array<Value.Of<T>>>();
 
   private readonly itemEquals: Equals<T>;
   private readonly itemHashCode: HashCode<T>;
@@ -18,7 +18,7 @@ export class HashSet<T extends Shape> {
     this.itemHashCode = HashCode.of(itemType) as HashCode<T>;
   }
 
-  public add(value: Runtime.Of<T>): this {
+  public add(value: Value.Of<T>): this {
     const hashCode = this.itemHashCode(value);
     if (this.map.has(hashCode)) {
       const values = this.map.get(hashCode)!;
@@ -33,12 +33,12 @@ export class HashSet<T extends Shape> {
     return this;
   }
 
-  public has(value: Runtime.Of<T>): boolean {
+  public has(value: Value.Of<T>): boolean {
     const hashCode = this.itemHashCode(value);
     return this.map.has(hashCode) && this.map.get(hashCode)!.find(v => this.itemEquals(value, v)) !== undefined;
   }
 
-  public delete(value: Runtime.Of<T>): boolean {
+  public delete(value: Value.Of<T>): boolean {
     const hashCode = this.itemHashCode(value);
     if (this.map.has(hashCode)) {
       const arr = this.map.get(hashCode)!;
@@ -58,7 +58,7 @@ export class HashSet<T extends Shape> {
     this.size = 0;
   }
 
-  public *[Symbol.iterator](): IterableIterator<Runtime.Of<T>> {
+  public *[Symbol.iterator](): IterableIterator<Value.Of<T>> {
     for (const arr of this.map.values()) {
       for (const v of arr) {
         yield v;
@@ -66,7 +66,7 @@ export class HashSet<T extends Shape> {
     }
   }
 
-  public *entries(): IterableIterator<[Runtime.Of<T>, Runtime.Of<T>]> {
+  public *entries(): IterableIterator<[Value.Of<T>, Value.Of<T>]> {
     for (const arr of this.map.values()) {
       for (const v of arr) {
         yield [v, v];
@@ -74,15 +74,15 @@ export class HashSet<T extends Shape> {
     }
   }
 
-  public keys(): IterableIterator<Runtime.Of<T>> {
+  public keys(): IterableIterator<Value.Of<T>> {
     return this[Symbol.iterator]();
   }
 
-  public values(): IterableIterator<Runtime.Of<T>> {
+  public values(): IterableIterator<Value.Of<T>> {
     return this[Symbol.iterator]();
   }
 
-  public forEach(callbackfn: (value: Runtime.Of<T>, value2: Runtime.Of<T>, set: Set<Runtime.Of<T>>) => void, thisArg?: any): void {
+  public forEach(callbackfn: (value: Value.Of<T>, value2: Value.Of<T>, set: Set<Value.Of<T>>) => void, thisArg?: any): void {
     for (const v of this.values()) {
       if (thisArg) {
         callbackfn.call(thisArg, v, v, this);

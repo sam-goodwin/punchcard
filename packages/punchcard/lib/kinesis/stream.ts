@@ -4,52 +4,61 @@ import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
+import { Shape } from '@punchcard/shape';
+import { Mapper, Runtime } from '@punchcard/shape-runtime';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { DeliveryStream } from '../firehose/delivery-stream';
-import { BufferMapper, Json, Mapper, RuntimeShape, Shape } from '../shape';
 import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
+import { jsonBufferMapper } from '../util/json-mapper';
 import { Client } from './client';
 import { Event } from './event';
 import { Records } from './records';
 
-export interface StreamProps<S extends Shape<any>> extends kinesis.StreamProps {
+export interface StreamProps<T extends Shape> extends kinesis.StreamProps {
   /**
    * Type of data in the stream.
    */
-  shape: S;
+  shape: T;
+
+  /**
+   * Override the Mapper to provide different formats.
+   *
+   * Defaults to JSON.
+   */
+  mapper?: Mapper<T, Buffer>;
 
   /**
    * @default - uuid
    */
-  partitionBy?: (record: RuntimeShape<S>) => string;
+  partitionBy?: (record: Runtime.Of<T>) => string;
 }
 
 /**
  * A Kinesis stream.
  */
-export class Stream<S extends Shape<any>> implements Resource<kinesis.Stream> {
-  public readonly shape: S;
-  public readonly mapper: Mapper<RuntimeShape<S>, Buffer>;
-  public readonly partitionBy: (record: RuntimeShape<S>) => string;
+export class Stream<T extends Shape> implements Resource<kinesis.Stream> {
+  public readonly shape: T;
+  public readonly mapper: Mapper<Runtime.Of<T>, Buffer>;
+  public readonly partitionBy: (record: Runtime.Of<T>) => string;
   public readonly resource: Build<kinesis.Stream>;
 
-  constructor(scope: Build<core.Construct>, id: string, props: StreamProps<S>) {
+  constructor(scope: Build<core.Construct>, id: string, props: StreamProps<T>) {
     this.shape = props.shape;
     this.resource = scope.map(scope => new kinesis.Stream(scope, id, props));
-    this.mapper = BufferMapper.wrap(Json.forShape(props.shape));
+    this.mapper = props.mapper || jsonBufferMapper(props.shape);
     this.partitionBy = props.partitionBy || (_ => uuid());
   }
 
   /**
    * Create an stream for this stream to perform chainable computations (map, flatMap, filter, etc.)
    */
-  public records(): Records<RuntimeShape<S>, []> {
+  public records(): Records<Runtime.Of<T>, []> {
     const mapper = this.mapper;
-    class Root extends Records<RuntimeShape<S>, []> {
+    class Root extends Records<Runtime.Of<T>, []> {
       /**
        * Return an iterator of records parsed from the raw data in the event.
        * @param event kinesis event sent to lambda
@@ -77,7 +86,7 @@ export class Stream<S extends Shape<any>> implements Resource<kinesis.Stream> {
   } = {
     codec: Codec.Json,
     compression: Compression.Gzip
-  }): DeliveryStream<S> {
+  }): DeliveryStream<T> {
     return new DeliveryStream(scope, id, {
       stream: this,
       codec: props.codec,
@@ -88,25 +97,25 @@ export class Stream<S extends Shape<any>> implements Resource<kinesis.Stream> {
   /**
    * Read and Write access to this stream.
    */
-  public readWriteAccess(): Dependency<Stream.ReadWrite<S>> {
+  public readWriteAccess(): Dependency<Stream.ReadWrite<T>> {
     return this.dependency((stream, g) => stream.grantReadWrite(g));
   }
 
   /**
    * Read-only access to this stream.
    */
-  public readAccess(): Dependency<Stream.ReadOnly<S>> {
+  public readAccess(): Dependency<Stream.ReadOnly<T>> {
     return this.dependency((stream, g) => stream.grantRead(g));
   }
 
   /**
    * Write-only access to this stream.
    */
-  public writeAccess(): Dependency<Stream.WriteOnly<S>> {
+  public writeAccess(): Dependency<Stream.WriteOnly<T>> {
     return this.dependency((stream, g) => stream.grantWrite(g));
   }
 
-  private dependency(grant: (stream: kinesis.Stream, grantable: iam.IGrantable) => void): Dependency<Client<S>> {
+  private dependency(grant: (stream: kinesis.Stream, grantable: iam.IGrantable) => void): Dependency<Client<T>> {
     return {
       install: this.resource.map(stream => (ns, grantable) => {
         grant(stream, grantable);
@@ -122,7 +131,7 @@ export class Stream<S extends Shape<any>> implements Resource<kinesis.Stream> {
 }
 
 export namespace Stream {
-  export interface ReadOnly<S extends Shape<any>> extends Omit<Client<S>, 'putRecord' | 'putRecords' | 'sink'> {}
-  export interface WriteOnly<S extends Shape<any>> extends Omit<Client<S>, 'getRecords'> {}
-  export interface ReadWrite<S extends Shape<any>> extends Client<S> {}
+  export interface ReadOnly<S extends Shape> extends Omit<Client<S>, 'putRecord' | 'putRecords' | 'sink'> {}
+  export interface WriteOnly<S extends Shape> extends Omit<Client<S>, 'getRecords'> {}
+  export interface ReadWrite<S extends Shape> extends Client<S> {}
 }

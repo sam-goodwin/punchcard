@@ -1,6 +1,6 @@
 import 'jest';
 
-import { any, binary, number, Optional, Shape, string } from '@punchcard/shape';
+import { any, binary, nothing, number, Optional, Shape, string } from '@punchcard/shape';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema, NumberSchema } from '../lib';
@@ -8,7 +8,7 @@ import { JsonSchema, NumberSchema } from '../lib';
 // tslint:disable: member-access
 class Nested {
   a = string
-    .apply(Optional());
+    .apply(Optional);
 }
 
 class MyType {
@@ -34,23 +34,24 @@ class MyType {
   complexSet = set(Nested);
   map = map(string);
   complexMap = map(Nested)
-    .apply(Optional());
+    .apply(Optional);
 
   binary = binary
     .apply(MaxLength(1));
   any = any;
+
+  nothing = nothing;
 }
 
 const type = Shape.of(MyType);
 
 // "stamp" an interface representing the JSON schema of MyType - sick code generation!
-interface MyTypeJsonSchema extends JsonSchema.OfType<MyType> {}
+interface MyTypeJsonSchema extends JsonSchema.Of<typeof MyType> {}
 
 const schema: MyTypeJsonSchema = JsonSchema.of(MyType);
 function requireEven(schema: NumberSchema<{multipleOf: 2}>) {
   // no-op
 }
-
 requireEven(schema.properties.count);
 
 it('should render JSON schema', () => {
@@ -66,7 +67,8 @@ it('should render JSON schema', () => {
       'complexSet',
       'map',
       'binary',
-      'any'
+      'any',
+      'nothing'
     ],
     properties: {
       id: {
@@ -157,6 +159,9 @@ it('should render JSON schema', () => {
       },
       any: {
         type: {}
+      },
+      nothing: {
+        type: 'null'
       }
     }
   });
@@ -254,6 +259,9 @@ it('should render JSON schema', () => {
       },
       any: {
         type: {}
+      },
+      nothing: {
+        type: 'null'
       }
     }
   } = schema;

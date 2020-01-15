@@ -5,6 +5,7 @@ export * from './member';
 export * from './metadata';
 export * from './primitive';
 export * from './shape';
+export * from './traits';
 export * from './util';
 export * from './visitor';
 

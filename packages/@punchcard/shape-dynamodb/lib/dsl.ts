@@ -1,7 +1,7 @@
 import { ClassShape, ClassType, Member, Visitor } from '@punchcard/shape';
-import { Runtime } from '@punchcard/shape-runtime';
+import { Value } from '@punchcard/shape-runtime';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { BinaryShape, bool, BoolShape, DynamicShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
@@ -36,6 +36,9 @@ export namespace DSL {
   }
 
   export const DslVisitor: Visitor<Node, ExpressionNode<any>> = {
+    nothingShape: (shape: NothingShape, expression: ExpressionNode<any>): Object<NothingShape> => {
+      return new Object(shape, expression);
+    },
     dynamicShape: (shape: DynamicShape<any>, expression: ExpressionNode<any>): Dynamic<any> => {
       return new Dynamic(shape, expression);
     },
@@ -75,6 +78,9 @@ export namespace DSL {
         }
       });
     },
+    integerShape: (shape: IntegerShape, expression: ExpressionNode<any>): Ord<IntegerShape> => {
+      return new Ord(shape, expression);
+    },
     numberShape: (shape: NumberShape, expression: ExpressionNode<any>): Ord<NumberShape> => {
       return new Ord(shape, expression);
     },
@@ -95,7 +101,7 @@ export namespace DSL {
 export namespace DSL {
   export const isNode = (a: any): a is Node => a[NodeType] !== undefined;
 
-  export type Expression<T extends Shape> = ExpressionNode<T> | Runtime.Of<T>;
+  export type Expression<T extends Shape> = ExpressionNode<T> | Value.Of<T>;
 
   export const NodeType = Symbol.for('@punchcard/shape-dynamodb.DSL.NodeType');
   export const SubNodeType = Symbol.for('@punchcard/shape-dynamodb.DSL.SubNodeType');
@@ -436,8 +442,8 @@ export namespace DSL {
     }
   }
 
-  export class Number extends Ord<NumberShape> {
-    constructor(expression: ExpressionNode<NumberShape>, shape?: NumberShape) {
+  export class Number extends Ord<NumberShape | IntegerShape> {
+    constructor(expression: ExpressionNode<NumberShape>, shape?: NumberShape | IntegerShape) {
       super(shape || number, expression);
     }
 
@@ -450,11 +456,11 @@ export namespace DSL {
     }
   }
   export namespace Number {
-    export class Plus extends Computation<NumberShape> {
+    export class Plus extends Computation<NumberShape | IntegerShape> {
       public operator: '+' = '+';
     }
 
-    export class Minus extends Computation<NumberShape> {
+    export class Minus extends Computation<NumberShape | IntegerShape> {
       public operator: '-' = '-';
     }
   }

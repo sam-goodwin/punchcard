@@ -2,7 +2,10 @@ import AWS = require('aws-sdk');
 
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/core');
+import json = require('@punchcard/shape-json');
 
+import { any, AnyShape, Shape } from '@punchcard/shape';
+import { Mapper, Value } from '@punchcard/shape-runtime';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -13,7 +16,6 @@ import { Entrypoint, entrypoint } from '../core/entrypoint';
 import { Global } from '../core/global';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
-import { Json, Mapper, Raw, Shape } from '../shape';
 import { RUNTIME_ENV } from '../util/constants';
 
 /**
@@ -21,20 +23,20 @@ import { RUNTIME_ENV } from '../util/constants';
  */
 export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'handler'> {}
 
-export interface FunctionProps<T, U, D extends Dependency<any> | undefined = undefined> {
+export interface FunctionProps<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined> {
   /**
    * Type of the request
    *
    * @default any
    */
-  request?: Shape<T>;
+  request?: T;
 
   /**
    * Type of the response
    *
    * @default any
    */
-  response?: Shape<U>;
+  response?: U;
 
   /**
    * Dependency resources which this Function needs clients for.
@@ -56,7 +58,7 @@ export interface FunctionProps<T, U, D extends Dependency<any> | undefined = und
  * @typeparam U return type
  * @typeparam D runtime dependencies
  */
-export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Resource<lambda.Function> {
+export class Function<T extends Shape, U extends Shape, D extends Dependency<any>> implements Entrypoint, Resource<lambda.Function> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
@@ -76,15 +78,24 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
    * @param event the parsed request
    * @param clients initialized clients to dependency resources
    */
-  public readonly handle: (event: T, clients: Client<D>, context: any) => Promise<U>;
+  public readonly handle: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<Value.Of<U>>;
 
-  private readonly request?: Shape<T>;
-  private readonly response?: Shape<U>;
+  private readonly request: T;
+  private readonly response: U;
   private readonly dependencies?: D;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: T, run: Client<D>, context: any) => Promise<U>) {
+  private readonly requestMapper: json.Mapper<Shape.Of<T>>;
+  private readonly responseMapper: json.Mapper<Shape.Of<U>>;
+
+  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<Value.Of<U>>) {
     this.handle = handle;
     const entrypointId = Global.addEntrypoint(this);
+
+    this.request = props.request || any as any;
+    this.response = props.response || any as any;
+    this.dependencies = props.depends;
+    this.requestMapper = json.mapper(this.request);
+    this.responseMapper = json.mapper(this.response);
 
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
       const lambdaFunction = new lambda.Function(scope, id, {
@@ -122,23 +133,18 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
         const runtimeProperties = new Assembly(bag);
         client = await (Run.resolve(this.dependencies.bootstrap))(runtimeProperties, cache);
       }
-      const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forShape(this.request);
-      const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forShape(this.response);
+
       return (async (event: any, context: any) => {
-        const parsed = requestMapper.read(event);
+        const parsed = this.requestMapper.read(event);
         try {
-          const result = await this.handle(parsed, client, context);
-          return responseMapper.write(result);
+          const result = await this.handle(parsed as any, client, context);
+          return this.responseMapper.write(result as any);
         } catch (err) {
           console.error(err);
           throw err;
         }
       });
     });
-
-    this.request = props.request;
-    this.response = props.response;
-    this.dependencies = props.depends;
   }
 
   /**
@@ -151,14 +157,14 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
         ns.set('functionArn', fn.functionArn);
       }),
       bootstrap: Run.of(async (ns, cache) => {
-        const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forShape(this.request);
-        const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forShape(this.response);
+        const requestMapper = json.stringifyMapper(this.request);
+        const responseMapper = json.stringifyMapper(this.response);
         return new Function.Client(
           cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
           ns.get('functionArn'),
           requestMapper,
           responseMapper
-        );
+        ) as any;
       })
     };
   }
@@ -168,7 +174,7 @@ export namespace Function {
   /**
    * Client for invoking a Lambda Function
    */
-  export class Client<T, U> {
+  export class Client<T extends Shape, U extends Shape> {
     constructor(
       private readonly client: AWS.Lambda,
       private readonly functionArn: string,
@@ -179,7 +185,7 @@ export namespace Function {
      * Invoke the function synchronously and return the result.
      * @return Promise of the result
      */
-    public async invoke(request: T): Promise<U> {
+    public async invoke(request: Value.Of<T>): Promise<U> {
       const response = await this.client.invoke({
         FunctionName: this.functionArn,
         InvocationType: 'RequestResponse',
@@ -202,7 +208,7 @@ export namespace Function {
     /**
      * Invoke the function asynchronously.
      */
-    public async invokeAsync(request: T): Promise<void> {
+    public async invokeAsync(request: Value.Of<T>): Promise<void> {
       await this.client.invoke({
         FunctionName: this.functionArn,
         InvocationType: 'Event',

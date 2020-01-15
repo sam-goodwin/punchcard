@@ -23,8 +23,7 @@ rules:
     max-classes-per-file: false
 
     # We have this wrong on all classes, keep it a warning for now
-    member-access:
-        severity: warning
+    member-access: false
 
     # Rule is dumb, complains about aliases for interface definitions
     interface-over-type-literal: false
@@ -48,4 +47,4 @@ rules:
     no-unused-expression: [true, "allow-new"]
 
     # Without this rule, _blabla would be disallowed, which is necessary to silence unused variable errors.
-    variable-name: [true, "ban-keywords", "check-format", "allow-leading-underscore"]
+    variable-name: [false, "ban-keywords", "check-format", "allow-leading-underscore"]

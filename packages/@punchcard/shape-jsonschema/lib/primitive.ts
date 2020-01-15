@@ -41,9 +41,18 @@ export type NumberSchema<C extends NumberSchemaConstraints = {}> = {
   format?: string;
 } & Pick<C, 'minimum' | 'maximum' | 'exclusiveMinimum' | 'exclusiveMaximum' | 'multipleOf'>;
 
+export type IntegerSchema<C extends NumberSchemaConstraints = {}> = {
+  type: 'integer';
+  format?: string;
+} & Pick<C, 'minimum' | 'maximum' | 'exclusiveMinimum' | 'exclusiveMaximum' | 'multipleOf'>;
+
 export interface TimestampSchema {
   type: 'string';
   format: 'date-time';
+}
+
+export interface NothingSchema {
+  type: 'null'
 }
 
 declare module '@punchcard/shape/lib/primitive' {
@@ -58,6 +67,9 @@ declare module '@punchcard/shape/lib/primitive' {
   }
   interface StringShape {
     [JsonSchema.Tag]: StringSchema<Meta.GetData<this>>;
+  }
+  interface NothingShape {
+    [JsonSchema.Tag]: NothingSchema;
   }
   interface NumberShape {
     [JsonSchema.Tag]: NumberSchema<Meta.GetData<this>>;

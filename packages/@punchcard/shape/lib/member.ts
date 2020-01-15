@@ -1,7 +1,7 @@
 import {  ClassShape, ClassType } from './class';
 import { Meta, Metadata } from './metadata';
 import { Shape } from './shape';
-import { AssertIsKey, OptionalKeys, RequiredKeys } from './util';
+import { AssertIsKey, AssertIsMetadata } from './util';
 
 const isMember = Symbol.for('@punchcard/shape.Member');
 
@@ -49,5 +49,3 @@ export namespace Member {
 
     never;
 }
-
-type AssertIsMetadata<T> = T extends Metadata ? T : never;

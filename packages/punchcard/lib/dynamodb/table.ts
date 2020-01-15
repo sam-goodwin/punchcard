@@ -8,28 +8,18 @@ import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
-import { ClassType, Type, Value } from '../shape/instance';
-import { Mapper } from '../shape/mapper/mapper';
-import { RuntimeShape, Shape } from '../shape/shape';
-import { struct, StructShape } from '../shape/struct';
-import { Client } from './client';
-import { DSL, toDSL } from './expression/path';
-import { Key, keyType, KeyValue } from './key';
-import * as Dynamo from './mapper';
+import { keyType } from './key';
+
+import { ClassType, Shape } from '@punchcard/shape';
+
+import { DynamoDBClient } from '@punchcard/shape-dynamodb';
 
 /**
  * A Table's Attributes.
  */
-export type Attributes = any;
+export type Attributes = ClassType;
 
 export interface TableOverrideProps extends Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'> {}
-
-export interface TableProps<A extends Attributes, PKey extends keyof A, SKey extends keyof A | undefined = undefined> {
-  partitionKey: PKey;
-  sortKey?: SKey;
-  attributes: ClassType<A>;
-  tableProps?: Build<TableOverrideProps>;
-}
 
 /**
  * A DynamoDB Table.
@@ -38,7 +28,7 @@ export interface TableProps<A extends Attributes, PKey extends keyof A, SKey ext
  * @typeparam PKey name of partition key
  * @typeparam SKey name of sort key (if this table has one)
  */
-export class Table<A extends Attributes, PKey extends keyof A, SKey extends keyof A | undefined = undefined> implements Resource<dynamodb.Table> {
+export class Table<A extends Attributes, K extends DynamoDBClient.Key<InstanceType<A>>> implements Resource<dynamodb.Table> {
   /**
    * The DynamoDB Table Construct.
    */
@@ -47,90 +37,56 @@ export class Table<A extends Attributes, PKey extends keyof A, SKey extends keyo
   /**
    * Shape of data in the table.
    */
-  public readonly attributes: A;
+  public readonly attributes: Shape.Of<A>;
 
   /**
    * StructShape of the table's key (hash key, or hash+sort key pair).
    */
-  public readonly key: Key<A, PKey, SKey>;
+  public readonly key: K;
 
-  /**
-   * Name of the partition key field.
-   */
-  public readonly partitionKey: PKey;
+  constructor(scope: Build<core.Construct>, id: string, attributes: A, tableKey: K, props?: Build<TableOverrideProps>) {
+    this.attributes = Shape.of(attributes) as any;
 
-  /**
-   * Name of the sort key field (if this table has one).
-   */
-  public readonly sortKey: SKey;
+    const partitionKeyName: string = typeof tableKey === 'string' ? tableKey : (tableKey as any)[0];
+    const sortKeyName: string | undefined = typeof tableKey === 'string' ? undefined : (tableKey as any)[1];
 
-  /**
-   * DynamoDB DSL for expressiong condition/update expressions on the table.
-   */
-  public readonly facade: DSL<A>;
-
-  /**
-   * Mapper for reading/writing the table's records.
-   */
-  public readonly mapper: Mapper<Value<A>, AWS.DynamoDB.AttributeMap>;
-
-  /**
-   * Mapper for reading/writing the table's key.
-   */
-  public readonly keyMapper: Mapper<KeyValue<A, PKey, SKey>, AWS.DynamoDB.AttributeMap>;
-
-  constructor(scope: Build<core.Construct>, id: string, props: TableProps<A, PKey, SKey>) {
-    this.resource = (props.tableProps || Build.of({})).chain(extraTableProps => scope.map(scope => {
+    this.resource = (props || Build.of({})).chain(extraTableProps => scope.map(scope => {
       const tableProps: any = {
         ...extraTableProps,
         partitionKey: {
-          name: props.partitionKey.toString(),
-          type: keyType((props.attributes as any)[props.partitionKey].kind)
+          name: typeof tableKey === 'string' ? tableKey : (tableKey as any)[0],
+          type: keyType((this.attributes.Members as any)[partitionKeyName].kind)
         }
       };
-      if (props.sortKey) {
+      if (sortKeyName) {
         tableProps.sortKey = {
-          name: props.sortKey!.toString(),
-          type: keyType((props.attributes as any)[props.sortKey].kind)
+          name: sortKeyName,
+          type: keyType((this.attributes.Members as any)[sortKeyName].kind)
         };
       }
 
       return new dynamodb.Table(scope, id, tableProps as dynamodb.TableProps);
     }));
-
-    this.attributes = props.attributes.prototype;
-    this.partitionKey = props.partitionKey;
-    this.sortKey = props.sortKey!;
-    const key: Partial<Key<A, PKey, SKey>> = {
-      [this.partitionKey]: this.attributes[this.partitionKey],
-    } as any;
-    if (this.sortKey) {
-      (key as any)[this.sortKey] = this.attributes[this.sortKey!];
-    }
-    this.key = key as Key<A, PKey, SKey>;
-    this.mapper = new Dynamo.Mapper(struct(props.attributes));
-    this.keyMapper = new Dynamo.Mapper(struct(this.key));
-    this.facade = toDSL(props.attributes);
   }
 
   /**
    * Take a *read-only* dependency on this table.
    */
-  public readAccess(): Dependency<Table.ReadOnly<A, PKey, SKey>> {
+  public readAccess(): Dependency<Table.ReadOnly<A, K>> {
     return this.dependency((t, g) => t.grantReadData(g));
   }
 
   /**
    * Take a *read-write* dependency on this table.
    */
-  public readWriteAccess(): Dependency<Table.ReadWrite<A, PKey, SKey>> {
+  public readWriteAccess(): Dependency<Table.ReadWrite<A, K>> {
     return this.dependency((t, g) => t.grantReadWriteData(g));
   }
 
   /**
    * Take a *write-only* dependency on this table.
    */
-  public writeAccess(): Dependency<Table.WriteOnly<A, PKey, SKey>> {
+  public writeAccess(): Dependency<Table.WriteOnly<A, K>> {
     return this.dependency((t, g) => t.grantWriteData(g));
   }
 
@@ -139,21 +95,21 @@ export class Table<A extends Attributes, PKey extends keyof A, SKey extends keyo
    *
    * TODO: return type of Table.FullAccessClient?
    */
-  public fullAccess(): Dependency<Table.ReadWrite<A, PKey, SKey>> {
+  public fullAccess(): Dependency<Table.ReadWrite<A, K>> {
     return this.dependency((t, g) => t.grantFullAccess(g));
   }
 
-  private dependency(grant: (table: dynamodb.Table, grantable: iam.IGrantable) => void): Dependency<Client<A, PKey, SKey>> {
+  private dependency(grant: (table: dynamodb.Table, grantable: iam.IGrantable) => void): Dependency<DynamoDBClient<A, K>> {
     return {
       install: this.resource.map(table => (ns, grantable) => {
         ns.set('tableName', table.tableName);
         grant(table, grantable);
       }),
       bootstrap: Run.of(async (ns, cache) =>
-        new Client(
-          this,
-          ns.get('tableName'),
-          cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())) as Client<A, PKey, SKey>)
+        new DynamoDBClient(this.attributes.Class as any, this.key,  {
+          tableName: ns.get('tableName'),
+          client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())
+        }))
     };
   }
 }
@@ -164,17 +120,17 @@ export namespace Table {
    *
    * Unavailable methods: `put`, `putBatch`, `delete`, `update`.
    */
-  export interface ReadOnly<A extends Attributes, PKey extends keyof A, SKey extends keyof A | undefined> extends Omit<Client<A, PKey, SKey>, 'put' | 'putBatch' | 'delete' | 'update'> {}
+  export interface ReadOnly<A extends Attributes, K extends DynamoDBClient.Key<InstanceType<A>>> extends Omit<DynamoDBClient<A, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
 
   /**
    * A DynamoDB Table with write-only permissions.
    *
    * Unavailable methods: `batchGet`, `get`, `scan`, `query`
    */
-  export interface WriteOnly<A extends Attributes, PKey extends keyof A, SKey extends keyof A | undefined> extends Omit<Client<A, PKey, SKey>, 'batchGet' | 'get' | 'scan' | 'query'> {}
+  export interface WriteOnly<A extends Attributes, K extends DynamoDBClient.Key<InstanceType<A>>> extends Omit<DynamoDBClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
 
   /**
    * A DynamODB Table with read and write permissions.
    */
-  export interface ReadWrite<A extends Attributes, PKey extends keyof A, SKey extends keyof A | undefined> extends Client<A, PKey, SKey> {}
+  export interface ReadWrite<A extends Attributes, K extends DynamoDBClient.Key<InstanceType<A>>> extends DynamoDBClient<A, K> {}
 }

@@ -19,6 +19,7 @@ export namespace AttributeValue {
     | AttributeValue.Bool
     | AttributeValue.List<any>
     | AttributeValue.Map<any>
+    | AttributeValue.NothingValue
     | AttributeValue.NumberSet
     | AttributeValue.NumberValue
     | AttributeValue.StringSet
@@ -26,8 +27,10 @@ export namespace AttributeValue {
     | AttributeValue.Struct<any>
     ;
 
-  export type Of<T> = T extends { [Tag]: infer T2 } ? T2 : never;
-  export type OfType<T> = Of<ClassShape<ClassType<T>>>;
+  export type Of<T> =
+    T extends { [Tag]: infer T2 } ? T2 :
+    T extends ClassType ? ClassShape<T> extends { [Tag]: infer T2 } ? T2 : never :
+    never;
 
   export interface Binary {
     B: Buffer;
@@ -55,6 +58,9 @@ export namespace AttributeValue {
   }
   export interface NumberValue {
     N: string;
+  }
+  export interface NothingValue {
+    NULL: true;
   }
   export interface NumberSet {
     NS: string[];
