@@ -1,7 +1,7 @@
-import {  ClassShape, ClassType } from './class';
+import { ClassMembers} from './class';
 import { Meta, Metadata } from './metadata';
 import { Shape } from './shape';
-import { AssertIsKey, AssertIsMetadata } from './util';
+import { AssertIsMetadata } from './util';
 
 const isMember = Symbol.for('@punchcard/shape.Member');
 
@@ -35,17 +35,10 @@ export namespace Member {
   /**
    * Construct new Member type for a property on a ClassType.
    */
-  export type Of<T extends ClassType, K extends keyof InstanceType<T>> =
-    InstanceType<T>[K] extends ClassType ? Member<
-      ClassShape<InstanceType<T>[K]>,
-      AssertIsKey<ClassShape<InstanceType<T>[K]>, K>
-    > :
-
-    InstanceType<T>[K] extends Shape ? Member<
-      InstanceType<T>[K],
-      K,
-      AssertIsMetadata<Meta.GetDataOrElse<InstanceType<T>[K], {}>>
-    > :
-
-    never;
+  export type Of<T extends ClassMembers, K extends keyof T> =
+    Member<Shape.Of<T[K]>, K, AssertIsMetadata<Meta.GetDataOrElse<T[K], {}>>>;
 }
+
+export type Members<T extends ClassMembers> = {
+  [K in keyof T]: Member.Of<T, K>;
+};

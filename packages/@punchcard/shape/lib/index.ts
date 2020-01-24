@@ -1,12 +1,15 @@
 export * from './class';
 export * from './collection';
-export * from './guards';
+export * from './equals';
+export * from './hash-code';
+export * from './kind';
+export * from './mapper';
 export * from './member';
 export * from './metadata';
 export * from './primitive';
+export * from './set';
 export * from './shape';
 export * from './traits';
 export * from './util';
+export * from './value';
 export * from './visitor';
-
-import 'reflect-metadata';

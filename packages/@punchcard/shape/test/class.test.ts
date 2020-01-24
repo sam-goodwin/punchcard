@@ -1,51 +1,39 @@
 import "jest";
-import { any, AnyShape, binary, ClassShape, enumeration, EnumShape, Member, number, NumberShape, Optional, string, StringShape, union, UnionShape, unknown, UnknownShape } from "../lib";
+import { any, AnyShape, binary, ClassShape, Member, number, NumberShape, optional, Record, Shape, string, StringShape, unknown, UnknownShape } from "../lib";
 import { array, ArrayShape, map, MapShape, set, SetShape } from "../lib/collection";
 
 // tslint:disable: member-access
 
-class Nested {
-  a = string;
-}
+class Nested extends Record({
+  a: string
+}) {}
 
-class MyType {
-  anyType = any;
-  unknownType = unknown;
-  binaryType = binary;
-  id = string;
-  count = number
-    .apply(Optional);
-  nested = Nested;
-  array = array(string);
-  complexArray = array(Nested);
-  set = set(string);
-  complexSet = set(Nested);
-  map = map(string);
-  complexMap = map(Nested);
+class MyType extends Record({
+  anyType: any,
+  unknownType: unknown,
+  binaryType: binary,
+  id: string,
+  count: optional(number),
+  nested: Nested,
+  array: array(string),
+  complexArray: array(Nested),
+  set: set(string),
+  complexSet: set(Nested),
+  map: map(string),
+  complexMap: map(Nested)
+}) {}
 
-  enum = enumeration('a', 'b');
-  union = union(string, number);
-}
-
-const MyTypeShape = ClassShape.of(MyType);
+const MyTypeShape = Shape.of(MyType);
 
 it('should have Kind, "class"', () => {
   expect(MyTypeShape.Kind).toEqual('classShape');
 });
 
 it('should cache derived shapes', () => {
-  expect(ClassShape.of(MyType) === ClassShape.of(MyType)).toBe(true);
+  expect(Shape.of(MyType) === Shape.of(MyType)).toBe(true);
 });
 
 it('should parse members', () => {
-  expect(MyTypeShape.Members.enum).toEqual(new Member(
-    'anyType', new EnumShape(['a', 'b']), {}
-  ));
-
-  expect(MyTypeShape.Members.union).toEqual(new Member(
-    'anyType', new UnionShape([string, number]), {}
-  ));
-
   expect(MyTypeShape.Members.anyType).toEqual(new Member(
     'anyType', new AnyShape(), {}
   ));
@@ -64,9 +52,7 @@ it('should parse members', () => {
     }
   ));
 
-  const nestedShape = new ClassShape(Nested,  {
-    a: new Member('a', new StringShape(), {})
-  });
+  const nestedShape = new ClassShape({a: string}, {});
 
   expect(MyTypeShape.Members.nested).toEqual(new Member(
     'nested', nestedShape, {}

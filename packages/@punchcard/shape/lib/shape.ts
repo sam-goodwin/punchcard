@@ -1,5 +1,6 @@
-import { ClassShape, ClassType } from './class';
+import { ClassShape, ShapeOrRecord } from './class';
 import { Apply, Meta, Trait } from './metadata';
+import { Value } from './value';
 import { Visitor } from './visitor';
 
 // Track this issue for the emitting of generic metadata by the TS compiler.
@@ -9,6 +10,8 @@ import { Visitor } from './visitor';
  * Root of the Shape type-system.
  */
 export abstract class Shape {
+  public readonly [Value.Tag]: any;
+
   public readonly NodeType: 'shape' = 'shape';
 
   public abstract readonly Kind: keyof Visitor;
@@ -21,6 +24,10 @@ export abstract class Shape {
     return Meta.apply(this, trait[Trait.Data]);
   }
 }
+
 export namespace Shape {
-  export type Of<T extends Shape | ClassType> = T extends ClassType<any> ? ClassShape<T> : T;
+  export type Of<T extends ShapeOrRecord> =
+    T extends Shape ? T :
+    T extends { members: infer M } & (new(v: any) => infer I) ? ClassShape<M extends {} ? M : never, I> :
+    never;
 }

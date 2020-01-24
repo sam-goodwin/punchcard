@@ -30,7 +30,7 @@ export namespace Meta {
         .map(k => ({[k]: meta[k]}))
         .reduce((a, b) => ({...a, ...b}), {});
     }
-    return target[Decorated.Data];
+    return meta;
   }
 
   /**

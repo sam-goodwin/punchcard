@@ -1,7 +1,8 @@
-import { Shape } from "./shape";
+import { Shape } from './shape';
+import { Value } from './value';
 
 export abstract class DynamicShape<T extends any | unknown> extends Shape {
-  public readonly Pin?: T; // pin T to the type.
+  public readonly [Value.Tag]: T;
 
   public abstract readonly Tag: 'any' | 'unknown';
 
@@ -15,30 +16,39 @@ export class UnknownShape extends DynamicShape<any> {
 }
 
 export class BinaryShape extends Shape {
+  public readonly [Value.Tag]: Buffer;
   public readonly Kind: 'binaryShape' = 'binaryShape';
 }
 
 export class BoolShape extends Shape {
+  public readonly [Value.Tag]: boolean;
   public readonly Kind: 'boolShape' = 'boolShape';
 }
 
 export class StringShape extends Shape {
+  public readonly [Value.Tag]: string;
   public readonly Kind: 'stringShape' = 'stringShape';
 }
 
-export class NumberShape extends Shape {
+export abstract class NumericShape extends Shape {
+  public readonly [Value.Tag]: number;
+  public readonly isNumeric: true = true;
+}
+export class NumberShape extends NumericShape {
   public readonly Kind: 'numberShape' = 'numberShape';
 }
 
-export class IntegerShape extends Shape {
+export class IntegerShape extends NumericShape {
   public readonly Kind: 'integerShape' = 'integerShape';
 }
 
 export class TimestampShape extends Shape {
+  public readonly [Value.Tag]: Date;
   public readonly Kind: 'timestampShape' = 'timestampShape';
 }
 
 export class NothingShape extends Shape {
+  public readonly [Value.Tag]: undefined | null | void;
   public readonly Kind: 'nothingShape' = 'nothingShape';
 }
 

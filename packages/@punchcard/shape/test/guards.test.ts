@@ -1,5 +1,5 @@
 import 'jest';
-import { any, binary, number, Shape, string, timestamp, unknown } from '../lib';
+import { any, binary, number, Record, Shape, string, timestamp, unknown } from '../lib';
 import { array, map, set } from '../lib/collection';
 import { ShapeGuards } from '../lib/guards';
 
@@ -59,10 +59,9 @@ test('isMapShape', () => {
   expect(ShapeGuards.isMapShape(string)).toBe(false);
 });
 
-class MyClass {
-  // tslint:disable-next-line: member-access
-  key = string;
-}
+class MyClass extends Record({
+  key: string
+}) {}
 
 test('isClassShape', () => {
   expect(ShapeGuards.isClassShape(Shape.of(MyClass))).toBe(true);

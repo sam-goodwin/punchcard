@@ -1,5 +1,5 @@
 import { Member } from './member';
-import { Metadata } from './metadata';
+import { Decorated, Metadata } from './metadata';
 import { Shape } from './shape';
 
 /**
@@ -15,7 +15,7 @@ export type AssertIsMetadata<T> = T extends Metadata ? T : never;
 
 export type Compact<A> = { [K in keyof A]: A[K] };
 
-export type OptionalKeys<T extends object> = KeysOfType<T, Member<any, any, { nullable: true }>>;
+export type OptionalKeys<T extends object> = KeysOfType<T, Decorated<any, { nullable: true }>>;
 
 export type RequiredKeys<T extends object> = Exclude<keyof T, OptionalKeys<T>>;
 

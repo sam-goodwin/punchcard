@@ -1,15 +1,15 @@
 import { ShapeGuards } from './guards';
-import { Member } from './member';
-import { getClassMetadata, getPropertyMetadata, Meta, Metadata } from './metadata';
+import { Member, Members } from './member';
+import { Meta, Metadata } from './metadata';
 import { Shape } from './shape';
+import { RequiredKeys } from './util';
+import { Value } from './value';
 
-// augment shape to avoid circular dependency
-declare module './shape' {
-  namespace Shape {
-    export function of<T extends Shape | ClassType>(items: T, noCache?: boolean): Shape.Of<T>;
-  }
+export type ShapeOrRecord = Shape | { members: any; };
+
+export interface ClassMembers {
+  [member: string]: ShapeOrRecord;
 }
-Shape.of = <T extends Shape | ClassType>(items: T, noCache: boolean = false): Shape.Of<T> => (ShapeGuards.isShape(items) ? items : ClassShape.ofType(items as ClassType, noCache)) as Shape.Of<T>;
 
 /**
  * A Shape derived from a TypeScript `class`.
@@ -18,68 +18,39 @@ Shape.of = <T extends Shape | ClassType>(items: T, noCache: boolean = false): Sh
  *
  * E.g.
  * ```
- * class MyClass {
- *   key = string;
- *   nested = Nested;
- *   recursive = MyClass;
- * }
- * class Nested {
- *   count = integer;
- * }
+ * class Nested extends Record({
+ *   count: integer
+ * }) {}
+ * Nested.shape; // ClassShape<{count: IntegerShape}>
+ *
+ * class MyClass extends Record({
+ *   key: string,
+ *   nested: Nested
+ * }) {}
+ * MyClass.shape; // ClassShape<{key: StringShape, nested: ClassShape<{count: IntegerShape}>}>
  * ```
  */
-export class ClassShape<C extends ClassType> extends Shape {
-  public static ofType<C extends ClassType>(clazz: C, noCache: boolean = false): ClassShape<C> {
-    if (noCache) {
-      return make();
-    }
-    if (!cache().has(clazz)) {
-      cache().set(clazz, make());
-    }
-    return cache().get(clazz);
-
-    function make() {
-      const members: any = {};
-      const type = new (clazz)();
-      for (const [name, property] of Object.entries(type)) {
-        let shape: Shape;
-        if (ShapeGuards.isShape(property)) {
-          shape = property;
-        } else {
-          shape = Shape.of(property as any) as any;
-        }
-        members[name] = new Member(name, shape, Meta.mergeMetadataValue(
-          getPropertyMetadata(clazz.prototype, name),
-          Meta.get(shape) || {} // favor type-safe decorators
-        ));
-      }
-      return new ClassShape(clazz, members, getClassMetadata(clazz));
-    }
-  }
-
+export class ClassShape<T extends ClassMembers, V = any> extends Shape {
   public readonly Kind = 'classShape';
 
-  constructor(
-    /**
-     * This Shape's Class handle.
-     */
-    public readonly Class: C,
+  public readonly Members: Members<T> = {} as any;
 
-    /**
-     * Members of the Class.
-     */
-    public readonly Members: {
-      [property in keyof InstanceType<C>]: Member.Of<C, property>;
-    },
+  public readonly [Value.Tag]: V;
 
-    public readonly Metadata: Metadata = {}
-  ) {
+  constructor(members: T, public readonly Metadata: Metadata) {
     super();
+    for (const [name, shape] of Object.entries(members)) {
+      (this.Members as any)[name] = new Member(name, Shape.of(shape), Meta.get(shape));
+    }
   }
 
   public getMetadata(): any[] {
     return Object.values(this.Metadata);
   }
+}
+export namespace ClassShape {
+  export type Members = typeof Members;
+  export const Members = Symbol.for('@punchcard/shape.ClassShape.Members');
 }
 
 /**
@@ -87,10 +58,109 @@ export class ClassShape<C extends ClassType> extends Shape {
  *
  * ```ts
  * const a = class MyClass {}
- * typeof a; // Class<MyClass>;
+ * typeof a; // ClassType<MyClass>;
  * ```
  */
-export type ClassType<T = any> = new () => T;
+export type ClassType<T> = new () => T;
+
+/**
+ * Maps ClassMembers to a structure that represents it at runtime.
+ *
+ * It supports adding `?` to optional members and maintins developer documentation.
+ *
+ * E.g.
+ * ```ts
+ * class A extends Record({
+ *   /**
+ *    * Inline documentation.
+ *    *\/
+ *   a: string.apply(Optional)
+ * })
+ *
+ * new A({
+ *   a: 'a'; // <- the above "Inline documentation" docs are preserved, traced back to the source.
+ * }).a; // <- same here
+ * ```
+ */
+export type RecordMembers<T extends ClassMembers> = {
+  /**
+   * Write each member and their documentation to the structure.
+   * Write them all as '?' for now.
+   */
+  [M in keyof T]+?: Value.Of<T[M]>;
+} & {
+  /**
+   * Remove '?' from required properties.
+   */
+  [M in RequiredKeys<T>]-?: Value.Of<T[M]>;
+};
+
+export type RecordInstance<T extends ClassMembers> = RecordMembers<T> & {
+  /**
+   * Instance reference to this record's members.
+   *
+   * Hide it with a symbol so we don't clash with the members.
+   */
+  [ClassShape.Members]: {
+    [M in keyof T]: Shape.Of<T[M]>;
+  };
+};
+
+export type RecordType<T extends ClassMembers = any> = {
+  /**
+   * Static reference to this record's members.
+   */
+  readonly members: {
+    [M in keyof T]: Shape.Of<T[M]>;
+  };
+  /**
+   * Constructor takes values for each member.
+   */
+} & (new (values: RecordMembers<T>) => RecordInstance<T>);
+
+export function Record<T extends ClassMembers>(members: T): RecordType<T> {
+  const memberShapes: any = Object.entries(members).map(([name, member]) => ({
+    [name]: Shape.of(member)
+  })).reduce((a, b) => ({...a, ...b}));
+
+  class NewType {
+    public static readonly members = memberShapes;
+
+    public readonly [ClassShape.Members]: T = memberShapes;
+
+    constructor(values: {
+      [K in keyof T]: Value.Of<T[K]>;
+    }) {
+      for (const [name, value] of Object.entries(values)) {
+        (this as any)[name] = value;
+      }
+    }
+  }
+  return NewType as any;
+}
+
+// augment to avoid circular dependency
+declare module './shape' {
+  namespace Shape {
+    function of<T extends ShapeOrRecord>(t: T): Shape.Of<T>;
+  }
+}
+Shape.of = <T extends ShapeOrRecord>(t: T, noCache: boolean = false): Shape.Of<T> => {
+  if (ShapeGuards.isShape(t)) {
+    return t as any;
+  }
+  if (noCache) {
+    return make();
+  }
+  if (!cache().has(t)) {
+    cache().set(t, make());
+  }
+  return cache().get(t);
+
+  function make() {
+    return new ClassShape((t as any).members, Meta.get(t)) as any;
+  }
+};
 
 /**
  * Global cache of all derived classes.
