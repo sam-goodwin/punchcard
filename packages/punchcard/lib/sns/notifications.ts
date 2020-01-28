@@ -2,13 +2,13 @@ import events = require('@aws-cdk/aws-lambda-event-sources');
 
 import { Clients } from '../core/client';
 import { Stream } from '../util/stream';
-import { EventShape } from './event';
+import { Event } from './event';
 import { Topic } from './topic';
 
 /**
  * A `Stream` of Notifications from a SNS Topic.
  */
-export class Notifications<T, D extends any[]> extends Stream<EventShape, T, D, Stream.Config>  {
+export class Notifications<T, D extends any[]> extends Stream<Event, T, D, Stream.Config>  {
   constructor(public readonly topic: Topic<any>, previous: Notifications<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;

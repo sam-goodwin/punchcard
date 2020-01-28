@@ -38,9 +38,9 @@ export class ClassShape<M extends ClassMembers, I = any> extends Shape {
 
   public readonly [Value.Tag]: I;
 
-  constructor(public readonly type: ClassType<I, M>, public readonly Metadata: Metadata) {
+  constructor(public readonly Type: ClassType<I, M>, public readonly Metadata: Metadata) {
     super();
-    for (const [name, shape] of Object.entries(type[ClassShape.Members])) {
+    for (const [name, shape] of Object.entries(Type[ClassShape.Members])) {
       (this.Members as any)[name] = new Member(name, Shape.of(shape), Meta.get(shape));
     }
   }

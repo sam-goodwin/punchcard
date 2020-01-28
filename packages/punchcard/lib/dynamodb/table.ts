@@ -8,9 +8,8 @@ import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
-import { keyType } from './key';
 
-import { ClassType, Shape } from '@punchcard/shape';
+import { ClassType, Shape, ShapeGuards } from '@punchcard/shape';
 
 import { DynamoDBClient } from '@punchcard/shape-dynamodb';
 
@@ -55,13 +54,13 @@ export class Table<A extends Attributes, K extends DynamoDBClient.Key<InstanceTy
         ...extraTableProps,
         partitionKey: {
           name: typeof tableKey === 'string' ? tableKey : (tableKey as any)[0],
-          type: keyType((this.attributes.Members as any)[partitionKeyName].kind)
+          type: keyType((this.attributes.Members as any)[partitionKeyName].Shape)
         }
       };
       if (sortKeyName) {
         tableProps.sortKey = {
           name: sortKeyName,
-          type: keyType((this.attributes.Members as any)[sortKeyName].kind)
+          type: keyType((this.attributes.Members as any)[sortKeyName].Shape)
         };
       }
 
@@ -106,12 +105,23 @@ export class Table<A extends Attributes, K extends DynamoDBClient.Key<InstanceTy
         grant(table, grantable);
       }),
       bootstrap: Run.of(async (ns, cache) =>
-        new DynamoDBClient(this.attributes.Class as any, this.key,  {
+        new DynamoDBClient(this.attributes.Type as any, this.key,  {
           tableName: ns.get('tableName'),
           client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())
         }))
     };
   }
+}
+
+function keyType(shape: Shape) {
+  if (ShapeGuards.isStringShape(shape) || ShapeGuards.isTimestampShape(shape)) {
+    return dynamodb.AttributeType.STRING;
+  } else if (ShapeGuards.isBinaryShape(shape)) {
+    return dynamodb.AttributeType.STRING;
+  } else if (ShapeGuards.isNumericShape(shape)) {
+    return dynamodb.AttributeType.NUMBER;
+  }
+  throw new Error(`shape of kind ${shape.Kind} can not be used as a DynamoDB Key`);
 }
 
 export namespace Table {

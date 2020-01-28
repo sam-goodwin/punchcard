@@ -1,9 +1,9 @@
 import core = require('@aws-cdk/core');
 
+import { Shape, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Function } from '../lambda/function';
-import { RuntimeShape, Shape } from '../shape/shape';
 import { Collector } from '../util/collector';
 import { Cons } from '../util/hlist';
 import { DependencyType, EventType, Stream } from '../util/stream';
@@ -25,7 +25,7 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to s3
      */
-    toFirehoseDeliveryStream<T extends Shape<any>>(scope: Build<core.Construct>, id: string, s3DeliveryStreamProps: DeliveryStreamDirectPut<T>, runtimeProps?: C): CollectedDeliveryStream<T, this>;
+    toFirehoseDeliveryStream<T extends Shape>(scope: Build<core.Construct>, id: string, s3DeliveryStreamProps: DeliveryStreamDirectPut<T>, runtimeProps?: C): CollectedDeliveryStream<T, this>;
   }
 }
 Stream.prototype.toFirehoseDeliveryStream = function(scope: Build<core.Construct>, id: string, props: DeliveryStreamDirectPut<any>): any {
@@ -37,7 +37,7 @@ Stream.prototype.toFirehoseDeliveryStream = function(scope: Build<core.Construct
  *
  * @typeparam T type of notififcations sent to (and emitted from) the DeliveryStream.
  */
-export class DeliveryStreamCollector<T extends Shape<any>, S extends Stream<any, RuntimeShape<T>, any, any>> implements Collector<CollectedDeliveryStream<T, S>, S> {
+export class DeliveryStreamCollector<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<CollectedDeliveryStream<T, S>, S> {
   constructor(private readonly props: DeliveryStreamDirectPut<T>) { }
 
   public collect(scope: Build<core.Construct>, id: string, stream: S): CollectedDeliveryStream<T, S> {
@@ -51,7 +51,7 @@ export class DeliveryStreamCollector<T extends Shape<any>, S extends Stream<any,
 /**
  * Properties for creating a collected `DeliveryStream`.
  */
-export interface CollectedDeliveryStreamProps<T extends Shape<any>, S extends Stream<any, RuntimeShape<T>, any, any>> extends DeliveryStreamDirectPut<T> {
+export interface CollectedDeliveryStreamProps<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> extends DeliveryStreamDirectPut<T> {
   /**
    * Source of the data; an stream.
    */
@@ -62,7 +62,7 @@ export interface CollectedDeliveryStreamProps<T extends Shape<any>, S extends St
  * A `DeliveryStream` produced by collecting data from an `Stream`.
  * @typeparam T type of notififcations sent to, and emitted from, the DeliveryStream.
  */
-export class CollectedDeliveryStream<T extends Shape<any>, S extends Stream<any, any, any, any>> extends DeliveryStream<T> {
+export class CollectedDeliveryStream<T extends Shape, S extends Stream<any, any, any, any>> extends DeliveryStream<T> {
   public readonly sender: Function<EventType<S>, void, Dependency.Concat<Cons<DependencyType<S>, Dependency<Client<T>>>>>;
 
   constructor(scope: Build<core.Construct>, id: string, props: CollectedDeliveryStreamProps<T, S>) {

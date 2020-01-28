@@ -1,7 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { Shape } from '@punchcard/shape';
-import { Runtime } from '@punchcard/shape-runtime';
+import { Shape, Value } from '@punchcard/shape';
 import { sink, Sink, SinkProps } from '../util/sink';
 import { Stream } from './stream';
 
@@ -11,7 +10,7 @@ import { Stream } from './stream';
  * @typeparam T type of data in the stream.
  * @see https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
  */
-export class Client<T extends Shape> implements Sink<Runtime.Of<T>> {
+export class Client<T extends Shape> implements Sink<Value.Of<T>> {
   constructor(
     public readonly stream: Stream<T>,
     public readonly streamName: string,
@@ -23,7 +22,7 @@ export class Client<T extends Shape> implements Sink<Runtime.Of<T>> {
    *
    * @param request get records input request payload.
    */
-  public async getRecords(request: GetRecordsInput): Promise<GetRecordsOutput<Runtime.Of<T>>> {
+  public async getRecords(request: GetRecordsInput): Promise<GetRecordsOutput<Value.Of<T>>> {
     const response = await this.client.getRecords(request).promise();
 
     return {
@@ -40,7 +39,7 @@ export class Client<T extends Shape> implements Sink<Runtime.Of<T>> {
    *
    * @param input Data and optional ExplicitHashKey and SequenceNumberForOrdering
    */
-  public putRecord(input: PutRecordInput<Runtime.Of<T>>): Promise<PutRecordOutput> {
+  public putRecord(input: PutRecordInput<Value.Of<T>>): Promise<PutRecordOutput> {
     return this.client.putRecord({
       ...input,
       StreamName: this.streamName,
@@ -62,7 +61,7 @@ export class Client<T extends Shape> implements Sink<Runtime.Of<T>> {
    * @returns output containing sequence numbers of successful records and error codes of failed records.
    * @see https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
    */
-  public putRecords(request: PutRecordsInput<Runtime.Of<T>>): Promise<PutRecordsOutput> {
+  public putRecords(request: PutRecordsInput<Value.Of<T>>): Promise<PutRecordsOutput> {
     return this.client.putRecords({
       StreamName: this.streamName,
       Records: request.map(record => ({
@@ -83,13 +82,13 @@ export class Client<T extends Shape> implements Sink<Runtime.Of<T>> {
    * @param records array of records to 'sink' to the stream.
    * @param props configure retry and ordering behavior
    */
-  public async sink(records: Array<Runtime.Of<T>>, props?: SinkProps): Promise<void> {
+  public async sink(records: Array<Value.Of<T>>, props?: SinkProps): Promise<void> {
     await sink(records, async values => {
       const result = await this.putRecords(values.map(value => ({
         Data: value
       })));
 
-      const redrive: Array<Runtime.Of<T>> = [];
+      const redrive: Array<Value.Of<T>> = [];
       if (result.FailedRecordCount) {
         result.Records.forEach((r, i) => {
           if (!r.SequenceNumber) {
@@ -103,26 +102,26 @@ export class Client<T extends Shape> implements Sink<Runtime.Of<T>> {
 }
 
 export interface GetRecordsInput extends AWS.Kinesis.GetRecordsInput {}
-export interface GetRecordsOutput<T extends Shape> extends _GetRecordsOutput<T> {}
-type _GetRecordsOutput<T extends Shape> = AWS.Kinesis.GetRecordsOutput & {
+export interface GetRecordsOutput<T> extends _GetRecordsOutput<T> {}
+type _GetRecordsOutput<T> = AWS.Kinesis.GetRecordsOutput & {
   Records: Array<_Record<T>>;
 };
 
-export interface Record<T extends Shape> extends _Record<T> {}
-type _Record<T extends Shape> = Omit<AWS.Kinesis.Record, 'Data'> & {
+export interface Record<T> extends _Record<T> {}
+type _Record<T> = Omit<AWS.Kinesis.Record, 'Data'> & {
   /**
    * Deserialized record received from the Kinesis Stream.
    */
-  Data: Runtime.Of<T>;
+  Data: T;
 };
 
-export interface PutRecordInput<T extends Shape> extends _PutRecordInput<T> {}
-type _PutRecordInput<T extends Shape> = {Data: Runtime.Of<T>} & Pick<AWS.Kinesis.PutRecordInput, 'ExplicitHashKey' | 'SequenceNumberForOrdering'>;
+export interface PutRecordInput<T> extends _PutRecordInput<T> {}
+type _PutRecordInput<T> = {Data: T} & Pick<AWS.Kinesis.PutRecordInput, 'ExplicitHashKey' | 'SequenceNumberForOrdering'>;
 
 export interface PutRecordOutput extends AWS.Kinesis.PutRecordOutput {}
 
-export interface PutRecordsInputItem<T extends Shape>  extends _PutRecordsInputItem<T> {}
-type _PutRecordsInputItem<T extends Shape> = {Data: Runtime.Of<T>} & Pick<AWS.Kinesis.PutRecordsRequestEntry, 'ExplicitHashKey'>;
+export interface PutRecordsInputItem<T>  extends _PutRecordsInputItem<T> {}
+type _PutRecordsInputItem<T> = {Data: T} & Pick<AWS.Kinesis.PutRecordsRequestEntry, 'ExplicitHashKey'>;
 
-export interface PutRecordsInput<T extends Shape> extends Array<PutRecordsInputItem<T>> {}
+export interface PutRecordsInput<T> extends Array<PutRecordsInputItem<T>> {}
 export interface PutRecordsOutput extends AWS.Kinesis.PutRecordsOutput {}

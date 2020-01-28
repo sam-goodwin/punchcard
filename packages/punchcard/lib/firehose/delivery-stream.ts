@@ -2,8 +2,7 @@ import AWS = require('aws-sdk');
 
 import core = require('@aws-cdk/core');
 
-import { Shape } from '@punchcard/shape';
-import { Mapper, Runtime } from '@punchcard/shape-runtime';
+import { Mapper, Shape, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
@@ -12,22 +11,17 @@ import * as Kinesis from '../kinesis';
 import { ExecutorService } from '../lambda/executor';
 import { Function } from '../lambda/function';
 import * as S3 from '../s3';
-import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
 import { Client } from './client';
-import { FirehoseEvent, FirehoseEventShape, FirehoseResponse, FirehoseResponseShape, ValidationResult } from './event';
+import { FirehoseEvent, FirehoseResponse, ValidationResult } from './event';
 import { Objects } from './objects';
 
 import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from '@punchcard/constructs';
+import { DataType } from '@punchcard/shape-glue';
 
-export type DeliveryStreamProps<S extends Shape> = DeliveryStreamDirectPut<S> | DeliveryStreamFromKinesis<S>;
+export type DeliveryStreamProps<T extends Shape> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 
-interface BaseDeliveryStreamProps<S extends Shape> {
-  /**
-   * Codec with which to read files.
-   */
-  codec: Codec;
-
+interface BaseDeliveryStreamProps<T extends Shape> {
   /**
    * Compression of objects.
    */
@@ -43,21 +37,21 @@ interface BaseDeliveryStreamProps<S extends Shape> {
    *
    * @default no validation
    */
-  validate?: (record: Runtime.Of<S>) => ValidationResult;
+  validate?: (record: Value.Of<T>) => ValidationResult;
 }
 
-export interface DeliveryStreamDirectPut<S extends Shape> extends BaseDeliveryStreamProps<S> {
+export interface DeliveryStreamDirectPut<T extends Shape> extends BaseDeliveryStreamProps<T> {
   /**
    * Type of data in the stream.
    */
-  shape: S;
+  shape: T;
 }
 
-export interface DeliveryStreamFromKinesis<S extends Shape> extends BaseDeliveryStreamProps<S> {
+export interface DeliveryStreamFromKinesis<T extends Shape> extends BaseDeliveryStreamProps<T> {
   /**
    * Kinesis stream to persist in S3.
    */
-  stream: Kinesis.Stream<S>;
+  stream: Kinesis.Stream<T>;
 }
 
 /**
@@ -65,30 +59,30 @@ export interface DeliveryStreamFromKinesis<S extends Shape> extends BaseDelivery
  *
  * It may or may not be consuming from a Kinesis Stream.
  */
-export class DeliveryStream<S extends Shape> implements Resource<DeliveryStreamConstruct> {
-  public readonly resource: Build<DeliveryStreamConstruct>;
-  public readonly shape: S;
-
-  private readonly mapper: Mapper<Runtime.Of<S>, Buffer>;
-  private readonly codec: Codec;
-  private readonly compression: Compression;
-  public readonly processor: Validator<S>;
+export class DeliveryStream<T extends Shape> implements Resource<DeliveryStreamConstruct> {
   public readonly bucket: S3.Bucket;
+  public readonly processor: Validator<Value.Of<T>>;
+  public readonly resource: Build<DeliveryStreamConstruct>;
+  public readonly shape: T;
 
-  constructor(scope: Build<core.Construct>, id: string, props: DeliveryStreamProps<S>) {
-    const fromStream = props as DeliveryStreamFromKinesis<S>;
-    const fromType = props as DeliveryStreamDirectPut<S>;
+  public readonly compression: Compression;
+  public readonly dataType: DataType;
+  public readonly mapper: Mapper<Value.Of<T>, Buffer>;
 
+  constructor(scope: Build<core.Construct>, id: string, props: DeliveryStreamProps<T>) {
+    scope = scope.map(scope => new core.Construct(scope, id));
+
+    const fromStream = props as DeliveryStreamFromKinesis<T>;
+    const fromType = props as DeliveryStreamDirectPut<T>;
+
+    this.dataType = DataType.Json;
     if (fromStream.stream) {
       this.shape = fromStream.stream.shape;
     } else {
       this.shape = fromType.shape;
     }
-    this.mapper = props.codec.mapper(this.shape);
-    this.codec = props.codec;
+    this.mapper = this.dataType.mapper(this.shape);
     this.compression = props.compression;
-
-    scope = scope.map(scope => new core.Construct(scope, id));
 
     this.processor = new Validator(scope, 'Validator', {
       mapper: this.mapper,
@@ -120,11 +114,11 @@ export class DeliveryStream<S extends Shape> implements Resource<DeliveryStreamC
     this.bucket = new S3.Bucket(this.resource.map(ds => ds.s3Bucket!));
   }
 
-  public objects(): Objects<Runtime.Of<S>, [Dependency<S3.ReadClient>]> {
-    const codec = this.codec;
+  public objects(): Objects<Value.Of<T>, [Dependency<S3.ReadClient>]> {
+    const codec = this.dataType;
     const compression = this.compression;
     const mapper = this.mapper;
-    class Root extends Objects<Runtime.Of<S>, [Dependency<S3.ReadClient>]> {
+    class Root extends Objects<Value.Of<T>, [Dependency<S3.ReadClient>]> {
       public async *run(event: S3.Event, [bucket]: [S3.ReadClient]) {
         for (const record of event.Records) {
           // TODO: parallelism
@@ -147,7 +141,7 @@ export class DeliveryStream<S extends Shape> implements Resource<DeliveryStreamC
     });
   }
 
-  public writeAccess(): Dependency<Client<Runtime.Of<S>>> {
+  public writeAccess(): Dependency<Client<T>> {
     return {
       install: this.resource.map(ds => (ns, grantable) => {
         ns.set('deliveryStreamName', ds.deliveryStreamName);
@@ -163,8 +157,8 @@ export class DeliveryStream<S extends Shape> implements Resource<DeliveryStreamC
 /**
  * Properties for creating a Validator.
  */
-interface ValidatorProps<S extends Shape> {
-  mapper: Mapper<Runtime.Of<S>, Buffer>;
+interface ValidatorProps<S> {
+  mapper: Mapper<S, Buffer>;
 
   /**
    * Optionally provide an executorService to override the properties
@@ -179,16 +173,16 @@ interface ValidatorProps<S extends Shape> {
    *
    * @default no extra validation
    */
-  validate?: (record: Runtime.Of<S>) => ValidationResult;
+  validate?: (record: S) => ValidationResult;
 }
 
 /**
  * Validates and formats records flowing from Firehose so that they match the format of a Glue Table.
  */
-class Validator<S extends Shape> {
-  public readonly processor: Function<FirehoseEventShape, FirehoseResponseShape, Dependency.None>;
+class Validator<T> {
+  public readonly processor: Function<FirehoseEvent, FirehoseResponse, Dependency.None>;
 
-  constructor(scope: Build<core.Construct>, id: string, props: ValidatorProps<S>) {
+  constructor(scope: Build<core.Construct>, id: string, props: ValidatorProps<T>) {
     scope = scope.map(scope => new core.Construct(scope, id));
     const executorService = props.executorService || new ExecutorService({
       memorySize: 256,
@@ -196,8 +190,6 @@ class Validator<S extends Shape> {
     });
 
     this.processor = executorService.spawn(scope, 'Processor', {
-      request: FirehoseEventShape,
-      response: FirehoseResponseShape,
       depends: Dependency.none,
     }, async (event: FirehoseEvent) => {
       const response: FirehoseResponse = { records: [] };

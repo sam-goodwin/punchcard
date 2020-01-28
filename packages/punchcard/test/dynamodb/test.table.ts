@@ -1,19 +1,20 @@
+import 'jest';
+
+import AWS = require('aws-sdk');
 import sinon = require('sinon');
 
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
-import { array, binary, integer, map, Optional, set, Shape, string, timestamp } from '@punchcard/shape';
+import { array, binary, integer, map, Optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
 import { bigint, double, float, smallint, tinyint } from '@punchcard/shape-glue';
-import AWS = require('aws-sdk');
-import 'jest';
 import { Core, DynamoDB } from '../../lib';
 import { Build } from '../../lib/core/build';
 import { Run } from '../../lib/core/run';
 
-class Struct {
-  key = string;
-}
+class Struct extends Record({
+  key: string
+}) {}
 
 function keyTypeTests(makeTable: (type: Shape) => void) {
   it('should accept string partition key', () => {
@@ -44,7 +45,7 @@ function keyTypeTests(makeTable: (type: Shape) => void) {
     makeTable(binary);
   });
   it('should not accept optional', () => {
-    expect(() =>  makeTable(string.apply(Optional()))).toThrow();
+    expect(() =>  makeTable(string.apply(Optional))).toThrow();
   });
   it('should not accept array', () => {
     expect(() =>  makeTable(array(string))).toThrow();
@@ -134,9 +135,9 @@ describe('DynamoDB.Table', () => {
     keyTypeTests(type => {
       const stack = Build.of(new core.Stack(new core.App(), 'stack'));
 
-      class Data {
-        key = type;
-      }
+      class Data extends Record({
+        key: type
+      }) {}
       const table = new DynamoDB.Table(stack, 'table', Data, 'key');
       expect(table.key).toEqual({
         key: type
@@ -147,9 +148,9 @@ describe('DynamoDB.Table', () => {
   function boringTable(stack?: Build<core.Stack>) {
     stack = stack || Build.of(new core.Stack(new core.App(), 'stack'));
 
-    class Data {
-      key = string;
-    }
+    class Data extends Record({
+      key: string
+    }) {}
     return new DynamoDB.Table(stack, 'table', Data, 'key');
   }
   describe('install', () => {
@@ -163,10 +164,10 @@ describe('SortedTable', () => {
   describe('partition and sort keys must be S, N or B', () => {
     keyTypeTests(type => {
       const stack = Build.of(new core.Stack(new core.App(), 'stack'));
-      class Data {
-        key = type;
-        sortKey = type;
-      }
+      class Data extends Record({
+        key: type,
+        sortKey: type
+      }) {}
       const table = new DynamoDB.Table(stack, 'table', Data, ['key', 'sortKey']);
       expect(table.key).toEqual({
         key: type,
@@ -176,10 +177,10 @@ describe('SortedTable', () => {
     });
   });
   function boringTable(stack: Build<core.Stack>) {
-    class Data {
-      key = string;
-      sortKey = string;
-    }
+    class Data extends Record({
+      key: string,
+      sortKey: string
+    }) {}
     const table = new DynamoDB.Table(stack, 'table', Data, ['key', 'sortKey']);
     Build.resolve(table.resource);
     return table;

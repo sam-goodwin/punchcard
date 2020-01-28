@@ -1,11 +1,19 @@
 import 'jest';
-import sinon = require('sinon');
 
 import core = require('@aws-cdk/core');
-import { Firehose, Shape, Util } from '../../lib';
+import sinon = require('sinon');
+
+import { Firehose, Util } from '../../lib';
 import { Build } from '../../lib/core/build';
 
+import { Record, Shape, string } from '@punchcard/shape';
+import { DataType } from '@punchcard/shape-glue';
+
 Util.setRuntime();
+
+class Data extends Record({
+  key: string
+}) {}
 
 describe('run', () => {
   it('should get object amnd parse lines into records', async () => {
@@ -22,9 +30,9 @@ describe('run', () => {
     };
 
     const stream = new Firehose.DeliveryStream(stack, 'Queue', {
-      codec: Util.Codec.Json,
       compression: Util.Compression.None,
-      shape: Shape.struct({key: Shape.string()})
+      shape: Shape.of(Data)
+      // shape: Shape.struct({key: Shape.string()})
     });
 
     const results: Array<{key: string}> = [];
@@ -57,9 +65,8 @@ describe('run', () => {
     };
 
     const stream = new Firehose.DeliveryStream(stack, 'Queue', {
-      codec: Util.Codec.Json,
       compression: Util.Compression.None,
-      shape: Shape.struct({key: Shape.string()})
+      shape: Shape.of(Data)
     });
 
     expect((stream.objects().forEach(stack, 'id', {}, async (v) => {

@@ -88,7 +88,7 @@ export namespace Mapper {
         return {
           read: (value: any) => {
             assertHasKey('M', value);
-            return new shape.type(reader(value.M));
+            return new shape.Type(reader(value.M));
           },
           write: (value: any) => {
             return { M: writer(value) };

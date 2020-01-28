@@ -4,8 +4,9 @@ import sns = require('@aws-cdk/aws-sns');
 import snsSubs = require('@aws-cdk/aws-sns-subscriptions');
 import core = require('@aws-cdk/core');
 
-import { Shape } from '@punchcard/shape';
-import { Mapper, Runtime } from '@punchcard/shape-runtime';
+import json = require('@punchcard/shape-json');
+
+import { any, Mapper, Value } from '@punchcard/shape';
 import { Namespace } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -13,48 +14,40 @@ import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { Queue } from '../sqs/queue';
-import { jsonStringMapper } from '../util/json-mapper';
 import { Sink, sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 import { Notifications } from './notifications';
 
-type _TopicProps<T extends Shape> = {
-  /**
-   * Shape of notifications emitted from the Topic.
-   */
-  shape: T;
-
+type _TopicProps<T> = {
   /**
    * Provide a custom mapper for this queue. Defaults to a JSON one derived from the Shape.
    */
   mapper?: Mapper<T, string>
 } & sns.TopicProps;
 
-export interface TopicProps<S extends Shape> extends _TopicProps<S> {}
+export interface TopicProps<S> extends _TopicProps<S> {}
 
 /**
  * A SNS `Topic` with notifications of type, `T`.
  *
  * @typeparam T type of notifications sent and emitted from the `Topic`.
  */
-export class Topic<T extends Shape> implements Resource<sns.Topic> {
+export class Topic<T> implements Resource<sns.Topic> {
   public readonly context = {};
-  public readonly shape: T;
   public readonly mapper: Mapper<T, string>;
   public readonly resource: Build<sns.Topic>;
 
   constructor(scope: Build<core.Construct>, id: string, props: TopicProps<T>) {
     this.resource = scope.map(scope => new sns.Topic(scope, id, props));
-    this.shape = props.shape;
-    this.mapper = props.mapper || jsonStringMapper(props.shape);
+    this.mapper = props.mapper || json.stringifyMapper(any) as any;
   }
 
   /**
    * Create a `Stream` for this topic's notifications - chainable computations (map, flatMap, filter, etc.)
    */
-  public notifications(): Notifications<Runtime.Of<T>, []> {
+  public notifications(): Notifications<T, []> {
     const mapper = this.mapper;
-    class Root extends Notifications<Runtime.Of<T>, []> {
+    class Root extends Notifications<T, []> {
       /**
        * Return an iterator of records parsed from the raw data in the event.
        * @param event kinesis event sent to lambda
@@ -82,8 +75,8 @@ export class Topic<T extends Shape> implements Resource<sns.Topic> {
    * @see https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
    */
   public toSQSQueue(scope: Build<core.Construct>, id: string): Queue<T> {
-    const q = new Queue(scope, id, {
-      shape: this.shape
+    const q = new Queue<T>(scope, id, {
+      mapper: this.mapper
     });
     this.subscribeQueue(q);
     return q;
@@ -134,7 +127,7 @@ export namespace Topic {
    * @typeparam T type of messages sent to (and emitted by) the SNS `Topic.
    * @see https://aws.amazon.com/sns/faqs/ (scroll down to limits section)
    */
-  export class Client<T extends Shape> implements Sink<T> {
+  export class Client<T> implements Sink<T> {
     constructor(
       public readonly mapper: Mapper<T, string>,
       public readonly topicArn: string,
@@ -146,7 +139,7 @@ export namespace Topic {
        * @param message content to send
        * @param messageAttributes optional message attributes
        */
-    public publish(message: Runtime.Of<T>, messageAttributes?: {[key: string]: AWS.SNS.MessageAttributeValue}): Promise<PublishResponse> {
+    public publish(message: T, messageAttributes?: {[key: string]: AWS.SNS.MessageAttributeValue}): Promise<PublishResponse> {
       return this.client.publish({
         Message: this.mapper.write(message),
         MessageAttributes: messageAttributes,
@@ -160,7 +153,7 @@ export namespace Topic {
      * @param messages messages to publish
      * @param props optional properties to tune retry and concurrency behavior.
      */
-    public async sink(messages: Array<Runtime.Of<T>>, props?: SinkProps): Promise<void> {
+    public async sink(messages: T[], props?: SinkProps): Promise<void> {
       await sink(messages, async ([value]) => {
         try {
           await this.publish(value);

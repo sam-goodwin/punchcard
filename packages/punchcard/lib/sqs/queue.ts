@@ -3,7 +3,7 @@ import sqs = require('@aws-cdk/aws-sqs');
 import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 
-import { Shape } from '@punchcard/shape';
+import { any, Mapper, Shape, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
@@ -12,20 +12,14 @@ import { sink, Sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 import { Messages } from './messages';
 
-import { Mapper, Runtime } from '@punchcard/shape-runtime';
-import { jsonStringMapper } from '../util/json-mapper';
+import json = require('@punchcard/shape-json');
 
 /**
  * Props for constructing a Queue.
  *
  * It extends the standard `sqs.QueueProps` with a `mapper` instance.
  */
-export interface QueueProps<T extends Shape> extends sqs.QueueProps {
-  /**
-   * Shape of data in the SQS Queue.
-   */
-  shape: T;
-
+export interface QueueProps<T> extends sqs.QueueProps {
   /**
    * Provide a custom mapper for this queue. Defaults to a JSON one derived from the Shape.
    */
@@ -34,16 +28,14 @@ export interface QueueProps<T extends Shape> extends sqs.QueueProps {
 /**
  * Represents a SQS Queue containtining messages of type, `T`, serialized with some `Codec`.
  */
-export class Queue<T extends Shape> implements Resource<sqs.Queue> {
+export class Queue<T> implements Resource<sqs.Queue> {
   public readonly context = {};
   public readonly mapper: Mapper<T, string>;
   public readonly resource: Build<sqs.Queue>;
-  public readonly shape: T;
 
-  constructor(scope: Build<core.Construct>, id: string, props: QueueProps<T>) {
-    this.shape = props.shape;
+  constructor(scope: Build<core.Construct>, id: string, props: QueueProps<T> = {}) {
     this.resource = scope.map(scope => new sqs.Queue(scope, id, props));
-    this.mapper = props.mapper || jsonStringMapper(props.shape);
+    this.mapper = props.mapper || json.stringifyMapper(any) as Mapper<T, string>;
   }
 
   /**
@@ -51,9 +43,9 @@ export class Queue<T extends Shape> implements Resource<sqs.Queue> {
    *
    * Warning: do not consume from the Queue twice - it does not have fan-out.
    */
-  public messages(): Messages<Runtime.Of<T>, []> {
+  public messages(): Messages<T, []> {
     const mapper = this.mapper;
-    class Root extends Messages<Runtime.Of<T>, []> {
+    class Root extends Messages<T, []> {
       /**
        * Bottom of the recursive async generator - returns the records
        * parsed and validated out of the SQSEvent.
@@ -115,29 +107,29 @@ export class Queue<T extends Shape> implements Resource<sqs.Queue> {
  * Namespace for `Queue` type aliases and its `Client` implementation.
  */
 export namespace Queue {
-  export interface ConsumeAndSendClient<T extends Shape> extends Client<T> {}
-  export interface ConsumeClient<T extends Shape> extends Omit<Client<T>, 'sendMessage' | 'sendMessageBatch'> {}
-  export interface SendClient<T extends Shape> extends Omit<Client<T>, 'receiveMessage'> {}
+  export interface ConsumeAndSendClient<T> extends Client<T> {}
+  export interface ConsumeClient<T> extends Omit<Client<T>, 'sendMessage' | 'sendMessageBatch'> {}
+  export interface SendClient<T> extends Omit<Client<T>, 'receiveMessage'> {}
 
   export interface ReceiveMessageRequest extends Omit<AWS.SQS.ReceiveMessageRequest, 'QueueUrl'> {}
-  export type ReceiveMessageResult<T extends Shape> = Array<{Body: Runtime.Of<T>} & Omit<AWS.SQS.Message, 'Body'>>;
-  export type SendMessageRequest<T extends Shape> = {MessageBody: Runtime.Of<T>} & Omit<AWS.SQS.SendMessageRequest, 'QueueUrl' | 'MessageBody'>;
+  export type ReceiveMessageResult<T> = Array<{Body: T} & Omit<AWS.SQS.Message, 'Body'>>;
+  export type SendMessageRequest<T> = {MessageBody: T} & Omit<AWS.SQS.SendMessageRequest, 'QueueUrl' | 'MessageBody'>;
   export interface SendMessageResult extends AWS.SQS.SendMessageResult {}
 
-  export interface SendMessageBatchRequestEntry<T extends Shape> extends _SendMessageBatchRequestEntry<T> {}
-  type _SendMessageBatchRequestEntry<T extends Shape> = {MessageBody: Runtime.Of<T>} & Omit<AWS.SQS.SendMessageBatchRequestEntry, 'MessageBody'>;
+  export interface SendMessageBatchRequestEntry<T> extends _SendMessageBatchRequestEntry<T> {}
+  type _SendMessageBatchRequestEntry<T> = {MessageBody: T} & Omit<AWS.SQS.SendMessageBatchRequestEntry, 'MessageBody'>;
 
-  export interface SendMessageBatchRequest<T extends Shape> extends Array<SendMessageBatchRequestEntry<T>> {}
+  export interface SendMessageBatchRequest<T> extends Array<SendMessageBatchRequestEntry<T>> {}
   export interface SendMessageBatchResult extends AWS.SQS.SendMessageBatchResult {}
 
   /**
    * Runtime representation of a SQS Queue.
    */
-  export class Client<T extends Shape> implements Sink<Runtime.Of<T>> {
+  export class Client<T> implements Sink<T> {
     constructor(
       public readonly queueUrl: string,
       public readonly client: AWS.SQS,
-      public readonly mapper: Mapper<Runtime.Of<T>, string>
+      public readonly mapper: Mapper<T, string>
     ) {}
 
     /**
@@ -178,7 +170,7 @@ export namespace Queue {
       }).promise();
     }
 
-    public async sink(records: Array<Runtime.Of<T>>, props?: SinkProps): Promise<void> {
+    public async sink(records: T[], props?: SinkProps): Promise<void> {
       return sink(records, async values => {
         const batch = values.map((value, i) => ({
           Id: i.toString(10),

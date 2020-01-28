@@ -4,37 +4,35 @@ import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
-import { Shape } from '@punchcard/shape';
-import { Mapper, Runtime } from '@punchcard/shape-runtime';
+import { Mapper, Shape, Value } from '@punchcard/shape';
+import { DataType } from '@punchcard/shape-glue';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { DeliveryStream } from '../firehose/delivery-stream';
-import { Codec } from '../util/codec';
 import { Compression } from '../util/compression';
-import { jsonBufferMapper } from '../util/json-mapper';
 import { Client } from './client';
 import { Event } from './event';
 import { Records } from './records';
 
 export interface StreamProps<T extends Shape> extends kinesis.StreamProps {
   /**
-   * Type of data in the stream.
+   * Shape of data in the Stream.
    */
   shape: T;
 
   /**
-   * Override the Mapper to provide different formats.
+   * Data Type to serialize data with.
    *
-   * Defaults to JSON.
+   * @default Json
    */
-  mapper?: Mapper<T, Buffer>;
+  dateType?: DataType;
 
   /**
    * @default - uuid
    */
-  partitionBy?: (record: Runtime.Of<T>) => string;
+  partitionBy?: (record: Value.Of<T>) => string;
 }
 
 /**
@@ -42,23 +40,25 @@ export interface StreamProps<T extends Shape> extends kinesis.StreamProps {
  */
 export class Stream<T extends Shape> implements Resource<kinesis.Stream> {
   public readonly shape: T;
-  public readonly mapper: Mapper<Runtime.Of<T>, Buffer>;
-  public readonly partitionBy: (record: Runtime.Of<T>) => string;
+  public readonly dataType: DataType;
+  public readonly partitionBy: (record: Value.Of<T>) => string;
   public readonly resource: Build<kinesis.Stream>;
+  public readonly mapper: Mapper<Value.Of<T>, Buffer>;
 
   constructor(scope: Build<core.Construct>, id: string, props: StreamProps<T>) {
-    this.shape = props.shape;
     this.resource = scope.map(scope => new kinesis.Stream(scope, id, props));
-    this.mapper = props.mapper || jsonBufferMapper(props.shape);
+    this.shape = props.shape;
+    this.dataType = props.dateType || DataType.Json;
     this.partitionBy = props.partitionBy || (_ => uuid());
+    this.mapper = this.dataType.mapper(this.shape);
   }
 
   /**
    * Create an stream for this stream to perform chainable computations (map, flatMap, filter, etc.)
    */
-  public records(): Records<Runtime.Of<T>, []> {
-    const mapper = this.mapper;
-    class Root extends Records<Runtime.Of<T>, []> {
+  public records(): Records<Value.Of<T>, []> {
+    const mapper = this.dataType.mapper(this.shape);
+    class Root extends Records<Value.Of<T>, []> {
       /**
        * Return an iterator of records parsed from the raw data in the event.
        * @param event kinesis event sent to lambda
@@ -81,15 +81,13 @@ export class Stream<T extends Shape> implements Resource<kinesis.Stream> {
    * Stream -> Firehose -> S3 (minutely).
    */
   public toFirehoseDeliveryStream(scope: Build<core.Construct>, id: string, props: {
-    codec: Codec;
+    dataType?: DataType;
     compression: Compression;
   } = {
-    codec: Codec.Json,
     compression: Compression.Gzip
   }): DeliveryStream<T> {
     return new DeliveryStream(scope, id, {
       stream: this,
-      codec: props.codec,
       compression: props.compression,
     });
   }

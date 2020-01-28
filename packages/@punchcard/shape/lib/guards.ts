@@ -1,7 +1,7 @@
 import { ClassShape } from './class';
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { Member } from './member';
-import { AnyShape, BinaryShape, BoolShape, DynamicShape, NumberShape, StringShape, TimestampShape, UnknownShape } from './primitive';
+import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
 import { Shape } from './shape';
 
 export namespace ShapeGuards {
@@ -57,12 +57,26 @@ export namespace ShapeGuards {
       throw new Error(`${a} is not of type: MapShape`);
     }
   };
+  // numeric
+  export const isNumericShape = (a: any): a is NumericShape => isShape(a) && (isNumberShape(a) || isIntegerShape(a));
+  export const assertNumericShape = (a: any): asserts a is NumericShape => {
+    if (!isNumericShape(a)) {
+      throw new Error(`${a} is not of type: NumericShape`);
+    }
+  };
+  export const isIntegerShape = (a: any): a is IntegerShape => isShape(a) && a.Kind === 'integerShape';
+  export const assertIntegerShape = (a: any): asserts a is IntegerShape => {
+    if (!isIntegerShape(a)) {
+      throw new Error(`${a} is not of type: IntegerShape`);
+    }
+  };
   export const isNumberShape = (a: any): a is NumberShape => isShape(a) && a.Kind === 'numberShape';
   export const assertNumberShape = (a: any): asserts a is NumberShape => {
     if (!isNumberShape(a)) {
       throw new Error(`${a} is not of type: NumberShape`);
     }
   };
+
   export const isSetShape = (a: any): a is SetShape<any> => a.Kind === 'setShape';
   export const assertSetShape = (a: any): asserts a is SetShape<any> => {
     if (!isSetShape(a)) {

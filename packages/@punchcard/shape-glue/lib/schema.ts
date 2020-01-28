@@ -15,10 +15,6 @@ export const Partition: {
   }
 };
 
-export interface Columns {
-  [name: string]: Column<any, any>;
-}
-
 type GetComment<M extends Member> =
   M extends Member<any, any, { description: infer D }> ?
     D extends string ?
@@ -37,38 +33,24 @@ type Column<K extends keyof T['Members'], T extends ClassShape<any>> = {
   comment: GetComment<T['Members'][K]>;
 };
 
-export type PartitionKeys<T extends ClassType> = KeysOfType<InstanceType<T>, Decorated<any, { isPartition: true; }>>;
+export type PartitionKeys<T extends ClassType> = KeysOfType<T[ClassShape.Members], Decorated<any, { isPartition: true; }>>;
 
-export type Schema<T extends ClassType> = {
-  readonly columns: {
-    [K in Exclude<keyof InstanceType<T>, PartitionKeys<T>>]: Column<K, ClassShape<T>>;
-  }
-  readonly partitionKeys: {
-    [K in PartitionKeys<T>]: Column<K, ClassShape<T>>;
-  }
+export type Columns<T extends ClassType> = {
+  readonly [K in keyof T[ClassShape.Members]]: Column<K, Shape.Of<T>>;
 };
 
-export function schema<T extends ClassType>(type: T): Schema<T> {
+export function schema<T extends ClassType>(type: T): Columns<T> {
   const shape = Shape.of(type);
   const columns: { [name: string]: Column<any, any>; } = {};
-  const partitionKeys: { [name: string]: Column<any, any>; } = {};
   for (const member of Object.values(shape.Members)) {
-    const type = member.Type.visit(SchemaVisitor.instance);
-    const col = {
+    const type = member.Shape.visit(SchemaVisitor.instance);
+    columns[member.Name] = {
       name: member.Name,
       type,
       comment: getComment(member)
     };
-    if (member.Metadata.isPartition === true) {
-      partitionKeys[member.Name] = col;
-    } else {
-      columns[member.Name] = col;
-    }
   }
-  return {
-    columns,
-    partitionKeys
-  } as any;
+  return columns as any;
 }
 
 export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
@@ -93,7 +75,7 @@ export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
     return glue.Schema.struct(Object.values(shape.Members)
       .map(member => ({
         name: member.Name,
-        type: member.Type.visit(this, null)
+        type: member.Shape.visit(this, null)
       })));
   }
   public mapShape(shape: MapShape<any>): glue.Type {

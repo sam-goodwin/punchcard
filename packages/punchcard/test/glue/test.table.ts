@@ -3,36 +3,33 @@ import core = require('@aws-cdk/core');
 
 import 'jest';
 
-import { array, binary, bool, integer, map, Shape, string, timestamp } from '@punchcard/shape';
+import { array, binary, bool, integer, map, Record, Shape, string, timestamp } from '@punchcard/shape';
 import { Glue, } from '../../lib';
 import { Build } from '../../lib/core/build';
 // tslint:disable-next-line: ordered-imports
 import { bigint, tinyint, smallint, char, varchar, float, double, Partition, JsonDataType, DataType } from '@punchcard/shape-glue';
 
-class Struct {
-  a = integer;
-}
+class Struct extends Record({
+  a: integer
+}) {}
 
-class MyTable {
-  boolean = bool;
-  binary = binary;
-  str = string;
-  timestamp = timestamp;
-  int = integer;
-  smallint = smallint;
-  tinyint = tinyint;
-  bigint = bigint;
-  float = float;
-  double = double;
-  char = char(10);
-  varchar = varchar(10);
-  array = array(string);
-  map = map(string);
-  struct = Struct;
-
-  year = smallint.apply(Partition);
-  month = smallint.apply(Partition);
-}
+class MyTable extends Record({
+  boolean: bool,
+  binary,
+  str: string,
+  timestamp,
+  int: integer,
+  smallint,
+  tinyint,
+  bigint,
+  float,
+  double,
+  char: char(10),
+  varchar: varchar(10),
+  array: array(string),
+  map: map(string),
+  struct: Struct,
+}) {}
 
 it('should map columns and partition keys to their respective types', () => {
   const stack = Build.of(new core.Stack(new core.App({ autoSynth: false}), 'stack'));
@@ -43,7 +40,14 @@ it('should map columns and partition keys to their respective types', () => {
   const table = new Glue.Table(stack, 'Table', {
     database,
     tableName: 'table_name',
-    type: MyTable,
+    columns: MyTable,
+    partition: {
+      keys: Glue.Partition.Monthly,
+      get: v => new Glue.Partition.Monthly({
+        year: v.timestamp.getUTCFullYear(),
+        month: v.timestamp.getUTCMonth()
+      })
+    }
   });
 
   expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.Json);
@@ -162,7 +166,14 @@ it('should default to Json Codec', () => {
   const table = new Glue.Table(stack, 'Table', {
     database,
     tableName: 'table_name',
-    type: MyTable
+    columns: MyTable,
+    partition: {
+      keys: Glue.Partition.Monthly,
+      get: v => new Glue.Partition.Monthly({
+        year: v.timestamp.getUTCFullYear(),
+        month: v.timestamp.getUTCMonth()
+      })
+    }
   });
 
   expect(table.dataType).toEqual(DataType.Json);
@@ -178,7 +189,14 @@ function partitionTest(type: Shape): void {
   const table = new Glue.Table(stack, 'Table', {
     database,
     tableName: 'table_name',
-    type: MyTable
+    columns: MyTable,
+    partition: {
+      keys: Glue.Partition.Monthly,
+      get: v => new Glue.Partition.Monthly({
+        year: v.timestamp.getUTCFullYear(),
+        month: v.timestamp.getUTCMonth()
+      })
+    }
   });
 
   Build.resolve(table.resource);

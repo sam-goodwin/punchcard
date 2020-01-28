@@ -1,11 +1,12 @@
-import { timestamp } from '@punchcard/shape';
+import 'jest';
+import sinon = require('sinon');
+
+import { Record, timestamp } from '@punchcard/shape';
+import { smallint } from '@punchcard/shape-glue';
 
 import glue = require('@aws-cdk/aws-glue');
 import core = require('@aws-cdk/core');
 
-import { smallint } from '@punchcard/shape-glue';
-import 'jest';
-import sinon = require('sinon');
 import { Glue, S3 } from '../../lib';
 import { Build } from '../../lib/core/build';
 
@@ -14,17 +15,21 @@ const database = stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'database'
 }));
 
-class MyTable {
-  timestamp = timestamp;
-
-  year = smallint;
-  month = smallint;
-}
+class MyTable extends Record({
+  timestamp
+}) {}
 
 const table = new Glue.Table(stack, 'Table', {
   database,
   tableName: 'table_name',
-  type: MyTable
+  columns: MyTable,
+  partition: {
+    keys: Glue.Partition.Monthly,
+    get: value => new Glue.Partition.Monthly({
+      year: value.timestamp.getUTCFullYear(),
+      month: value.timestamp.getUTCMonth()
+    })
+  }
 });
 
 function makeClient(glue: AWS.Glue, mockBucket?: S3.Client) {
@@ -119,10 +124,10 @@ it('should createPartition', async () => {
   await client.createPartition({
     Location: 's3://bucket/location',
     LastAccessTime: new Date(0),
-    Partition: {
+    Partition: new Glue.Partition.Monthly({
       year: 2019,
       month: 1
-    }
+    })
   });
 
   expect(mock.createPartition.calledOnce).toBe(true);
@@ -159,10 +164,10 @@ it('should batchCreatePartition', async () => {
   await client.batchCreatePartition([{
     Location: 's3://bucket/location',
     LastAccessTime: new Date(0),
-    Partition: {
+    Partition: new Glue.Partition.Monthly({
       year: 2019,
       month: 1
-    }
+    })
   }]);
 
   expect(mock.batchCreatePartition.calledOnce).toBe(true);
@@ -197,17 +202,17 @@ it('should updatePartition', async () => {
   const client = makeClient(mock as any);
 
   await client.updatePartition({
-    Partition: {
+    Partition: new Glue.Partition.Monthly({
       year: 2019,
       month: 1
-    },
+    }),
     UpdatedPartition: {
       Location: 's3://bucket/location',
       LastAccessTime: new Date(0),
-      Partition: {
+      Partition: new Glue.Partition.Monthly({
         year: 2019,
         month: 2
-      },
+      }),
     }
   });
 
@@ -250,11 +255,9 @@ describe('write', () => {
     };
     const client = makeClient(mockTable as any, mockBucket as any);
     const createPartitionSpy = sinon.spy(client, 'createPartition');
-    await client.sink([{
-      timestamp: new Date(Date.parse('2019-01-01T00:00:00.000Z')),
-      year: 2019,
-      month: 1
-    }]);
+    await client.sink([new MyTable({
+      timestamp: new Date(Date.parse('2019-01-01T00:00:00.000Z'))
+    })]);
 
     expect(mockBucket.putObject.calledOnce);
     expect(mockBucket.putObject.args[0][0]).toEqual({

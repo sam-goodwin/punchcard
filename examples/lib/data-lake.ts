@@ -5,20 +5,23 @@ import { Core, Lambda } from 'punchcard';
 
 import * as Analytics from '@punchcard/data-lake';
 
-import { integer, string, timestamp, char, array, } from 'punchcard/lib/shape';
+import { Record, string, array, integer, timestamp, Shape } from '@punchcard/shape';
+import { char } from '@punchcard/shape-glue';
 
 export const app = new Core.App();
 const stack = app.root.map(app => new core.Stack(app, 'data-lake'));
 
+class DataPoints extends Record({
+  key: string,
+  value: char(10),
+  data_points: array(integer),
+  timestamp
+}) {}
+
 // create a schema to describe our data
 const dataPoints = new Analytics.Schema({
   schemaName: 'data_points',
-  shape: {
-    key: string(),
-    value: char(10),
-    data_points: array(integer()),
-    timestamp
-  },
+  shape: Shape.of(DataPoints),
   timestampField: 'timestamp'
 });
 

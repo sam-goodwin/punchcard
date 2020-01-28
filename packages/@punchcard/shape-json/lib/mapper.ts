@@ -101,7 +101,7 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any, any>> {
         for (const [name, codec] of Object.entries(fields)) {
           res[name] = codec.read(value[name]);
         }
-        return new shape.type(res);
+        return new shape.Type(res);
       },
       write: (value: any) => {
         const res: any = {};

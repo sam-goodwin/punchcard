@@ -1,10 +1,8 @@
-import { Shape, TimestampShape } from '@punchcard/shape';
+import { Mapper, Shape, TimestampShape, Value } from '@punchcard/shape';
 import json = require('@punchcard/shape-json');
-import runtime = require('@punchcard/shape-runtime');
 import moment = require('moment');
 
 import { DataFormat } from '@aws-cdk/aws-glue';
-import { Mapper, Value } from '@punchcard/shape-runtime';
 import { DataType } from './data-type';
 
 /**
@@ -30,7 +28,7 @@ export class JsonDataType implements DataType {
 
   public readonly extension: 'json' = 'json';
 
-  public mapper<T extends Shape>(type: T): runtime.Mapper<Value.Of<T>, Buffer> {
+  public mapper<T extends Shape>(type: T): Mapper<Value.Of<T>, Buffer> {
     const jsonMapper = json.mapper(type, {
       visitor: JsonMapperVisitor.instance
     });

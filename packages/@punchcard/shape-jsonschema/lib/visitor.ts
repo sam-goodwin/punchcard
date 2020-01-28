@@ -90,14 +90,14 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
   public classShape(shape: ClassShape<any>): ObjectSchema<any> {
     const required = Object.values(shape.Members)
       .map((value) => {
-        return value.Metadata.nullable === true ? [] : [value.Name];
+        return (value.Metadata as any).nullable === true ? [] : [value.Name];
       })
       .reduce((a, b) => a.concat(b), []);
 
     const schema: any = {
       type: 'object',
       properties: Object.entries(shape.Members)
-        .map(([name, member]) => ({ [name]: (member as any).Type.visit(this) }))
+        .map(([name, member]) => ({ [name]: (member as any).Shape.visit(this) }))
         .reduce((a, b) => ({...a, ...b}), {})
     };
     if (required.length > 0) {

@@ -7,6 +7,8 @@ import { Core, SQS, Util } from '../../lib';
 import { Build } from '../../lib/core/build';
 import { Run } from '../../lib/core/run';
 
+import json = require('@punchcard/shape-json');
+
 Util.setRuntime();
 
 describe('run', () => {
@@ -14,7 +16,7 @@ describe('run', () => {
     const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      shape: string
+      mapper: json.mapper(string)
     });
 
     const results: string[] = [];
@@ -23,16 +25,25 @@ describe('run', () => {
       return Promise.resolve(v);
     }).handle({
       Records: [{
-        body: JSON.stringify('string')
-      } as any]}, [{}], {}));
+        attributes: {},
+        awsRegion: 'awsRegion',
+        body: JSON.stringify('string'),
+        eventSource: 'eventSource',
+        eventSourceARN: 'eventSourceARN',
+        md5OfBody: 'md5OfBody',
+        messageAttributes: {},
+        messageId: 'messageId',
+        receiptHandle: 'receiptHandle',
+      }],
+     }, [{}], {}));
 
     expect(results).toEqual(['string']);
   });
   it('should not require a depends property', async () => {
     const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
-    const queue = new SQS.Queue(stack, 'Queue', {
-      shape: string
+    const queue = new SQS.Queue<string>(stack, 'Queue', {
+      mapper: json.mapper(string)
     });
 
     const results: string[] = [];
@@ -50,7 +61,7 @@ describe('run', () => {
     const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      shape: string
+      mapper: json.mapper(string)
     });
 
     const d1: Core.Dependency<string> = {
@@ -88,7 +99,7 @@ describe('run', () => {
     const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      shape: string
+      mapper: json.mapper(string)
     });
 
     const d1: Core.Dependency<string> = {
@@ -123,7 +134,7 @@ describe('run', () => {
     const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
     const queue = new SQS.Queue(stack, 'Queue', {
-      shape: string
+      mapper: json.mapper(string)
     });
 
     const d1: Core.Dependency<string> = {

@@ -1,38 +1,40 @@
-import { InferJsonPathType, Shape } from '../shape';
+import { Shape } from '@punchcard/shape';
 import { StatusCode } from './request-response';
 
-export class Model<T extends Shape<any>> {
+import { JsonPath } from '@punchcard/shape-jsonpath';
+
+export class Model<T extends Shape> {
   constructor(
     private readonly name: string,
     private readonly type: T) {}
 }
 
-export class Response<M extends Shape<any>, Output extends Shape<V>, V> {
+export class Response<M extends Shape, Output extends Shape> {
   constructor(props: {
     model: Model<M>;
     output: Output;
-    mapping: (output: InferJsonPathType<Output>) => M;
+    mapping: (output: JsonPath.Of<Output>) => M;
   }) {
     // do nothing
   }
 }
 
-export class BodyRequest<M extends Shape<any>, Request> {
+export class BodyRequest<M extends Shape, Request> {
   constructor(props: {
     model: Model<M>;
-    mapping: (input: InferJsonPathType<M>) => Request;
+    mapping: (input: JsonPath.Of<M>) => Request;
   }) {
     // do nothing
   }
 }
 
-export class BodyMethod<T extends Shape<any>, Request extends Shape<any>> {
+export class BodyMethod<T extends Shape, Request extends Shape> {
   constructor(props: {
     request: BodyRequest<T, Request>,
     response: {
-      [StatusCode.Ok]: Response<any, any, any>;
+      [StatusCode.Ok]: Response<any, any>;
     } & {
-      [Code in StatusCode]?: Response<any, any, any>;
+      [Code in StatusCode]?: Response<any, any>;
     }
   }) {
     // do nothing

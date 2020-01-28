@@ -1,7 +1,6 @@
 import core = require('@aws-cdk/core');
 
-import { AnyShape, Shape } from '@punchcard/shape';
-import { Value } from '@punchcard/shape-runtime';
+import { AnyShape, Shape, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Function } from '../lambda/function';

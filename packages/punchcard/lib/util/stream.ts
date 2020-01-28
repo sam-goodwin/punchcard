@@ -1,12 +1,14 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import core = require('@aws-cdk/core');
-import { any, Shape } from '@punchcard/shape';
+import { any } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Client, Clients } from '../core/client';
 import { Dependency } from '../core/dependency';
 import * as Lambda from '../lambda';
 import { Collector } from './collector';
 import { Cons } from './hlist';
+
+import json = require('@punchcard/shape-json');
 
 export type EventType<E extends Stream<any, any, any, any>> = E extends Stream<infer E, any, any, any> ? E : never;
 export type DataType<E extends Stream<any, any, any, any>> = E extends Stream<any, infer I, any, any> ? I : never;
@@ -20,7 +22,7 @@ export type DependencyType<E extends Stream<any, any, any, any>> = E extends Str
  * @typeparam D runtime dependencies
  * @typeparam R runtime configuration
  */
-export abstract class Stream<E extends Shape, T, D extends any[], C extends Stream.Config> {
+export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
   constructor(
       protected readonly previous: Stream<E, any, any, C>,
       protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,
@@ -43,13 +45,18 @@ export abstract class Stream<E extends Shape, T, D extends any[], C extends Stre
    *
    * @param f transformation function
    */
+  public map<U>(handle: (value: T) => Promise<U>): Stream<E, U, D, C>;
   public map<U, D2 extends Dependency<any> | undefined>(
       input: {
         depends?: D2;
       },
-      handle: (value: T, deps: Client<D2>) => Promise<U>): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C> {
-    return this.flatMap( { depends: input.depends },
-      async (v, c) => [await handle(v, c)]);
+      handle: (value: T, deps: Client<D2>) => Promise<U>): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C>;
+  public map(inputOrHandle: any, handle?: any): any {
+    if (typeof inputOrHandle === 'function') {
+      return this.flatMap({}, async (v, c) => [await handle(v, c)]);
+    } else {
+      return this.flatMap({ depends: inputOrHandle.depends }, async (v, c) => [await handle(v, c)]);
+    }
   }
 
   /**
@@ -123,8 +130,6 @@ export abstract class Stream<E extends Shape, T, D extends any[], C extends Stre
       timeout: core.Duration.seconds(10)
     });
     const l = executorService.spawn(scope, id, {
-      request: any,
-      response: any,
       depends: input.depends === undefined
         ? Dependency.concat(...this.dependencies)
         : Dependency.concat(input.depends, ...this.dependencies),

@@ -2,7 +2,7 @@ import events = require('@aws-cdk/aws-lambda-event-sources');
 
 import { Clients } from '../core/client';
 import { Stream } from '../util/stream';
-import { EventShape } from './event';
+import { Event } from './event';
 import { Queue } from './queue';
 
 export interface Config extends _Config {}
@@ -11,7 +11,7 @@ type _Config = Stream.Config & events.SqsEventSourceProps;
 /**
  * A `Stream` of Messages from a SQS Queue.
  */
-export class Messages<T, D extends any[]> extends Stream<EventShape, T, D, Config>  {
+export class Messages<T, D extends any[]> extends Stream<Event, T, D, Config>  {
   constructor(public readonly queue: Queue<any>, previous: Messages<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;

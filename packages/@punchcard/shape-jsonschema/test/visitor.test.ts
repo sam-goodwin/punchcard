@@ -1,47 +1,47 @@
 import 'jest';
 
-import { any, binary, nothing, number, Optional, Shape, string } from '@punchcard/shape';
+import { any, binary, nothing, number, Optional, optional, Record, Shape, string } from '@punchcard/shape';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema, NumberSchema } from '../lib';
 
 // tslint:disable: member-access
-class Nested {
-  a = string
-    .apply(Optional);
-}
+class Nested extends Record({
+  a: optional(string)
+}) {}
 
-class MyType {
+class MyType extends Record({
   /**
    * Field documentation.
    */
-  id = string
+  id: string
     .apply(MaxLength(1))
     .apply(MinLength(0))
     .apply(Pattern('.*'))
-    ;
+    ,
 
-  count = number
+  count: number
     .apply(Maximum(1))
     .apply(Minimum(1, true))
     .apply(MultipleOf(2))
-    ;
+    ,
 
-  nested = Nested;
-  array = array(string);
-  complexArray = array(Nested);
-  set = set(string);
-  complexSet = set(Nested);
-  map = map(string);
-  complexMap = map(Nested)
-    .apply(Optional);
+  nested: Nested,
+  array: array(string),
+  complexArray: array(Nested),
+  set: set(string),
+  complexSet: set(Nested),
+  map: map(string),
+  complexMap: map(Nested)
+    .apply(Optional),
 
-  binary = binary
-    .apply(MaxLength(1));
-  any = any;
+  binary: binary
+    .apply(MaxLength(1)),
 
-  nothing = nothing;
-}
+  any,
+
+  nothing,
+}) {}
 
 const type = Shape.of(MyType);
 

@@ -8,9 +8,8 @@ import iam = require('@aws-cdk/aws-iam');
 import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/core');
 
-import { ClassShape, ClassType, Shape, ShapeGuards } from '@punchcard/shape';
-import { DataType, PartitionKeys, Schema, schema } from '@punchcard/shape-glue';
-import { Mapper, Value } from '@punchcard/shape-runtime';
+import { ClassType, integer, Mapper, Record, Shape, ShapeGuards, Value } from '@punchcard/shape';
+import { Columns, DataType, PartitionKeys, schema } from '@punchcard/shape-glue';
 import { Validator } from '../../../@punchcard/shape-validation/lib/validator';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
@@ -24,11 +23,25 @@ import { Sink } from '../util/sink';
  * Augmentation of `glue.TableProps`, using a `Shape` to define the
  * schema and partitionKeys.
  */
-export type TableProps<T extends ClassType> = {
+export type TableProps<T extends ClassType, P extends ClassType> = {
   /**
    * Type of data stored in the Table.
    */
-  type: T;
+  columns: T;
+
+  /**
+   * Partition configuration.
+   */
+  partition: {
+    /**
+     * Record representing the partition keys.
+     */
+    keys: P;
+    /**
+     * Return partition key values from the columns.
+     */
+    get: (value: Value.Of<T>) => Value.Of<P>;
+  };
 
   /**
    * Data codec of the table.
@@ -77,26 +90,24 @@ export type TableProps<T extends ClassType> = {
 /**
  * Represents a partitioned Glue Table.
  */
-export class Table<T extends ClassType> implements Resource<glue.Table> {
+export class Table<T extends ClassType, P extends ClassType> implements Resource<glue.Table> {
   /**
    * Type of compression.
    */
   public readonly compression: Compression;
 
-  /**
-   * Rich model of the columns and partitions of the table.
-   */
-  public readonly shape: Shape.Of<T>;
+  public readonly columns: {
+    readonly type: T;
+    readonly shape: Shape.Of<T>;
+    readonly schema: Columns<T>;
+  };
 
-  /**
-   * Schema of the table.
-   */
-  public readonly type: T;
-
-  /**
-   * Columns of this Table.
-   */
-  public readonly schema: Schema<T>;
+  public readonly partition: {
+    type: P;
+    shape: Shape.Of<P>;
+    keys: Columns<P>;
+    get: (value: Value.Of<T>) => Value.Of<P>;
+  };
 
   /**
    * Data Type for reading and writing records (in a queue/stream/topic/etc.) and blobs (s3 objects).
@@ -118,13 +129,22 @@ export class Table<T extends ClassType> implements Resource<glue.Table> {
    */
   public readonly s3Prefix?: string;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<T>) {
+  constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<T, P>) {
     const compression = (props.compression || Compression.None);
     const codec = (props.codec || DataType.Json);
 
     this.dataType = codec;
-    this.type = props.type;
-    this.schema = schema(this.type);
+    this.columns = {
+      schema: schema(props.columns),
+      shape: Shape.of(props.columns),
+      type: props.columns
+    };
+    this.partition = {
+      keys: schema(props.partition.keys),
+      shape: Shape.of(props.partition.keys),
+      type: props.partition.keys,
+      get: props.partition.get
+    };
     this.compression = compression;
 
     this.s3Prefix = props.s3Prefix || props.tableName + '/';
@@ -138,8 +158,8 @@ export class Table<T extends ClassType> implements Resource<glue.Table> {
           compressed: compression.isCompressed,
           s3Prefix: this.s3Prefix,
 
-          columns: Object.values(this.schema.columns),
-          partitionKeys: Object.entries(this.schema.partitionKeys).map(([name, schema]) => ({
+          columns: Object.values(this.columns.schema),
+          partitionKeys: Object.entries(this.partition.keys).map(([name, schema]) => ({
             name,
             type: (() => {
               if (ShapeGuards.isBoolShape(schema)) {
@@ -182,21 +202,21 @@ export class Table<T extends ClassType> implements Resource<glue.Table> {
   /**
    * Runtime dependency with read/write access to the Table and S3 Bucket.
    */
-  public readWriteAccess(): Dependency<Table.ReadWrite<T>> {
+  public readWriteAccess(): Dependency<Table.ReadWrite<T, P>> {
     return this.client((t, g) => t.grantReadWrite(g), this.bucket.readWriteAccess());
   }
 
   /**
    * Runtime dependency with read access to the Table and S3 Bucket.
    */
-  public readAccess(): Dependency<Table.ReadOnly<T>> {
+  public readAccess(): Dependency<Table.ReadOnly<T, P>> {
     return this.client((t, g) => t.grantRead(g), this.bucket.readAccess());
   }
 
   /**
    * Runtime dependency with write access to the Table and S3 Bucket.
    */
-  public writeAccess(): Dependency<Table.WriteOnly<T>> {
+  public writeAccess(): Dependency<Table.WriteOnly<T, P>> {
     return this.client((t, g) => t.grantWrite(g), this.bucket.writeAccess());
   }
 
@@ -256,26 +276,22 @@ export namespace Table {
   /**
    * Client type aliaes.
    */
-  export interface ReadWrite<C extends ClassType> extends Table.Client<C> {}
-  export interface ReadOnly<C extends ClassType> extends Omit<Table.Client<C>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'> {}
-  export interface WriteOnly<C extends ClassType> extends Omit<Table.Client<C>, 'getPartitions'> {}
-
-  export type PartitionValue<T extends ClassType> = {
-    [PK in PartitionKeys<T>]: Value.Of<InstanceType<T>[PK]>
-  };
+  export interface ReadWrite<T extends ClassType, P extends ClassType> extends Table.Client<T, P> {}
+  export interface ReadOnly<T extends ClassType, P extends ClassType> extends Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'> {}
+  export interface WriteOnly<T extends ClassType, P extends ClassType> extends Omit<Table.Client<T, P>, 'getPartitions'> {}
 
   /**
    * Request and Response aliases.
    */
   export interface GetPartitionsRequest extends Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'> {}
-  export type GetPartitionsResponse<T extends ClassType> = {
+  export type GetPartitionsResponse<P extends ClassType> = {
     Partitions: Array<{
-      Values: PartitionValue<T>;
+      Values: Value.Of<P>;
     } & Omit<AWS.Glue.Partition, 'Values'>>
   };
 
-  export type CreatePartitionRequest<T extends ClassType> = {
-    Partition: PartitionValue<T>,
+  export type CreatePartitionRequest<P extends ClassType> = {
+    Partition: Value.Of<P>,
     Location: string,
     LastAccessTime?: Date
   } &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
@@ -283,9 +299,9 @@ export namespace Table {
   export interface CreatePartitionResponse extends AWS.Glue.CreatePartitionResponse {}
   export interface BatchCreatePartitionRequestEntry<T extends ClassType> extends CreatePartitionRequest<T> {}
   export interface BatchCreatePartitionRequest<T extends ClassType> extends Array<BatchCreatePartitionRequestEntry<T>> {}
-  export interface UpdatePartitionRequest<T extends ClassType> {
-    Partition: PartitionValue<T>,
-    UpdatedPartition: CreatePartitionRequest<T>
+  export interface UpdatePartitionRequest<P extends ClassType> {
+    Partition: Value.Of<P>,
+    UpdatedPartition: CreatePartitionRequest<P>
   }
 
   /**
@@ -293,7 +309,7 @@ export namespace Table {
    * * create, update, delete and query partitions.
    * * write objects to the table (properly partitioned S3 Objects and Glue Partitions).
    */
-  export class Client<T extends ClassType> implements Sink<Value.Of<T>> {
+  export class Client<T extends ClassType, P extends ClassType> implements Sink<Value.Of<T>> {
     /**
      * Validates a Record.
      */
@@ -302,7 +318,7 @@ export namespace Table {
     /**
      * Mapper for writing a Record as a Buffer.
      */
-    public readonly mapper: Mapper<ClassShape<T>, Buffer>;
+    public readonly mapper: Mapper<Value.Of<T>, Buffer>;
 
     /**
      * Mappers for reading and writing partition keys to/from strings.
@@ -319,14 +335,14 @@ export namespace Table {
       public readonly databaseName: string,
       public readonly tableName: string,
       public readonly bucket: S3.Client,
-      public readonly table: Table<T>
+      public readonly table: Table<T, P>
     ) {
-      this.partitions = Object.keys(table.schema.partitionKeys);
-      this.validator = Validator.of(table.type);
-      this.mapper = table.dataType.mapper(table.shape);
+      this.partitions = Object.keys(table.partition.keys);
+      this.validator = Validator.of(table.columns.type);
+      this.mapper = table.dataType.mapper(table.columns.shape);
       this.partitionMappers = {} as any;
-      Object.entries(table.shape.Members).forEach(([name, schema]) => {
-        this.partitionMappers[name as PartitionKeys<T>] = partitionKeyMapper(schema.Type);
+      Object.entries(table.columns.shape.Members).forEach(([name, schema]) => {
+        this.partitionMappers[name as PartitionKeys<T>] = partitionKeyMapper(schema.Shape);
       });
     }
 
@@ -343,8 +359,8 @@ export namespace Table {
      */
     public async sink(records: Iterable<Value.Of<T>>) {
       const partitions: Map<string, {
-        partition: PartitionValue<T>;
         records: Array<Value.Of<T>>;
+        partition: Value.Of<P>;
       }> = new Map();
 
       for (const record of records) {
@@ -426,7 +442,7 @@ export namespace Table {
       };
     }
 
-    public createPartition(request: CreatePartitionRequest<T>): Promise<AWS.Glue.CreatePartitionResponse> {
+    public createPartition(request: CreatePartitionRequest<P>): Promise<AWS.Glue.CreatePartitionResponse> {
       return this.client.createPartition({
         PartitionInput: this.createPartitionInput(request),
         CatalogId: this.catalogId,
@@ -435,7 +451,7 @@ export namespace Table {
       }).promise();
     }
 
-    public batchCreatePartition(partitions: BatchCreatePartitionRequest<T>): Promise<AWS.Glue.BatchCreatePartitionResponse> {
+    public batchCreatePartition(partitions: BatchCreatePartitionRequest<P>): Promise<AWS.Glue.BatchCreatePartitionResponse> {
       return this.client.batchCreatePartition({
         CatalogId: this.catalogId,
         DatabaseName: this.databaseName,
@@ -444,7 +460,7 @@ export namespace Table {
       }).promise();
     }
 
-    public updatePartition(request: UpdatePartitionRequest<T>): Promise<AWS.Glue.UpdatePartitionResponse> {
+    public updatePartition(request: UpdatePartitionRequest<P>): Promise<AWS.Glue.UpdatePartitionResponse> {
       return this.client.updatePartition({
         CatalogId: this.catalogId,
         DatabaseName: this.databaseName,
@@ -454,7 +470,7 @@ export namespace Table {
       }).promise();
     }
 
-    private createPartitionInput(request: CreatePartitionRequest<T>): AWS.Glue.PartitionInput {
+    private createPartitionInput(request: CreatePartitionRequest<P>): AWS.Glue.PartitionInput {
       const partitionValues = Object.values(request.Partition).map(value => (value as any).toString());
       return {
         Values: partitionValues,
@@ -462,7 +478,11 @@ export namespace Table {
         StorageDescriptor: {
           Compressed: this.table.compression.isCompressed,
           Location: request.Location,
-          Columns: Object.values(this.table.schema.columns),
+          Columns: Object.values(this.table.columns.schema).map(c => ({
+            Name: c.name,
+            Type: c.type.inputString,
+            Comment: c.comment
+          })),
           InputFormat: this.table.dataType.format.inputFormat.className,
           OutputFormat: this.table.dataType.format.outputFormat.className,
           SerdeInfo: {
@@ -472,4 +492,32 @@ export namespace Table {
       };
     }
   }
+}
+
+export namespace Partition {
+  export class Yearly extends Record({
+    year: integer,
+  }) {}
+  export class Monthly extends Record({
+    year: integer,
+    month: integer,
+  }) {}
+  export class Daily extends Record({
+    year: integer,
+    month: integer,
+    day: integer,
+  }) {}
+  export class Hourly extends Record({
+    year: integer,
+    month: integer,
+    day: integer,
+    hour: integer,
+  }) {}
+  export class Minutely extends Record({
+    year: integer,
+    month: integer,
+    day: integer,
+    hour: integer,
+    minute: integer
+  }) {}
 }

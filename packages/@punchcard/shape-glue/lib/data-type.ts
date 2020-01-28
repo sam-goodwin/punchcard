@@ -1,5 +1,4 @@
-import { Shape } from '@punchcard/shape';
-import { Mapper, Value } from '@punchcard/shape-runtime';
+import { Mapper, Shape, Value } from '@punchcard/shape';
 
 import { DataFormat } from '@aws-cdk/aws-glue';
 import { JsonDataType } from './json';
