@@ -1,4 +1,4 @@
-import { ArrayShape, AssertIsKey, BinaryShape, BoolShape, ClassShape, ClassType, Decorated, DynamicShape, IntegerShape, KeysOfType, MapShape, Member, Meta, NumberShape, SetShape, Shape, StringShape, TimestampShape, Trait, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, Decorated, DynamicShape, IntegerShape, KeysOfType, MapShape, Member, Meta, NothingShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, Trait, Visitor as ShapeVisitor } from '@punchcard/shape';
 
 import glue = require('@aws-cdk/aws-glue');
 
@@ -74,6 +74,9 @@ export function schema<T extends ClassType>(type: T): Schema<T> {
 export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
   public static readonly instance = new SchemaVisitor();
 
+  public nothingShape(shape: NothingShape, context: null): glue.Type {
+    throw new Error(`Nothing Shape is not supported by Glue.`);
+  }
   public dynamicShape(shape: DynamicShape<any>): glue.Type {
     throw new Error("Dynamic type is not supported by Glue.");
   }

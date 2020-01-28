@@ -2,22 +2,21 @@ import 'jest';
 
 import sinon = require('sinon');
 
-import { any, array, map, number, string } from '@punchcard/shape';
+import { any, array, map, number, Record, string } from '@punchcard/shape';
 import { DynamoDBClient } from '../lib/client';
 
 // tslint:disable: member-access
-class Type {
-  key = string;
-  count = number;
-  list = array(string);
-  dict = map(string);
-  dynamic = any;
-}
+class Type extends Record({
+  key: string,
+  count: number,
+  list: array(string),
+  dict: map(string),
+  dynamic: any,
+}) {}
 
 const table = new DynamoDBClient(Type, ['key', 'count'], {
   tableName: 'my-table-name'
 });
-
 // leaving this here as a compile time test for now
 
 function mockClient(fake: { [K in keyof AWS.DynamoDB]?: sinon.SinonSpy; }) {
@@ -42,13 +41,13 @@ test('getItem', async () => {
 
   const result = await table.get(['value', 1]);
 
-  expect(result).toEqual({
+  expect(result).toEqual(new Type({
     key: 'value',
     count: 1,
     list: ['list value'],
     dict: { key: 'string' },
     dynamic: 'value'
-  });
+  }));
 
   expect(getItem.args[0][0]).toEqual({
     TableName: 'my-table-name',
@@ -66,7 +65,7 @@ test('putIf', async () => {
     putItem
   });
 
-  await table.putIf({
+  await table.putIf(new Type({
     key: 'key',
     count: 1,
     list: ['a', 'b'],
@@ -74,7 +73,7 @@ test('putIf', async () => {
       key: 'value'
     },
     dynamic: 'dynamic-value'
-  }, _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.a.equals('value')));
+  }), _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.a.equals('value')));
 
   expect(putItem.args[0][0]).toEqual({
     TableName: 'my-table-name',
@@ -107,7 +106,9 @@ test('update', async () => {
 
   await table.update(['key', 1], item => [
     item.list.push('item'),
-    item.dynamic.as(string).set('dynamic-value')
+    item.dynamic.as(string).set('dynamic-value'),
+    item.count.set(item.count.plus(1)),
+    item.count.increment()
   ]);
 
   expect(updateItem.args[0][0]).toEqual({
@@ -116,10 +117,11 @@ test('update', async () => {
       key: { S: 'key' },
       count: { N: '1' },
     },
-    UpdateExpression: 'SET #1[1]=:1 SET #2=:2',
+    UpdateExpression: 'SET #1[1]=:1 SET #2=:2 SET #3=#3+1 SET #3=#3+1',
     ExpressionAttributeNames: {
       '#1': 'list',
-      '#2': 'dynamic'
+      '#2': 'dynamic',
+      '#3': 'count'
     },
     ExpressionAttributeValues: {
       ':1': { S: 'item' },

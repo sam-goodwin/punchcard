@@ -1,5 +1,5 @@
 import { OptionalKeys, RequiredKeys, Shape } from '@punchcard/shape';
-import { ClassShape, ClassType } from '@punchcard/shape/lib/class';
+import { ClassShape, ShapeOrRecord } from '@punchcard/shape/lib/class';
 
 declare module '@punchcard/shape/lib/shape' {
   export interface Shape {
@@ -27,10 +27,7 @@ export namespace AttributeValue {
     | AttributeValue.Struct<any>
     ;
 
-  export type Of<T> =
-    T extends { [Tag]: infer T2 } ? T2 :
-    T extends ClassType ? ClassShape<T> extends { [Tag]: infer T2 } ? T2 : never :
-    never;
+  export type Of<T extends ShapeOrRecord> = Shape.Of<T> extends { [Tag]: infer T2 } ? T2 : never;
 
   export interface Binary {
     B: Buffer;
@@ -51,9 +48,9 @@ export namespace AttributeValue {
   }
   export interface Struct<T extends ClassShape<any>> {
     M: {
-      [member in RequiredKeys<T['Members']>]: T['Members'][member]['Type'][AttributeValue.Tag];
+      [member in RequiredKeys<T['Members']>]: T['Members'][member]['Shape'][AttributeValue.Tag];
     } & {
-      [member in OptionalKeys<T['Members']>]+?: T['Members'][member]['Type'][AttributeValue.Tag];
+      [member in OptionalKeys<T['Members']>]+?: T['Members'][member]['Shape'][AttributeValue.Tag];
     };
   }
   export interface NumberValue {

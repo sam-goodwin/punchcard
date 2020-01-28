@@ -1,5 +1,5 @@
-import { ShapeOrRecord } from './class';
-import { Trait } from './metadata';
+import { ClassType } from './class';
+import { Apply, Trait } from './metadata';
 import { Shape } from './shape';
 
 /**
@@ -7,10 +7,13 @@ import { Shape } from './shape';
  *
  * TODO: should Optional be exposed a Shape instead of a Trait, i.e. `OptionalShape<T>`?
  */
-export const Optional: Trait<any, { nullable: true }> = {
+export const Optional: Trait<any, IsOptional> = {
   [Trait.Data]: {
     nullable: true
   }
+};
+export type IsOptional = {
+  nullable: true
 };
 
 /**
@@ -20,7 +23,9 @@ export const Optional: Trait<any, { nullable: true }> = {
  *
  * @param shapeOrRecord a Shape or a Record to transform as optional
  */
-export function optional<T extends ShapeOrRecord>(shapeOrRecord: T) {
+export function optional<T extends Shape>(shape: T): Apply<T, IsOptional>;
+export function optional<T extends ClassType>(type: T): Apply<Shape.Of<T>, IsOptional>;
+export function optional(shapeOrRecord: any): any {
   return Shape.of(shapeOrRecord).apply(Optional);
 }
 

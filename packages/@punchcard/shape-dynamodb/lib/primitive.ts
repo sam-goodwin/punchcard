@@ -25,11 +25,11 @@ declare module '@punchcard/shape/lib/primitive' {
   }
   export interface NumberShape {
     [AttributeValue.Tag]: AttributeValue.NumberValue;
-    [DSL.Tag]: DSL.Ord<NumberShape>;
+    [DSL.Tag]: DSL.Number;
   }
   export interface IntegerShape {
     [AttributeValue.Tag]: AttributeValue.NumberValue;
-    [DSL.Tag]: DSL.Ord<IntegerShape>;
+    [DSL.Tag]: DSL.Number;
   }
   export interface TimestampShape {
     [AttributeValue.Tag]: AttributeValue.StringValue;

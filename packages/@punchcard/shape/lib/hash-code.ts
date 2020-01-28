@@ -100,7 +100,7 @@ export namespace HashCode {
     public classShape(shape: ClassShape<any>): HashCode<ClassShape<any>> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
-          [name]: of(member.Type)
+          [name]: of(member.Shape)
         }))
         .reduce((a, b, {}) => ({...a, ...b}));
 
@@ -137,7 +137,7 @@ export namespace HashCode {
       const hashItem = of(shape.Items);
 
       return ((v: Set<any>) => {
-        const value = Array.from(v.entries());
+        const value = Array.from(v.values());
         const prime = 31;
         let result = 1;
         value.forEach(v => result += prime * result + hashItem(v));

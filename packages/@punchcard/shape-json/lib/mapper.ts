@@ -1,12 +1,9 @@
-import { ClassType, Visitor as ShapeVisitor } from '@punchcard/shape';
-import { HashSet, Mapper as RuntimeMapper} from '@punchcard/shape-runtime';
+import { ClassType, HashSet, Mapper, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
 import { ClassShape } from '@punchcard/shape/lib/class';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
-import { Of } from './json';
-
-export interface Mapper<T extends Shape> extends RuntimeMapper<T, Of<T>> {}
+import { Json } from './json';
 
 export interface MapperOptions {
   noCache?: boolean;
@@ -14,7 +11,7 @@ export interface MapperOptions {
 }
 
 const cache = new WeakMap();
-export function mapper<T extends ClassType | Shape>(type: T, options: MapperOptions = {}): Mapper<Shape.Of<T>> {
+export function mapper<T extends ClassType | Shape>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json<T>> {
   if (options.noCache) {
     return make();
   }
@@ -28,33 +25,33 @@ export function mapper<T extends ClassType | Shape>(type: T, options: MapperOpti
   }
 }
 
-export function stringifyMapper<T extends ClassType | Shape>(type: T, options: MapperOptions = {}): RuntimeMapper<Shape.Of<T>, string> {
+export function stringifyMapper<T extends ClassType | Shape>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, string> {
   const m = mapper(type, options);
   return {
-    read: (s: string) => m.read(JSON.parse(s)),
+    read: (s: string) => m.read(JSON.parse(s)) as any,
     write: v => JSON.stringify(m.write(v))
   };
 }
 
-export class MapperVisitor implements ShapeVisitor<Mapper<any>> {
-  public nothingShape(shape: NothingShape, context: undefined): Mapper<any> {
+export class MapperVisitor implements ShapeVisitor<Mapper<any, any>> {
+  public nothingShape(shape: NothingShape, context: undefined): Mapper<void, any> {
     return {
       read: (a: any) => {
-        if (a === null || a === undefined) {
-          throw new Error(`expected null or undefined, got ${typeof a}`);
+        if (typeof a === 'undefined' || a === null) {
+          return null;
         }
-        return null;
+        throw new Error(`expected null or undefined, got ${typeof a}, ${a}`);
       },
       write: () => null
     };
   }
-  public dynamicShape(shape: DynamicShape<any>, context: undefined): Mapper<any> {
+  public dynamicShape(shape: DynamicShape<any>, context: undefined): Mapper<any, any> {
     return {
-      read: JSON.parse,
-      write: JSON.stringify
+      read: a => a,
+      write: a => a
     };
   }
-  public binaryShape(shape: BinaryShape, context: undefined): Mapper<BinaryShape> {
+  public binaryShape(shape: BinaryShape, context: undefined): Mapper<Buffer, string> {
     return {
       read: (b: any) => {
         if (typeof b !== 'string') {
@@ -65,14 +62,16 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any>> {
       write: (b: Buffer) => b.toString('base64')
     };
   }
-  public arrayShape(shape: ArrayShape<any>): Mapper<any> {
-    const item = mapper(shape.Items);
+  public arrayShape(shape: ArrayShape<any>): Mapper<any[], any[]> {
+    const item = mapper(shape.Items, {
+      visitor: this
+    });
     return {
       write: (arr: any[]) => arr.map(i => item.write(i)),
       read: (arr: any[]) => arr.map(i => item.read(i)),
     };
   }
-  public boolShape(shape: BoolShape): Mapper<BoolShape> {
+  public boolShape(shape: BoolShape): Mapper<boolean, boolean> {
     return {
       read: (b: any) => {
         if (typeof b !== 'boolean') {
@@ -83,10 +82,12 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any>> {
       write: (b: boolean) => b
     };
   }
-  public classShape(shape: ClassShape<any>): Mapper<any> {
+  public classShape(shape: ClassShape<any, any>): Mapper<any, any> {
     const fields = Object.entries(shape.Members)
       .map(([name, member]) => ({
-        [name]: mapper(member.Type)
+        [name]: mapper(member.Shape, {
+          visitor: this
+        })
       }))
       .reduce((a, b) => ({...a, ...b}));
 
@@ -100,7 +101,7 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any>> {
         for (const [name, codec] of Object.entries(fields)) {
           res[name] = codec.read(value[name]);
         }
-        return res;
+        return new shape.type(res);
       },
       write: (value: any) => {
         const res: any = {};
@@ -112,8 +113,10 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any>> {
       }
     };
   }
-  public mapShape(shape: MapShape<any>): Mapper<any> {
-    const valueMapper = mapper(shape.Items);
+  public mapShape(shape: MapShape<any>): Mapper<{[key: string]: any}, {[key: string]: any}> {
+    const valueMapper = mapper(shape.Items, {
+      visitor: this
+    });
 
     return {
       read: (map: any) => {
@@ -137,7 +140,7 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any>> {
       }
     } as any;
   }
-  public numberShape(shape: NumberShape): Mapper<NumberShape> {
+  public numberShape(shape: NumberShape): Mapper<number, number> {
     return {
       read: (n: any) => {
         if (typeof n !== 'number') {
@@ -148,7 +151,7 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any>> {
       write: (n: number) => n
     };
   }
-  public integerShape(shape: IntegerShape): Mapper<IntegerShape> {
+  public integerShape(shape: IntegerShape): Mapper<number, number> {
     return {
       read: (n: any) => {
         if (typeof n !== 'number') {
@@ -163,8 +166,10 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any>> {
     };
   }
 
-  public setShape(shape: SetShape<any>): Mapper<any> {
-    const item = mapper(shape.Items);
+  public setShape(shape: SetShape<any>): Mapper<Set<any>, any[]> {
+    const item = mapper(shape.Items, {
+      visitor: this
+    });
     return {
       write: (arr: Set<any>) => Array.from(arr).map(i => item.write(i)),
       read: (arr: any[]) => {
@@ -172,12 +177,12 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any>> {
           shape.Items.Kind === 'stringShape' ||
           shape.Items.Kind === 'numberShape' ||
           shape.Items.Kind === 'boolShape' ? new Set() : new HashSet(shape.Items);
-        arr.forEach(i => set.add(i));
+        arr.forEach(i => set.add(item.read(i)));
         return set;
       }
     };
   }
-  public stringShape(shape: StringShape): Mapper<StringShape> {
+  public stringShape(shape: StringShape): Mapper<string, string> {
     return {
       read: (s: any) => {
         if (typeof s !== 'string') {
@@ -188,7 +193,7 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any>> {
       write: (s: string) => s
     };
   }
-  public timestampShape(shape: TimestampShape): Mapper<TimestampShape> {
+  public timestampShape(shape: TimestampShape): Mapper<Date, string> {
     return {
       read: (d: any) => {
         if (typeof d !== 'string') {

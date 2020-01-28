@@ -1,5 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, DynamicShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, SetShape, StringShape, TimestampShape } from '@punchcard/shape';
-import { Value } from '@punchcard/shape-runtime';
+import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, DynamicShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, SetShape, StringShape, TimestampShape, Value } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Visitor as ShapeVisitor } from '@punchcard/shape/lib/visitor';
 
@@ -51,7 +50,7 @@ export namespace Validator {
         [key: string]: Array<Validator<any>>;
       } = {};
       for (const member of Object.values(shape.Members)) {
-        validators[member.Name] = [of(member.Type) as any];
+        validators[member.Name] = [of(member.Shape) as any];
       }
       return [(obj, path) => {
         return Object.entries(validators)

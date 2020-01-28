@@ -1,7 +1,6 @@
 import 'jest';
 
-import { bool, nothing, number, Optional, Shape, string } from '@punchcard/shape';
-import { HashSet } from '@punchcard/shape-runtime';
+import { bool, HashSet, nothing, number, Optional, Record, string } from '@punchcard/shape';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape-validation';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
@@ -9,39 +8,39 @@ import json = require('../lib');
 
 // tslint:disable: member-access
 
-class Nested {
-  a = string
-    .apply(Optional);
-}
+class Nested extends Record({
+  a: string
+    .apply(Optional)
+}) {}
 
-class MyType {
+class MyType extends Record({
   /**
    * Field documentation.
    */
-  id = string
+  id: string
     .apply(MaxLength(1))
     .apply(MinLength(0))
     .apply(Pattern('.*'))
-    ;
+    ,
 
-  count = number
+  count: number
     .apply(Maximum(1))
     .apply(Minimum(1, true))
     .apply(MultipleOf(2))
-    ;
+    ,
 
-  boolean = bool;
+  boolean: bool,
 
-  nested = Nested;
-  array = array(string);
-  complexArray = array(Nested);
-  set = set(string);
-  complexSet = set(Nested);
-  map = map(string);
-  complexMap = map(Nested);
+  nested: Nested,
+  array: array(string),
+  complexArray: array(Nested),
+  set: set(string),
+  complexSet: set(Nested),
+  map: map(string),
+  complexMap: map(Nested),
 
-  null = nothing;
-}
+  null: nothing,
+}) {}
 
 const mapper = json.mapper(MyType);
 
@@ -49,7 +48,7 @@ const jsonRepr = {
   id: 'id',
   count: 1,
   boolean: true,
-  nested: { a: 'nestaed' },
+  nested: { a: 'nested' },
   array: ['array1', 'arra2'],
   complexArray: [{ a: 'complexArray' }],
   set: ['set1', 'set2'],
@@ -65,25 +64,25 @@ const jsonRepr = {
   null: null
 };
 
-const runtimeRepr = {
+const runtimeRepr = new MyType({
   id: 'id',
   count: 1,
   boolean: true,
-  nested: { a: 'nestaed' },
+  nested: new Nested({ a: 'nested' }),
   array: ['array1', 'arra2'],
-  complexArray: [{ a: 'complexArray' }],
+  complexArray: [new Nested({ a: 'complexArray' })],
   set: new Set(['set1', 'set2']),
-  complexSet: new HashSet(Shape.of(Nested)).add({a: 'complexSet'}),
+  complexSet: HashSet.of(Nested).add(new Nested({a: 'complexSet'})),
   map: {
     a: 'map'
   },
   complexMap: {
-    key: {
+    key: new Nested({
       a: 'complexMap'
-    }
+    })
   },
-  null: undefined
-};
+  null: null
+});
 
 test('should read shape from json', () => {
   expect(mapper.read(jsonRepr)).toEqual(runtimeRepr);

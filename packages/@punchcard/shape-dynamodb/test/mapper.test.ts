@@ -1,10 +1,10 @@
 import 'jest';
 
-import { HashSet } from '@punchcard/shape-runtime';
+import { ClassShape, HashSet, Record } from '@punchcard/shape';
 import { MaxLength } from '@punchcard/shape-validation';
 import { binary, string } from '@punchcard/shape/lib/primitive';
 import { Mapper } from '../lib';
-import { MyType } from './mock';
+import { MyType, Nested } from './mock';
 
 const underTest = Mapper.of(MyType);
 
@@ -73,38 +73,38 @@ it('should read attribute values', () => {
     }
   });
 
-  const expected: typeof actual = {
+  const expected: typeof actual = new MyType({
     array: ['array value'],
-    complexArray: [{
+    complexArray: [new Nested({
       a: 'complex value'
-    }],
+    })],
     complexMap: {
-      key: {
+      key: new Nested({
         a: 'complex value'
-      }
+      })
     },
     count: 1,
     id: 'id',
     map: {
       key: 'value'
     },
-    nested: {
+    nested: new Nested({
       a: 'nested value'
-    },
+    }),
     numberSet: new Set([1, 2]),
     stringSet: new Set(['1', '2']),
     binaryField: Buffer.from('binaryField', 'utf8'),
-    binarySet: new HashSet(binary).add(Buffer.from('binarySet', 'utf8')),
+    binarySet: HashSet.of(binary).add(Buffer.from('binarySet', 'utf8')),
     anyField: 'any',
     unknownField: 1
-  };
+  });
 
   expect(actual).toEqual(expected);
 });
 
-class T {
-  public readonly id = string.apply(MaxLength(1));
-}
+class T extends Record({
+  id: string.apply(MaxLength(1))
+}) {}
 
 it('should validate', () => {
   const m = Mapper.of(T);

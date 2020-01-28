@@ -22,7 +22,7 @@ export class Member<T extends Shape = any, Name extends Member.Name = any, M ext
 
   constructor(
     public readonly Name: Name,
-    public readonly Type: T,
+    public readonly Shape: T,
     public readonly Metadata: M) {
   }
 }

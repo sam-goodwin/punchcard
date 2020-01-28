@@ -1,4 +1,4 @@
-import { ClassShape, ShapeOrRecord } from './class';
+import { ClassShape, ClassType, ShapeOrRecord } from './class';
 import { Apply, Meta, Trait } from './metadata';
 import { Value } from './value';
 import { Visitor } from './visitor';
@@ -27,7 +27,8 @@ export abstract class Shape {
 
 export namespace Shape {
   export type Of<T extends ShapeOrRecord> =
+    T extends ClassType<infer I, infer M> ? ClassShape<M extends {} ? M : never, I> :
     T extends Shape ? T :
-    T extends { members: infer M } & (new(v: any) => infer I) ? ClassShape<M extends {} ? M : never, I> :
-    never;
+    never
+    ;
 }

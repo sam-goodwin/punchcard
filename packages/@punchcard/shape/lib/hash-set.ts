@@ -1,9 +1,14 @@
-import { Shape } from '@punchcard/shape';
+import { RecordType, ShapeOrRecord } from './class';
 import { Equals } from './equals';
 import { HashCode } from './hash-code';
+import { Shape } from './shape';
 import { Value } from './value';
 
 export class HashSet<T extends Shape> {
+  public static of<T extends ShapeOrRecord>(t: T): HashSet<Shape.Of<T>> {
+    return new HashSet(Shape.of(t)) as any;
+  }
+
   public readonly [Symbol.toStringTag]: 'HashSet' = 'HashSet';
 
   public size: number = 0;

@@ -1,6 +1,6 @@
 import { ShapeOrRecord } from './class';
+import { HashSet } from './hash-set';
 import { BoolShape, NumberShape, StringShape } from './primitive';
-import { HashSet } from './set';
 import { Shape } from './shape';
 import { Value } from './value';
 

@@ -4,6 +4,7 @@ import runtime = require('@punchcard/shape-runtime');
 import moment = require('moment');
 
 import { DataFormat } from '@aws-cdk/aws-glue';
+import { Mapper, Value } from '@punchcard/shape-runtime';
 import { DataType } from './data-type';
 
 /**
@@ -13,7 +14,7 @@ import { DataType } from './data-type';
 export class JsonMapperVisitor extends json.MapperVisitor {
   public static readonly instance = new JsonMapperVisitor();
 
-  public timestampShape(shape: TimestampShape): json.Mapper<TimestampShape> {
+  public timestampShape(shape: TimestampShape): Mapper<Date, string> {
     return {
       // TODO: why the f doesn't athena support ISO8601 string lol
       write: (value: Date) => moment.utc(value).format('YYYY-MM-DD HH:mm:ss.SSS'),
@@ -29,7 +30,7 @@ export class JsonDataType implements DataType {
 
   public readonly extension: 'json' = 'json';
 
-  public mapper<T extends Shape>(type: T): runtime.Mapper<T, Buffer> {
+  public mapper<T extends Shape>(type: T): runtime.Mapper<Value.Of<T>, Buffer> {
     const jsonMapper = json.mapper(type, {
       visitor: JsonMapperVisitor.instance
     });

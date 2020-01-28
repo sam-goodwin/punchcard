@@ -6,7 +6,7 @@ import './collection';
 import './primitive';
 
 declare module '@punchcard/shape/lib/class' {
-  export interface ClassShape<C extends ClassType> {
+  export interface ClassShape<M extends ClassMembers, I = any> {
     [AttributeValue.Tag]: AttributeValue.Struct<this>;
     [DSL.Tag]: DSL.Struct<this>
   }

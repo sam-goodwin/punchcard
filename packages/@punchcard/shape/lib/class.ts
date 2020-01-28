@@ -5,8 +5,6 @@ import { Shape } from './shape';
 import { RequiredKeys } from './util';
 import { Value } from './value';
 
-export type ShapeOrRecord = Shape | { members: any; };
-
 export interface ClassMembers {
   [member: string]: ShapeOrRecord;
 }
@@ -29,17 +27,20 @@ export interface ClassMembers {
  * }) {}
  * MyClass.shape; // ClassShape<{key: StringShape, nested: ClassShape<{count: IntegerShape}>}>
  * ```
+ *
+ * @typeparam M class members (key-value pairs of shapes)
+ * @typeparam I type of instance of this struct (the value type)
  */
-export class ClassShape<T extends ClassMembers, V = any> extends Shape {
+export class ClassShape<M extends ClassMembers, I = any> extends Shape {
   public readonly Kind = 'classShape';
 
-  public readonly Members: Members<T> = {} as any;
+  public readonly Members: Members<M> = {} as any;
 
-  public readonly [Value.Tag]: V;
+  public readonly [Value.Tag]: I;
 
-  constructor(members: T, public readonly Metadata: Metadata) {
+  constructor(public readonly type: ClassType<I, M>, public readonly Metadata: Metadata) {
     super();
-    for (const [name, shape] of Object.entries(members)) {
+    for (const [name, shape] of Object.entries(type[ClassShape.Members])) {
       (this.Members as any)[name] = new Member(name, Shape.of(shape), Meta.get(shape));
     }
   }
@@ -61,7 +62,12 @@ export namespace ClassShape {
  * typeof a; // ClassType<MyClass>;
  * ```
  */
-export type ClassType<T> = new () => T;
+export type ClassType<I = any, M extends ClassMembers = any> =
+  (new (...args: any[]) => I) & {
+    [ClassShape.Members]: M;
+  };
+
+export type ShapeOrRecord = Shape | ClassType;
 
 /**
  * Maps ClassMembers to a structure that represents it at runtime.
@@ -74,7 +80,7 @@ export type ClassType<T> = new () => T;
  *   /**
  *    * Inline documentation.
  *    *\/
- *   a: string.apply(Optional)
+ *   a: string
  * })
  *
  * new A({
@@ -110,7 +116,7 @@ export type RecordType<T extends ClassMembers = any> = {
   /**
    * Static reference to this record's members.
    */
-  readonly members: {
+  readonly [ClassShape.Members]: {
     [M in keyof T]: Shape.Of<T[M]>;
   };
   /**
@@ -124,7 +130,7 @@ export function Record<T extends ClassMembers>(members: T): RecordType<T> {
   })).reduce((a, b) => ({...a, ...b}));
 
   class NewType {
-    public static readonly members = memberShapes;
+    public static readonly [ClassShape.Members] = memberShapes;
 
     public readonly [ClassShape.Members]: T = memberShapes;
 
@@ -158,7 +164,7 @@ Shape.of = <T extends ShapeOrRecord>(t: T, noCache: boolean = false): Shape.Of<T
   return cache().get(t);
 
   function make() {
-    return new ClassShape((t as any).members, Meta.get(t)) as any;
+    return new ClassShape(t as any, Meta.get(t)) as any;
   }
 };
 

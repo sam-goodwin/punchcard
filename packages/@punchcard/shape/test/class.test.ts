@@ -52,7 +52,7 @@ it('should parse members', () => {
     }
   ));
 
-  const nestedShape = new ClassShape({a: string}, {});
+  const nestedShape = new ClassShape(Nested, {});
 
   expect(MyTypeShape.Members.nested).toEqual(new Member(
     'nested', nestedShape, {}

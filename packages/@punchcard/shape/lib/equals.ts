@@ -110,7 +110,7 @@ export namespace Equals {
     public classShape(shape: ClassShape<any>): Equals<ClassShape<any>> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
-          [name]: of(member.Type)
+          [name]: of(member.Shape)
         }))
         .reduce((a, b) => ({...a, ...b}));
 
@@ -123,10 +123,11 @@ export namespace Equals {
         for (const aKey of aKeys) {
           const aValue = (a as any)[aKey];
           const bValue = (b as any)[aKey];
-          if (bValue === undefined) {
+          if (aValue === undefined && bValue === undefined) {
             return false;
           }
-          if (!(fields as any)[aKey].equals(aValue, bValue)) {
+
+          if (!(fields as any)[aKey](aValue, bValue)) {
             return false;
           }
         }

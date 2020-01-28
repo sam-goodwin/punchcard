@@ -1,26 +1,26 @@
 import AWS = require('aws-sdk');
 
-import { AssertIsKey, ClassType, Compact, Shape } from "@punchcard/shape";
-import { Value } from "@punchcard/shape-runtime";
-import { DSL } from "./dsl";
+import { AssertIsKey, ClassShape, ClassType, Compact, Shape, Value } from '@punchcard/shape';
+import { DSL } from './dsl';
 import { Condition } from './filter';
 import { Mapper } from './mapper';
 import { Update } from './update';
 import { Writer } from './writer';
 
-export class DynamoDBClient<T extends ClassType, K extends DynamoDBClient.Key<InstanceType<T>>> {
-  private readonly dsl: DSL.OfType<T>["fields"];
+export class DynamoDBClient<T extends ClassType, K extends DynamoDBClient.Key<T>> {
   public readonly client: AWS.DynamoDB;
-  public readonly tableName: string;
   public readonly mapper: Mapper<T>;
+  public readonly tableName: string;
 
   public readonly hashKeyName: DynamoDBClient.HashKeyName<T, K>;
   public readonly sortKeyName: DynamoDBClient.HashKeyName<T, K>;
 
   public readonly hashKeyMapper: Mapper<DynamoDBClient.HashKeyShape<T, K>>;
   public readonly sortKeyMapper: Mapper<DynamoDBClient.SortKeyShape<T, K>>;
-  public readonly writeKey: (key: DynamoDBClient.KeyValue<T, K>) => any;
   public readonly readKey: (key: AWS.DynamoDB.Key) => DynamoDBClient.KeyValue<T, K>;
+  public readonly writeKey: (key: DynamoDBClient.KeyValue<T, K>) => any;
+
+  private readonly dsl: DSL.Root<T>;
 
   constructor(public readonly type: T, public readonly key: K, config: DynamoDBClient.Props)  {
     const shape = Shape.of(type);
@@ -30,7 +30,7 @@ export class DynamoDBClient<T extends ClassType, K extends DynamoDBClient.Key<In
     this.mapper = Mapper.of(type);
 
     if (typeof key === 'string') {
-      const hashKeyMapper = Mapper.of(shape.Members[key].Type);
+      const hashKeyMapper = Mapper.of(shape.Members[key].Shape);
       this.writeKey = k => ({
         [key]: hashKeyMapper.write(k)
       });
@@ -40,8 +40,8 @@ export class DynamoDBClient<T extends ClassType, K extends DynamoDBClient.Key<In
     } else {
       const hk = (key as any)[0];
       const sk = (key as any)[1];
-      const hashKeyMapper = Mapper.of(shape.Members[hk].Type);
-      const sortKeyMapper = Mapper.of(shape.Members[sk].Type);
+      const hashKeyMapper = Mapper.of(shape.Members[hk].Shape);
+      const sortKeyMapper = Mapper.of(shape.Members[sk].Shape);
 
       this.writeKey = (k: any) => ({
         [hk]: hashKeyMapper.write(k[0]),
@@ -89,7 +89,7 @@ export class DynamoDBClient<T extends ClassType, K extends DynamoDBClient.Key<In
   public async put(item: Value.Of<T>) {
     return await this.client.putItem({
       TableName: this.tableName,
-      Item: this.mapper.write(item).M
+      Item:  (this.mapper.write(item) as any).M
     }).promise();
   }
 
@@ -97,7 +97,7 @@ export class DynamoDBClient<T extends ClassType, K extends DynamoDBClient.Key<In
     const expr = Condition.compile(condition(this.dsl));
     return await this.client.putItem({
       TableName: this.tableName,
-      Item: this.mapper.write(item).M,
+      Item: (this.mapper.write(item) as any).M,
       ConditionExpression: expr.Expression,
       ExpressionAttributeNames: expr.ExpressionAttributeNames,
       ExpressionAttributeValues: expr.ExpressionAttributeValues
@@ -117,7 +117,7 @@ export class DynamoDBClient<T extends ClassType, K extends DynamoDBClient.Key<In
           [this.tableName]: batch.map(record => {
             return {
               PutRequest: {
-                Item: this.mapper.write(record).M
+                Item: (this.mapper.write(record) as any).M
               }
             };
           })
@@ -217,27 +217,27 @@ export namespace DynamoDBClient {
 
   export type HashKey<T> = keyof T;
   export type SortKey<T> = [keyof T, keyof T];
-  export type Key<T extends ClassType> = HashKey<InstanceType<T>> | SortKey<InstanceType<T>>;
+  export type Key<T extends ClassType> = HashKey<T[ClassShape.Members]> | SortKey<T[ClassShape.Members]>;
 
   export type KeyValue<T extends ClassType, K extends Key<T>> = K extends [infer H, infer S] ?
     [
-      Value.Of<InstanceType<T>[AssertIsKey<InstanceType<T>, H>]>,
-      Value.Of<InstanceType<T>[AssertIsKey<InstanceType<T>, S>]>
+      Value.Of<T[ClassShape.Members][AssertIsKey<T[ClassShape.Members], H>]>,
+      Value.Of<T[ClassShape.Members][AssertIsKey<T[ClassShape.Members], S>]>
     ] :
-    Value.Of<InstanceType<T>[AssertIsKey<InstanceType<T>, K>]>
+    Value.Of<T[ClassShape.Members][AssertIsKey<T[ClassShape.Members], K>]>
     ;
 
   export type HashKeyName<T extends ClassType, K extends Key<T>> = K extends [infer H, any] ? H : T;
   export type HashKeyValue<T extends ClassType, K extends Key<T>> = Value.Of<HashKeyShape<T, K>>;
   export type HashKeyShape<T extends ClassType, K extends Key<T>> = K extends [infer H, any] ?
-    InstanceType<T>[AssertIsKey<InstanceType<T>, H>] :
+    T[ClassShape.Members][AssertIsKey<T[ClassShape.Members], H>] :
     never
     ;
 
   export type SortKeyName<T extends ClassType, K extends Key<T>> = K extends [any, infer S] ? S : T;
   export type SortKeyValue<T extends ClassType, K extends Key<T>> = Value.Of<SortKeyShape<T, K>>;
   export type SortKeyShape<T extends ClassType, K extends Key<T>> = K extends [any, infer S] ?
-    InstanceType<T>[AssertIsKey<InstanceType<T>, S>] :
+    T[ClassShape.Members][AssertIsKey<T[ClassShape.Members], S>] :
     never
     ;
 
@@ -247,6 +247,6 @@ export namespace DynamoDBClient {
     never
     ;
 
-  export type Condition<T extends ClassType> = (item: DSL.OfType<T>['fields']) => DSL.Bool;
-  export type Update<T extends ClassType> = (item: DSL.OfType<T>['fields']) => DSL.StatementNode[];
+  export type Condition<T extends ClassType> = (item: DSL.Root<T>) => DSL.Bool;
+  export type Update<T extends ClassType> = (item: DSL.Root<T>) => DSL.StatementNode[];
 }

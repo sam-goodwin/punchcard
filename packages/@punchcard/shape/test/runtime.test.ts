@@ -1,6 +1,6 @@
 import 'jest';
 
-import { any, array, bool, HashSet, map, number, optional, Record, set, Shape, string, Value, } from '../lib';
+import { any, array, bool, Equals, HashCode, HashSet, map, number, optional, Record, set, Shape, string, Value} from '../lib';
 
 // tslint:disable: member-access
 class Nested extends Record({
@@ -48,6 +48,36 @@ v.b;
 v.a;
 v.a?.length;
 
+const myType = new MyType({
+  id: 'id',
+  count: 1,
+  bool: true,
+  dynamic: ['dynamic'],
+  nested: new Nested({
+    b: 'b'
+  }),
+  array: ['some', 'strings'],
+  complexArray: [new Nested({
+    a: 'a',
+    b: 'b'
+  })],
+  map: {
+    key: 'value'
+  },
+  complexMap: {
+    key: new Nested({
+      a: 'a',
+      b: 'b'
+    })
+  },
+  set: new Set<string>().add('value'),
+  complexSet: HashSet.of(Nested)
+    .add(new Nested({
+      a: 'a',
+      b: 'b'
+    })),
+});
+
 it('should derive runtime type recursively', () => {
   const expected: {
     id?: string | undefined;
@@ -65,35 +95,7 @@ it('should derive runtime type recursively', () => {
 
     map: { [key: string]: string; };
     complexMap: { [key: string]: Nested; };
-  } = new MyType({
-    id: 'id',
-    count: 1,
-    bool: true,
-    dynamic: ['dynamic'],
-    nested: new Nested({
-      b: 'b'
-    }),
-    array: ['some', 'strings'],
-    complexArray: [new Nested({
-      a: 'a',
-      b: 'b'
-    })],
-    map: {
-      key: 'value'
-    },
-    complexMap: {
-      key: new Nested({
-        a: 'a',
-        b: 'b'
-      })
-    },
-    set: new Set<string>().add('value'),
-    complexSet: HashSet.of(Nested)
-      .add(new Nested({
-        a: 'a',
-        b: 'b'
-      })),
-  });
+  } = myType;
 
   expect(expected.array).toEqual(['some', 'strings']);
   expect(expected.bool).toEqual(true);
@@ -121,4 +123,22 @@ it('should derive runtime type recursively', () => {
     b: 'b'
   }));
   expect(expected.set).toEqual(new Set().add('value'));
+});
+
+it('should compare equals semantically', () => {
+  const eq = Equals.of(MyType);
+  expect(eq(myType, myType)).toEqual(true);
+  expect(eq(myType, new MyType({
+    ...myType,
+    count: 2 // different value
+  }))).toEqual(false);
+});
+
+it('should compute hash code', () => {
+  const hc = HashCode.of(MyType);
+  expect(hc(myType)).toEqual(hc(myType));
+  expect(hc(new MyType({
+    ...myType,
+    count: 2 // different value
+  }))).not.toEqual(hc(myType));
 });

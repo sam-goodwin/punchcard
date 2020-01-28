@@ -1,7 +1,6 @@
-import { ClassShape, ClassType, Member, Visitor } from '@punchcard/shape';
-import { Value } from '@punchcard/shape-runtime';
+import { ClassShape, ClassType, Member, ShapeOrRecord, Value, Visitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
@@ -23,14 +22,15 @@ export namespace DSL {
   export type Tag = typeof Tag;
   export const Tag = Symbol.for('@punchcard/shape-dynamodb.Query.Tag');
 
-  export type Of<T> = T extends { [Tag]: infer Q } ? Q : never;
-  export type OfType<T extends ClassType> = Of<Shape.Of<T>>;
+  export type Of<T extends ShapeOrRecord> = Shape.Of<T> extends { [Tag]: infer Q } ? Q : never;
 
-  export function of<T extends ClassType>(type: T): OfType<T>['fields'] {
+  export type Root<T extends ClassType> = Struct<Shape.Of<T>>['fields'];
+
+  export function of<T extends ClassType>(type: T): Root<T> {
     const shape = Shape.of(type);
     const result: any = {};
     for (const [name, member] of Objekt.entries(shape.Members)) {
-      result[name] = member.Type.visit(DslVisitor, new RootProperty(member.Type, name));
+      result[name] = member.Shape.visit(DslVisitor, new RootProperty(member.Shape, name));
     }
     return result;
   }
@@ -78,11 +78,11 @@ export namespace DSL {
         }
       });
     },
-    integerShape: (shape: IntegerShape, expression: ExpressionNode<any>): Ord<IntegerShape> => {
-      return new Ord(shape, expression);
+    integerShape: (shape: IntegerShape, expression: ExpressionNode<any>): Number => {
+      return new DSL.Number(expression, shape);
     },
-    numberShape: (shape: NumberShape, expression: ExpressionNode<any>): Ord<NumberShape> => {
-      return new Ord(shape, expression);
+    numberShape: (shape: NumberShape, expression: ExpressionNode<any>): Number => {
+      return new DSL.Number(expression, shape);
     },
     setShape: (shape: SetShape<any>, expression: ExpressionNode<any>): Set<any> => {
       return new Set(shape.Items, expression);
@@ -118,6 +118,9 @@ export namespace DSL {
     public abstract [Synthesize](writer: Writer): void;
   }
 
+  export function isStatementNode(a: any): a is StatementNode {
+    return a[NodeType] === 'statement';
+  }
   export abstract class StatementNode extends Node<'statement'> {
     public abstract [SubNodeType]: string;
     constructor() {
@@ -171,8 +174,10 @@ export namespace DSL {
     }
   }
 
-  function resolveExpression<T extends Shape>(type: T, expression: Expression<T>): ExpressionNode<T> {
-    return isNode(expression) ? expression : new Literal(type, Mapper.of(type).write(expression as any) as any);
+  function resolveExpression<T extends Shape>(type: T, expression: Expression<T> | Computation<T>): ExpressionNode<T> {
+    return isComputation(expression) ? new ComputationExpression(type, expression) :
+      isNode(expression) ? expression :
+      new Literal(type, Mapper.of(type).write(expression as any) as any);
   }
 
   export class FunctionCall<T extends Shape> extends ExpressionNode<T> {
@@ -216,15 +221,27 @@ export namespace DSL {
       return new Number(new FunctionCall('size', number, [this]));
     }
 
-    public set(value: Expression<T>): Object.Assign<T> {
+    public set(value: Expression<T> | Computation<T>): Object.Assign<T> {
       return new Object.Assign(this, resolveExpression(this[DataType], value));
+    }
+
+    public exists(): Bool {
+      return new Bool(new FunctionCall('attribute_exists', bool, [this]));
+    }
+
+    public notExists(): Bool {
+      return new Bool(new FunctionCall('attribute_not_exists', bool, [this]));
     }
   }
   export namespace Object {
+    export function beginsWith(lhs: Expression<StringShape>, rhs: Expression<StringShape>) {
+      return new Bool(new String.BeginsWith(resolveExpression(string, lhs), resolveExpression(string, rhs)));
+    }
+
     export class Assign<T extends Shape> extends StatementNode {
       public [SubNodeType] = 'assign';
 
-      constructor(private readonly instance: Object<T>, private readonly value: ExpressionNode<T>) {
+      constructor(private readonly instance: Object<T>, private readonly value: Node) {
         super();
       }
 
@@ -387,19 +404,33 @@ export namespace DSL {
     }
   }
 
-  export type SetValue<T extends Shape> = ExpressionNode<T> | Computation<T>;
+  export function isComputation(a: any): a is Computation<any> {
+    return isStatementNode(a) && a[SubNodeType] === 'computation';
+  }
 
+  /**
+   * Computations are not Expressions, although they do represent a value.
+   *
+   * This is because they are not usable within Query or Filter expressions.
+   *
+   * E.g. this is impossible:
+   * ```
+   * table.putIf(.., item => item.plus(1).equals(2))
+   * ```
+   */
   export abstract class Computation<T extends Shape> extends StatementNode {
     public readonly [SubNodeType] = 'computation';
 
     public abstract readonly operator: string;
 
-    constructor(public readonly lhs: SetValue<T>, public readonly rhs: SetValue<T>) {
+    constructor(public readonly lhs: ExpressionNode<T>, public readonly rhs: ExpressionNode<T>) {
       super();
     }
 
     public [Synthesize](writer: Writer): void {
       this.lhs[Synthesize](writer);
+      writer.writeToken(this.operator);
+      this.rhs[Synthesize](writer);
     }
   }
 
@@ -431,7 +462,7 @@ export namespace DSL {
 
     public readonly actionName: 'SET' = 'SET';
 
-    constructor(public readonly path: ExpressionNode<T>, public readonly value: SetValue<T>) {
+    constructor(public readonly path: ExpressionNode<T>, public readonly value: ExpressionNode<T>) {
       super();
     }
 
@@ -442,25 +473,35 @@ export namespace DSL {
     }
   }
 
-  export class Number extends Ord<NumberShape | IntegerShape> {
-    constructor(expression: ExpressionNode<NumberShape>, shape?: NumberShape | IntegerShape) {
+  /**
+   * Represents a number in a DynamoDB Filter, Query or Update expression.
+   */
+  export class Number extends Ord<NumericShape> {
+    constructor(expression: ExpressionNode<NumericShape>, shape?: NumericShape) {
       super(shape || number, expression);
     }
 
-    public plus(value: Expression<NumberShape>): Number.Plus {
-      return new Number.Plus(this, resolveExpression(this[DataType], value));
+    public decrement(value?: Expression<NumericShape>) {
+      return this.set(this.minus(value === undefined ? 1 : value));
     }
 
-    public minus(value: Expression<NumberShape>): Number.Minus {
+    public increment(value?: Expression<NumericShape>) {
+      return this.set(this.plus(value === undefined ? 1 : value));
+    }
+
+    public minus(value: Expression<NumericShape>): Number.Minus {
       return new Number.Minus(this, resolveExpression(this[DataType], value));
+    }
+
+    public plus(value: Expression<NumericShape>): Number.Plus {
+      return new Number.Plus(this, resolveExpression(this[DataType], value));
     }
   }
   export namespace Number {
-    export class Plus extends Computation<NumberShape | IntegerShape> {
+    export class Plus extends Computation<NumericShape> {
       public operator: '+' = '+';
     }
-
-    export class Minus extends Computation<NumberShape | IntegerShape> {
+    export class Minus extends Computation<NumericShape> {
       public operator: '-' = '-';
     }
   }
@@ -547,6 +588,9 @@ export namespace DSL {
     public get(key: Expression<StringShape>): Of<T> {
       return this[DataType].Items.visit(DSL.DslVisitor as any, typeof key === 'string' ? new Map.GetValue(this, new Id(key)) as any : new Map.GetValue(this, resolveExpression(string, key)));
     }
+    public put(key: Expression<StringShape>, value: Expression<T>) {
+      return new SetAction(this.get(key) as ExpressionNode<T>, resolveExpression(this[DataType].Items, value));
+    }
   }
   export namespace Map {
     export class GetValue<T extends Shape> extends ExpressionNode<T> {
@@ -565,7 +609,7 @@ export namespace DSL {
 
   export class Struct<T extends ClassShape<any>> extends Object<T> {
     public readonly fields: {
-      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]['Type']>;
+      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]['Shape']>;
     };
 
     constructor(type: T, expression: ExpressionNode<T>) {
@@ -573,7 +617,7 @@ export namespace DSL {
       this.fields = {} as any;
       for (const [name, prop] of Objekt.entries(type.Members)) {
         Member.assertInstance(prop);
-        (this.fields as any)[name] = prop.Type.visit(DslVisitor, new Struct.Field(this, prop.Type, name));
+        (this.fields as any)[name] = prop.Shape.visit(DslVisitor, new Struct.Field(this, prop.Shape, name));
       }
     }
   }

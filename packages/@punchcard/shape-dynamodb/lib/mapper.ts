@@ -1,13 +1,14 @@
 import AWS = require('aws-sdk');
 
-import { HashSet, Value } from '@punchcard/shape-runtime';
 import { Validator } from '@punchcard/shape-validation/lib/validator';
-import { ClassType } from "@punchcard/shape/lib/class";
+import { ShapeOrRecord } from '@punchcard/shape/lib/class';
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
-import { Shape } from "@punchcard/shape/lib/shape";
-import { AttributeValue } from "./attribute";
+import { HashSet } from '@punchcard/shape/lib/hash-set';
+import { Shape } from '@punchcard/shape/lib/shape';
+import { Value } from '@punchcard/shape/lib/value';
+import { AttributeValue } from './attribute';
 
-export interface Mapper<T extends Shape | ClassType> {
+export interface Mapper<T extends ShapeOrRecord> {
   read(value: AttributeValue.Of<T>): Value.Of<T>;
   write(value: Value.Of<T>): AttributeValue.Of<T>;
 }
@@ -38,7 +39,7 @@ export namespace Mapper {
     cache: WeakMap<any, any>;
   }
 
-  export function of<T extends ClassType | Shape>(type: T, options: Options = { validate: true, cache: new WeakMap() }): Mapper<T> {
+  export function of<T extends ShapeOrRecord>(type: T, options: Options = { validate: true, cache: new WeakMap() }): Mapper<T> {
     const shape = Shape.of(type);
 
     if (!options.cache.has(shape)) {
@@ -66,7 +67,7 @@ export namespace Mapper {
     function resolveShape() {
       if (ShapeGuards.isClassShape(shape)) {
         const mappers: {[key: string]: Mapper<any>; } = Object.values(shape.Members)
-          .map(m => ({ [m.Name]: Mapper.of(m.Type, options) }))
+          .map(m => ({ [m.Name]: Mapper.of(m.Shape, options) }))
           .reduce((a, b) => ({...a, ...b}));
 
         function traverse(f: (mapper: Mapper<any>, value: any) => any): (value: any) => any {
@@ -87,7 +88,7 @@ export namespace Mapper {
         return {
           read: (value: any) => {
             assertHasKey('M', value);
-            return reader(value.M);
+            return new shape.type(reader(value.M));
           },
           write: (value: any) => {
             return { M: writer(value) };
