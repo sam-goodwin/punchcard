@@ -11,6 +11,20 @@ import json = require('@punchcard/shape-json');
 
 Util.setRuntime();
 
+const payload = new SQS.Event.Payload({
+  Records: [new SQS.Event.Message({
+    attributes: {},
+    awsRegion: 'awsRegion',
+    body: JSON.stringify('string'),
+    eventSource: 'eventSource',
+    eventSourceARN: 'eventSourceARN',
+    md5OfBody: 'md5OfBody',
+    messageAttributes: {},
+    messageId: 'messageId',
+    receiptHandle: 'receiptHandle',
+  })]
+});
+
 describe('run', () => {
   it('should parse event into records', async () => {
     const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
@@ -23,19 +37,7 @@ describe('run', () => {
     await (queue.messages().forEach(stack, 'od', {}, async (v) => {
       results.push(v);
       return Promise.resolve(v);
-    }).handle({
-      Records: [{
-        attributes: {},
-        awsRegion: 'awsRegion',
-        body: JSON.stringify('string'),
-        eventSource: 'eventSource',
-        eventSourceARN: 'eventSourceARN',
-        md5OfBody: 'md5OfBody',
-        messageAttributes: {},
-        messageId: 'messageId',
-        receiptHandle: 'receiptHandle',
-      }],
-     }, [{}], {}));
+    }).handle(payload, [{}], {}));
 
     expect(results).toEqual(['string']);
   });
@@ -50,10 +52,7 @@ describe('run', () => {
     await (queue.messages().forEach(stack, 'od', {}, async (v) => {
       results.push(v);
       return Promise.resolve(v);
-    }).handle({
-      Records: [{
-      body: JSON.stringify('string')
-    } as any]}, [{}], {}));
+    }).handle(payload, [{}], {}));
 
     expect(results).toEqual(['string']);
   });
@@ -157,10 +156,7 @@ describe('run', () => {
       sink: sinon.fake()
     };
 
-    await stream.sender.handle({
-      Records: [{
-      body: JSON.stringify('string')
-    } as any]}, [sink as any, 'd1'], {});
+    await stream.sender.handle(payload, [sink as any, 'd1'], {});
 
     expect(sink.sink.calledOnceWith(['string'.length])).toBe(true);
     expect.assertions(2);

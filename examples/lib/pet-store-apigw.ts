@@ -3,7 +3,9 @@ import uuid = require('uuid');
 
 import { Core, ApiGateway, DynamoDB, Lambda } from 'punchcard';
 
-import { array, double, string, struct } from 'punchcard/lib/shape';
+import { array, string, nothing, Shape, number } from '@punchcard/shape';
+import { Record } from '@punchcard/shape';
+import { Minimum } from '../../packages/@punchcard/shape-validation/lib';
 
 export const app = new Core.App();
 
@@ -11,15 +13,13 @@ export const app = new Core.App();
 
 const stack = app.root.map(app => new core.Stack(app, 'pet-store'));
 
-const petStore = new DynamoDB.Table(stack, 'pet-store', {
-  partitionKey: 'id',
-  sortKey: undefined,
-  attributes: {
-    id: string(),
-    type: string(),
-    price: double()
-  }
-});
+class PetRecord extends Record({
+  id: string,
+  type: string,
+  price: number
+}) {}
+
+const petStore = new DynamoDB.Table(stack, 'pet-store', PetRecord, 'id');
 
 const executorService = new Lambda.ExecutorService({
   memorySize: 512
@@ -33,45 +33,48 @@ const api = new ApiGateway.Api(stack, 'PetApi');
 const pets = api.addResource('pets');
 const pet = pets.addResource('{id}');
 
+class ErrorResponse extends Record({
+  errorMessage: string
+}) {}
+
+class EmptyPayload extends Record({}) {}
+
+
 // GET /pets
 pets.setGetMethod({
   integration: endpoint,
   request: {
-    shape: struct({})
+    shape: EmptyPayload
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: array(struct(petStore.attributes)),
-    [ApiGateway.StatusCode.InternalError]: struct({
-      errorMessage: string()
-    })
+    [ApiGateway.StatusCode.Ok]: array(petStore.attributes),
+    [ApiGateway.StatusCode.InternalError]: Shape.of(ErrorResponse)
   },
   handle: async (_, petStore) => {
     return ApiGateway.response(ApiGateway.StatusCode.Ok, await petStore.scan());
   }
 });
 
+class PetId extends Record({
+  id: string
+}) {}
+
 // GET /pets/{id}
 pet.setGetMethod({
   integration: endpoint,
   request: {
-    shape: struct({
-      id: string()
-    }),
+    shape: PetId,
     mappings: {
       id: ApiGateway.$input.params('id')
     }
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: struct(petStore.attributes),
-    [ApiGateway.StatusCode.NotFound]: string(),
-    [ApiGateway.StatusCode.InternalError]: struct({
-      errorMessage: string()
-    })
+    [ApiGateway.StatusCode.Ok]: petStore.attributes,
+    [ApiGateway.StatusCode.NotFound]: string,
+    [ApiGateway.StatusCode.InternalError]: Shape.of(ErrorResponse)
   },
   handle: async ({id}, petStore) => {
-    const item = await petStore.get({
-      id
-    });
+    const item = await petStore.get(id);
     if (item === undefined) {
       return ApiGateway.response(ApiGateway.StatusCode.NotFound, id);
     }
@@ -79,45 +82,38 @@ pet.setGetMethod({
   }
 });
 
+class AddPetRequest extends Record({
+  type: string,
+  price: number
+    .apply(Minimum(0))
+}) {}
+
 // POST /pets
 pets.setPostMethod({
   integration: endpoint,
   request: {
-    shape: struct({
-      type: string(),
-      price: double()
-    })
+    shape: AddPetRequest
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: struct({
-      id: string()
-    }),
-    [ApiGateway.StatusCode.Conflict]: string(),
-    [ApiGateway.StatusCode.InternalError]: struct({
-      errorMessage: string()
-    })
+    [ApiGateway.StatusCode.Ok]: Shape.of(PetId),
+    [ApiGateway.StatusCode.Conflict]: string,
+    [ApiGateway.StatusCode.InternalError]: Shape.of(ErrorResponse)
   },
   handle: async (request, petStore) => {
     const id = uuid();
     try {
-      await petStore.put({
-        item: {
-          id,
-          ...request
-        },
-        if: item => DynamoDB.attribute_not_exists(item.id)
-      });
-      return ApiGateway.response(ApiGateway.StatusCode.Ok, {
+      await petStore.putIf(new PetRecord({ id, ...request }), item => item.id.notExists());
+      return ApiGateway.response(ApiGateway.StatusCode.Ok, new PetId({
         id
-      });
+      }));
     } catch (err) {
       const e = err as AWS.AWSError;
       if (e.code === 'ConditionalCheckFailedException') {
         return ApiGateway.response(ApiGateway.StatusCode.Conflict, `item with id ${id} already exists`);
       } else {
-        return ApiGateway.response(ApiGateway.StatusCode.InternalError, {
+        return ApiGateway.response(ApiGateway.StatusCode.InternalError, new ErrorResponse({
           errorMessage: e.message
-        });
+        }));
       }
     }
   }

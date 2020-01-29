@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { Shape, Value } from '@punchcard/shape';
+import { ShapeOrRecord, Value } from '@punchcard/shape';
 import { sink, Sink, SinkProps } from '../util/sink';
 import { Stream } from './stream';
 
@@ -10,7 +10,7 @@ import { Stream } from './stream';
  * @typeparam T type of data in the stream.
  * @see https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
  */
-export class Client<T extends Shape> implements Sink<Value.Of<T>> {
+export class Client<T extends ShapeOrRecord> implements Sink<Value.Of<T>> {
   constructor(
     public readonly stream: Stream<T>,
     public readonly streamName: string,

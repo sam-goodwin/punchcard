@@ -217,7 +217,7 @@ export namespace DSL {
       return new Bool(new Object.Equals(this, resolveExpression(this[DataType], other)));
     }
 
-    public size(): Number {
+    public get size(): Number {
       return new Number(new FunctionCall('size', number, [this]));
     }
 
@@ -515,6 +515,9 @@ export namespace DSL {
     public beginsWith(value: Expression<StringShape>): Bool {
       return String.beginsWith(this, value);
     }
+    public get length() {
+      return this.size;
+    }
   }
   export namespace String {
     export class BeginsWith extends FunctionCall<BoolShape> {
@@ -533,6 +536,10 @@ export namespace DSL {
   export class List<T extends Shape> extends Object<ArrayShape<T>> {
     constructor(type: ArrayShape<T>, expression: ExpressionNode<ArrayShape<T>>) {
       super(type, expression);
+    }
+
+    public get length() {
+      return this.size;
     }
 
     public get(index: Expression<NumberShape>): Of<T> {

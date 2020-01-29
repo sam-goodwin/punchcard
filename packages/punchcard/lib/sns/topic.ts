@@ -52,7 +52,7 @@ export class Topic<T> implements Resource<sns.Topic> {
        * Return an iterator of records parsed from the raw data in the event.
        * @param event kinesis event sent to lambda
        */
-      public async *run(event: Event) {
+      public async *run(event: Event.Payload) {
         for (const record of event.Records) {
           yield mapper.read(record.Sns.Message);
         }

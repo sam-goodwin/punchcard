@@ -69,6 +69,8 @@ export type ClassType<I = any, M extends ClassMembers = any> =
 
 export type ShapeOrRecord = Shape | ClassType;
 
+export type ShapeOrRecordWithValue<T> = (Shape & { [Value.Tag]: T; }) | ClassType<T>;
+
 /**
  * Maps ClassMembers to a structure that represents it at runtime.
  *

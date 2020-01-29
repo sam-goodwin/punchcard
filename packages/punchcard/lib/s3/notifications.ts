@@ -14,7 +14,7 @@ export interface ObjectStreamConfig extends _ObjectStreamConfig {}
  *
  * @see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
  */
-export class Notifications<T, D extends any[]> extends Stream<Event, T, D, ObjectStreamConfig> {
+export class Notifications<T, D extends any[]> extends Stream<typeof Event.Payload, T, D, ObjectStreamConfig> {
   constructor(public readonly bucket: Bucket, previous: Notifications<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;

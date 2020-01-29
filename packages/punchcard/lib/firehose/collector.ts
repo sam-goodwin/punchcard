@@ -1,6 +1,6 @@
 import core = require('@aws-cdk/core');
 
-import { Shape, Value } from '@punchcard/shape';
+import { NothingShape, Shape, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Function } from '../lambda/function';
@@ -63,7 +63,7 @@ export interface CollectedDeliveryStreamProps<T extends Shape, S extends Stream<
  * @typeparam T type of notififcations sent to, and emitted from, the DeliveryStream.
  */
 export class CollectedDeliveryStream<T extends Shape, S extends Stream<any, any, any, any>> extends DeliveryStream<T> {
-  public readonly sender: Function<EventType<S>, void, Dependency.Concat<Cons<DependencyType<S>, Dependency<Client<T>>>>>;
+  public readonly sender: Function<EventType<S>, NothingShape, Dependency.Concat<Cons<DependencyType<S>, Dependency<Client<T>>>>>;
 
   constructor(scope: Build<core.Construct>, id: string, props: CollectedDeliveryStreamProps<T, S>) {
     super(scope, id, props);

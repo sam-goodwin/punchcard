@@ -52,7 +52,7 @@ export class Queue<T> implements Resource<sqs.Queue> {
        *
        * @param event payload of SQS event
        */
-      public async *run(event: Event) {
+      public async *run(event: Event.Payload) {
         for (const record of event.Records.map(record => mapper.read(record.body))) {
           yield record;
         }

@@ -11,13 +11,12 @@ import { BillingMode } from '@aws-cdk/aws-dynamodb';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import { Schedule } from '@aws-cdk/aws-events';
 import { Build } from 'punchcard/lib/core/build';
-import { Partition } from '../../packages/@punchcard/shape-glue/lib';
 
 export const app = new Core.App();
 
 const stack = app.root.map(app => new cdk.Stack(app, 'stream-processing'));
 
-class Data extends Record({
+class NotificationRecord extends Record({
   key: string,
   count: integer,
   timestamp: timestamp
@@ -30,10 +29,10 @@ const topic = new SNS.Topic(stack, 'Topic', {
   /**
    * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
    */
-  mapper: json.stringifyMapper(Data)
+  mapper: json.stringifyMapper(NotificationRecord)
 });
 
-class EnrichmentData extends Record({
+class TagLookupRecord extends Record({
   key: string,
   tags: array(string)
 }) {}
@@ -41,7 +40,7 @@ class EnrichmentData extends Record({
 /**
  * Create a DynamoDB Table to store some data.
  */
-const enrichments = new DynamoDB.Table(stack, 'Enrichments', EnrichmentData, 'key', Build.lazy(() => ({
+const enrichments = new DynamoDB.Table(stack, 'Enrichments', TagLookupRecord, 'key', Build.lazy(() => ({
   billingMode: BillingMode.PAY_PER_REQUEST
 })));
 
@@ -73,7 +72,7 @@ Lambda.schedule(stack, 'DummyData', {
    */
   const key = uuid();
   // write some data to the dynamodb table
-  await table.put(new EnrichmentData({
+  await table.put(new TagLookupRecord({
     key,
     tags: ['some', 'tags']
   }));
@@ -81,7 +80,7 @@ Lambda.schedule(stack, 'DummyData', {
   // send 3 SNS notifications
   await Promise.all([1, 2, 3].map(async (i) => {
     // message is structured and strongly typed (based on our Topic definition above)
-    await topic.publish(new Data({
+    await topic.publish(new NotificationRecord({
       key,
       count: i,
       timestamp: new Date(),
@@ -106,7 +105,10 @@ topic.notifications().forEach(stack, 'ForEachNotification', {},
  */
 const queue = topic.toSQSQueue(stack, 'Queue');
 
-class StreamData extends Record({
+/**
+ * Log record to collect into Kinesis and store in Glue.
+ */
+class LogDataRecord extends Record({
   key: string,
   count: integer,
   tags: array(string),
@@ -114,7 +116,7 @@ class StreamData extends Record({
 }) {}
 
 /**
- * Process each message in SQS with Lambda, look up some data in DynamoDB, and persist results in a Kinesis Stream:
+ * Process each message in SQS with Lambda, look up some data in DynamoDB and persist results in a Kinesis Stream:
  *
  *              Dynamo
  *                | (get)
@@ -135,7 +137,7 @@ const stream = queue.messages() // gives us a nice chainable API
     };
   })
   .toKinesisStream(stack, 'Stream', {
-    shape: Shape.of(StreamData),
+    shape: LogDataRecord,
 
     // encrypt values in the stream with a customer-managed KMS key.
     encryption: StreamEncryption.KMS,
@@ -158,15 +160,9 @@ const table = stream
   .toGlueTable(stack, 'ToGlue', {
     database,
     tableName: 'my_table',
-    columns: StreamData,
+    columns: LogDataRecord,
     partition: {
       keys: Glue.Partition.Minutely,
-      get: col => new Glue.Partition.Minutely({
-        year: col.timestamp.getUTCFullYear(),
-        month: col.timestamp.getUTCMonth(),
-        day: col.timestamp.getUTCDate(),
-        hour: col.timestamp.getUTCHours(),
-        minute: col.timestamp.getUTCMinutes(),
-      })
+      get: col => Glue.Partition.byMinute(col.timestamp)
     }
   });

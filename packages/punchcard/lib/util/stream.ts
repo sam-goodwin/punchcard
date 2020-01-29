@@ -1,6 +1,6 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import core = require('@aws-cdk/core');
-import { any } from '@punchcard/shape';
+import { ClassType, ShapeOrRecord, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Client, Clients } from '../core/client';
 import { Dependency } from '../core/dependency';
@@ -22,7 +22,7 @@ export type DependencyType<E extends Stream<any, any, any, any>> = E extends Str
  * @typeparam D runtime dependencies
  * @typeparam R runtime configuration
  */
-export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
+export abstract class Stream<E extends ClassType, T, D extends any[], C extends Stream.Config> {
   constructor(
       protected readonly previous: Stream<E, any, any, C>,
       protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,
@@ -101,7 +101,7 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
    * @param event payload
    * @param clients bootstrapped clients
    */
-  public run(event: E, deps: Clients<D>): AsyncIterableIterator<T> {
+  public run(event: Value.Of<E>, deps: Clients<D>): AsyncIterableIterator<T> {
     if (this.dependencies === this.previous.dependencies) {
       return this.f(this.previous.run(event, deps), deps ? (deps as any[])[0] : undefined);
     } else {
@@ -133,7 +133,7 @@ export abstract class Stream<E, T, D extends any[], C extends Stream.Config> {
       depends: input.depends === undefined
         ? Dependency.concat(...this.dependencies)
         : Dependency.concat(input.depends, ...this.dependencies),
-    }, async (event: E, deps) => {
+    }, async (event: Value.Of<E>, deps) => {
       if (input.depends === undefined) {
         for await (const value of this.run(event, deps as any)) {
           await handle(value, undefined as any);

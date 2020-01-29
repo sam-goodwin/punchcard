@@ -4,7 +4,7 @@ import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/core');
 import json = require('@punchcard/shape-json');
 
-import { any, Mapper } from '@punchcard/shape';
+import { any, AnyShape, Mapper, ShapeOrRecord, Value } from '@punchcard/shape';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -22,20 +22,20 @@ import { RUNTIME_ENV } from '../util/constants';
  */
 export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'handler'> {}
 
-export interface FunctionProps<T, U, D extends Dependency<any> | undefined = undefined> {
+export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> {
   /**
    * Type of the request
    *
    * @default any
    */
-  request?: Mapper<T, string>;
+  request?: T;
 
   /**
    * Type of the response
    *
    * @default any
    */
-  response?: Mapper<U, string>;
+  response?: U;
 
   /**
    * Dependency resources which this Function needs clients for.
@@ -57,7 +57,7 @@ export interface FunctionProps<T, U, D extends Dependency<any> | undefined = und
  * @typeparam U return type
  * @typeparam D runtime dependencies
  */
-export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Resource<lambda.Function> {
+export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> implements Entrypoint, Resource<lambda.Function> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
@@ -77,19 +77,19 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
    * @param event the parsed request
    * @param clients initialized clients to dependency resources
    */
-  public readonly handle: (event: T, clients: Client<D>, context: any) => Promise<U>;
+  public readonly handle: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<Value.Of<U>>;
 
   private readonly dependencies?: D;
 
-  private readonly requestMapper: Mapper<T, string>;
-  private readonly responseMapper: Mapper<U, string>;
+  private readonly requestMapper: Mapper<Value.Of<T>, string>;
+  private readonly responseMapper: Mapper<Value.Of<U>, string>;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: T, run: Client<D>, context: any) => Promise<U>) {
+  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<Value.Of<U>>) {
     this.handle = handle;
     const entrypointId = Global.addEntrypoint(this);
 
-    this.requestMapper = props.request || json.stringifyMapper(any) as any;
-    this.responseMapper = props.response || json.stringifyMapper(any) as any;
+    this.requestMapper = json.stringifyMapper(props.request || any);
+    this.responseMapper = json.stringifyMapper(props.response || any);
     this.dependencies = props.depends;
 
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
@@ -126,7 +126,7 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
       if (this.dependencies) {
         const cache = new Cache();
         const runtimeProperties = new Assembly(bag);
-        client = await (Run.resolve(this.dependencies.bootstrap))(runtimeProperties, cache);
+        client = await (Run.resolve(this.dependencies!.bootstrap))(runtimeProperties, cache);
       }
 
       return (async (event: any, context: any) => {
@@ -145,7 +145,7 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
   /**
    * Depend on invoking this Function.
    */
-  public invokeAccess(): Dependency<Function.Client<T, U>> {
+  public invokeAccess(): Dependency<Function.Client<Value.Of<T>, Value.Of<U>>> {
     return {
       install: this.resource.map(fn => (ns, g) => {
         fn.grantInvoke(g);

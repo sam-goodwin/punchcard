@@ -9,7 +9,7 @@ import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 
-import { ClassType, Shape, ShapeGuards } from '@punchcard/shape';
+import { ClassType, Meta, Shape, ShapeGuards } from '@punchcard/shape';
 
 import { DynamoDBClient } from '@punchcard/shape-dynamodb';
 
@@ -39,13 +39,14 @@ export class Table<A extends Attributes, K extends DynamoDBClient.Key<InstanceTy
   public readonly attributes: Shape.Of<A>;
 
   /**
-   * StructShape of the table's key (hash key, or hash+sort key pair).
+   * The table's key (hash key, or hash+sort key pair).
    */
   public readonly key: K;
 
   constructor(scope: Build<core.Construct>, id: string, attributes: A, tableKey: K, props?: Build<TableOverrideProps>) {
     this.attributes = Shape.of(attributes) as any;
 
+    this.key = tableKey;
     const partitionKeyName: string = typeof tableKey === 'string' ? tableKey : (tableKey as any)[0];
     const sortKeyName: string | undefined = typeof tableKey === 'string' ? undefined : (tableKey as any)[1];
 
@@ -114,6 +115,9 @@ export class Table<A extends Attributes, K extends DynamoDBClient.Key<InstanceTy
 }
 
 function keyType(shape: Shape) {
+  if (Meta.get(shape).nullable === true) {
+    throw new Error(`dynamodb Key must not be optional`);
+  }
   if (ShapeGuards.isStringShape(shape) || ShapeGuards.isTimestampShape(shape)) {
     return dynamodb.AttributeType.STRING;
   } else if (ShapeGuards.isBinaryShape(shape)) {

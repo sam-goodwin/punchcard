@@ -4,7 +4,7 @@ import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
-import { Mapper, Shape, Value } from '@punchcard/shape';
+import { Mapper, Shape, ShapeOrRecord, Value } from '@punchcard/shape';
 import { DataType } from '@punchcard/shape-glue';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
@@ -16,7 +16,7 @@ import { Client } from './client';
 import { Event } from './event';
 import { Records } from './records';
 
-export interface StreamProps<T extends Shape> extends kinesis.StreamProps {
+export interface StreamProps<T extends ShapeOrRecord> extends kinesis.StreamProps {
   /**
    * Shape of data in the Stream.
    */
@@ -38,8 +38,8 @@ export interface StreamProps<T extends Shape> extends kinesis.StreamProps {
 /**
  * A Kinesis stream.
  */
-export class Stream<T extends Shape> implements Resource<kinesis.Stream> {
-  public readonly shape: T;
+export class Stream<T extends ShapeOrRecord> implements Resource<kinesis.Stream> {
+  public readonly shape: Shape.Of<T>;
   public readonly dataType: DataType;
   public readonly partitionBy: (record: Value.Of<T>) => string;
   public readonly resource: Build<kinesis.Stream>;
@@ -47,7 +47,7 @@ export class Stream<T extends Shape> implements Resource<kinesis.Stream> {
 
   constructor(scope: Build<core.Construct>, id: string, props: StreamProps<T>) {
     this.resource = scope.map(scope => new kinesis.Stream(scope, id, props));
-    this.shape = props.shape;
+    this.shape = Shape.of(props.shape);
     this.dataType = props.dateType || DataType.Json;
     this.partitionBy = props.partitionBy || (_ => uuid());
     this.mapper = this.dataType.mapper(this.shape);
@@ -63,7 +63,7 @@ export class Stream<T extends Shape> implements Resource<kinesis.Stream> {
        * Return an iterator of records parsed from the raw data in the event.
        * @param event kinesis event sent to lambda
        */
-      public async *run(event: Event) {
+      public async *run(event: Event.Payload) {
         for (const record of event.Records.map(record => mapper.read(Buffer.from(record.kinesis.data, 'base64')))) {
           yield record;
         }
@@ -129,7 +129,7 @@ export class Stream<T extends Shape> implements Resource<kinesis.Stream> {
 }
 
 export namespace Stream {
-  export interface ReadOnly<S extends Shape> extends Omit<Client<S>, 'putRecord' | 'putRecords' | 'sink'> {}
-  export interface WriteOnly<S extends Shape> extends Omit<Client<S>, 'getRecords'> {}
-  export interface ReadWrite<S extends Shape> extends Client<S> {}
+  export interface ReadOnly<S extends ShapeOrRecord> extends Omit<Client<S>, 'putRecord' | 'putRecords' | 'sink'> {}
+  export interface WriteOnly<S extends ShapeOrRecord> extends Omit<Client<S>, 'getRecords'> {}
+  export interface ReadWrite<S extends ShapeOrRecord> extends Client<S> {}
 }

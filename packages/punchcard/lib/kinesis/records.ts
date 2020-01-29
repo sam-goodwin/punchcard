@@ -12,7 +12,7 @@ type _Config = SStream.Config & events.KinesisEventSourceProps;
 /**
  * A `Stream` of Records from a Kinesis Stream.
  */
-export class Records<T, D extends any[]> extends SStream<Event, T, D, Config>  {
+export class Records<T, D extends any[]> extends SStream<typeof Event.Payload, T, D, Config>  {
   constructor(public readonly stream: Stream<any>, previous: Records<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;

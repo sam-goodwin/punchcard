@@ -159,22 +159,7 @@ export class Table<T extends ClassType, P extends ClassType> implements Resource
           s3Prefix: this.s3Prefix,
 
           columns: Object.values(this.columns.schema),
-          partitionKeys: Object.entries(this.partition.keys).map(([name, schema]) => ({
-            name,
-            type: (() => {
-              if (ShapeGuards.isBoolShape(schema)) {
-                return glue.Schema.BOOLEAN;
-              } else if (ShapeGuards.isStringShape(schema)) {
-                return glue.Schema.STRING;
-              } else if (ShapeGuards.isNumberShape(schema)) {
-                return glue.Schema.DOUBLE; // TODO: really need an integer type
-              } else if (ShapeGuards.isTimestampShape(schema)) {
-                return glue.Schema.TIMESTAMP;
-              } else {
-                throw new Error(`invalid type for partition key ${schema}, must be string, numeric, boolean or timestamp`);
-              }
-            })()
-          })),
+          partitionKeys: Object.values(this.partition.keys)
         });
 
         (table as any).grant = (grantee: iam.IGrantable, actions: string[]) => {
@@ -267,6 +252,11 @@ function partitionKeyMapper<T extends Shape>(type: T): Mapper<T, string> {
       read: (s: string) => parseFloat(s), // TODO: really need an integer type
       write: (n: number) => n.toString(10)
     } as any;
+  } else if (ShapeGuards.isIntegerShape(type)) {
+    return {
+      read: (s: string) => parseInt(s, 10),
+      write: (n: number) => n.toString(10)
+    } as any;
   } else {
     throw new Error(`invalid type for partition key ${type}, must be string, numeric, boolean`);
   }
@@ -341,7 +331,7 @@ export namespace Table {
       this.validator = Validator.of(table.columns.type);
       this.mapper = table.dataType.mapper(table.columns.shape);
       this.partitionMappers = {} as any;
-      Object.entries(table.columns.shape.Members).forEach(([name, schema]) => {
+      Object.entries(table.partition.shape.Members).forEach(([name, schema]) => {
         this.partitionMappers[name as PartitionKeys<T>] = partitionKeyMapper(schema.Shape);
       });
     }
@@ -495,29 +485,59 @@ export namespace Table {
 }
 
 export namespace Partition {
+  function partition(timestamp: Date) {
+    return {
+      year: timestamp.getUTCFullYear(),
+      month: timestamp.getUTCMonth(),
+      day: timestamp.getUTCDate(),
+      hour: timestamp.getUTCHours(),
+      minute: timestamp.getUTCMinutes(),
+    };
+  }
+
   export class Yearly extends Record({
     year: integer,
-  }) {}
+  }) {
+    public static readonly of = (timestamp: Date): Yearly => new Yearly(partition(timestamp));
+  }
   export class Monthly extends Record({
     year: integer,
     month: integer,
-  }) {}
+  }) {
+    public static readonly of = (timestamp: Date): Monthly => new Monthly(partition(timestamp));
+  }
   export class Daily extends Record({
     year: integer,
     month: integer,
     day: integer,
-  }) {}
+  }) {
+    public static readonly of = (timestamp: Date): Daily => new Daily(partition(timestamp));
+  }
   export class Hourly extends Record({
     year: integer,
     month: integer,
     day: integer,
     hour: integer,
-  }) {}
+  }) {
+    public static readonly of = (timestamp: Date): Hourly => new Hourly(partition(timestamp));
+  }
   export class Minutely extends Record({
     year: integer,
     month: integer,
     day: integer,
     hour: integer,
     minute: integer
-  }) {}
+  }) {
+    public static readonly of = (timestamp: Date): Minutely => new Minutely(partition(timestamp));
+  }
+  export const byYear = Yearly.of;
+  export const byMonth = Monthly.of;
+  export const byHour = Hourly.of;
+  export const byDay = Daily.of;
+  export const byMinute = Minutely.of;
+
+  export const ByMinute = {
+    keys: Minutely,
+    get: (record: {timestamp: Date}) => byMinute(record.timestamp)
+  };
 }
