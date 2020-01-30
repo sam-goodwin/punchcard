@@ -5,9 +5,8 @@ import { Schedule } from '@aws-cdk/aws-events';
 
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { any, string, integer, Record } from '@punchcard/shape';
+import { any, string, integer, Record, Minimum } from '@punchcard/shape';
 import { Build } from 'punchcard/lib/core/build';
-import { Minimum } from '../../packages/@punchcard/shape-validation/lib';
 
 export const app = new Core.App();
 const stack = app.root.map(app => new cdk.Stack(app, 'invoke-function-example'));

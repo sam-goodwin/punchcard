@@ -1,7 +1,6 @@
 import 'jest';
 
-import { ClassShape, HashSet, Record } from '@punchcard/shape';
-import { MaxLength } from '@punchcard/shape-validation';
+import { HashSet, MaxLength, Record } from '@punchcard/shape';
 import { binary, string } from '@punchcard/shape/lib/primitive';
 import { Mapper } from '../lib';
 import { MyType, Nested } from './mock';

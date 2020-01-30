@@ -1,9 +1,9 @@
 import AWS = require('aws-sdk');
 
-import { Validator } from '@punchcard/shape-validation/lib/validator';
 import { ShapeOrRecord } from '@punchcard/shape/lib/class';
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
+import { ValidatingMapper } from '@punchcard/shape/lib/mapper';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Value } from '@punchcard/shape/lib/value';
 import { AttributeValue } from './attribute';
@@ -11,26 +11,6 @@ import { AttributeValue } from './attribute';
 export interface Mapper<T extends ShapeOrRecord> {
   read(value: AttributeValue.Of<T>): Value.Of<T>;
   write(value: Value.Of<T>): AttributeValue.Of<T>;
-}
-
-class ValidatingMapper<T extends Shape> implements Mapper<T> {
-  constructor(private readonly mapper: Mapper<T>, private readonly validator: Validator<T>) {}
-
-  public read(value: AttributeValue.Of<T>): Value.Of<T> {
-    return this.assertIsValid(this.mapper.read(value));
-  }
-
-  public write(value: Value.Of<T>): AttributeValue.Of<T> {
-    return this.mapper.write(this.assertIsValid(value));
-  }
-
-  private assertIsValid(value: Value.Of<T>): Value.Of<T> {
-    const errors = this.validator(value, '$');
-    if (errors.length > 0) {
-      throw new Error(errors.map(e => e.message).join('\n'));
-    }
-    return value;
-  }
 }
 
 export namespace Mapper {
@@ -45,7 +25,7 @@ export namespace Mapper {
     if (!options.cache.has(shape)) {
       let m = resolveShape();
       if (options.validate) {
-        m = new ValidatingMapper(m, Validator.of(type));
+        m = ValidatingMapper.of(type, m);
       }
       options.cache.set(shape, m);
     }

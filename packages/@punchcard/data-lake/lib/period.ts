@@ -1,20 +1,20 @@
-import { PartitionKeys } from 'punchcard/lib/glue';
-import { smallint } from 'punchcard/lib/shape';
+import { Record } from '@punchcard/shape';
+import { smallint } from '@punchcard/shape-glue';
 
-const PT1H = {
-  year: smallint(),
-  month: smallint(),
-  day: smallint(),
-  hour: smallint()
-};
+export class PT1H extends Record({
+  year: smallint,
+  month: smallint,
+  day: smallint,
+  hour: smallint
+}) {}
 
-const PT1M = {
-  year: smallint(),
-  month: smallint(),
-  day: smallint(),
-  hour: smallint(),
-  minute: smallint()
-};
+export class PT1M extends Record({
+  year: smallint,
+  month: smallint,
+  day: smallint,
+  hour: smallint,
+  minute: smallint
+}) {}
 
 export namespace Period {
   /**
@@ -31,7 +31,7 @@ export namespace Period {
 /**
  * Represents a `Glue.Partition` partitioned by time.
  */
-export class Period<P extends PartitionKeys> {
+export class Period<P> {
   /**
    * Minutely partitions.
    */
@@ -40,7 +40,7 @@ export class Period<P extends PartitionKeys> {
   /**
    * Hourly partitions.
    */
-  public static readonly PT1H: Period<Period.PT1H> = new Period('hourly', PT1M, 60 * 60 * 1000);
+  public static readonly PT1H: Period<Period.PT1H> = new Period('hourly', PT1H, 60 * 60 * 1000);
 
   constructor(
     public readonly id: string,

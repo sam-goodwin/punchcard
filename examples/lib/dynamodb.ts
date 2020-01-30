@@ -5,9 +5,8 @@ import { Schedule } from '@aws-cdk/aws-events';
 
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, integer, Record, any, Shape } from '@punchcard/shape';
+import { array, string, integer, Record, any, Shape, Minimum } from '@punchcard/shape';
 import { Build } from 'punchcard/lib/core/build';
-import { Minimum } from '../../packages/@punchcard/shape-validation/lib';
 
 export const app = new Core.App();
 

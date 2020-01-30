@@ -12,5 +12,6 @@ export * from './primitive';
 export * from './shape';
 export * from './traits';
 export * from './util';
+export * from './validation';
 export * from './value';
 export * from './visitor';

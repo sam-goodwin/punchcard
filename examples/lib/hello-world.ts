@@ -1,9 +1,8 @@
 import cdk = require('@aws-cdk/core');
 import { Schedule } from '@aws-cdk/aws-events';
 import { Core, Lambda, DynamoDB, SQS } from 'punchcard';
-import { string, integer, Record } from '@punchcard/shape';
+import { string, integer, Record, MaxLength } from '@punchcard/shape';
 import { Dependency } from 'punchcard/lib/core';
-import { MaxLength } from '../../packages/@punchcard/shape-validation/lib';
 
 import json = require('@punchcard/shape-json');
 

@@ -11,7 +11,7 @@ import { char } from '@punchcard/shape-glue';
 export const app = new Core.App();
 const stack = app.root.map(app => new core.Stack(app, 'data-lake'));
 
-class DataPoints extends Record({
+class DataPoint extends Record({
   key: string,
   value: char(10),
   data_points: array(integer),
@@ -21,7 +21,7 @@ class DataPoints extends Record({
 // create a schema to describe our data
 const dataPoints = new Analytics.Schema({
   schemaName: 'data_points',
-  shape: Shape.of(DataPoints),
+  shape: DataPoint,
   timestampField: 'timestamp'
 });
 
@@ -56,12 +56,10 @@ Lambda.schedule(stack, 'DummyDataPoints', {
   depends: lake.pipelines.dataPoints.stream.writeAccess(),
   schedule: Schedule.rate(Duration.minutes(1)),
 }, async (_, stream) => {
-  await stream.putRecord({
-    Data: {
-      key: 'key',
-      data_points: [0, 1, 2],
-      timestamp: new Date(),
-      value: 'some-value'
-    }
-  });
+  await stream.putRecord(new DataPoint({
+    key: 'key',
+    data_points: [0, 1, 2],
+    timestamp: new Date(),
+    value: 'some-value'
+  }));
 });

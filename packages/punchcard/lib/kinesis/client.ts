@@ -40,12 +40,12 @@ export class Client<T extends ShapeOrRecord> implements Sink<Value.Of<T>> {
    *
    * @param input Data and optional ExplicitHashKey and SequenceNumberForOrdering
    */
-  public putRecord(input: PutRecordInput<Value.Of<T>>): Promise<PutRecordOutput> {
+  public putRecord(record: Value.Of<T>, input: PutRecordInput = {}): Promise<PutRecordOutput> {
     return this.client.putRecord({
       ...input,
       StreamName: this.streamName,
-      Data: this.stream.mapper.write(input.Data),
-      PartitionKey: this.stream.partitionBy(input.Data),
+      Data: this.stream.mapper.write(record),
+      PartitionKey: this.stream.partitionBy(record),
     }).promise();
   }
 
@@ -116,8 +116,7 @@ type _Record<T> = Omit<AWS.Kinesis.Record, 'Data'> & {
   Data: T;
 };
 
-export interface PutRecordInput<T> extends _PutRecordInput<T> {}
-type _PutRecordInput<T> = {Data: T} & Pick<AWS.Kinesis.PutRecordInput, 'ExplicitHashKey' | 'SequenceNumberForOrdering'>;
+export interface PutRecordInput extends Pick<AWS.Kinesis.PutRecordInput, 'ExplicitHashKey' | 'SequenceNumberForOrdering'> {}
 
 export interface PutRecordOutput extends AWS.Kinesis.PutRecordOutput {}
 

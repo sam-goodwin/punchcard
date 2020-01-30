@@ -12,7 +12,7 @@ class Nested extends Record({
 
 class Data extends Record({
   id: string
-    .apply(Description('this is an id')),
+    .apply(Description('this is a comment')),
 
   nested: Nested,
 
@@ -35,7 +35,7 @@ test('Glue Schema from Shape', () => {
   expect(schema).toEqual({
     id: {
       name: 'id',
-      comment: 'this is an id',
+      comment: 'this is a comment',
       type: glue.Schema.STRING
     },
     nested: {
@@ -87,7 +87,7 @@ test('Glue Schema from Shape', () => {
   const expected: {
     id: {
       name: 'id',
-      comment: 'this is an id',
+      comment: 'this is a comment',
       type: glue.Type;
     },
     nested: {

@@ -10,7 +10,6 @@ import cdk = require('@aws-cdk/core');
 
 import { ClassType, integer, Mapper, Record, Shape, ShapeGuards, Value } from '@punchcard/shape';
 import { Columns, DataType, PartitionKeys, schema } from '@punchcard/shape-glue';
-import { Validator } from '../../../@punchcard/shape-validation/lib/validator';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
@@ -301,11 +300,6 @@ export namespace Table {
    */
   export class Client<T extends ClassType, P extends ClassType> implements Sink<Value.Of<T>> {
     /**
-     * Validates a Record.
-     */
-    public readonly validator: Validator<Value.Of<T>>;
-
-    /**
      * Mapper for writing a Record as a Buffer.
      */
     public readonly mapper: Mapper<Value.Of<T>, Buffer>;
@@ -328,7 +322,6 @@ export namespace Table {
       public readonly table: Table<T, P>
     ) {
       this.partitions = Object.keys(table.partition.keys);
-      this.validator = Validator.of(table.columns.type);
       this.mapper = table.dataType.mapper(table.columns.shape);
       this.partitionMappers = {} as any;
       Object.entries(table.partition.shape.Members).forEach(([name, schema]) => {
@@ -354,10 +347,6 @@ export namespace Table {
       }> = new Map();
 
       for (const record of records) {
-        const errors = this.validator(record, '$');
-        if (errors !== undefined && errors.length > 0) {
-          throw new Error(`invalid record: ${errors.map(e => e.message).join('\n')}`);
-        }
         const partition = this.table.partition.get(record);
         const key = this.partitions.map(p => partition[p].toString()).join('');
         if (!partitions.has(key)) {

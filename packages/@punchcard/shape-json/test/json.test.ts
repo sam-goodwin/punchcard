@@ -1,7 +1,6 @@
 import 'jest';
 
-import { bool, HashSet, nothing, number, Optional, Record, string } from '@punchcard/shape';
-import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape-validation';
+import { bool, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, Optional, Pattern, Record, string } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import json = require('../lib');

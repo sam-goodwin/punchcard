@@ -2,8 +2,7 @@ import glue = require('@aws-cdk/aws-glue');
 import cdk = require('@aws-cdk/core');
 import { Core, SNS, Lambda, DynamoDB, Glue } from 'punchcard';
 
-import json = require('@punchcard/shape-json');
-import { integer, string, array, timestamp, Shape, Record, } from '@punchcard/shape';
+import { integer, string, array, timestamp, Record, } from '@punchcard/shape';
 
 import uuid = require('uuid');
 import { Duration } from '@aws-cdk/core';

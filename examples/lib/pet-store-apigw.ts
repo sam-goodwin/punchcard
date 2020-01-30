@@ -3,9 +3,8 @@ import uuid = require('uuid');
 
 import { Core, ApiGateway, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, Shape, number } from '@punchcard/shape';
+import { array, string, Shape, number, Minimum } from '@punchcard/shape';
 import { Record } from '@punchcard/shape';
-import { Minimum } from '../../packages/@punchcard/shape-validation/lib';
 
 export const app = new Core.App();
 

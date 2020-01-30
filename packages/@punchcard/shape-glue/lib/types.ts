@@ -1,5 +1,4 @@
-import { integer, number, string, Trait } from "@punchcard/shape";
-import { Maximum, MaxLength, Minimum, MinLength } from '@punchcard/shape-validation';
+import { integer, Maximum, MaxLength, Minimum, MinLength, number, string, Trait } from "@punchcard/shape";
 
 export function Type<T extends string>(glueType: T): Trait<any, { glueType: T; }> {
   return {

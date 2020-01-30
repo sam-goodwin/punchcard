@@ -1,4 +1,4 @@
-import { ClassType, HashSet, Mapper, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { HashSet, Mapper, ValidatingMapper, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
 import { ClassShape, ShapeOrRecord } from '@punchcard/shape/lib/class';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
@@ -6,23 +6,16 @@ import { Shape } from '@punchcard/shape/lib/shape';
 import { Json } from './json';
 
 export interface MapperOptions {
-  noCache?: boolean;
   visitor?: MapperVisitor;
+  validate?: boolean;
 }
 
-const cache = new WeakMap();
 export function mapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json<T>> {
-  if (options.noCache) {
-    return make();
+  let mapper = (Shape.of(type) as any).visit(options.visitor || new MapperVisitor());
+  if (options.validate === true) {
+    mapper = ValidatingMapper.of(type, mapper);
   }
-  if (!cache.has(type)) {
-    cache.set(type, make());
-  }
-  return cache.get(type);
-
-  function make() {
-    return (Shape.of(type) as any).visit(options.visitor || new MapperVisitor());
-  }
+  return mapper;
 }
 
 export function asString<T, U>(mapper: Mapper<T, U>): Mapper<T, string> {

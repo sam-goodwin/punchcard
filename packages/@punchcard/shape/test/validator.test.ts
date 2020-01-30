@@ -1,9 +1,6 @@
 import 'jest';
 
-import { Record } from '@punchcard/shape';
-import { array } from '@punchcard/shape/lib/collection';
-import { number, string } from '@punchcard/shape/lib/primitive';
-import { MaxLength, Validator } from '../lib';
+import { array, MaxLength, number, Record, string, Validator } from '../lib';
 
 // tslint:disable: member-access
 class Mock extends Record({
