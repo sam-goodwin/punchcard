@@ -1,5 +1,5 @@
 import { ClassType, HashSet, Mapper, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
-import { ClassShape } from '@punchcard/shape/lib/class';
+import { ClassShape, ShapeOrRecord } from '@punchcard/shape/lib/class';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
@@ -11,7 +11,7 @@ export interface MapperOptions {
 }
 
 const cache = new WeakMap();
-export function mapper<T extends ClassType | Shape>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json<T>> {
+export function mapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json<T>> {
   if (options.noCache) {
     return make();
   }
@@ -25,11 +25,26 @@ export function mapper<T extends ClassType | Shape>(type: T, options: MapperOpti
   }
 }
 
-export function stringifyMapper<T extends ClassType | Shape>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, string> {
+export function asString<T, U>(mapper: Mapper<T, U>): Mapper<T, string> {
+  return {
+    read: s => mapper.read(JSON.parse(s)),
+    write: v => JSON.stringify(mapper.write(v))
+  };
+}
+
+export function stringifyMapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, string> {
   const m = mapper(type, options);
   return {
     read: (s: string) => m.read(JSON.parse(s)) as any,
     write: v => JSON.stringify(m.write(v))
+  };
+}
+
+export function bufferMapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Buffer> {
+  const m = mapper(type, options);
+  return {
+    read: (s: Buffer) => m.read(JSON.parse(s.toString('utf8'))) as any,
+    write: v => Buffer.from(JSON.stringify(m.write(v)), 'utf8')
   };
 }
 

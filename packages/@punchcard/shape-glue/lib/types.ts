@@ -1,12 +1,10 @@
 import { integer, number, string, Trait } from "@punchcard/shape";
 import { Maximum, MaxLength, Minimum, MinLength } from '@punchcard/shape-validation';
 
-export function Type<T1, T2>(t1: T1, t2: T2): Trait<any, { glueType: [T1, T2]; }>;
-export function Type<T extends string>(glueType: T): Trait<any, { glueType: T; }>;
-export function Type(...args: any[]): any {
+export function Type<T extends string>(glueType: T): Trait<any, { glueType: T; }> {
   return {
     [Trait.Data]: {
-      glueType: args.length === 1 ? args[0] : args
+      glueType
     }
   };
 }
@@ -33,7 +31,7 @@ export const float = number.apply(Type('float'));
 export const double = number.apply(Type('double'));
 
 const boundedString = <T extends string, N extends number>(type: T, n: N) => string
-  .apply(Type(type, n))
+  .apply(Type(type))
   .apply(MinLength(0))
   .apply(MaxLength(n))
   ;

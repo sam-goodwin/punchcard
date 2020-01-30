@@ -143,7 +143,7 @@ it('should install and bootstrap dependencies', async () => {
   });
   Build.resolve(f.resource);
 
-  expect(await (await Run.resolve(f.entrypoint))('"event"', {})).toEqual('"1"');
+  expect(await (await Run.resolve(f.entrypoint))('event', {})).toEqual('1');
   expect(Build.resolve(dependency.install).calledOnce).toBe(true);
 });
 
@@ -160,6 +160,6 @@ it('should install and bootstrap nested dependencies', async () => {
   });
   Build.resolve(f.resource);
 
-  expect(await (await Run.resolve(f.entrypoint))('"event"', {})).toEqual('"11"');
+  expect(await (await Run.resolve(f.entrypoint))('event', {})).toEqual('11');
   expect((Build.resolve(dependency.install) as sinon.SinonSpy).calledTwice).toBe(true);
 });

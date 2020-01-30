@@ -45,7 +45,7 @@
     "@punchcard/shape": "^0.1.0",
     "@punchcard/shape-json": "^0.1.0",
     "@punchcard/shape-validation": "^0.1.0",
-    "@aws-cdk/aws-glue": "^1.20.0",
+    "@aws-cdk/aws-glue": "^1.22.0",
     "moment": "^2.24.0"
   },
   "peerDependencies": {

@@ -67,7 +67,6 @@ describe('run', () => {
     const stream = new Firehose.DeliveryStream(stack, 'Queue', {
       compression: Util.Compression.None,
       shape: Shape.of(Data)
-      // shape: Shape.struct({key: Shape.string()})
     });
 
     const results: Array<{key: string}> = [];
@@ -76,11 +75,11 @@ describe('run', () => {
       return Promise.resolve(v);
     }).handle(payload, [bucket as any], {}));
 
-    expect(results).toEqual([{
+    expect(results).toEqual([new Data({
       key: 'string1'
-    }, {
+    }), new Data({
       key: 'string2'
-    }]);
+    })]);
   });
 
   it('should throw if getting object fails', async () => {

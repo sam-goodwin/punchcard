@@ -63,7 +63,7 @@ export class DeliveryStream<T extends ShapeOrRecord> implements Resource<Deliver
   public readonly bucket: S3.Bucket;
   public readonly processor: Validator<Value.Of<T>>;
   public readonly resource: Build<DeliveryStreamConstruct>;
-  public readonly shape: Shape.Of<T>;
+  public readonly shape: T;
 
   public readonly compression: Compression;
   public readonly dataType: DataType;
@@ -79,9 +79,9 @@ export class DeliveryStream<T extends ShapeOrRecord> implements Resource<Deliver
     if (fromStream.stream) {
       this.shape = fromStream.stream.shape;
     } else {
-      this.shape = Shape.of(fromType.shape);
+      this.shape = fromType.shape;
     }
-    this.mapper = this.dataType.mapper(this.shape);
+    this.mapper = this.dataType.mapper(Shape.of(this.shape));
     this.compression = props.compression;
 
     this.processor = new Validator(scope, 'Validator', {

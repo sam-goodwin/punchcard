@@ -27,7 +27,7 @@ export interface TableOverrideProps extends Omit<dynamodb.TableProps, 'partition
  * @typeparam PKey name of partition key
  * @typeparam SKey name of sort key (if this table has one)
  */
-export class Table<A extends Attributes, K extends DynamoDBClient.Key<InstanceType<A>>> implements Resource<dynamodb.Table> {
+export class Table<A extends Attributes, K extends DynamoDBClient.Key<A>> implements Resource<dynamodb.Table> {
   /**
    * The DynamoDB Table Construct.
    */

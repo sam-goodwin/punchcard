@@ -1,8 +1,11 @@
 import { Mapper, Shape, Value } from '@punchcard/shape';
-
-import { DataFormat } from '@aws-cdk/aws-glue';
 import { JsonDataType } from './json';
 
+import { DataFormat } from '@aws-cdk/aws-glue';
+
+/**
+ * Represents an Abstract Glue Data Type.
+ */
 export interface DataType {
   readonly format: DataFormat;
   readonly extension: string;

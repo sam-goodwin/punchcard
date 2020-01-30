@@ -355,14 +355,11 @@ export namespace Table {
 
       for (const record of records) {
         const errors = this.validator(record, '$');
-        if (errors) {
+        if (errors !== undefined && errors.length > 0) {
           throw new Error(`invalid record: ${errors.map(e => e.message).join('\n')}`);
         }
-        const partition: any = this.partitions
-          .map(p => ({ [p]: record[p].toString() }))
-          .reduce((a, b) => ({...a, ...b}), {});
-
-        const key = this.partitions.map(p => record[p].toString()).join('');
+        const partition = this.table.partition.get(record);
+        const key = this.partitions.map(p => partition[p].toString()).join('');
         if (!partitions.has(key)) {
           partitions.set(key, {
             partition,

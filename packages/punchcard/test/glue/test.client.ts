@@ -270,10 +270,10 @@ describe('write', () => {
     expect(createPartitionSpy.calledOnce).toBe(true);
     expect(createPartitionSpy.args[0][0]).toEqual({
       Location: 's3://bucketName/table_name/year=2019/month=0/',
-      Partition: {
+      Partition: new Glue.Partition.Monthly({
         year: 2019,
         month: 0
-      }
+      })
     });
   });
 });

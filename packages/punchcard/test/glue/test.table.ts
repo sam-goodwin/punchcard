@@ -145,13 +145,13 @@ it('should map columns and partition keys to their respective types', () => {
   expect(Build.resolve(table.resource).partitionKeys).toEqual([{
     name: 'year',
     type: {
-      inputString: 'smallint',
+      inputString: 'int',
       isPrimitive: true
     }
   }, {
     name: 'month',
     type: {
-      inputString: 'smallint',
+      inputString: 'int',
       isPrimitive: true
     }
   }]);

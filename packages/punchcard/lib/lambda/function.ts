@@ -3,8 +3,9 @@ import AWS = require('aws-sdk');
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/core');
 import json = require('@punchcard/shape-json');
+import { Json } from '@punchcard/shape-json';
 
-import { any, AnyShape, Mapper, ShapeOrRecord, Value } from '@punchcard/shape';
+import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -36,6 +37,13 @@ export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends Sha
    * @default any
    */
   response?: U;
+
+  /**
+   * Factory for a `Mapper` to serialize shapes to/from a `string`.
+   *
+   * @default Json
+   */
+  mapper?: MapperFactory<Json<T>>;
 
   /**
    * Dependency resources which this Function needs clients for.
@@ -81,15 +89,17 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
 
   private readonly dependencies?: D;
 
-  private readonly requestMapper: Mapper<Value.Of<T>, string>;
-  private readonly responseMapper: Mapper<Value.Of<U>, string>;
+  private readonly requestMapper: Mapper<Value.Of<T>, Json<T>>;
+  private readonly responseMapper: Mapper<Value.Of<U>, Json<T>>;
 
   constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<Value.Of<U>>) {
     this.handle = handle;
     const entrypointId = Global.addEntrypoint(this);
 
-    this.requestMapper = json.stringifyMapper(props.request || any);
-    this.responseMapper = json.stringifyMapper(props.response || any);
+    // default to JSON serialization
+    const mapperFactory = (props.mapper || json.mapper) as MapperFactory<Json<T>>;
+    this.requestMapper = mapperFactory(props.request || any);
+    this.responseMapper = mapperFactory(props.response || any);
     this.dependencies = props.depends;
 
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
@@ -155,11 +165,14 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
         return new Function.Client(
           cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
           ns.get('functionArn'),
-          this.requestMapper,
-          this.responseMapper
+          json.asString(this.requestMapper),
+          json.asString(this.requestMapper)
         ) as any;
       })
     };
+  }
+  request(request: any): Mapper<unknown, string> {
+    throw new Error("Method not implemented.");
   }
 }
 

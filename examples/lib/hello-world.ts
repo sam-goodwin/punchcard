@@ -11,9 +11,9 @@ export const app = new Core.App();
 const stack = app.root.map(app => new cdk.Stack(app, 'hello-world'));
 
 /**
- * Rate
+ * State of a counter.
  */
-class RateType extends Record({
+class Counter extends Record({
 
   /**
    * Rate Key documentation goes here.
@@ -21,32 +21,43 @@ class RateType extends Record({
   key: string
     .apply(MaxLength(1)),
   
-  rating: integer
+  count: integer
 }) {}
 
-const hashTable = new DynamoDB.Table(stack, 'Table', RateType, 'key');
+const hashTable = new DynamoDB.Table(stack, 'Table', Counter, 'key');
 
-const sortedTable = new DynamoDB.Table(stack, 'Table', RateType, ['key', 'rating']);
+const queue = new SQS.Queue(stack, 'queue', {
+  shape: Counter
+});
 
+// schedule a Lambda function to increment counts in DynamoDB and send SQS messages with each update.
 Lambda.schedule(stack, 'MyFunction', {
   schedule: Schedule.rate(cdk.Duration.minutes(1)),
   depends: Dependency.concat(
     hashTable.readWriteAccess(),
-    sortedTable.readAccess()),
-}, async(_, [hashTable, sortedTable]) => {
+    queue.sendAccess()),
+}, async(_, [hashTable, queue]) => {
   console.log('Hello, World!');
 
-  const hashItem = await hashTable.get('hash key');
-  const sortedItem = await sortedTable.get(['hash key', 1]);
+  let rateType = await hashTable.get('hash key');
+  if (rateType === undefined) {
+    rateType = new Counter({
+      key: 'key',
+      count: 0
+    })
+    await hashTable.put(rateType);
+  }
+
+  await queue.sendMessage(rateType);
+  await hashTable.update('key', _ => [
+    _.count.increment()
+  ]);
 });
 
-
-const queue = new SQS.Queue(stack, 'queue', {
-  mapper: json.stringifyMapper(RateType)
+// print out a message for each SQS message received
+queue.messages().forEach(stack, 'ForEachMessage', {}, async (msg) => {
+  console.log(`received message with key ${msg.key} and count ${msg.count}`);
 });
 
-queue.messages().forEach(stack, 'ForEachMessage', {}, async (e) => {
-  e.key.length;
-});
 
 

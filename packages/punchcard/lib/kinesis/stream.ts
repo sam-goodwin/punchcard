@@ -1,10 +1,11 @@
 import iam = require('@aws-cdk/aws-iam');
 import kinesis = require('@aws-cdk/aws-kinesis');
 import core = require('@aws-cdk/core');
+import json = require('@punchcard/shape-json');
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
-import { Mapper, Shape, ShapeOrRecord, Value } from '@punchcard/shape';
+import { any, AnyShape, Mapper, MapperFactory, Shape, ShapeOrRecord, Value } from '@punchcard/shape';
 import { DataType } from '@punchcard/shape-glue';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
@@ -16,48 +17,62 @@ import { Client } from './client';
 import { Event } from './event';
 import { Records } from './records';
 
-export interface StreamProps<T extends ShapeOrRecord> extends kinesis.StreamProps {
+export interface StreamProps<T extends ShapeOrRecord = AnyShape> {
   /**
    * Shape of data in the Stream.
+   *
+   * @default AnyShape
    */
-  shape: T;
-
+  shape?: T;
   /**
-   * Data Type to serialize data with.
+   * Override serialziation mapper implementation. Messages are stringified
+   * with a mapper when received/sent to/from the Kinesis Stream.
    *
    * @default Json
    */
-  dateType?: DataType;
+  mapper?: MapperFactory<Buffer>;
 
   /**
+   * How to partition a record in the Stream.
+   *
    * @default - uuid
    */
   partitionBy?: (record: Value.Of<T>) => string;
+
+  /**
+   * Override the Kinesis StreamProps at Build time.
+   *
+   * @default - default CDK behavior
+   */
+  streamProps?: Build<kinesis.StreamProps>;
 }
 
 /**
  * A Kinesis stream.
  */
-export class Stream<T extends ShapeOrRecord> implements Resource<kinesis.Stream> {
-  public readonly shape: Shape.Of<T>;
-  public readonly dataType: DataType;
+export class Stream<T extends ShapeOrRecord = AnyShape> implements Resource<kinesis.Stream> {
+  public readonly mapper: Mapper<Value.Of<T>, Buffer>;
+  public readonly mapperFactory: MapperFactory<Buffer>;
   public readonly partitionBy: (record: Value.Of<T>) => string;
   public readonly resource: Build<kinesis.Stream>;
-  public readonly mapper: Mapper<Value.Of<T>, Buffer>;
+  public readonly shape: T;
 
   constructor(scope: Build<core.Construct>, id: string, props: StreamProps<T>) {
-    this.resource = scope.map(scope => new kinesis.Stream(scope, id, props));
-    this.shape = Shape.of(props.shape);
-    this.dataType = props.dateType || DataType.Json;
+    this.resource = scope.chain(scope =>
+      (props.streamProps || Build.of({})).map(props =>
+        new kinesis.Stream(scope, id, props)));
+
+    this.shape = (props.shape || any) as T;
     this.partitionBy = props.partitionBy || (_ => uuid());
-    this.mapper = this.dataType.mapper(this.shape);
+    this.mapperFactory = (props.mapper || json.bufferMapper);
+    this.mapper = this.mapperFactory(this.shape);
   }
 
   /**
    * Create an stream for this stream to perform chainable computations (map, flatMap, filter, etc.)
    */
   public records(): Records<Value.Of<T>, []> {
-    const mapper = this.dataType.mapper(this.shape);
+    const mapper = this.mapper;
     class Root extends Records<Value.Of<T>, []> {
       /**
        * Return an iterator of records parsed from the raw data in the event.

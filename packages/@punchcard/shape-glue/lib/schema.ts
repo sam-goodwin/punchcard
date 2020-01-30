@@ -44,11 +44,15 @@ export function schema<T extends ClassType>(type: T): Columns<T> {
   const columns: { [name: string]: Column<any, any>; } = {};
   for (const member of Object.values(shape.Members)) {
     const type = member.Shape.visit(SchemaVisitor.instance);
-    columns[member.Name] = {
+    const col = {
       name: member.Name,
       type,
       comment: getComment(member)
     };
+    if (!col.comment) {
+      delete col.comment;
+    }
+    columns[member.Name] = col;
   }
   return columns as any;
 }
@@ -63,7 +67,7 @@ export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
     throw new Error("Dynamic type is not supported by Glue.");
   }
   public arrayShape(shape: ArrayShape<any>): glue.Type {
-    return glue.Schema.array(shape.visit(this, null));
+    return glue.Schema.array(shape.Items.visit(this, null));
   }
   public binaryShape(shape: BinaryShape): glue.Type {
     return glue.Schema.BINARY;
@@ -79,7 +83,7 @@ export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
       })));
   }
   public mapShape(shape: MapShape<any>): glue.Type {
-    return glue.Schema.map(glue.Schema.STRING, shape.visit(this, null));
+    return glue.Schema.map(glue.Schema.STRING, shape.Items.visit(this, null));
   }
   public integerShape(shape: IntegerShape): glue.Type {
     const { glueType } = Meta.get(shape, ['glueType']);
@@ -104,10 +108,19 @@ export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
     }
   }
   public setShape(shape: SetShape<any>): glue.Type {
-    return glue.Schema.array(shape.visit(this, null));
+    return glue.Schema.array(shape.Items.visit(this, null));
   }
   public stringShape(shape: StringShape): glue.Type {
-    return glue.Schema.STRING;
+    const { glueType, maxLength } = Meta.get(shape, ['glueType', 'maxLength']);
+
+    switch (glueType) {
+      case 'char':
+        return glue.Schema.char(maxLength);
+      case 'varchar':
+        return glue.Schema.varchar(maxLength);
+      default:
+        return glue.Schema.STRING;
+    }
   }
   public timestampShape(shape: TimestampShape): glue.Type {
     return glue.Schema.TIMESTAMP;

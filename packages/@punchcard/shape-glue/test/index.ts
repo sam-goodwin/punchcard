@@ -1,7 +1,8 @@
-import { Description, number, Record, string } from '@punchcard/shape';
-import Glue = require('../lib');
+import { array, Description, integer, map, number, Record, set, string } from '@punchcard/shape';
+import { char, double, float, varchar } from '../lib';
 
 import glue = require('@aws-cdk/aws-glue');
+import Glue = require('../lib');
 
 // tslint:disable: member-access
 
@@ -14,6 +15,18 @@ class Data extends Record({
     .apply(Description('this is an id')),
 
   nested: Nested,
+
+  int: integer,
+  num: number,
+  double,
+  float,
+
+  array: array(string),
+  set: set(string),
+  map: map(string),
+
+  char: char(10),
+  varchar: varchar(10),
 }) {}
 
 const schema = Glue.schema(Data);
@@ -30,9 +43,44 @@ test('Glue Schema from Shape', () => {
       type: glue.Schema.struct([{
         name: 'name',
         type: glue.Schema.STRING
-      }]),
-      comment: undefined
+      }])
     },
+    int: {
+      name: 'int',
+      type: glue.Schema.INTEGER
+    },
+    num: {
+      name: 'num',
+      type: glue.Schema.DOUBLE
+    },
+    double: {
+      name: 'double',
+      type: glue.Schema.DOUBLE
+    },
+    float: {
+      name: 'float',
+      type: glue.Schema.FLOAT
+    },
+    array: {
+      name: 'array',
+      type: glue.Schema.array(glue.Schema.STRING)
+    },
+    set: {
+      name: 'set',
+      type: glue.Schema.array(glue.Schema.STRING)
+    },
+    map: {
+      name: 'map',
+      type: glue.Schema.map(glue.Schema.STRING, glue.Schema.STRING)
+    },
+    char: {
+      name: 'char',
+      type: glue.Schema.char(10)
+    },
+    varchar: {
+      name: 'varchar',
+      type: glue.Schema.varchar(10)
+    }
   });
 
   // compile-time test
@@ -45,7 +93,52 @@ test('Glue Schema from Shape', () => {
     nested: {
       name: 'nested',
       type: glue.Type;
-      comment?: undefined
+      comment?: undefined;
     },
+    int: {
+      name: 'int',
+      type: glue.Type;
+      comment?: undefined;
+    },
+    num: {
+      name: 'num',
+      type: glue.Type;
+      comment?: undefined;
+    },
+    double: {
+      name: 'double',
+      type: glue.Type;
+      comment?: undefined;
+    },
+    float: {
+      name: 'float',
+      type: glue.Type;
+      comment?: undefined;
+    },
+    array: {
+      name: 'array',
+      type: glue.Type;
+      comment?: undefined;
+    },
+    set: {
+      name: 'set',
+      type: glue.Type;
+      comment?: undefined;
+    },
+    map: {
+      name: 'map',
+      type: glue.Type;
+      comment?: undefined;
+    },
+    char: {
+      name: 'char',
+      type: glue.Type;
+      comment?: undefined;
+    },
+    varchar: {
+      name: 'varchar',
+      type: glue.Type;
+      comment?: undefined;
+    }
   } = schema;
 });

@@ -16,29 +16,36 @@ export const app = new Core.App();
 
 const stack = app.root.map(app => new cdk.Stack(app, 'stream-processing'));
 
+/**
+ * Define the shape of the SNS notifications
+ * with a Record.
+ */
 class NotificationRecord extends Record({
+  /**
+   * This is a property named `key` with type `string.
+   */
   key: string,
   count: integer,
   timestamp: timestamp
 }) {}
 
 /**
- * Create a SNS Topic.
+ * Create a SNS Topic to send and receive `NotificationRecord` notifications.
  */
 const topic = new SNS.Topic(stack, 'Topic', {
-  /**
-   * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
-   */
-  mapper: json.stringifyMapper(NotificationRecord)
+  shape: NotificationRecord
 });
 
+/**
+ * Shape of the data we'll store in AWS DynamoDB.
+ */
 class TagLookupRecord extends Record({
   key: string,
   tags: array(string)
 }) {}
 
 /**
- * Create a DynamoDB Table to store some data.
+ * Create a DynamoDB Table to store `TagLookupRecord` records.
  */
 const enrichments = new DynamoDB.Table(stack, 'Enrichments', TagLookupRecord, 'key', Build.lazy(() => ({
   billingMode: BillingMode.PAY_PER_REQUEST
@@ -139,11 +146,13 @@ const stream = queue.messages() // gives us a nice chainable API
   .toKinesisStream(stack, 'Stream', {
     shape: LogDataRecord,
 
-    // encrypt values in the stream with a customer-managed KMS key.
-    encryption: StreamEncryption.KMS,
-
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
+
+    streamProps: Build.of({
+      // encrypt values in the stream with a customer-managed KMS key.
+      encryption: StreamEncryption.KMS,
+    })
   });
 
 /**

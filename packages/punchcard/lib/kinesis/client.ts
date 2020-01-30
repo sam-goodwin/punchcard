@@ -15,7 +15,8 @@ export class Client<T extends ShapeOrRecord> implements Sink<Value.Of<T>> {
     public readonly stream: Stream<T>,
     public readonly streamName: string,
     public readonly client: AWS.Kinesis
-  ) {}
+  ) {
+  }
 
   /**
    * Gets and deserrializes data records from a Kinesis data stream's shard.

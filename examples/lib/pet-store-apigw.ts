@@ -3,7 +3,7 @@ import uuid = require('uuid');
 
 import { Core, ApiGateway, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, nothing, Shape, number } from '@punchcard/shape';
+import { array, string, Shape, number } from '@punchcard/shape';
 import { Record } from '@punchcard/shape';
 import { Minimum } from '../../packages/@punchcard/shape-validation/lib';
 
@@ -38,7 +38,6 @@ class ErrorResponse extends Record({
 }) {}
 
 class EmptyPayload extends Record({}) {}
-
 
 // GET /pets
 pets.setGetMethod({
