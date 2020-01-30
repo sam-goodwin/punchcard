@@ -7,11 +7,11 @@ This library extends the Punchcard Shape Type-System to provide a high-level abs
 The type of data in a Table is defined as a class with properties that represent its "Shape".
 
 ```ts
-class Type {
-  key = string;
-  count = number;
-  list = array(string);
-}
+class Type extends Record({
+  key: string;
+  count: number;
+  list: array(string);
+}) {}
 ```
 
 # Creating a Table Client
@@ -28,5 +28,3 @@ const sortedTable = new Table(Type, ['key', 'count'], {
   tableArn: 'my-table-arn'
 });
 ```
-
-# 

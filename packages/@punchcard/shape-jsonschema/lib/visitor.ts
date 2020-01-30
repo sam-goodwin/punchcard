@@ -5,8 +5,6 @@ import { JsonSchema } from './json-schema';
 import { ObjectSchema } from './object';
 import { AnySchema, BinarySchema, BoolSchema, IntegerSchema, NothingSchema, NumberSchema, StringSchema, TimestampSchema } from './primitive';
 
-import '@punchcard/shape-validation';
-
 /**
  * Transforms a Shape into its corresponding JSON Schema representation.
  */
