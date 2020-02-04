@@ -43,10 +43,7 @@ it('should map columns and partition keys to their respective types', () => {
     columns: MyTable,
     partition: {
       keys: Glue.Partition.Monthly,
-      get: v => new Glue.Partition.Monthly({
-        year: v.timestamp.getUTCFullYear(),
-        month: v.timestamp.getUTCMonth()
-      })
+      get: v => Glue.Partition.byMonth(v.timestamp)
     }
   });
 

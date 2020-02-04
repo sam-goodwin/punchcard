@@ -9,8 +9,7 @@ export namespace Condition {
     ExpressionAttributeValues: { [id: string]: AWS.DynamoDB.AttributeValue; }
   }
 
-  export function compile(expression: DSL.Bool): Condition.Expression {
-    const writer = new Writer();
+  export function compile(expression: DSL.Bool, writer: Writer = new Writer()): Condition.Expression {
     write(expression, writer);
     const expr = writer.toExpression();
     const res = {

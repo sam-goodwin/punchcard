@@ -138,7 +138,10 @@ describe('DynamoDB.Table', () => {
       class Data extends Record({
         key: type
       }) {}
-      const table = new DynamoDB.Table(stack, 'table', Data, 'key');
+      const table = new DynamoDB.Table(stack, 'table', {
+        attributes: Data,
+        key: 'key'
+      });
       expect(table.key).toEqual('key');
       Build.resolve(table.resource);
     });
@@ -149,7 +152,10 @@ describe('DynamoDB.Table', () => {
     class Data extends Record({
       key: string
     }) {}
-    return new DynamoDB.Table(stack, 'table', Data, 'key');
+    return new DynamoDB.Table(stack, 'table', {
+      attributes: Data,
+      key: 'key'
+    });
   }
   describe('install', () => {
     installTests(boringTable);
@@ -166,7 +172,10 @@ describe('SortedTable', () => {
         key: type,
         sortKey: type
       }) {}
-      const table = new DynamoDB.Table(stack, 'table', Data, ['key', 'sortKey']);
+      const table = new DynamoDB.Table(stack, 'table', {
+        attributes: Data,
+        key: ['key', 'sortKey']
+      });
       expect(table.key).toEqual(['key', 'sortKey']);
       Build.resolve(table.resource);
     });
@@ -176,7 +185,10 @@ describe('SortedTable', () => {
       key: string,
       sortKey: string
     }) {}
-    const table = new DynamoDB.Table(stack, 'table', Data, ['key', 'sortKey']);
+    const table = new DynamoDB.Table(stack, 'table', {
+      attributes: Data,
+      key: ['key', 'sortKey']
+    });
     Build.resolve(table.resource);
     return table;
   }

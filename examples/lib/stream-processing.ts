@@ -13,7 +13,7 @@ import { Build } from 'punchcard/lib/core/build';
 
 export const app = new Core.App();
 
-const stack = app.root.map(app => new cdk.Stack(app, 'stream-processing'));
+const stack = app.stack('stream-processing');
 
 /**
  * Define the shape of the SNS notifications
@@ -46,7 +46,10 @@ class TagLookupRecord extends Record({
 /**
  * Create a DynamoDB Table to store `TagLookupRecord` records.
  */
-const enrichments = new DynamoDB.Table(stack, 'Enrichments', TagLookupRecord, 'key', Build.lazy(() => ({
+const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
+  key: 'key',
+  attributes: TagLookupRecord,
+}, Build.lazy(() => ({
   billingMode: BillingMode.PAY_PER_REQUEST
 })));
 

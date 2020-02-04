@@ -87,22 +87,24 @@ export class DynamoDBClient<T extends RecordType, K extends DynamoDBClient.Key<T
     throw new Error('TODO');
   }
 
-  public async put(item: Value.Of<T>) {
-    return await this.client.putItem({
-      TableName: this.tableName,
-      Item:  (this.mapper.write(item) as any).M
-    }).promise();
-  }
-
-  public async putIf(item: Value.Of<T>, condition: DynamoDBClient.Condition<T>) {
-    const expr = Condition.compile(condition(this.dsl));
-    return await this.client.putItem({
-      TableName: this.tableName,
-      Item: (this.mapper.write(item) as any).M,
-      ConditionExpression: expr.Expression,
-      ExpressionAttributeNames: expr.ExpressionAttributeNames,
-      ExpressionAttributeValues: expr.ExpressionAttributeValues
-    }).promise();
+  public async put(item: Value.Of<T>, props: {
+    if?: DynamoDBClient.Condition<T>;
+  } = {}) {
+    if (props.if) {
+      const expr = Condition.compile(props.if(this.dsl));
+      return await this.client.putItem({
+        TableName: this.tableName,
+        Item: (this.mapper.write(item) as any).M,
+        ConditionExpression: expr.Expression,
+        ExpressionAttributeNames: expr.ExpressionAttributeNames,
+        ExpressionAttributeValues: expr.ExpressionAttributeValues
+      }).promise();
+    } else {
+      return await this.client.putItem({
+        TableName: this.tableName,
+        Item:  (this.mapper.write(item) as any).M,
+      }).promise();
+    }
   }
 
   /**
@@ -136,12 +138,25 @@ export class DynamoDBClient<T extends RecordType, K extends DynamoDBClient.Key<T
     }
   }
 
-  public async update(key: DynamoDBClient.KeyValue<T, K>, update: DynamoDBClient.Update<T>) {
-    const req = {
+  public async update(key: DynamoDBClient.KeyValue<T, K>, props: DynamoDBClient.Update<T>) {
+    const writer = new Writer();
+    const req: AWS.DynamoDB.UpdateItemInput = {
       TableName: this.tableName,
       Key: this.writeKey(key),
-      ...(Update.compile(update(this.dsl)))
+      ...(Update.compile(props.actions(this.dsl), writer))
     };
+    if (props.if) {
+      const expr = Condition.compile(props.if(this.dsl), new Writer(writer.namespace));
+      req.ConditionExpression = expr.Expression;
+      req.ExpressionAttributeNames = expr.ExpressionAttributeNames;
+      req.ExpressionAttributeValues = expr.ExpressionAttributeValues;
+      if (!req.ExpressionAttributeNames) {
+        delete req.ExpressionAttributeNames;
+      }
+      if (!req.ExpressionAttributeValues) {
+        delete req.ExpressionAttributeValues;
+      }
+    }
     const response = await this.client.updateItem(req).promise();
     return response;
   }
@@ -158,10 +173,7 @@ export class DynamoDBClient<T extends RecordType, K extends DynamoDBClient.Key<T
     }
   }
 
-  public async query(condition: DynamoDBClient.QueryCondition<T, K>, props: {
-    exclusiveStartKey?: DynamoDBClient.KeyValue<T, K>;
-    filter?: DynamoDBClient.Condition<T>;
-  } = {}): Promise<DynamoDBClient.QueryOutput<T, K>> {
+  public async query(condition: DynamoDBClient.QueryCondition<T, K>, props: DynamoDBClient.QueryProps<T, K> = {}): Promise<DynamoDBClient.QueryOutput<T, K>> {
     const namespace = new Writer.Namespace();
     const queryWriter = new Writer(namespace);
 
@@ -256,7 +268,14 @@ export namespace DynamoDBClient {
       HashKeyValue<T, K> | [HashKeyValue<T, K>, (i: DSL.Of<SortKeyShape<T, K>>) => DSL.Bool] :
     never
     ;
+  export interface QueryProps<T extends RecordType, K extends Key<T>> {
+    exclusiveStartKey?: DynamoDBClient.KeyValue<T, K>;
+    filter?: DynamoDBClient.Condition<T>;
+  }
 
   export type Condition<T extends RecordType> = (item: DSL.Root<T>) => DSL.Bool;
-  export type Update<T extends RecordType> = (item: DSL.Root<T>) => DSL.StatementNode[];
+  export interface Update<T extends RecordType> {
+    actions: (item: DSL.Root<T>) => DSL.StatementNode[];
+    if?: DynamoDBClient.Condition<T>;
+  }
 }

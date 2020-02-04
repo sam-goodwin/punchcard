@@ -5,8 +5,7 @@ import { Writer } from './writer';
 export namespace Update {
   export interface Expression extends Pick<AWS.DynamoDB.UpdateItemInput, 'UpdateExpression' | 'ExpressionAttributeNames' | 'ExpressionAttributeValues'> {}
 
-  export function compile(statements: DSL.StatementNode[]): Update.Expression {
-    const writer = new Writer();
+  export function compile(statements: DSL.StatementNode[], writer: Writer = new Writer()): Update.Expression {
     for (let i = 0; i < statements.length; i++) {
       statements[i][DSL.Synthesize](writer);
       if (i + 1 < statements.length) {

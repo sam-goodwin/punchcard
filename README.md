@@ -27,6 +27,12 @@ To understand the internals, there is the guide:
 
 # Tour
 
+Initialize an App and Stack:
+```ts
+const app = new Core.App();
+const stack = app.stack('hello-world');
+```
+
 ## Runtime Code and Dependencies
 
 Creating a Lambda Function is super simple - just create it and implement `handle`:
@@ -46,7 +52,7 @@ This will create the required IAM policies for your Function's IAM Role, add any
 ```ts
 new Lambda.Function(stack, 'MyFunction', {
   depends: topic,
-  handle: async (event, topic) => {
+}, async (event, topic) => {
     await topic.publish({
       key: 'some key',
       count: 1,
@@ -59,25 +65,23 @@ new Lambda.Function(stack, 'MyFunction', {
 Furthermore, its interface is higher-level than what would normally be expected when using the `aws-sdk`, and it's also type-safe: the argument to the `publish` method is not an opaque `string` or `Buffer`, it is an `object` with keys and rich types such as `Date`. This is because data structures in punchcard, such as `Topic`, `Queue`, `Stream`, etc. are generic with statically declared types (like an `Array<T>`):
 
 ```ts
+/**
+ * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
+ */
+class NotificationType extends Record({
+  key: string,
+  count: integer,
+  timestamp
+}) {}
+
 const topic = new SNS.Topic(stack, 'Topic', {
-  /**
-   * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
-   */
-  shape: struct({
-    key: string(),
-    count: integer(),
-    timestamp
-  })
+  shape: NofiticationType
 });
 ```
 
 This `Topic` is now of type:
 ```ts
-Topic<{
-  key: string;
-  count: number;
-  timestamp: Date;
-}>
+Topic<NotificationType>
 ```
 
 ## Type-Safe DynamoDB Expressions
@@ -85,24 +89,24 @@ Topic<{
 This feature in punchcard becomes even more evident when using DynamoDB. To demonstrate, let's create a DynamoDB `Table` and use it in a `Function`:
 
 ```ts
+// class describing the data in the DynamoDB Table
+class TableRecord extends Record({
+  id: string,
+  count: integer
+    .apply(Minimum(0))
+}) {}
+
+// table of TableRecord, with a single hash-key: 'id'
 const table = new DynamoDB.Table(stack, 'my-table', {
-  partitionKey: 'id',
-  attributes: {
-    id: string(),
-    count: integer({
-      minimum: 0
-    })
-  },
-  billingMode: BillingMode.PAY_PER_REQUEST
+  attributes: TableRecord, 
+  key: 'id'
 });
 ```
 
 Now, when getting an item from DynamoDB, there is no need to use `AttributeValues` such as `{ S: 'my string' }`, like you would when using the low-level `aws-sdk`. You simply use ordinary javascript types:
 
 ```ts
-const item = await table.get({
-  id: 'state'
-});
+const item = await table.get('state');
 ```
 
 The interface is statically typed and derived from the definition of the `Table` - we specified the `partitionKey` as the `id` field which has type `string`, and so the object passed to the `get` method must correspond.
@@ -110,44 +114,34 @@ The interface is statically typed and derived from the definition of the `Table`
 `PutItem` and `UpdateItem` have similarly high-level and statically checked interfaces. More interestingly, condition and update expressions are built with helpers derived (again) from the table definition:
 
 ```ts
-// put an item if it doesn't already exist
-await table.put({
-  item: {
-    id: 'state',
-    count: 1
-  },
-  if: item => DynamoDB.attribute_not_exists(item.id)
+// put an item if it doesn't exist
+await table.put(new TableRecord({
+  id: 'state',
+  count: 1
+}), {
+  if: _ => _.id.notExists()
 });
 
-// increment the count property by 1
-await table.update({
-  key: {
-    id: 'state'
-  },
-  actions: item => [
-    item.count.increment(1)
-  ]
+// increment the count property by 1 if it is less than 0
+await table.update('state', {
+  actions: _ => [
+    _.count.increment(1)
+  ],
+  if: _ => _.id.lessThan(0)
 });
 ```
 
-If you specified a `sortKey`:
+To also specify `sortKey`, use a tuple of `TableRecord's` keys:
 
 ```ts
-const table = new DynamoDB.Table(stack, 'my-table', {
-  partitionKey: 'id',
-  sortKey: 'count', // specify a sortKey
-  // ...
-});
+const table = new DynamoDB.Table(stack, 'my-table', TablerRecord, ['id', 'count']);
 ```
 
-Then you can also build typesafe query expressions:
+Now, you can also build typesafe query expressions:
 
 ```ts
-await table.query({
-  key: {
-    id: 'id',
-    count: DynamoDB.greaterThan(1)
-  },
+await table.query(['id', _ => _.count.greaterThan(1)], {
+  filter: _ => _.count.lessThan(0)
 })
 ```
 ## Stream Processing
@@ -157,20 +151,14 @@ Punchcard has the concept of `Stream` data structures, which should feel similar
 For example, given an SNS Topic:
 ```ts
 const topic = new SNS.Topic(stack, 'Topic', {
-  shape: struct({
-    key: string(),
-    count: integer(),
-    timestamp
-  })
+  shape: NotificationType
 });
 ```
 
 You can attach a new Lambda Function to process each notification:
 ```ts
-topic.notifications().forEach(stack, 'ForEachNotification', {
-  handle: async (notification) => {
-    console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
-  }
+topic.notifications().forEach(stack, 'ForEachNotification', {}, async (notification) => {
+  console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
 })
 ```
 
@@ -185,26 +173,24 @@ const queue = topic.toSQSQueue(stack, 'MyNewQueue');
 We can then, perhaps, `map` over each message in the `Queue` and collect the results into a new AWS Kinesis `Stream`:
 
 ```ts
+class LogData extends Record({
+  key: string,
+  count: integer,
+  tags: array(string)
+  timestamp
+}) {}
+
 const stream = queue.messages()
-  .map({
-    handle: async(message, e) => {
-      return {
-        ...message,
-        tags: ['some', 'tags'],
-      };
-    }
+  .map(async (message, e) => ({
+    ...message,
+    tags: ['some', 'tags'],
   })
   .toKinesisStream(stack, 'Stream', {
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
 
     // type of the data in the stream
-    type: struct({
-      key: string(),
-      count: integer(),
-      tags: array(string()),
-      timestamp
-    })
+    shape: LogData
   });
 ```
 
@@ -218,6 +204,7 @@ With data now flowing to S3, let's partition and catalog it in a `Glue.Table` (b
 
 ```ts
 import glue = require('@aws-cdk/aws-glue');
+import { Glue } from '@punchcard/shape';
 
 const database = stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
@@ -228,21 +215,9 @@ s3DeliveryStream.objects().toGlueTable(stack, 'ToGlue', {
   columns: stream.type.shape,
   partition: {
     // Glue Table partition keys: minutely using the timestamp field
-    keys: {
-      year: integer(),
-      month: integer(),
-      day: integer(),
-      hour: integer(),
-      minute: integer()
-    },
-    get: record => ({
-      // define the mapping of a record to its Glue Table partition keys
-      year: record.timestamp.getUTCFullYear(),
-      month: record.timestamp.getUTCMonth(),
-      day: record.timestamp.getUTCDate(),
-      hour: record.timestamp.getUTCHours(),
-      minute: record.timestamp.getUTCMinutes(),
-    })
+    keys: Glue.Partition.Minutely,
+    // define the mapping of a record to its Glue Table partition keys
+    get: record => Glue.Partition.byMinute(record.timestamp)
   }
 });
 ```

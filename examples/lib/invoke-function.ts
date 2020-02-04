@@ -9,7 +9,7 @@ import { any, string, integer, Record, Minimum } from '@punchcard/shape';
 import { Build } from 'punchcard/lib/core/build';
 
 export const app = new Core.App();
-const stack = app.root.map(app => new cdk.Stack(app, 'invoke-function-example'));
+const stack = app.stack('invoke-function-example');
 
 class TableRecord extends Record({
   id: string,
@@ -18,7 +18,10 @@ class TableRecord extends Record({
   anyProperty: any 
 }) {}
 
-const table = new DynamoDB.Table(stack, 'my-table', TableRecord, 'id', Build.of({
+const table = new DynamoDB.Table(stack, 'my-table', {
+  attributes: TableRecord,
+  key: 'id'
+}, Build.of({
   billingMode: BillingMode.PAY_PER_REQUEST
 }));
 
@@ -39,19 +42,23 @@ const incrementer = new Lambda.Function(stack, 'Callable', {
 
   let newCount: number;
   if (item) {
-    await table.update(request.id, item => [
-      item.count.increment(1),
-    ]);
     newCount = item.count + 1;
+    await table.update(request.id, {
+      actions: item => [
+        item.count.increment(1),
+      ]
+    });
   } else {
-    await table.putIf(new TableRecord({
+    newCount = 1;
+    await table.put(new TableRecord({
       id: request.id,
       count: 1,
       anyProperty: {
         this: 'property can be any type supported by the AWS.DynamoDB.DocumentClient',
       }
-    }), item => item.id.notExists());
-    newCount = 1;
+    }), {
+      if: _ => _.id.notExists()
+    });
   }
   return newCount;
 });

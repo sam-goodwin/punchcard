@@ -9,8 +9,7 @@ import { array, string, integer, Record, any, Shape, Minimum } from '@punchcard/
 import { Build } from 'punchcard/lib/core/build';
 
 export const app = new Core.App();
-
-const stack = app.root.map(app => new cdk.Stack(app, 'invoke-function'));
+const stack = app.stack('invoke-function');
 
 class Struct extends Record({
   key: string,
@@ -29,12 +28,18 @@ class Item extends Record({
 
 // the type can be inferred, but we explicitly define them to illustrate how it works
 // 'id' is the partitionKey, undefined is the sortKey (no sort key), and Item is the attributes of data in the table
-const table = new DynamoDB.Table(stack, 'hash-table', Item, 'id', Build.of({
+const table = new DynamoDB.Table(stack, 'hash-table', {
+  attributes: Item,
+  key: 'id'
+}, Build.of({
   billingMode: BillingMode.PAY_PER_REQUEST
 }));
 
 // 'count' is the sortKey in this case
-const sortedTable = new DynamoDB.Table(stack, 'sorted-table', Item, ['id', 'count'], Build.of({
+const sortedTable = new DynamoDB.Table(stack, 'sorted-table', {
+  attributes: Item, 
+  key: ['id', 'count']
+}, Build.of({
   billingMode: BillingMode.PAY_PER_REQUEST
 }));
 
@@ -45,7 +50,7 @@ Lambda.schedule(stack, 'Caller', {
 }, async (_, [table, sortedTable]) => {
   await table.get('id');
 
-  await table.putIf(new Item({
+  await table.put(new Item({
     // the item is type-safe and well structured
     id: 'id',
     count: 1,
@@ -58,9 +63,10 @@ Lambda.schedule(stack, 'Caller', {
       key: 'value',
       number: 1
     })
-  }), item =>
-    // condition expressions are generated with a nice type-safe DSL
-     item.count.equals(0)
+  }), {
+    if: item =>
+      // condition expressions are generated with a nice type-safe DSL
+      item.count.equals(0)
       // .or(DynamoDB.not(item.count.greaterThan(0))) 
       .and(
         // string
@@ -92,32 +98,34 @@ Lambda.schedule(stack, 'Caller', {
           key: 'value',
           number: 1
         })))
-  );
+  });
 
-  await table.update('id', item => [
-    // strings
-    item.name.set('name'), // item.name = 'name'
-    // numbers
-    item.count.set(1), // item.count = 1
-    item.count.decrement(1), // item.count -- or item.count -= 1
-    item.count.increment(1), // item.count += 1
-    item.count.set(item.count.plus(1)), // explicitly: item.count += 1
-    
-    // structs
-    item.count.set(item.struct.fields.number), // item.count = item.struct.number
-    item.struct.set(new Struct({ // item.struct = { 
-      key: 'value',              //   key: 'value',
-      number: 1                  //   number: 1
-    })),                         // }
-    item.struct.fields.key.set('value'), // item.struct.key = 'value'
+  await table.update('id', {
+    actions: _ => [
+      // strings
+      _.name.set('name'), // item.name = 'name'
+      // numbers
+      _.count.set(1), // item.count = 1
+      _.count.decrement(1), // item.count -- or item.count -= 1
+      _.count.increment(1), // item.count += 1
+      _.count.set(_.count.plus(1)), // explicitly: item.count += 1
+      
+      // structs
+      _.count.set(_.struct.fields.number), // item.count = item.struct.number
+      _.struct.set(new Struct({ // item.struct = { 
+        key: 'value',              //   key: 'value',
+        number: 1                  //   number: 1
+      })),                         // }
+      _.struct.fields.key.set('value'), // item.struct.key = 'value'
 
-    // arrays
-    item.array.set(['some', 'values']), // item.array = ['some', 'values']
-    item.name.set(item.array[0]), // item.name = item.array[0]
-    item.array[1].set('value'), // item.array[0] = 'value'
-    item.array[1].set(item.name), // item.array[0] = item.name
-  ], //item => DynamoDB.attribute_exists(item.id),
-  );
+      // arrays
+      _.array.set(['some', 'values']), // item.array = ['some', 'values']
+      _.name.set(_.array[0]), // item.name = item.array[0]
+      _.array[1].set('value'), // item.array[0] = 'value'
+      _.array[1].set(_.name), // item.array[0] = item.name
+    ], 
+    if: item => item.id.exists(),
+  });
 
   // sorted tables can be queried
   await sortedTable.query(['id', count => count.greaterThan(1)], {

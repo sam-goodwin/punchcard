@@ -37,6 +37,10 @@ export class App {
     }
   }
 
+  public stack(id: string): Build<cdk.Stack> {
+    return this.root.map(app => new cdk.Stack(app, id));
+  }
+
   public addExternal(external: string): void {
     this.externals.add(external);
   }

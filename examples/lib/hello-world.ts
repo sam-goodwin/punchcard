@@ -1,11 +1,11 @@
 import cdk = require('@aws-cdk/core');
 import { Schedule } from '@aws-cdk/aws-events';
 import { Core, Lambda, DynamoDB, SQS } from 'punchcard';
-import { string, integer, Record, MaxLength } from '@punchcard/shape';
+import { string, integer, Record } from '@punchcard/shape';
 import { Dependency } from 'punchcard/lib/core';
 
 export const app = new Core.App();
-const stack = app.root.map(app => new cdk.Stack(app, 'hello-world'));
+const stack = app.stack('hello-world');
 
 /**
  * State of a counter.
@@ -21,7 +21,10 @@ class Counter extends Record({
   count: integer
 }) {}
 
-const hashTable = new DynamoDB.Table(stack, 'Table', Counter, 'key');
+const hashTable = new DynamoDB.Table(stack, 'Table', {
+  key: 'key',
+  attributes: Counter,
+});
 
 const queue = new SQS.Queue(stack, 'queue', {
   shape: Counter
@@ -46,9 +49,11 @@ Lambda.schedule(stack, 'MyFunction', {
   } 
 
   await queue.sendMessage(rateType);
-  await hashTable.update('key', _ => [
-    _.count.increment()
-  ]);
+  await hashTable.update('key', {
+    actions: _ => [
+      _.count.increment()
+    ]
+  });
 });
 
 // print out a message for each SQS message received

@@ -7,10 +7,9 @@ import { array, string, Shape, number, Minimum } from '@punchcard/shape';
 import { Record } from '@punchcard/shape';
 
 export const app = new Core.App();
+const stack = app.stack('pet-store');
 
 // WARNING: this example will be changed - it does not properly descrive the Model and Velocity Templates yet.
-
-const stack = app.root.map(app => new core.Stack(app, 'pet-store'));
 
 class PetRecord extends Record({
   id: string,
@@ -18,7 +17,10 @@ class PetRecord extends Record({
   price: number
 }) {}
 
-const petStore = new DynamoDB.Table(stack, 'pet-store', PetRecord, 'id');
+const petStore = new DynamoDB.Table(stack, 'pet-store', {
+  key: 'id',
+  attributes: PetRecord
+});
 
 const executorService = new Lambda.ExecutorService({
   memorySize: 512
@@ -63,7 +65,7 @@ pet.setGetMethod({
   request: {
     shape: PetId,
     mappings: {
-      id: ApiGateway.$input.params('id')
+      id: ApiGateway.$input.params('id'),
     }
   },
   responses: {
@@ -100,7 +102,9 @@ pets.setPostMethod({
   handle: async (request, petStore) => {
     const id = uuid();
     try {
-      await petStore.putIf(new PetRecord({ id, ...request }), item => item.id.notExists());
+      await petStore.put(new PetRecord({ id, ...request }), {
+        if: _ => _.id.notExists()
+      });
       return ApiGateway.response(ApiGateway.StatusCode.Ok, new PetId({
         id
       }));

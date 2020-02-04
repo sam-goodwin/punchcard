@@ -8,7 +8,7 @@ import { Build } from 'punchcard/lib/core/build';
 import { integer, string, Record, Minimum } from '@punchcard/shape';
 
 export const app = new Core.App();
-const stack = app.root.map(app => new cdk.Stack(app, 'scheduled-function-example'));
+const stack = app.stack('scheduled-function-example');
 
 class CounterRecord extends Record({
   id: string,
@@ -16,7 +16,10 @@ class CounterRecord extends Record({
     .apply(Minimum(0))
 }) {}
 
-const table = new DynamoDB.Table(stack, 'my-table', CounterRecord, 'id', Build.lazy(() => ({
+const table = new DynamoDB.Table(stack, 'my-table', {
+  attributes: CounterRecord, 
+  key: 'id'
+}, Build.lazy(() => ({
   billingMode: BillingMode.PAY_PER_REQUEST
 })));
 
@@ -27,13 +30,17 @@ Lambda.schedule(stack, 'Poller', {
   const item = await table.get('state');
 
   if (item) {
-    await table.update('state', item => [
-      item.count.increment(1)
-    ]);
+    await table.update('state', {
+      actions: _ => [
+        _.count.increment(1)
+      ]
+    });
   } else {
-    await table.putIf(new CounterRecord({
+    await table.put(new CounterRecord({
       id: 'state',
       count: 1
-    }), item => item.id.exists());
+    }), {
+      if: _ => _.id.exists()
+    });
   }
 });

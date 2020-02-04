@@ -139,12 +139,9 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
         client = await (Run.resolve(this.dependencies!.bootstrap))(runtimeProperties, cache);
       }
       return (async (event: any, context: any) => {
-        console.log(event);
         const parsed = this.requestMapper.read(event);
         try {
-          console.log('parsed request', parsed);
           const result = await this.handle(parsed as any, client, context);
-          console.log('after handle');
           return this.responseMapper.write(result as any);
         } catch (err) {
           console.error(err);

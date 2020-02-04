@@ -9,7 +9,7 @@ import { Record, string, array, integer, timestamp } from '@punchcard/shape';
 import { char } from '@punchcard/shape-hive';
 
 export const app = new Core.App();
-const stack = app.root.map(app => new core.Stack(app, 'data-lake'));
+const stack = app.stack('data-lake');
 
 class DataPoint extends Record({
   key: string,

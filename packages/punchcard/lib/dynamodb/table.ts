@@ -45,19 +45,19 @@ export class Table<A extends Attributes, K extends DynamoDBClient.Key<A>> implem
    */
   public readonly key: K;
 
-  constructor(scope: Build<core.Construct>, id: string, attributes: A, tableKey: K, props?: Build<TableOverrideProps>) {
-    this.attributesType = attributes;
-    this.attributesShape = Shape.of(attributes) as any;
+  constructor(scope: Build<core.Construct>, id: string, props: {attributes: A, key: K}, buildProps?: Build<TableOverrideProps>) {
+    this.attributesType = props.attributes;
+    this.attributesShape = Shape.of(props.attributes) as any;
 
-    this.key = tableKey;
-    const partitionKeyName: string = typeof tableKey === 'string' ? tableKey : (tableKey as any)[0];
-    const sortKeyName: string | undefined = typeof tableKey === 'string' ? undefined : (tableKey as any)[1];
+    this.key = props.key;
+    const partitionKeyName: string = typeof this.key === 'string' ? this.key : (this.key as any)[0];
+    const sortKeyName: string | undefined = typeof this.key === 'string' ? undefined : (this.key as any)[1];
 
-    this.resource = (props || Build.of({})).chain(extraTableProps => scope.map(scope => {
+    this.resource = (buildProps || Build.of({})).chain(extraTableProps => scope.map(scope => {
       const tableProps: any = {
         ...extraTableProps,
         partitionKey: {
-          name: typeof tableKey === 'string' ? tableKey : (tableKey as any)[0],
+          name: typeof this.key === 'string' ? this.key : (this.key as any)[0],
           type: keyType((this.attributesShape.Members as any)[partitionKeyName].Shape)
         }
       };

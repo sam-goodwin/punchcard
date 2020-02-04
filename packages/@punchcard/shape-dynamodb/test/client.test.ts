@@ -71,14 +71,14 @@ test('getItem', async () => {
   });
 });
 
-test('putIf', async () => {
+test('put-if', async () => {
   const putItemPromise = sinon.fake.resolves(null as any);
   const putItem = sinon.fake.returns({ promise: putItemPromise });
   const client = mockClient({
     putItem
   });
 
-  await sortedTable.putIf(new Type({
+  await sortedTable.put(new Type({
     key: 'key',
     count: 1,
     list: ['a', 'b'],
@@ -86,7 +86,9 @@ test('putIf', async () => {
       key: 'value'
     },
     dynamic: 'dynamic-value'
-  }), _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.a.equals('value')));
+  }), {
+    if: _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.a.equals('value'))
+  });
 
   expect(putItem.args[0][0]).toEqual({
     TableName: 'my-table-name',
@@ -119,12 +121,14 @@ test('update', async () => {
     updateItem
   });
 
-  await sortedTable.update(['key', 1], item => [
-    item.list.push('item'),
-    item.dynamic.as(string).set('dynamic-value'),
-    item.count.set(item.count.plus(1)),
-    item.count.increment()
-  ]);
+  await sortedTable.update(['key', 1], {
+    actions: item => [
+      item.list.push('item'),
+      item.dynamic.as(string).set('dynamic-value'),
+      item.count.set(item.count.plus(1)),
+      item.count.increment()
+    ]
+  });
 
   expect(updateItem.args[0][0]).toEqual({
     TableName: 'my-table-name',
@@ -137,6 +141,46 @@ test('update', async () => {
       '#1': 'list',
       '#2': 'dynamic',
       '#3': 'count'
+    },
+    ExpressionAttributeValues: {
+      ':1': { S: 'item' },
+      ':2': { S: 'dynamic-value' },
+      ':3': { N: '1' },
+      ':4': { N: '1' }
+    }
+  });
+});
+
+test('update-if', async () => {
+  const updateItemPromise = sinon.fake.resolves(null as any);
+  const updateItem = sinon.fake.returns({ promise: updateItemPromise });
+  mockClient({
+    updateItem
+  });
+
+  await sortedTable.update(['key', 1], {
+    actions: item => [
+      item.list.push('item'),
+      item.dynamic.as(string).set('dynamic-value'),
+      item.count.set(item.count.plus(1)),
+      item.count.increment()
+    ],
+    if: item => item.key.exists()
+  });
+
+  expect(updateItem.args[0][0]).toEqual({
+    TableName: 'my-table-name',
+    Key: {
+      key: { S: 'key' },
+      count: { N: '1' },
+    },
+    UpdateExpression: 'SET #1[1]=:1 SET #2=:2 SET #3=#3+:3 SET #3=#3+:4',
+    ConditionExpression: 'attribute_exists(#4)',
+    ExpressionAttributeNames: {
+      '#1': 'list',
+      '#2': 'dynamic',
+      '#3': 'count',
+      '#4': 'key'
     },
     ExpressionAttributeValues: {
       ':1': { S: 'item' },

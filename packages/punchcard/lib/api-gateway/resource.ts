@@ -15,10 +15,10 @@ import json = require('@punchcard/shape-json');
 import { JsonSchema } from '@punchcard/shape-jsonschema';
 
 type ResponseMappers = {
-  [status in StatusCode]: Mapper<any, string>;
+  [status in StatusCode]: Mapper<any, any>;
 };
 interface Handler<T> {
-  requestMapper: Mapper<T, string>;
+  requestMapper: Mapper<T, any>;
   handler: Run<(request: T, context: any) => Promise<Response<any, any>>>;
   responseMappers: ResponseMappers;
 }
@@ -249,7 +249,7 @@ function velocityTemplate<S extends Shape>(
     } else {
       const field = shape.Members[name].Shape;
       let path: string;
-      if (ShapeGuards.isStringShape(field) || ShapeGuards.isNumericShape(field) || ShapeGuards.isTimestampShape(field)) {
+      if (ShapeGuards.isStringShape(field) || ShapeGuards.isTimestampShape(field)) {
         path = `"$inputRoot.${name}"`;
       } else {
         path = `$inputRoot.${name}`;
