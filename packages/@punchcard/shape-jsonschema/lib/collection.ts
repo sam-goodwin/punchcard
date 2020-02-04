@@ -1,5 +1,5 @@
-import { Shape } from "@punchcard/shape/lib/shape";
-import { JsonSchema } from "./json-schema";
+import { Shape } from '@punchcard/shape/lib/shape';
+import { JsonSchema } from './json-schema';
 
 export interface ArraySchema<I extends JsonSchema = any> {
   type: 'array';

@@ -1,5 +1,5 @@
-import { ClassType } from './class';
 import { Apply, Trait } from './metadata';
+import { RecordType } from './record';
 import { Shape } from './shape';
 
 /**
@@ -24,7 +24,7 @@ export type IsOptional = {
  * @param shapeOrRecord a Shape or a Record to transform as optional
  */
 export function optional<T extends Shape>(shape: T): Apply<T, IsOptional>;
-export function optional<T extends ClassType>(type: T): Apply<Shape.Of<T>, IsOptional>;
+export function optional<T extends RecordType>(type: T): Apply<Shape.Of<T>, IsOptional>;
 export function optional(shapeOrRecord: any): any {
   return Shape.of(shapeOrRecord).apply(Optional);
 }

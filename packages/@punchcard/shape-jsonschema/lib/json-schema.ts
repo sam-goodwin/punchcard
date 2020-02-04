@@ -1,4 +1,4 @@
-import { ClassShape, ClassType, ShapeOrRecord } from '@punchcard/shape';
+import { ShapeOrRecord } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { ObjectSchema } from './object';

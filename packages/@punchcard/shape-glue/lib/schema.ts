@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, ClassShape, ClassType, Decorated, DynamicShape, IntegerShape, KeysOfType, MapShape, Member, Meta, NothingShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, Trait, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, KeysOfType, MapShape, Member, Meta, NothingShape, NumberShape, RecordShape, RecordType, SetShape, Shape, StringShape, TimestampShape, Trait, Visitor as ShapeVisitor } from '@punchcard/shape';
 
 import glue = require('@aws-cdk/aws-glue');
 
@@ -27,19 +27,19 @@ function getComment<M extends Member>(member: M): GetComment<M> {
   return member.Metadata.description;
 }
 
-type Column<K extends keyof T['Members'], T extends ClassShape<any>> = {
+type Column<K extends keyof T['Members'], T extends RecordShape<any>> = {
   name: K;
   type: glue.Type;
   comment: GetComment<T['Members'][K]>;
 };
 
-export type PartitionKeys<T extends ClassType> = KeysOfType<T[ClassShape.Members], Decorated<any, { isPartition: true; }>>;
+export type PartitionKeys<T extends RecordType> = KeysOfType<T[RecordShape.Members], Decorated<any, { isPartition: true; }>>;
 
-export type Columns<T extends ClassType> = {
-  readonly [K in keyof T[ClassShape.Members]]: Column<K, Shape.Of<T>>;
+export type Columns<T extends RecordType> = {
+  readonly [K in keyof T[RecordShape.Members]]: Column<K, Shape.Of<T>>;
 };
 
-export function schema<T extends ClassType>(type: T): Columns<T> {
+export function schema<T extends RecordType>(type: T): Columns<T> {
   const shape = Shape.of(type);
   const columns: { [name: string]: Column<any, any>; } = {};
   for (const member of Object.values(shape.Members)) {
@@ -75,7 +75,7 @@ export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
   public boolShape(shape: BoolShape): glue.Type {
     return glue.Schema.BOOLEAN;
   }
-  public classShape(shape: ClassShape<any>): glue.Type {
+  public recordShape(shape: RecordShape<any>): glue.Type {
     return glue.Schema.struct(Object.values(shape.Members)
       .map(member => ({
         name: member.Name,

@@ -1,4 +1,4 @@
-import { BinaryShape, BoolShape, ClassShape, DynamicShape, IntegerShape, Meta, NumberShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
+import { BinaryShape, BoolShape, DynamicShape, IntegerShape, Meta, NumberShape, RecordShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { JsonSchema } from './json-schema';
@@ -85,7 +85,7 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
     };
   }
 
-  public classShape(shape: ClassShape<any>): ObjectSchema<any> {
+  public recordShape(shape: RecordShape<any>): ObjectSchema<any> {
     const required = Object.values(shape.Members)
       .map((value) => {
         return (value.Metadata as any).nullable === true ? [] : [value.Name];

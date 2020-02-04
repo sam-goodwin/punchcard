@@ -1,7 +1,7 @@
-import { ClassShape, ClassType, TimestampShape, Value } from '@punchcard/shape';
+import { RecordShape, RecordType, TimestampShape, Value } from '@punchcard/shape';
 
-type IsTimestamp<T extends ClassType, TS extends keyof T[ClassShape.Members]> = T[ClassShape.Members][TS] extends TimestampShape ? TS : never;
-export class Schema<T extends ClassType, TS extends keyof T[ClassShape.Members]> {
+type IsTimestamp<T extends RecordType, TS extends keyof T[RecordShape.Members]> = T[RecordShape.Members][TS] extends TimestampShape ? TS : never;
+export class Schema<T extends RecordType, TS extends keyof T[RecordShape.Members]> {
   public readonly schemaName: string;
   public readonly shape: T;
   public readonly timestampField: TS;

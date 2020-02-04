@@ -1,7 +1,7 @@
-import { ClassShape } from './class';
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { Member } from './member';
 import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
+import { RecordShape } from './record';
 import { Shape } from './shape';
 
 export namespace ShapeGuards {
@@ -45,10 +45,10 @@ export namespace ShapeGuards {
       throw new Error(`${a} is not of type: BoolShape`);
     }
   };
-  export const isClassShape = (a: any): a is ClassShape<any> => isShape(a) && a.Kind === 'classShape';
-  export const assertClassShape = (a: any): asserts a is ClassShape<any> => {
-    if (!isClassShape(a)) {
-      throw new Error(`${a} is not of type: ClassShape`);
+  export const isRecordShape = (a: any): a is RecordShape<any> => isShape(a) && a.Kind === 'recordShape';
+  export const assertRecordShape = (a: any): asserts a is RecordShape<any> => {
+    if (!isRecordShape(a)) {
+      throw new Error(`${a} is not of type: RecordShape`);
     }
   };
   export const isMapShape = (a: any): a is MapShape<any> => a.Kind === 'mapShape';
@@ -103,7 +103,7 @@ export namespace ShapeGuards {
   };
 
   export type IsArrayShape<T> = T extends ArrayShape<any> ? T : never;
-  export type IsClassShape<T> = T extends ClassShape<any> ? T : never;
+  export type IsClassShape<T> = T extends RecordShape<any> ? T : never;
   export type IsMapShape<T> = T extends MapShape<any> ? T : never;
   export type IsNumberShape<T> = T extends NumberShape ? T : never;
   export type IsSetShape<T> = T extends SetShape<any> ? T : never;

@@ -1,6 +1,6 @@
-import { RecordType, ShapeOrRecord } from './class';
 import { Equals } from './equals';
 import { HashCode } from './hash-code';
+import { ShapeOrRecord } from './record';
 import { Shape } from './shape';
 import { Value } from './value';
 

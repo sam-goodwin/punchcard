@@ -9,8 +9,8 @@ export interface ObjectSchema<P extends ObjectSchemaProperties> {
   required: string[];
 }
 
-declare module '@punchcard/shape/lib/class' {
-  interface ClassShape<M extends ClassMembers, I> {
+declare module '@punchcard/shape/lib/record' {
+  interface RecordShape<M extends RecordMembers, I> {
     [JsonSchema.Tag]: ObjectSchema<{
       [member in keyof this['Members']]: this['Members'][member]['Shape'][JsonSchema.Tag];
     }>

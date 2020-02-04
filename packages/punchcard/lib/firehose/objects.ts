@@ -3,7 +3,6 @@ import lambda = require('@aws-cdk/aws-lambda');
 import events = require('@aws-cdk/aws-lambda-event-sources');
 import s3 = require('@aws-cdk/aws-s3');
 
-import { Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Clients } from '../core/client';
 import { Event } from '../s3/event';

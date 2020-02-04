@@ -1,6 +1,6 @@
 import core = require('@aws-cdk/core');
 
-import { ClassType, NothingShape, Value } from '@punchcard/shape';
+import { NothingShape, RecordType, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Table, TableProps } from '../glue/table';
@@ -22,7 +22,7 @@ declare module '../util/stream' {
      * @param tableProps properties of the created s3 delivery stream
      * @param runtimeConfig optional runtime properties to configure the function processing the stream's data.
      */
-    toGlueTable<T extends ClassType, P extends ClassType>(scope: Build<core.Construct>, id: string, tableProps: TableProps<T, P>, runtimeConfig?: T): CollectedGlueTable<T, P, this>;
+    toGlueTable<T extends RecordType, P extends RecordType>(scope: Build<core.Construct>, id: string, tableProps: TableProps<T, P>, runtimeConfig?: T): CollectedGlueTable<T, P, this>;
   }
 }
 Stream.prototype.toGlueTable = function(scope: Build<core.Construct>, id: string, tableProps: any): any {
@@ -34,7 +34,7 @@ Stream.prototype.toGlueTable = function(scope: Build<core.Construct>, id: string
  *
  * @typeparam T type of notififcations sent to (and emitted from) the Glue Table.
  */
-export class GlueTableCollector<T extends ClassType, P extends ClassType, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<CollectedGlueTable<T, P, S>, S> {
+export class GlueTableCollector<T extends RecordType, P extends RecordType, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<CollectedGlueTable<T, P, S>, S> {
   constructor(private readonly props: TableProps<T, P>) { }
 
   public collect(scope: Build<core.Construct>, id: string, stream: S): CollectedGlueTable<T, P, S> {
@@ -48,7 +48,7 @@ export class GlueTableCollector<T extends ClassType, P extends ClassType, S exte
 /**
  * Properties for creating a collected `Table`.
  */
-export interface CollectedGlueTableProps<T extends ClassType, P extends ClassType, S extends Stream<any, Value.Of<T>, any, any>> extends TableProps<T, P> {
+export interface CollectedGlueTableProps<T extends RecordType, P extends RecordType, S extends Stream<any, Value.Of<T>, any, any>> extends TableProps<T, P> {
   /**
    * Source of the data; a stream.
    */
@@ -62,7 +62,7 @@ export interface CollectedGlueTableProps<T extends ClassType, P extends ClassTyp
  * @typeparam P shape of partition keys
  * @typeparam S stream of data to ingest into the table
  */
-export class CollectedGlueTable<T extends ClassType, P extends ClassType, S extends Stream<any, any, any, any>> extends Table<T, P> {
+export class CollectedGlueTable<T extends RecordType, P extends RecordType, S extends Stream<any, any, any, any>> extends Table<T, P> {
   public readonly sender: Function<EventType<S>, NothingShape, Dependency.Concat<Cons<DependencyType<S>, Dependency<Table.Client<T, P>>>>>;
 
   constructor(scope: Build<core.Construct>, id: string, props: CollectedGlueTableProps<T, P, S>) {

@@ -6,10 +6,8 @@ import core = require('@aws-cdk/core');
 
 import json = require('@punchcard/shape-json');
 
-import { any, AnyShape, Mapper, MapperFactory, Shape, ShapeOrRecord, Value } from '@punchcard/shape';
-import { Namespace } from '../core/assembly';
+import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
-import { Cache } from '../core/cache';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';

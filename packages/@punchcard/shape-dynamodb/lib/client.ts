@@ -1,13 +1,13 @@
 import AWS = require('aws-sdk');
 
-import { AssertIsKey, ClassShape, ClassType, Compact, Shape, Value } from '@punchcard/shape';
+import { AssertIsKey, Compact, RecordShape, RecordType, Shape, Value } from '@punchcard/shape';
 import { DSL } from './dsl';
 import { Condition } from './filter';
 import { Mapper } from './mapper';
 import { Update } from './update';
 import { Writer } from './writer';
 
-export class DynamoDBClient<T extends ClassType, K extends DynamoDBClient.Key<T>> {
+export class DynamoDBClient<T extends RecordType, K extends DynamoDBClient.Key<T>> {
   public readonly client: AWS.DynamoDB;
   public readonly mapper: Mapper<T>;
   public readonly tableName: string;
@@ -203,12 +203,12 @@ export class DynamoDBClient<T extends ClassType, K extends DynamoDBClient.Key<T>
   }
 }
 export namespace DynamoDBClient {
-  type _QueryOutput<T extends ClassType, K extends Key<T>> = Compact<
+  type _QueryOutput<T extends RecordType, K extends Key<T>> = Compact<
     Omit<AWS.DynamoDB.QueryOutput, 'Items' | 'LastEvaulatedKey'> & {
       Items?: Array<Value.Of<T>>;
       LastEvaluatedKey?: KeyValue<T, K>
     }>;
-  export interface QueryOutput<T extends ClassType, K extends Key<T>> extends _QueryOutput<T, K> {}
+  export interface QueryOutput<T extends RecordType, K extends Key<T>> extends _QueryOutput<T, K> {}
 
   export interface Props {
     tableName: string;
@@ -217,36 +217,36 @@ export namespace DynamoDBClient {
 
   export type HashKey<T> = keyof T;
   export type SortKey<T> = [keyof T, keyof T];
-  export type Key<T extends ClassType> = HashKey<T[ClassShape.Members]> | SortKey<T[ClassShape.Members]>;
+  export type Key<T extends RecordType> = HashKey<T[RecordShape.Members]> | SortKey<T[RecordShape.Members]>;
 
-  export type KeyValue<T extends ClassType, K extends Key<T>> = K extends [infer H, infer S] ?
+  export type KeyValue<T extends RecordType, K extends Key<T>> = K extends [infer H, infer S] ?
     [
-      Value.Of<T[ClassShape.Members][AssertIsKey<T[ClassShape.Members], H>]>,
-      Value.Of<T[ClassShape.Members][AssertIsKey<T[ClassShape.Members], S>]>
+      Value.Of<T[RecordShape.Members][AssertIsKey<T[RecordShape.Members], H>]>,
+      Value.Of<T[RecordShape.Members][AssertIsKey<T[RecordShape.Members], S>]>
     ] :
-    Value.Of<T[ClassShape.Members][AssertIsKey<T[ClassShape.Members], K>]>
+    Value.Of<T[RecordShape.Members][AssertIsKey<T[RecordShape.Members], K>]>
     ;
 
-  export type HashKeyName<T extends ClassType, K extends Key<T>> = K extends [infer H, any] ? H : T;
-  export type HashKeyValue<T extends ClassType, K extends Key<T>> = Value.Of<HashKeyShape<T, K>>;
-  export type HashKeyShape<T extends ClassType, K extends Key<T>> = K extends [infer H, any] ?
-    T[ClassShape.Members][AssertIsKey<T[ClassShape.Members], H>] :
+  export type HashKeyName<T extends RecordType, K extends Key<T>> = K extends [infer H, any] ? H : T;
+  export type HashKeyValue<T extends RecordType, K extends Key<T>> = Value.Of<HashKeyShape<T, K>>;
+  export type HashKeyShape<T extends RecordType, K extends Key<T>> = K extends [infer H, any] ?
+    T[RecordShape.Members][AssertIsKey<T[RecordShape.Members], H>] :
     never
     ;
 
-  export type SortKeyName<T extends ClassType, K extends Key<T>> = K extends [any, infer S] ? S : T;
-  export type SortKeyValue<T extends ClassType, K extends Key<T>> = Value.Of<SortKeyShape<T, K>>;
-  export type SortKeyShape<T extends ClassType, K extends Key<T>> = K extends [any, infer S] ?
-    T[ClassShape.Members][AssertIsKey<T[ClassShape.Members], S>] :
+  export type SortKeyName<T extends RecordType, K extends Key<T>> = K extends [any, infer S] ? S : T;
+  export type SortKeyValue<T extends RecordType, K extends Key<T>> = Value.Of<SortKeyShape<T, K>>;
+  export type SortKeyShape<T extends RecordType, K extends Key<T>> = K extends [any, infer S] ?
+    T[RecordShape.Members][AssertIsKey<T[RecordShape.Members], S>] :
     never
     ;
 
-  export type QueryCondition<T extends ClassType, K extends Key<T>> =
+  export type QueryCondition<T extends RecordType, K extends Key<T>> =
     K extends [infer HK, infer SK] ?
       HashKeyValue<T, K> | [HashKeyValue<T, K>, (i: DSL.Of<SortKeyShape<T, K>>) => DSL.Bool] :
     never
     ;
 
-  export type Condition<T extends ClassType> = (item: DSL.Root<T>) => DSL.Bool;
-  export type Update<T extends ClassType> = (item: DSL.Root<T>) => DSL.StatementNode[];
+  export type Condition<T extends RecordType> = (item: DSL.Root<T>) => DSL.Bool;
+  export type Update<T extends RecordType> = (item: DSL.Root<T>) => DSL.StatementNode[];
 }

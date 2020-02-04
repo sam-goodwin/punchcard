@@ -1,6 +1,6 @@
-import "jest";
-import { any, AnyShape, binary, ClassShape, Member, number, NumberShape, optional, Record, Shape, string, StringShape, unknown, UnknownShape } from "../lib";
-import { array, ArrayShape, map, MapShape, set, SetShape } from "../lib/collection";
+import 'jest';
+import { any, AnyShape, binary, Member, number, NumberShape, optional, Record, RecordShape, Shape, string, StringShape, unknown, UnknownShape } from '../lib';
+import { array, ArrayShape, map, MapShape, set, SetShape } from '../lib/collection';
 
 // tslint:disable: member-access
 
@@ -25,8 +25,8 @@ class MyType extends Record({
 
 const MyTypeShape = Shape.of(MyType);
 
-it('should have Kind, "class"', () => {
-  expect(MyTypeShape.Kind).toEqual('classShape');
+it('should have Kind, "recordShape"', () => {
+  expect(MyTypeShape.Kind).toEqual('recordShape');
 });
 
 it('should cache derived shapes', () => {
@@ -52,7 +52,7 @@ it('should parse members', () => {
     }
   ));
 
-  const nestedShape = new ClassShape(Nested, {});
+  const nestedShape = new RecordShape(Nested, {});
 
   expect(MyTypeShape.Members.nested).toEqual(new Member(
     'nested', nestedShape, {}

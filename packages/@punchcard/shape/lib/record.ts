@@ -5,42 +5,40 @@ import { Shape } from './shape';
 import { RequiredKeys } from './util';
 import { Value } from './value';
 
-export interface ClassMembers {
+export interface RecordMembers {
   [member: string]: ShapeOrRecord;
 }
 
 /**
- * A Shape derived from a TypeScript `class`.
- *
- * Classes are used to model complex types.
+ * RecordShapes are used to model complex types of named members.
  *
  * E.g.
  * ```
  * class Nested extends Record({
  *   count: integer
  * }) {}
- * Nested.shape; // ClassShape<{count: IntegerShape}>
+ * Nested.members; // {count: IntegerShape}
  *
  * class MyClass extends Record({
  *   key: string,
  *   nested: Nested
  * }) {}
- * MyClass.shape; // ClassShape<{key: StringShape, nested: ClassShape<{count: IntegerShape}>}>
+ * MyClass.shape; // {key: StringShape, nested: ClassShape<{count: IntegerShape}, Nested>}
  * ```
  *
- * @typeparam M class members (key-value pairs of shapes)
- * @typeparam I type of instance of this struct (the value type)
+ * @typeparam M record members (key-value pairs of shapes)
+ * @typeparam I instance type of this Record (the value type)
  */
-export class ClassShape<M extends ClassMembers, I = any> extends Shape {
-  public readonly Kind = 'classShape';
+export class RecordShape<M extends RecordMembers, I = any> extends Shape {
+  public readonly Kind: 'recordShape' = 'recordShape';
 
   public readonly Members: Members<M> = {} as any;
 
   public readonly [Value.Tag]: I;
 
-  constructor(public readonly Type: ClassType<I, M>, public readonly Metadata: Metadata) {
+  constructor(public readonly Type: RecordType<I, M>, public readonly Metadata: Metadata) {
     super();
-    for (const [name, shape] of Object.entries(Type[ClassShape.Members])) {
+    for (const [name, shape] of Object.entries(Type[RecordShape.Members])) {
       (this.Members as any)[name] = new Member(name, Shape.of(shape), Meta.get(shape));
     }
   }
@@ -49,30 +47,30 @@ export class ClassShape<M extends ClassMembers, I = any> extends Shape {
     return Object.values(this.Metadata);
   }
 }
-export namespace ClassShape {
+export namespace RecordShape {
   export type Members = typeof Members;
   export const Members = Symbol.for('@punchcard/shape.ClassShape.Members');
 }
 
 /**
- * A handle to a class type (the RHS of a new expression, e.g. `new RHS()`).
+ * A handle to a Record type (the RHS of a new expression, e.g. `new RHS()`).
  *
  * ```ts
  * const a = class MyClass {}
- * typeof a; // ClassType<MyClass>;
+ * typeof a; // RecordType<MyClass>;
  * ```
  */
-export type ClassType<I = any, M extends ClassMembers = any> =
+export type RecordType<I = any, M extends RecordMembers = any> =
   (new (...args: any[]) => I) & {
-    [ClassShape.Members]: M;
+    [RecordShape.Members]: M;
   };
 
-export type ShapeOrRecord = Shape | ClassType;
+export type ShapeOrRecord = Shape | RecordType;
 
-export type ShapeOrRecordWithValue<T> = (Shape & { [Value.Tag]: T; }) | ClassType<T>;
+export type ShapeOrRecordWithValue<T> = (Shape & { [Value.Tag]: T; }) | RecordType<T>;
 
 /**
- * Maps ClassMembers to a structure that represents it at runtime.
+ * Maps RecordMembers to a structure that represents it at runtime.
  *
  * It supports adding `?` to optional members and maintins developer documentation.
  *
@@ -83,14 +81,14 @@ export type ShapeOrRecordWithValue<T> = (Shape & { [Value.Tag]: T; }) | ClassTyp
  *    * Inline documentation.
  *    *\/
  *   a: string
- * })
+ * }) {}
  *
  * new A({
  *   a: 'a'; // <- the above "Inline documentation" docs are preserved, traced back to the source.
  * }).a; // <- same here
  * ```
  */
-export type RecordMembers<T extends ClassMembers> = {
+type MakeRecordMembers<T extends RecordMembers> = {
   /**
    * Write each member and their documentation to the structure.
    * Write them all as '?' for now.
@@ -103,38 +101,61 @@ export type RecordMembers<T extends ClassMembers> = {
   [M in RequiredKeys<T>]-?: Value.Of<T[M]>;
 };
 
-export type RecordInstance<T extends ClassMembers> = RecordMembers<T> & {
+type MakeRecordInstance<T extends RecordMembers> = MakeRecordMembers<T> & {
   /**
    * Instance reference to this record's members.
    *
    * Hide it with a symbol so we don't clash with the members.
    */
-  [ClassShape.Members]: {
+  [RecordShape.Members]: {
     [M in keyof T]: Shape.Of<T[M]>;
   };
 };
 
-export type RecordType<T extends ClassMembers = any> = {
+export type MakeRecordType<T extends RecordMembers = any> = {
   /**
    * Static reference to this record's members.
    */
-  readonly [ClassShape.Members]: {
+  readonly [RecordShape.Members]: {
     [M in keyof T]: Shape.Of<T[M]>;
   };
   /**
    * Constructor takes values for each member.
    */
-} & (new (values: RecordMembers<T>) => RecordInstance<T>);
+} & (new (values: MakeRecordMembers<T>) => MakeRecordInstance<T>);
 
-export function Record<T extends ClassMembers>(members: T): RecordType<T> {
+/**
+ * Dynamically constructs a class using a map of member names to shapes.
+ *
+ * class A extends Record({
+ *   /**
+ *    * Inline documentation.
+ *    *\/
+ *   a: string
+ * }) {}
+ * A
+ *
+ * @param members key-value pairs of members and their shape (type).
+ */
+export function Record<T extends RecordMembers>(members: T): MakeRecordType<T> {
   const memberShapes: any = Object.entries(members).map(([name, member]) => ({
     [name]: Shape.of(member)
   })).reduce((a, b) => ({...a, ...b}));
 
   class NewType {
-    public static readonly [ClassShape.Members] = memberShapes;
+    /**
+     * This Record type's members and their shape.
+     */
+    public static readonly [RecordShape.Members] = memberShapes;
+    /**
+     * This Record type's members and their shape.
+     */
+    public static readonly members = memberShapes;
 
-    public readonly [ClassShape.Members]: T = memberShapes;
+    /**
+     * This instance's members - useful for reflection.
+     */
+    public readonly [RecordShape.Members]: T = memberShapes;
 
     constructor(values: {
       [K in keyof T]: Value.Of<T[K]>;
@@ -166,7 +187,7 @@ Shape.of = <T extends ShapeOrRecord>(t: T, noCache: boolean = false): Shape.Of<T
   return cache().get(t);
 
   function make() {
-    return new ClassShape(t as any, Meta.get(t)) as any;
+    return new RecordShape(t as any, Meta.get(t)) as any;
   }
 };
 

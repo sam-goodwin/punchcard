@@ -1,5 +1,5 @@
-import { Meta } from "@punchcard/shape/lib/metadata";
-import { JsonSchema } from "./json-schema";
+import { Meta } from '@punchcard/shape/lib/metadata';
+import { JsonSchema } from './json-schema';
 
 export interface AnySchema {
   type: {};

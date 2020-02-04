@@ -1,7 +1,7 @@
 import { HashSet, Mapper, ValidatingMapper, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
-import { ClassShape, ShapeOrRecord } from '@punchcard/shape/lib/class';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { RecordShape, ShapeOrRecord } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Json } from './json';
 
@@ -90,7 +90,7 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any, any>> {
       write: (b: boolean) => b
     };
   }
-  public classShape(shape: ClassShape<any, any>): Mapper<any, any> {
+  public recordShape(shape: RecordShape<any, any>): Mapper<any, any> {
     const fields = Object.entries(shape.Members)
       .map(([name, member]) => ({
         [name]: mapper(member.Shape, {
@@ -182,8 +182,9 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any, any>> {
       write: (arr: Set<any>) => Array.from(arr).map(i => item.write(i)),
       read: (arr: any[]) => {
         const set =
-          shape.Items.Kind === 'stringShape' ||
-          shape.Items.Kind === 'numberShape' ||
+          shape.Items.Kind === 'stringShape'  ||
+          shape.Items.Kind === 'numberShape'  ||
+          shape.Items.Kind === 'integerShape' ||
           shape.Items.Kind === 'boolShape' ? new Set() : new HashSet(shape.Items);
         arr.forEach(i => set.add(item.read(i)));
         return set;

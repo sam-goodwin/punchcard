@@ -1,4 +1,4 @@
-import { ShapeOrRecord } from './class';
+import { ShapeOrRecord } from './record';
 import { Validator } from './validation';
 import { Value } from './value';
 

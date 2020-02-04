@@ -1,6 +1,6 @@
-import { ClassShape, ShapeOrRecord } from './class';
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { RecordShape, ShapeOrRecord } from './record';
 import { Shape } from './shape';
 import { Value } from './value';
 import { Visitor as ShapeVisitor } from './visitor';
@@ -97,7 +97,7 @@ export namespace HashCode {
     public boolShape(shape: BoolShape): HashCode<BoolShape> {
       return b => b ? 1 : 0;
     }
-    public classShape(shape: ClassShape<any>): HashCode<ClassShape<any>> {
+    public recordShape(shape: RecordShape<any>): HashCode<RecordShape<any>> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
           [name]: of(member.Shape)

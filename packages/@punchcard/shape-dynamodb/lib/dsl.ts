@@ -1,12 +1,10 @@
-import { ClassShape, ClassType, Member, ShapeOrRecord, Value, Visitor } from '@punchcard/shape';
+import { Member, RecordShape, RecordType, ShapeOrRecord, Value, Visitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
 import { Writer } from './writer';
-
-import './class';
 
 // tslint:disable: ban-types
 declare module '@punchcard/shape/lib/shape' {
@@ -24,9 +22,9 @@ export namespace DSL {
 
   export type Of<T extends ShapeOrRecord> = Shape.Of<T> extends { [Tag]: infer Q } ? Q : never;
 
-  export type Root<T extends ClassType> = Struct<Shape.Of<T>>['fields'];
+  export type Root<T extends RecordType> = Struct<Shape.Of<T>>['fields'];
 
-  export function of<T extends ClassType>(type: T): Root<T> {
+  export function of<T extends RecordType>(type: T): Root<T> {
     const shape = Shape.of(type);
     const result: any = {};
     for (const [name, member] of Objekt.entries(shape.Members)) {
@@ -62,7 +60,7 @@ export namespace DSL {
     boolShape: (shape: BoolShape, expression: ExpressionNode<any>): Bool => {
       return new Bool(expression, shape);
     },
-    classShape: (shape: ClassShape<any>, expression: ExpressionNode<any>): Struct<any> => {
+    recordShape: (shape: RecordShape<any>, expression: ExpressionNode<any>): Struct<any> => {
       return new Struct(shape, expression);
     },
     mapShape: (shape: MapShape<any>, expression: ExpressionNode<any>): Map<any> => {
@@ -614,7 +612,7 @@ export namespace DSL {
     }
   }
 
-  export class Struct<T extends ClassShape<any>> extends Object<T> {
+  export class Struct<T extends RecordShape<any>> extends Object<T> {
     public readonly fields: {
       [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]['Shape']>;
     };

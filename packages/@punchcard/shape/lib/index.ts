@@ -1,4 +1,3 @@
-export * from './class';
 export * from './collection';
 export * from './equals';
 export * from './guards';
@@ -9,6 +8,7 @@ export * from './mapper';
 export * from './member';
 export * from './metadata';
 export * from './primitive';
+export * from './record';
 export * from './shape';
 export * from './traits';
 export * from './util';

@@ -63,7 +63,7 @@ class MyClass extends Record({
   key: string
 }) {}
 
-test('isClassShape', () => {
-  expect(ShapeGuards.isClassShape(Shape.of(MyClass))).toBe(true);
-  expect(ShapeGuards.isClassShape(string)).toBe(false);
+test('isRecordShape', () => {
+  expect(ShapeGuards.isRecordShape(Shape.of(MyClass))).toBe(true);
+  expect(ShapeGuards.isRecordShape(string)).toBe(false);
 });

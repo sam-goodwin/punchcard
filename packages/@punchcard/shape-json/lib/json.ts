@@ -1,10 +1,10 @@
-import { ClassType, OptionalKeys, RequiredKeys } from '@punchcard/shape';
+import { OptionalKeys, RecordType, RequiredKeys } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 
 export type Tag = typeof Tag;
 export const Tag = Symbol.for('@punchcard/shape-json.Json.Tag');
 
-export type Json<T extends ClassType | Shape> =  Shape.Of<T> extends { [Tag]: infer J } ? J : never;
+export type Json<T extends RecordType | Shape> =  Shape.Of<T> extends { [Tag]: infer J } ? J : never;
 
 declare module '@punchcard/shape/lib/shape' {
   export interface Shape {
@@ -49,8 +49,8 @@ declare module '@punchcard/shape/lib/collection' {
   }
 }
 
-declare module '@punchcard/shape/lib/class' {
-  export interface ClassShape<M extends ClassMembers, I extends any> {
+declare module '@punchcard/shape/lib/record' {
+  export interface RecordShape<M extends RecordMembers, I extends any> {
     [Tag]: {
       [member in RequiredKeys<this['Members']>]: this['Members'][member]['Shape'][Tag];
     } & {

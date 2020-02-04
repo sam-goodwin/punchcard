@@ -9,13 +9,13 @@ import { Build } from 'punchcard/lib/core/build';
 import { Period, PT1M } from './period';
 import { Schema } from './schema';
 
-import { ClassShape, ClassType, TimestampShape, Value } from '@punchcard/shape';
+import { RecordType, Value } from '@punchcard/shape';
 
-export interface DataPipelineProps<C extends ClassType, TS extends keyof C> {
+export interface DataPipelineProps<C extends RecordType, TS extends keyof C> {
   database: Build<Database>;
   schema: Schema<C, TS>;
 }
-export class DataPipeline<T extends ClassType, TS extends keyof T> {
+export class DataPipeline<T extends RecordType, TS extends keyof T> {
   public readonly bucket: S3.Bucket;
   public readonly stream: Kinesis.Stream<T>;
   public readonly stagingBucket: s3.Bucket;

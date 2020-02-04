@@ -1,7 +1,7 @@
 import apigateway = require('@aws-cdk/aws-apigateway');
 import cdk = require('@aws-cdk/core');
 
-import { ClassShape, ClassType, Mapper, Shape, ShapeGuards } from '@punchcard/shape';
+import { Mapper, RecordShape, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource as RResource } from '../core/resource';
@@ -81,31 +81,31 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
     }
   }
 
-  public setDeleteMethod<R extends Dependency<any>, T extends ClassType, U extends Responses>(method: Method<R, T, U, 'DELETE'>) {
+  public setDeleteMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'DELETE'>) {
     this.addMethod('DELETE', method);
   }
 
-  public setGetMethod<R extends Dependency<any>, T extends ClassType, U extends Responses>(method: Method<R, T, U, 'GET'>) {
+  public setGetMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'GET'>) {
     this.addMethod('GET', method);
   }
 
-  public setHeadMethod<R extends Dependency<any>, T extends ClassType, U extends Responses>(method: Method<R, T, U, 'HEAD'>) {
+  public setHeadMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'HEAD'>) {
     this.addMethod('HEAD', method);
   }
 
-  public setOptionsMethod<R extends Dependency<any>, T extends ClassType, U extends Responses>(method: Method<R, T, U, 'OPTIONS'>) {
+  public setOptionsMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'OPTIONS'>) {
     this.addMethod('OPTIONS', method);
   }
 
-  public setPatchMethod<R extends Dependency<any>, T extends ClassType, U extends Responses>(method: Method<R, T, U, 'PATCH'>) {
+  public setPatchMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'PATCH'>) {
     this.addMethod('PATCH', method);
   }
 
-  public setPostMethod<R extends Dependency<any>, T extends ClassType, U extends Responses>(method: Method<R, T, U, 'POST'>) {
+  public setPostMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'POST'>) {
     this.addMethod('POST', method);
   }
 
-  public setPutMethod<R extends Dependency<any>, T extends ClassType, U extends Responses>(method: Method<R, T, U, 'PUT'>) {
+  public setPutMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'PUT'>) {
     this.addMethod('PUT', method);
   }
 
@@ -113,7 +113,7 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
     return new Resource(this, pathPart, options);
   }
 
-  private addMethod<R extends Dependency<any>, T extends ClassType, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
+  private addMethod<R extends Dependency<any>, T extends RecordType, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
     // eww, mutability
     this.makeHandler(methodName, method as any);
 
@@ -208,7 +208,7 @@ function velocityTemplate<S extends Shape>(
 
   let template = `#set($inputRoot = ${root})\n`;
 
-  if (ShapeGuards.isClassShape(shape)) {
+  if (ShapeGuards.isRecordShape(shape)) {
     template += '{\n';
     let i = 0;
     const keys = new Set(Object.keys(shape.Members).concat(Object.keys(mappings || {})));
@@ -226,7 +226,7 @@ function velocityTemplate<S extends Shape>(
   }
   return template;
 
-  function walk(shape: ClassShape<any, any>, name: string, mapping: TypedMapping<any> | object, depth: number) {
+  function walk(shape: RecordShape<any, any>, name: string, mapping: TypedMapping<any> | object, depth: number) {
     template += '  '.repeat(depth);
 
     if (mapping) {

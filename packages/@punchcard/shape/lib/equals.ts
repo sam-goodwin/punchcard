@@ -1,6 +1,6 @@
-import { ClassShape, ShapeOrRecord } from './class';
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { RecordShape, ShapeOrRecord } from './record';
 import { Shape } from './shape';
 import { Value } from './value';
 import { Visitor as ShapeVisitor } from './visitor';
@@ -107,7 +107,7 @@ export namespace Equals {
     public boolShape(shape: BoolShape): Equals<BoolShape> {
       return (a, b) => a === b;
     }
-    public classShape(shape: ClassShape<any>): Equals<ClassShape<any>> {
+    public recordShape(shape: RecordShape<any>): Equals<RecordShape<any>> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
           [name]: of(member.Shape)

@@ -8,7 +8,7 @@ import iam = require('@aws-cdk/aws-iam');
 import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/core');
 
-import { ClassType, integer, Mapper, Record, Shape, ShapeGuards, Value } from '@punchcard/shape';
+import { integer, Mapper, Record, RecordType, Shape, ShapeGuards, Value } from '@punchcard/shape';
 import { Columns, DataType, PartitionKeys, schema } from '@punchcard/shape-glue';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
@@ -22,7 +22,7 @@ import { Sink } from '../util/sink';
  * Augmentation of `glue.TableProps`, using a `Shape` to define the
  * schema and partitionKeys.
  */
-export type TableProps<T extends ClassType, P extends ClassType> = {
+export type TableProps<T extends RecordType, P extends RecordType> = {
   /**
    * Type of data stored in the Table.
    */
@@ -89,7 +89,7 @@ export type TableProps<T extends ClassType, P extends ClassType> = {
 /**
  * Represents a partitioned Glue Table.
  */
-export class Table<T extends ClassType, P extends ClassType> implements Resource<glue.Table> {
+export class Table<T extends RecordType, P extends RecordType> implements Resource<glue.Table> {
   /**
    * Type of compression.
    */
@@ -265,30 +265,30 @@ export namespace Table {
   /**
    * Client type aliaes.
    */
-  export interface ReadWrite<T extends ClassType, P extends ClassType> extends Table.Client<T, P> {}
-  export interface ReadOnly<T extends ClassType, P extends ClassType> extends Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'> {}
-  export interface WriteOnly<T extends ClassType, P extends ClassType> extends Omit<Table.Client<T, P>, 'getPartitions'> {}
+  export interface ReadWrite<T extends RecordType, P extends RecordType> extends Table.Client<T, P> {}
+  export interface ReadOnly<T extends RecordType, P extends RecordType> extends Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'> {}
+  export interface WriteOnly<T extends RecordType, P extends RecordType> extends Omit<Table.Client<T, P>, 'getPartitions'> {}
 
   /**
    * Request and Response aliases.
    */
   export interface GetPartitionsRequest extends Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'> {}
-  export type GetPartitionsResponse<P extends ClassType> = {
+  export type GetPartitionsResponse<P extends RecordType> = {
     Partitions: Array<{
       Values: Value.Of<P>;
     } & Omit<AWS.Glue.Partition, 'Values'>>
   };
 
-  export type CreatePartitionRequest<P extends ClassType> = {
+  export type CreatePartitionRequest<P extends RecordType> = {
     Partition: Value.Of<P>,
     Location: string,
     LastAccessTime?: Date
   } &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
 
   export interface CreatePartitionResponse extends AWS.Glue.CreatePartitionResponse {}
-  export interface BatchCreatePartitionRequestEntry<T extends ClassType> extends CreatePartitionRequest<T> {}
-  export interface BatchCreatePartitionRequest<T extends ClassType> extends Array<BatchCreatePartitionRequestEntry<T>> {}
-  export interface UpdatePartitionRequest<P extends ClassType> {
+  export interface BatchCreatePartitionRequestEntry<T extends RecordType> extends CreatePartitionRequest<T> {}
+  export interface BatchCreatePartitionRequest<T extends RecordType> extends Array<BatchCreatePartitionRequestEntry<T>> {}
+  export interface UpdatePartitionRequest<P extends RecordType> {
     Partition: Value.Of<P>,
     UpdatedPartition: CreatePartitionRequest<P>
   }
@@ -298,7 +298,7 @@ export namespace Table {
    * * create, update, delete and query partitions.
    * * write objects to the table (properly partitioned S3 Objects and Glue Partitions).
    */
-  export class Client<T extends ClassType, P extends ClassType> implements Sink<Value.Of<T>> {
+  export class Client<T extends RecordType, P extends RecordType> implements Sink<Value.Of<T>> {
     /**
      * Mapper for writing a Record as a Buffer.
      */

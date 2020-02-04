@@ -1,9 +1,9 @@
 import AWS = require('aws-sdk');
 
-import { ShapeOrRecord } from '@punchcard/shape/lib/class';
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
 import { ValidatingMapper } from '@punchcard/shape/lib/mapper';
+import { ShapeOrRecord } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Value } from '@punchcard/shape/lib/value';
 import { AttributeValue } from './attribute';
@@ -45,7 +45,7 @@ export namespace Mapper {
     }
 
     function resolveShape() {
-      if (ShapeGuards.isClassShape(shape)) {
+      if (ShapeGuards.isRecordShape(shape)) {
         const mappers: {[key: string]: Mapper<any>; } = Object.values(shape.Members)
           .map(m => ({ [m.Name]: Mapper.of(m.Shape, options) }))
           .reduce((a, b) => ({...a, ...b}));

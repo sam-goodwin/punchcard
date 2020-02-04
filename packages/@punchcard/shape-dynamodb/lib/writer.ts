@@ -1,4 +1,4 @@
-import { DSL } from "./dsl";
+import { DSL } from './dsl';
 
 export class Writer {
   private tokens: string[] = [];

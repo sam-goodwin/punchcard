@@ -1,4 +1,4 @@
-import { ClassShape, ClassType, Shape, Value } from '@punchcard/shape';
+import { RecordShape, RecordType, Shape, Value } from '@punchcard/shape';
 import { Client,  } from '../core/client';
 import { Dependency } from '../core/dependency';
 import { Integration } from './integration';
@@ -7,7 +7,7 @@ import { TypedMapping } from './variable';
 
 export type MethodName = 'DELETE' | 'GET' | 'HEAD' | 'OPTIONS' | 'PATCH' | 'POST' | 'PUT';
 
-export interface Method<R extends Dependency<any>, T extends ClassType, U extends Responses, M extends MethodName> {
+export interface Method<R extends Dependency<any>, T extends RecordType, U extends Responses, M extends MethodName> {
   integration: Integration<R>;
   request: {
     shape: T;
@@ -21,15 +21,15 @@ export interface Method<R extends Dependency<any>, T extends ClassType, U extend
 
 export type MappingType<T> =
   T extends Shape ? TypedMapping<T> :
-  T extends ClassType<infer M, infer I> ? {
+  T extends RecordType<infer M, infer I> ? {
     [K in keyof M]: MappingType<M[K]> ;
   } :
   never;
 
-export type RequestMappings<S extends ClassType, M extends MethodName> = M extends 'GET' ?
+export type RequestMappings<S extends RecordType, M extends MethodName> = M extends 'GET' ?
   // 'GET' methods require mappings for all properties since there is no body
-  { [K in keyof S[ClassShape.Members]]-?: MappingType<S[ClassShape.Members][K]>; } :
-  { [K in keyof S[ClassShape.Members]]+?: MappingType<S[ClassShape.Members][K]>; };
+  { [K in keyof S[RecordShape.Members]]-?: MappingType<S[RecordShape.Members][K]>; } :
+  { [K in keyof S[RecordShape.Members]]+?: MappingType<S[RecordShape.Members][K]>; };
 
 export type Responses =  {
   [StatusCode.Ok]: Shape;

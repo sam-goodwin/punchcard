@@ -1,5 +1,5 @@
-import { ClassMembers} from './class';
 import { Meta, Metadata } from './metadata';
+import { RecordMembers} from './record';
 import { Shape } from './shape';
 import { AssertIsMetadata } from './util';
 
@@ -35,10 +35,10 @@ export namespace Member {
   /**
    * Construct new Member type for a property on a ClassType.
    */
-  export type Of<T extends ClassMembers, K extends keyof T> =
+  export type Of<T extends RecordMembers, K extends keyof T> =
     Member<Shape.Of<T[K]>, K, AssertIsMetadata<Meta.GetDataOrElse<T[K], {}>>>;
 }
 
-export type Members<T extends ClassMembers> = {
+export type Members<T extends RecordMembers> = {
   [K in keyof T]: Member.Of<T, K>;
 };

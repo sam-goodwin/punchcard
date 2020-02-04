@@ -1,8 +1,8 @@
-import { ClassShape, ClassType } from './class';
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { Meta } from './metadata';
 import { Trait } from './metadata';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { RecordShape, RecordType } from './record';
 import { Shape } from './shape';
 import { Value } from './value';
 import { Visitor as ShapeVisitor } from './visitor';
@@ -22,7 +22,7 @@ export function MakeValidator<T extends Shape>(validator: Validator<Value.Of<T>>
 }
 
 export namespace Validator {
-  export function of<T extends ClassType | Shape>(type: T): Validator<Value.Of<T>> {
+  export function of<T extends RecordType | Shape>(type: T): Validator<Value.Of<T>> {
     const shape = Shape.of(type);
     const decoratedValidators =  (Meta.get(shape, ['validator']) || {}).validator || [];
 
@@ -50,7 +50,7 @@ export namespace Validator {
     public boolShape(shape: BoolShape): Array<Validator<any>> {
       return [];
     }
-    public classShape(shape: ClassShape<any>): Array<Validator<any>> {
+    public recordShape(shape: RecordShape<any>): Array<Validator<any>> {
       const validators: {
         [key: string]: Array<Validator<any>>;
       } = {};

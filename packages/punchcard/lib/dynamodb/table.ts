@@ -9,14 +9,14 @@ import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 
-import { ClassType, Meta, Shape, ShapeGuards } from '@punchcard/shape';
+import { Meta, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
 
 import { DynamoDBClient } from '@punchcard/shape-dynamodb';
 
 /**
  * A Table's Attributes.
  */
-export type Attributes = ClassType;
+export type Attributes = RecordType;
 
 export interface TableOverrideProps extends Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'> {}
 

@@ -1,6 +1,6 @@
 import lambda = require('@aws-cdk/aws-lambda');
 import core = require('@aws-cdk/core');
-import { ClassType, ShapeOrRecord, Value } from '@punchcard/shape';
+import { RecordType, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Client, Clients } from '../core/client';
 import { Dependency } from '../core/dependency';
@@ -22,7 +22,7 @@ export type DependencyType<E extends Stream<any, any, any, any>> = E extends Str
  * @typeparam D runtime dependencies
  * @typeparam R runtime configuration
  */
-export abstract class Stream<E extends ClassType, T, D extends any[], C extends Stream.Config> {
+export abstract class Stream<E extends RecordType, T, D extends any[], C extends Stream.Config> {
   constructor(
       protected readonly previous: Stream<E, any, any, C>,
       protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,

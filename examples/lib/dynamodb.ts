@@ -121,7 +121,6 @@ Lambda.schedule(stack, 'Caller', {
 
   // sorted tables can be queried
   await sortedTable.query(['id', count => count.greaterThan(1)], {
-
     filter: item => item.array.length.equals(item.count) // item.array.lenth === item.count
   });
 });

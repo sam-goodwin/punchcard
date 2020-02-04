@@ -1,12 +1,12 @@
-import { ClassShape } from './class';
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { RecordShape } from './record';
 
 export interface Visitor<T = unknown, C = undefined> {
   arrayShape(shape: ArrayShape<any>, context: C): T;
   binaryShape(shape: BinaryShape, context: C): T;
   boolShape(shape: BoolShape, context: C): T;
-  classShape(shape: ClassShape<any>, context: C): T;
+  recordShape(shape: RecordShape<any>, context: C): T;
   dynamicShape(shape: DynamicShape<any>, context: C): T;
   integerShape(shape: IntegerShape, context: C): T;
   mapShape(shape: MapShape<any>, context: C): T;
