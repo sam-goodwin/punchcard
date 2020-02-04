@@ -204,7 +204,7 @@ With data now flowing to S3, let's partition and catalog it in a `Glue.Table` (b
 
 ```ts
 import glue = require('@aws-cdk/aws-glue');
-import { Glue } from '@punchcard/shape';
+import { Glue } from 'punchcard';
 
 const database = stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
