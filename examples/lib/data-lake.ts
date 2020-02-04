@@ -1,4 +1,3 @@
-import core = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
 import { Core, Lambda } from 'punchcard';

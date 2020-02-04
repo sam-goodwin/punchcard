@@ -1,7 +1,7 @@
 {
   "name": "punchcard",
   "description": "Type-safe AWS infrastructure.",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -44,7 +44,7 @@
     "typescript": "^3.7.4"
   },
   "dependencies": {
-    "@punchcard/constructs": "^0.2.0",
+    "@punchcard/constructs": "^0.3.0",
     "@punchcard/shape": "^0.1.0",
     "@punchcard/shape-dynamodb": "^0.1.0",
     "@punchcard/shape-hive": "^0.1.0",
@@ -77,7 +77,7 @@
     "ts-loader": "^6.2.1"
   },
   "peerDependencies": {
-    "@punchcard/constructs": "^0.2.0",
+    "@punchcard/constructs": "^0.3.0",
     "@punchcard/shape": "^0.1.0",
     "@punchcard/shape-dynamodb": "^0.1.0",
     "@punchcard/shape-hive": "^0.1.0",

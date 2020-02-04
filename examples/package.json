@@ -1,7 +1,7 @@
 {
   "name": "examples",
   "private": true,
-  "version": "0.10.0",
+  "version": "0.12.0",
   "main": "lib/index.js",
   "types": "lib/index.ts",
   "scripts": {
@@ -30,8 +30,8 @@
     "@aws-cdk/aws-sqs": "^1.22.0",
     "@aws-cdk/core": "^1.22.0",
     "@types/uuid": "^3.4.4",
-    "@punchcard/data-lake": "^0.11.0",
-    "punchcard": "^0.11.0",
+    "@punchcard/data-lake": "^0.12.0",
+    "punchcard": "^0.12.0",
     "@punchcard/shape": "^0.1.0",
     "@punchcard/shape-hive": "^0.1.0",
     "@punchcard/shape-json": "^0.1.0",

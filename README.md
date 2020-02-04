@@ -156,7 +156,7 @@ You can attach a new Lambda Function to process each notification:
 ```ts
 topic.notifications().forEach(stack, 'ForEachNotification', {}, async (notification) => {
   console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
-})
+});
 ```
 
 Or, create a new SQS Queue and subscribe notifications to it:

@@ -1,7 +1,7 @@
 {
   "name": "@punchcard/data-lake",
   "description": "Data Lake Construct",
-  "version": "0.11.0",
+  "version": "0.12.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -43,7 +43,7 @@
     "@aws-cdk/core": "^1.22.0",
     "@punchcard/shape-hive": "^0.1.0",
     "@punchcard/shape": "^0.1.0",
-    "punchcard": "^0.11.0"
+    "punchcard": "^0.12.0"
   },
   "peerDependencies": {
     "@aws-cdk/aws-glue": "^1.22.0",
@@ -51,7 +51,7 @@
     "@aws-cdk/core": "^1.22.0",
     "@punchcard/shape-hive": "^0.1.0",
     "@punchcard/shape": "^0.1.0",
-    "punchcard": "^0.11.0"
+    "punchcard": "^0.12.0"
   },
   "jest": {
     "testMatch": [
