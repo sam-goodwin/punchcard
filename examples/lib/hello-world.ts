@@ -58,5 +58,3 @@ queue.messages().forEach(stack, 'ForEachMessage', {}, async (msg) => {
   console.log(`received message with key ${msg.key} and count ${msg.count}`);
 });
 
-
-

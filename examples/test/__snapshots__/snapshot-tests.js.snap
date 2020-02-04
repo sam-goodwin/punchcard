@@ -7,8 +7,11 @@ Object {
       "Properties": Object {
         "Code": Object {
           "ZipFile": "exports.handler = (event, context) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, import/no-extraneous-dependencies
     const s3 = new (require('aws-sdk').S3)();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const https = require(\\"https\\");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const url = require(\\"url\\");
     log(JSON.stringify(event, undefined, 2));
     const props = event.ResourceProperties;
@@ -3115,8 +3118,11 @@ Object {
       "Properties": Object {
         "Code": Object {
           "ZipFile": "exports.handler = (event, context) => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, import/no-extraneous-dependencies
     const s3 = new (require('aws-sdk').S3)();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const https = require(\\"https\\");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const url = require(\\"url\\");
     log(JSON.stringify(event, undefined, 2));
     const props = event.ResourceProperties;
