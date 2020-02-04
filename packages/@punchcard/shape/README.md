@@ -4,7 +4,7 @@
 
 # Ecosystem
 * [@punchcard/shape-dynamodb](https://github.com/punchcard/punchcard/tree/master/packages/%40punchcard/shape-dynamodb) - DSL for working with AWS DynamoDB. Supports type-safe Query, Update and Conditional expressions, and maps between the raw attribute values and the shape definition.
-* [@punchcard/shape-glue](https://github.com/punchcard/punchcard/tree/master/packages/%40punchcard/shape-glue) - maps Shapes to AWS Glue (Hive) schemas to support declaring Hive/Glue tables with a Record.
+* [@punchcard/shape-hive](https://github.com/punchcard/punchcard/tree/master/packages/%40punchcard/shape-hive) - maps Shapes to AWS Glue (Hive) schemas to support declaring Hive/Glue tables with a Record.
 * [@punchcard/shape-json](https://github.com/punchcard/punchcard/tree/master/packages/%40punchcard/shape-json) - JSON serialization.
 * [@punchcard/shape-jsonpath](https://github.com/punchcard/punchcard/tree/master/packages/%40punchcard/shape-jsonpath) - Type-safe DSL for constructing JSON path expressions from Shapes.
 * [@punchcard/shape-jsonschema](https://github.com/punchcard/punchcard/tree/master/packages/%40punchcard/shape-jsonschema) - Maps a Shape/Record to its corresponding JSON schema.

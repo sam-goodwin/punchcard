@@ -33,8 +33,8 @@
     "@punchcard/data-lake": "^0.11.0",
     "punchcard": "^0.11.0",
     "@punchcard/shape": "^0.1.0",
+    "@punchcard/shape-hive": "^0.1.0",
     "@punchcard/shape-json": "^0.1.0",
-    "@punchcard/shape-glue": "^0.1.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {

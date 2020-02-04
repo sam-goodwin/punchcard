@@ -1,6 +1,6 @@
 {
-  "name": "@punchcard/shape-glue",
-  "description": "AWS Glue Schemas from Shapes",
+  "name": "@punchcard/shape-hive",
+  "description": "Apache Hive Schemas from Shapes",
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

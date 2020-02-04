@@ -5,8 +5,8 @@ import { Core, Lambda } from 'punchcard';
 
 import * as Analytics from '@punchcard/data-lake';
 
-import { Record, string, array, integer, timestamp, Shape } from '@punchcard/shape';
-import { char } from '@punchcard/shape-glue';
+import { Record, string, array, integer, timestamp } from '@punchcard/shape';
+import { char } from '@punchcard/shape-hive';
 
 export const app = new Core.App();
 const stack = app.root.map(app => new core.Stack(app, 'data-lake'));

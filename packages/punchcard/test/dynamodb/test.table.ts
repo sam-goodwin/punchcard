@@ -7,7 +7,7 @@ import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 import { array, binary, integer, map, Optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
-import { bigint, double, float, smallint, tinyint } from '@punchcard/shape-glue';
+import { bigint, double, float, smallint, tinyint } from '@punchcard/shape-hive';
 import { Core, DynamoDB } from '../../lib';
 import { Build } from '../../lib/core/build';
 import { Run } from '../../lib/core/run';

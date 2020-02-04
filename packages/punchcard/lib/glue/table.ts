@@ -9,7 +9,7 @@ import s3 = require('@aws-cdk/aws-s3');
 import cdk = require('@aws-cdk/core');
 
 import { integer, Mapper, Record, RecordType, Shape, ShapeGuards, Value } from '@punchcard/shape';
-import { Columns, DataType, PartitionKeys, schema } from '@punchcard/shape-glue';
+import { Columns, DataType, PartitionKeys, schema } from '@punchcard/shape-hive';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';

@@ -17,7 +17,7 @@ import { FirehoseEvent, FirehoseResponse, FirehoseResponseRecord, ValidationResu
 import { Objects } from './objects';
 
 import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from '@punchcard/constructs';
-import { DataType } from '@punchcard/shape-glue';
+import { DataType } from '@punchcard/shape-hive';
 
 export type DeliveryStreamProps<T extends ShapeOrRecord> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 

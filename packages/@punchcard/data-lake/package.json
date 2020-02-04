@@ -41,14 +41,16 @@
     "@aws-cdk/aws-glue": "^1.19.0",
     "@aws-cdk/aws-kinesis": "^1.19.0",
     "@aws-cdk/core": "^1.19.0",
+    "@punchcard/shape-hive": "^0.1.0",
     "@punchcard/shape": "^0.1.0",
-    "@punchcard/shape-glue": "^0.1.0",
     "punchcard": "^0.11.0"
   },
   "peerDependencies": {
     "@aws-cdk/aws-glue": "^1.19.0",
     "@aws-cdk/aws-kinesis": "^1.19.0",
     "@aws-cdk/core": "^1.19.0",
+    "@punchcard/shape-hive": "^0.1.0",
+    "@punchcard/shape": "^0.1.0",
     "punchcard": "^0.11.0"
   },
   "jest": {

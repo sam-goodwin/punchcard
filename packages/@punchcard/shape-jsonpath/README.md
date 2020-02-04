@@ -32,7 +32,7 @@ const _ = JsonPath.of(MyType);
 ```
 
 # Create a JSON Path
-`_` is not a type-safe DSL with members and operators that correspond to a JSON path expression.
+`_` is a type-safe DSL with members and operators that correspond to a JSON path expressions.
 
 Use `JsonPath.compile(expr)` to compile the abstract JSON path to its string representation. E.g `JsonPath.compile(_.id) === "$['id']"`.
 

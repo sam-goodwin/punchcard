@@ -1,5 +1,5 @@
 import { Record } from '@punchcard/shape';
-import { smallint } from '@punchcard/shape-glue';
+import { smallint } from '@punchcard/shape-hive';
 
 export class PT1H extends Record({
   year: smallint,

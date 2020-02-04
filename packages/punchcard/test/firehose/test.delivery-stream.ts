@@ -7,7 +7,6 @@ import { Firehose, Util } from '../../lib';
 import { Build } from '../../lib/core/build';
 
 import { Record, Shape, string } from '@punchcard/shape';
-import { DataType } from '@punchcard/shape-glue';
 import { Event } from '../../lib/s3';
 
 Util.setRuntime();

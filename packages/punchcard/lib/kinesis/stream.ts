@@ -6,7 +6,7 @@ import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
 import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
-import { DataType } from '@punchcard/shape-glue';
+import { DataType } from '@punchcard/shape-hive';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';

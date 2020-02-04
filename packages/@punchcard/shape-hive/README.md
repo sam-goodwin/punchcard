@@ -1,4 +1,4 @@
-# @punchcard/shape-glue
+# @punchcard/shape-hive
 
 Maps a Punchcard Shape Record to its corresponding Hive Schema compatible with AWS Glue.
 
@@ -8,7 +8,7 @@ Maps a Punchcard Shape Record to its corresponding Hive Schema compatible with A
 import { string, integer, number, array, set, map, Description } from '@punchcard/shape';
 
 // Hive-specific types
-import { double, float, char, varchar, Glue } from '@punchcard/shape-glue';
+import { double, float, char, varchar, Glue } from '@punchcard/shape-hive';
 
 // a record to be used within our top-level type (i.e. a nested structure).
 class Nested extends Record({

@@ -2,7 +2,6 @@ import 'jest';
 import sinon = require('sinon');
 
 import { Record, timestamp } from '@punchcard/shape';
-import { smallint } from '@punchcard/shape-glue';
 
 import glue = require('@aws-cdk/aws-glue');
 import core = require('@aws-cdk/core');

@@ -7,7 +7,7 @@ import { array, binary, bool, integer, map, Record, Shape, string, timestamp } f
 import { Glue, } from '../../lib';
 import { Build } from '../../lib/core/build';
 // tslint:disable-next-line: ordered-imports
-import { bigint, tinyint, smallint, char, varchar, float, double, Partition, JsonDataType, DataType } from '@punchcard/shape-glue';
+import { bigint, tinyint, smallint, char, varchar, float, double, DataType } from '@punchcard/shape-hive';
 
 class Struct extends Record({
   a: integer
