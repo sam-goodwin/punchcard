@@ -38,10 +38,8 @@ const stack = app.stack('hello-world');
 Creating a Lambda Function is super simple - just create it and implement `handle`:
 
 ```ts
-new Lambda.Function(stack, 'MyFunction', {
-  handle: async (event) => {
-    console.log('hello world');
-  }
+new Lambda.Function(stack, 'MyFunction', {}, async (event) => {
+  console.log('hello world');
 });
 ```
 
@@ -53,12 +51,11 @@ This will create the required IAM policies for your Function's IAM Role, add any
 new Lambda.Function(stack, 'MyFunction', {
   depends: topic,
 }, async (event, topic) => {
-    await topic.publish({
-      key: 'some key',
-      count: 1,
-      timestamp: new Date()
-    });
-  }
+  await topic.publish({
+    key: 'some key',
+    count: 1,
+    timestamp: new Date()
+  });
 });
 ```
 
