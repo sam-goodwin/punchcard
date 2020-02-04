@@ -36,7 +36,9 @@ export class Table<A extends Attributes, K extends DynamoDBClient.Key<A>> implem
   /**
    * Shape of data in the table.
    */
-  public readonly attributes: Shape.Of<A>;
+  public readonly attributesType: A;
+
+  public readonly attributesShape: Shape.Of<A>;
 
   /**
    * The table's key (hash key, or hash+sort key pair).
@@ -44,7 +46,8 @@ export class Table<A extends Attributes, K extends DynamoDBClient.Key<A>> implem
   public readonly key: K;
 
   constructor(scope: Build<core.Construct>, id: string, attributes: A, tableKey: K, props?: Build<TableOverrideProps>) {
-    this.attributes = Shape.of(attributes) as any;
+    this.attributesType = attributes;
+    this.attributesShape = Shape.of(attributes) as any;
 
     this.key = tableKey;
     const partitionKeyName: string = typeof tableKey === 'string' ? tableKey : (tableKey as any)[0];
@@ -55,13 +58,13 @@ export class Table<A extends Attributes, K extends DynamoDBClient.Key<A>> implem
         ...extraTableProps,
         partitionKey: {
           name: typeof tableKey === 'string' ? tableKey : (tableKey as any)[0],
-          type: keyType((this.attributes.Members as any)[partitionKeyName].Shape)
+          type: keyType((this.attributesShape.Members as any)[partitionKeyName].Shape)
         }
       };
       if (sortKeyName) {
         tableProps.sortKey = {
           name: sortKeyName,
-          type: keyType((this.attributes.Members as any)[sortKeyName].Shape)
+          type: keyType((this.attributesShape.Members as any)[sortKeyName].Shape)
         };
       }
 
@@ -106,7 +109,7 @@ export class Table<A extends Attributes, K extends DynamoDBClient.Key<A>> implem
         grant(table, grantable);
       }),
       bootstrap: Run.of(async (ns, cache) =>
-        new DynamoDBClient(this.attributes.Type as any, this.key,  {
+        new DynamoDBClient(this.attributesType, this.key,  {
           tableName: ns.get('tableName'),
           client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())
         }))

@@ -163,7 +163,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "data-lake/DummyDataPoints",
             "entrypoint_id": "4",
             "is_runtime": "true",
             "punchcard_streamName": Object {
@@ -172,6 +171,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "DummyDataPointsServiceRoleB15DAC9D",
@@ -282,13 +282,12 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "data-lake/ForEachDataPoint",
             "entrypoint_id": "3",
             "is_runtime": "true",
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 128,
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ForEachDataPointServiceRole11B2F00E",
@@ -627,7 +626,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "data-lake/Lake/Database/dataPoints/ToGlue/ToTable",
             "entrypoint_id": "2",
             "is_runtime": "true",
             "punchcard_bucketName": Object {
@@ -648,7 +646,7 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 128,
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "LakeDatabasedataPointsToGlueToTableServiceRole67CA1129",
@@ -1105,7 +1103,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "data-lake/Lake/Database/dataPoints/ToS3/Validator/Processor",
             "entrypoint_id": "1",
             "is_runtime": "true",
           },
@@ -1187,7 +1184,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "invoke-function/Caller",
             "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_tableName": Object {
@@ -1196,6 +1192,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "CallerServiceRole8749D4FA",
@@ -1381,13 +1378,12 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "hello-world/ForEachMessage",
             "entrypoint_id": "2",
             "is_runtime": "true",
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 128,
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ForEachMessageServiceRoleEF81D5ED",
@@ -1483,7 +1479,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "hello-world/MyFunction",
             "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_queueUrl": Object {
@@ -1495,6 +1490,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "MyFunctionServiceRole3C357FF2",
@@ -1669,7 +1665,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "invoke-function-example/Callable",
             "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_tableName": Object {
@@ -1678,6 +1673,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "CallableServiceRole227DEF92",
@@ -1787,7 +1783,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "invoke-function-example/Caller",
             "entrypoint_id": "2",
             "is_runtime": "true",
             "punchcard_functionArn": Object {
@@ -1799,6 +1794,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "CallerServiceRole8749D4FA",
@@ -1946,7 +1942,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "pet-store/MyEndpoint",
             "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_tableName": Object {
@@ -2958,7 +2953,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "scheduled-function-example/Poller",
             "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_tableName": Object {
@@ -2967,6 +2961,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "PollerServiceRoleE2C79911",
@@ -3283,7 +3278,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "stream-processing/DummyData",
             "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_tableName": Object {
@@ -3295,6 +3289,7 @@ Object {
           },
         },
         "Handler": "index.handler",
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "DummyDataServiceRoleF6E3733B",
@@ -3459,13 +3454,12 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "stream-processing/ForEachNotification",
             "entrypoint_id": "2",
             "is_runtime": "true",
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 128,
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ForEachNotificationServiceRole460EBC3F",
@@ -3680,7 +3674,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "stream-processing/Stream/ToStream",
             "entrypoint_id": "3",
             "is_runtime": "true",
             "punchcard_streamName": Object {
@@ -3692,7 +3685,7 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 128,
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "StreamToStreamServiceRole00FC6AF4",
@@ -3945,7 +3938,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "stream-processing/ToGlue/ToTable",
             "entrypoint_id": "5",
             "is_runtime": "true",
             "punchcard_bucketName": Object {
@@ -3966,7 +3958,7 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 128,
+        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ToGlueToTableServiceRole53B96987",
@@ -4401,7 +4393,6 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "bootstrap_construct_path": "stream-processing/ToS3/Validator/Processor",
             "entrypoint_id": "4",
             "is_runtime": "true",
           },

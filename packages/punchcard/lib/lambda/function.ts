@@ -16,7 +16,7 @@ import { Entrypoint, entrypoint } from '../core/entrypoint';
 import { Global } from '../core/global';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
-import { RUNTIME_ENV } from '../util/constants';
+import { ENTRYPOINT_ENV_KEY, IS_RUNTIME_ENV_KEY } from '../util/constants';
 
 /**
  * Overridable subset of @aws-cdk/aws-lambda.FunctionProps
@@ -107,10 +107,11 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
         code: Code.tryGetCode(scope) || Code.mock,
         runtime: lambda.Runtime.NODEJS_10_X,
         handler: 'index.handler',
+        memorySize: 256,
         ...functionProps,
       });
-      lambdaFunction.addEnvironment('is_runtime', 'true');
-      lambdaFunction.addEnvironment('entrypoint_id', entrypointId);
+      lambdaFunction.addEnvironment(IS_RUNTIME_ENV_KEY, 'true');
+      lambdaFunction.addEnvironment(ENTRYPOINT_ENV_KEY, entrypointId);
 
       const assembly = new Assembly();
       if (this.dependencies) {
@@ -119,7 +120,6 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
       for (const [name, p] of Object.entries(assembly.properties)) {
         lambdaFunction.addEnvironment(name, p);
       }
-      lambdaFunction.addEnvironment(RUNTIME_ENV, lambdaFunction.node.path);
 
       return lambdaFunction;
     }));
@@ -138,11 +138,13 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
         const runtimeProperties = new Assembly(bag);
         client = await (Run.resolve(this.dependencies!.bootstrap))(runtimeProperties, cache);
       }
-
       return (async (event: any, context: any) => {
+        console.log(event);
         const parsed = this.requestMapper.read(event);
         try {
+          console.log('parsed request', parsed);
           const result = await this.handle(parsed as any, client, context);
+          console.log('after handle');
           return this.responseMapper.write(result as any);
         } catch (err) {
           console.error(err);

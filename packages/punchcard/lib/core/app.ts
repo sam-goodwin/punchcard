@@ -1,5 +1,6 @@
 import cdk = require('@aws-cdk/core');
 
+import { isRuntime } from '../util/constants';
 import { Build } from './build';
 import { Code } from './code';
 
@@ -12,7 +13,7 @@ export class App {
     this.root = Build.lazy(() => new cdk.App({
       autoSynth: false
     }));
-    if (process.env.is_runtime !== 'true') {
+    if (!isRuntime()) {
       const webpack: any = require('webpack');
 
       this.addExternal('aws-sdk');

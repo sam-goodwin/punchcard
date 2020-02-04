@@ -4,8 +4,6 @@ import { Core, Lambda, DynamoDB, SQS } from 'punchcard';
 import { string, integer, Record, MaxLength } from '@punchcard/shape';
 import { Dependency } from 'punchcard/lib/core';
 
-import json = require('@punchcard/shape-json');
-
 export const app = new Core.App();
 const stack = app.root.map(app => new cdk.Stack(app, 'hello-world'));
 
@@ -13,13 +11,13 @@ const stack = app.root.map(app => new cdk.Stack(app, 'hello-world'));
  * State of a counter.
  */
 class Counter extends Record({
-
   /**
-   * Rate Key documentation goes here.
+   * The hash key of the Counter
    */
-  key: string
-    .apply(MaxLength(1)),
-  
+  key: string,
+  /**
+   * Integer property for tracking the Counter's count.
+   */
   count: integer
 }) {}
 
@@ -35,17 +33,17 @@ Lambda.schedule(stack, 'MyFunction', {
   depends: Dependency.concat(
     hashTable.readWriteAccess(),
     queue.sendAccess()),
-}, async(_, [hashTable, queue]) => {
+}, async (_, [hashTable, queue]) => {
   console.log('Hello, World!');
 
-  let rateType = await hashTable.get('hash key');
+  let rateType = await hashTable.get('key');
   if (rateType === undefined) {
     rateType = new Counter({
       key: 'key',
       count: 0
-    })
+    });
     await hashTable.put(rateType);
-  }
+  } 
 
   await queue.sendMessage(rateType);
   await hashTable.update('key', _ => [
@@ -55,6 +53,6 @@ Lambda.schedule(stack, 'MyFunction', {
 
 // print out a message for each SQS message received
 queue.messages().forEach(stack, 'ForEachMessage', {}, async (msg) => {
-  console.log(`received message with key ${msg.key} and count ${msg.count}`);
+  console.log(`received message with key '${msg.key}' and count ${msg.count}`);
 });
 

@@ -58,6 +58,7 @@ export const unknown = new UnknownShape();
 
 export const binary = new BinaryShape();
 export const bool = new BoolShape();
+export const boolean = bool;
 export const string = new StringShape();
 export const number = new NumberShape();
 export const int = new IntegerShape();

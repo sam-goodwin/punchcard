@@ -126,7 +126,6 @@ export abstract class Stream<E extends RecordType, T, D extends any[], C extends
       handle: (value: T, deps: Client<D2>) => Promise<any>): Lambda.Function<E, any, D2 extends undefined ? Dependency.Concat<D> : Dependency.Concat<Cons<D, D2>>> {
     // TODO: let the stream type determine default executor service
     const executorService = (input.config && input.config.executorService) || new Lambda.ExecutorService({
-      memorySize: 128,
       timeout: core.Duration.seconds(10)
     });
     const l = executorService.spawn(scope, id, {

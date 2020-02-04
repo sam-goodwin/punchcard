@@ -55,12 +55,13 @@ export class DynamoDBClient<T extends RecordType, K extends DynamoDBClient.Key<T
   }
 
   public async get(key: DynamoDBClient.KeyValue<T, K>): Promise<Value.Of<T> | undefined> {
-    const result = await this.client.getItem({
+    const req = {
       TableName: this.tableName,
       Key: this.writeKey(key)
-    }).promise();
+    };
+    const result = await this.client.getItem(req).promise();
 
-    if (result.Item) {
+    if (result.Item !== undefined) {
       return this.mapper.read({M: result.Item} as any);
     } else {
       return undefined;
@@ -136,11 +137,13 @@ export class DynamoDBClient<T extends RecordType, K extends DynamoDBClient.Key<T
   }
 
   public async update(key: DynamoDBClient.KeyValue<T, K>, update: DynamoDBClient.Update<T>) {
-    return await this.client.updateItem({
+    const req = {
       TableName: this.tableName,
       Key: this.writeKey(key),
       ...(Update.compile(update(this.dsl)))
-    }).promise();
+    };
+    const response = await this.client.updateItem(req).promise();
+    return response;
   }
 
   // TODO: Support paging, etc.

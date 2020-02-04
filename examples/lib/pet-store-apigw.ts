@@ -45,7 +45,7 @@ pets.setGetMethod({
     shape: EmptyPayload
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: array(petStore.attributes),
+    [ApiGateway.StatusCode.Ok]: array(petStore.attributesType),
     [ApiGateway.StatusCode.InternalError]: Shape.of(ErrorResponse)
   },
   handle: async (_, petStore) => {
@@ -67,7 +67,7 @@ pet.setGetMethod({
     }
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: petStore.attributes,
+    [ApiGateway.StatusCode.Ok]: petStore.attributesShape,
     [ApiGateway.StatusCode.NotFound]: string,
     [ApiGateway.StatusCode.InternalError]: Shape.of(ErrorResponse)
   },
