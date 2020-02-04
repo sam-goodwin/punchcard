@@ -1,4 +1,4 @@
-![CodeBuild badge](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiT1BiL0lLYk5SMmgvTjVsc2x5N1JMTm1jTVFDTXJ2UzF1ZTlhN2xESVVOWThza3lBbEZaejBrYm5kSDFoT0pWUTlxR1IrTnRIWE9mZGVuS0d1RXJlUHU4PSIsIml2UGFyYW1ldGVyU3BlYyI6IjFjRTg3WjJ1a2ZhNDBqVVIiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
+![CodeBuild badge](https://codebuild.us-west-2.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoiZFYyRk82d3plVWlNdW8xblNKZk1XOEpCSkwvQTZjeUFVMG1odkdDWFU3Zm1CVXZYcENWS0VCbW52QnNieml3NFUvTnlYbkIzVUJGU2U1a0hTanlRYitVPSIsIml2UGFyYW1ldGVyU3BlYyI6IlY2TGhPdjJ6ZjZZVVJxVDgiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
 [![Gitter](https://badges.gitter.im/punchcard-cdk/community.svg)](https://gitter.im/punchcard-cdk/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 [![npm version](https://badge.fury.io/js/punchcard.svg)](https://badge.fury.io/js/punchcard)
 
