@@ -2412,7 +2412,7 @@ $inputRoot
             "application/json": "#set($inputRoot = $input.path('$'))
 {
   \\"type\\":\\"$inputRoot.type\\",
-  \\"price\\":\\"$inputRoot.price\\",
+  \\"price\\":$inputRoot.price,
   \\"__resourceId\\": \\"$context.resourceId\\",
   \\"__httpMethod\\": \\"$context.httpMethod\\"
 }
