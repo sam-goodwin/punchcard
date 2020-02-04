@@ -39,9 +39,9 @@
   },
   "devDependencies": {
     "@types/jest": "^23.3.13",
-    "@types/node": "^11.13.7",
+    "@types/node": "^13.1.1",
     "aws-cdk": "^1.22.0",
-    "aws-sdk": "^2.395.0",
+    "aws-sdk": "^2.610.0",
     "jest": "^23.6.0",
     "typescript": "^3.7.2",
     "tslint": "^5.10.0",

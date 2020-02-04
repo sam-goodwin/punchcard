@@ -74,7 +74,7 @@ Lambda.schedule(stack, 'DummyData', {
   /**
    * Impement the Lambda Function.
    * 
-   * We are passed clients for each of our dependencies: the `topic` and `table`.
+   * We are passed clients for each of our dependencies: `topic` and `table`.
    */
   const key = uuid();
   // write some data to the dynamodb table

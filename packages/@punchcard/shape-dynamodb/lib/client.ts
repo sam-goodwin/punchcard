@@ -131,7 +131,7 @@ export class DynamoDBClient<T extends RecordType, K extends DynamoDBClient.Key<T
         return result.UnprocessedItems[this.tableName];
       }
     } catch (error) {
-      console.log('putBatch error', error);
+      console.error('putBatch error', error);
       throw error;
     }
   }

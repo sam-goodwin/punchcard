@@ -35,7 +35,7 @@ export class JsonDataType implements DataType {
 
     return {
       read: buffer => jsonMapper.read(JSON.parse(buffer.toString('utf8'))) as any,
-      write: value => Buffer.from(JSON.stringify(jsonMapper.write(value as any)), 'utf8')
+      write: value => Buffer.from(JSON.stringify(jsonMapper.write(value as any)) + '\n', 'utf8')
     };
   }
 
@@ -49,9 +49,7 @@ export class JsonDataType implements DataType {
   }
 
   public join(buffers: Buffer[]): Buffer {
-    return Buffer.concat(buffers
-      .map((buf, i) => i < buffers.length ? [buf, newLine] : [buf])
-      .reduce((a, b) => a.concat(b)));
+    return Buffer.concat(buffers);
   }
 }
 
