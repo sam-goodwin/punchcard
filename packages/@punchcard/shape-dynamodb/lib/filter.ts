@@ -13,11 +13,18 @@ export namespace Condition {
     const writer = new Writer();
     write(expression, writer);
     const expr = writer.toExpression();
-    return {
+    const res = {
       Expression: expr.Expression,
       ExpressionAttributeNames: expr.ExpressionAttributeNames,
       ExpressionAttributeValues: expr.ExpressionAttributeValues
     };
+    if (!res.ExpressionAttributeNames) {
+      delete res.ExpressionAttributeNames;
+    }
+    if (!res.ExpressionAttributeValues) {
+      delete res.ExpressionAttributeValues;
+    }
+    return res;
   }
 
   export function write(expression: DSL.ExpressionNode<any> | DSL.StatementNode, writer?: Writer): Writer {

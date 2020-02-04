@@ -56,7 +56,6 @@ test('struct.field = array.get(index)', () => {
       '#1': 'nested',
       '#2': 'a',
       '#3': 'array'
-    },
-    ExpressionAttributeValues: {},
+    }
   });
 });

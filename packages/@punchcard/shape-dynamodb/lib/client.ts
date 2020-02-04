@@ -186,14 +186,21 @@ export class DynamoDBClient<T extends RecordType, K extends DynamoDBClient.Key<T
 
     const queryExpr = queryWriter.toExpression();
 
-    const result = await this.client.query({
+    const req = {
       TableName: this.tableName,
       KeyConditionExpression: queryExpr.Expression,
       FilterExpression: filterExpr?.Expression,
       ExpressionAttributeNames: queryExpr?.ExpressionAttributeNames,
       ExpressionAttributeValues: queryExpr?.ExpressionAttributeValues,
       ExclusiveStartKey: props.exclusiveStartKey === undefined ? undefined : this.writeKey(props.exclusiveStartKey)
-    }).promise();
+    };
+    if (!req.ExpressionAttributeNames) {
+      delete req.ExpressionAttributeNames;
+    }
+    if (!req.ExpressionAttributeValues) {
+      delete req.ExpressionAttributeValues;
+    }
+    const result = await this.client.query(req).promise();
 
     return {
       ...result,

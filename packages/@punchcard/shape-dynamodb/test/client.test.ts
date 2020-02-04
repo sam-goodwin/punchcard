@@ -14,13 +14,18 @@ class Type extends Record({
   dynamic: any,
 }) {}
 
-const table = new DynamoDBClient(Type, ['key', 'count'], {
+const hashTable = new DynamoDBClient(Type, 'key', {
+  tableName: 'my-table-name'
+});
+
+const sortedTable = new DynamoDBClient(Type, ['key', 'count'], {
   tableName: 'my-table-name'
 });
 // leaving this here as a compile time test for now
 
 function mockClient(fake: { [K in keyof AWS.DynamoDB]?: sinon.SinonSpy; }) {
-  (table as any).client = fake;
+  (sortedTable as any).client = fake;
+  (hashTable as any).client = fake;
   return fake;
 }
 
@@ -39,9 +44,11 @@ test('getItem', async () => {
     getItem
   });
 
-  const result = await table.get(['value', 1]);
+  const hkResult = await hashTable.get('value');
+  const skResult = await sortedTable.get(['value', 1]);
 
-  expect(result).toEqual(new Type({
+  expect(hkResult).toEqual(skResult);
+  expect(skResult).toEqual(new Type({
     key: 'value',
     count: 1,
     list: ['list value'],
@@ -50,6 +57,12 @@ test('getItem', async () => {
   }));
 
   expect(getItem.args[0][0]).toEqual({
+    TableName: 'my-table-name',
+    Key: {
+      key: { S: 'value' }
+    }
+  });
+  expect(getItem.args[1][0]).toEqual({
     TableName: 'my-table-name',
     Key: {
       key: { S: 'value' },
@@ -65,7 +78,7 @@ test('putIf', async () => {
     putItem
   });
 
-  await table.putIf(new Type({
+  await sortedTable.putIf(new Type({
     key: 'key',
     count: 1,
     list: ['a', 'b'],
@@ -84,7 +97,7 @@ test('putIf', async () => {
       dict: { M: { key: { S: 'value' } } },
       dynamic: { S: 'dynamic-value' }
     },
-    ConditionExpression: '((#1=1 AND #2[0]<=0) AND #3.#4=:1)',
+    ConditionExpression: '((#1=:1 AND #2[0]<=:2) AND #3.#4=:3)',
     ExpressionAttributeNames: {
       '#1': 'count',
       '#2': 'list',
@@ -92,7 +105,9 @@ test('putIf', async () => {
       '#4': 'a'
     },
     ExpressionAttributeValues: {
-      ':1': { S: 'value' }
+      ':1': { N: '1' },
+      ':2': { N: '0' },
+      ':3': { S: 'value' }
     }
   });
 });
@@ -104,7 +119,7 @@ test('update', async () => {
     updateItem
   });
 
-  await table.update(['key', 1], item => [
+  await sortedTable.update(['key', 1], item => [
     item.list.push('item'),
     item.dynamic.as(string).set('dynamic-value'),
     item.count.set(item.count.plus(1)),
@@ -117,7 +132,7 @@ test('update', async () => {
       key: { S: 'key' },
       count: { N: '1' },
     },
-    UpdateExpression: 'SET #1[1]=:1 SET #2=:2 SET #3=#3+1 SET #3=#3+1',
+    UpdateExpression: 'SET #1[1]=:1 SET #2=:2 SET #3=#3+:3 SET #3=#3+:4',
     ExpressionAttributeNames: {
       '#1': 'list',
       '#2': 'dynamic',
@@ -125,7 +140,9 @@ test('update', async () => {
     },
     ExpressionAttributeValues: {
       ':1': { S: 'item' },
-      ':2': { S: 'dynamic-value' }
+      ':2': { S: 'dynamic-value' },
+      ':3': { N: '1' },
+      ':4': { N: '1' }
     }
   });
 });

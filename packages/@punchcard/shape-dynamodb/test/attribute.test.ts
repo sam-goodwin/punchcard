@@ -11,6 +11,7 @@ it('should map Shape AST to AttributeValue AST', () => {
     M: {
       id: AttributeValue.StringValue,
       count?: AttributeValue.NumberValue,
+      integer: AttributeValue.NumberValue,
 
       nested: {
         M: {

@@ -148,6 +148,9 @@ export namespace DSL {
     }
   }
 
+  export function isLiteral(a: any): a is Literal<any> {
+    return a[SubNodeType] === 'literal';
+  }
   export class Literal<T extends Shape> extends ExpressionNode<T> {
     public readonly [SubNodeType] = 'literal';
 
@@ -173,9 +176,12 @@ export namespace DSL {
   }
 
   function resolveExpression<T extends Shape>(type: T, expression: Expression<T> | Computation<T>): ExpressionNode<T> {
-    return isComputation(expression) ? new ComputationExpression(type, expression) :
-      isNode(expression) ? expression :
-      new Literal(type, Mapper.of(type).write(expression as any) as any);
+    return isComputation(expression) ?
+      new ComputationExpression(type, expression) :
+      isNode(expression) ?
+        expression :
+        new Literal(type, Mapper.of(type).write(expression as any) as any)
+      ;
   }
 
   export class FunctionCall<T extends Shape> extends ExpressionNode<T> {
@@ -563,7 +569,12 @@ export namespace DSL {
       public [Synthesize](writer: Writer): void {
         this.list[Synthesize](writer);
         writer.writeToken('[');
-        this.index[Synthesize](writer);
+        if (isLiteral(this.index)) {
+          // indexing a list should not write the literal as an attribute value
+          writer.writeToken((this.index as any).value.N);
+        } else {
+          this.index[Synthesize](writer);
+        }
         writer.writeToken(']');
       }
     }

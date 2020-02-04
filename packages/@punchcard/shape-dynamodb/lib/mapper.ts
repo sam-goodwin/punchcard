@@ -157,6 +157,20 @@ export namespace Mapper {
             };
           }
         } as any;
+      } else if (ShapeGuards.isIntegerShape(shape)) {
+        return {
+          read: (value: { N: string }) => {
+            assertHasKey('N', value);
+            assertIsType('string', value.N);
+            return parseInt(value.N, 10);
+          },
+          write: (value: number) => {
+            assertIsType('number', value);
+            return {
+              N: value.toString(10)
+            };
+          }
+        } as any;
       } else if (ShapeGuards.isNumberShape(shape)) {
         return {
           read: (value: { N: string }) => {
@@ -199,12 +213,20 @@ export namespace Mapper {
             }
             return value.B;
           },
-          write: (B: Buffer) => {
-            return {
-              B
-            };
-          }
+          write: (B: Buffer) => ({
+            B
+          })
         } as any;
+      } else if (ShapeGuards.isBoolShape(shape)) {
+        return {
+          read: (value: { BOOL: boolean; }) => {
+            assertHasKey('BOOL', value);
+            return value.BOOL;
+          },
+          write: (b: boolean) => ({
+            BOOL: b
+          })
+        };
       } else {
         throw new Error(`Shape ${shape} is not supported by DynamoDB`);
       }

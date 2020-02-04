@@ -34,35 +34,38 @@ export class Writer {
   }
 
   public writeValue(value: AWS.DynamoDB.AttributeValue): void {
-    if (value.N) {
-      this.tokens.push(value.N);
-    } else {
-      this.writeToken(this.namespace.addValue(value));
-    }
+    this.writeToken(this.namespace.addValue(value));
   }
 }
 export namespace Writer {
   export class Namespace {
-    public readonly aliases: {
+    public aliases: {
       [alias: string]: string;
-    } = {};
-    public readonly aliasReverseLookup: {
+    };
+    public aliasReverseLookup: {
       [name: string]: string;
-    } = {};
-    public readonly values: {
+    };
+    public values: {
       [id: string]: AWS.DynamoDB.AttributeValue;
-    } = {};
+    };
 
     private namesCounter = 0;
     private valuesCounter = 0;
 
     public addValue(value: AWS.DynamoDB.AttributeValue): string {
       const id = this.newValueId();
+      if (!this.values) {
+        this.values = {};
+      }
       this.values[id] = value;
       return id;
     }
 
     public addName(name: string): string {
+      if (!this.aliases) {
+        this.aliases = {};
+        this.aliasReverseLookup = {};
+      }
       let alias = this.aliasReverseLookup[name];
       if (alias === undefined) {
         alias = this.newNameAlias();

@@ -75,3 +75,19 @@ test('list-append', () => {
     },
   });
 });
+
+test('increment', () => {
+  expect(Update.compile([
+    _.count.increment()
+  ])).toEqual({
+    UpdateExpression: 'SET #1=#1+:1',
+    ExpressionAttributeNames: {
+      '#1': 'count'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        N: '1'
+      }
+    }
+  });
+});

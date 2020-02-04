@@ -1,4 +1,4 @@
-import { any, binary, number, optional, Record, string, unknown } from '@punchcard/shape';
+import { any, binary, bool, integer, number, optional, Record, string, timestamp, unknown } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import '../lib';
@@ -18,6 +18,9 @@ export class MyType extends Record({
   id: string,
 
   count: optional(number),
+  integer,
+  bool,
+  ts: timestamp,
 
   nested: Nested,
   array: array(string),

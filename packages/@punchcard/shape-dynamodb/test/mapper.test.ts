@@ -32,7 +32,16 @@ it('should read attribute values', () => {
         }
       },
       count: {
+        N: '1.1'
+      },
+      integer: {
         N: '1'
+      },
+      bool: {
+        BOOL: true
+      },
+      ts: {
+        S: new Date(0).toUTCString()
       },
       id: {
         S: 'id'
@@ -82,7 +91,10 @@ it('should read attribute values', () => {
         a: 'complex value'
       })
     },
-    count: 1,
+    count: 1.1,
+    integer: 1,
+    bool: true,
+    ts: new Date(0),
     id: 'id',
     map: {
       key: 'value'
