@@ -13,21 +13,20 @@ export class HelloPunchcardStack extends cdk.Stack {
     super(scope, id, props);
 
     this.topic = new SNS.Topic(this, 'Topic', {
-      shape: string()
+      shape: string
     });
 
     Lambda.schedule(this, 'SendNotification', {
       rate: Schedule.rate(Duration.minutes(1)),
       depends: topic,
-      handle: async(event, topic) => {
-        await topic.publish('Hello, World!');
-      }
+    }, async(event, topic) => {
+      await topic.publish('Hello, World!');
     });
 
     const queue = topic.toSQSQueue(this, 'Queue');
 
-    queue.messages().forEach(this, 'ForEachMessge', {
-      handle: async(message) => console.log(`message '${message}' has length ${message.length}`);
+    queue.messages().forEach(this, 'ForEachMessge', {}, async(message) => {
+      console.log(`message '${message}' has length ${message.length}`);
     });
   }
 }

@@ -6,22 +6,22 @@ Data structures that implement `Stream` are: `SNS.Topic`, `SQS.Queue`, `Kinesis.
 
 Given an `SNS.Topic`:
 ```ts
+class NotificationRecord extends Record({
+  key: string,
+  count: integer,
+  timestamp
+}) {}
+
 const topic = new SNS.Topic(stack, 'Topic', {
-  type: struct({
-    key: string(),
-    count: integer(),
-    timestamp
-  })
+  shape: NotificationRecord
 });
 ```
 
 You can attach a new Lambda Function to process each notification with `forEach`:
 ```ts
-topic.notifications().forEach(stack, 'ForEachNotification', {
-  handle: async (notification) => {
-    console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
-  }
-})
+topic.notifications().forEach(stack, 'ForEachNotification', {}, async (notification) => {
+  console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
+});
 ```
 
 Or, create a new SQS Queue and subscribe notifications to it:
@@ -42,26 +42,24 @@ These functions are called `Collectors` and they follow the naming convention `t
 We can then, perhaps, `map` over each message in the `Queue` and collect the results into a new AWS Kinesis `Stream`:
 
 ```ts
+class StreamData extends Record({
+  key: string,
+  count: integer,
+  tags: array(string),
+  timestamp
+}) {}
+
 const stream = queue.messages()
-  .map({
-    handle: async(message, e) => {
-      return {
-        ...message,
-        tags: ['some', 'tags'],
-      };
-    }
+  .map(async(message, e) => ({
+    ...message,
+    tags: ['some', 'tags'],
   })
   .toKinesisStream(stack, 'Stream', {
+    // type of the data in the stream
+    shape: StreamData,
+
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
-
-    // type of the data in the stream
-    type: struct({
-      key: string(),
-      count: integer(),
-      tags: array(string()),
-      timestamp
-    })
   });
 ```
 
@@ -85,21 +83,18 @@ s3DeliveryStream.objects().toGlueTable(stack, 'ToGlue', {
   columns: stream.type.shape,
   partition: {
     // Glue Table partition keys: minutely using the timestamp field
-    keys: {
-      year: integer(),
-      month: integer(),
-      day: integer(),
-      hour: integer(),
-      minute: integer()
-    },
-    get: record => ({
+    keys: Glue.Partition.Minutely,
+    get: record => new Glue.Partition.Monthly({
       // define the mapping of a record to its Glue Table partition keys
       year: record.timestamp.getUTCFullYear(),
       month: record.timestamp.getUTCMonth(),
       day: record.timestamp.getUTCDate(),
       hour: record.timestamp.getUTCHours(),
       minute: record.timestamp.getUTCMinutes(),
-    })
+    }),
+
+    // or use the utility methods in this case
+    // get: record => Glue.Partition.byMonth(record.timestamp)
   }
 });
 ```

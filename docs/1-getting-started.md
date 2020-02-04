@@ -21,6 +21,8 @@ const app = new Core.App();
 
 // Constructs are created laziliy by mapping "into the" Build context
 const stack = app.root.map(app => new cdk.Stack(app, 'MyStack'));
+// you can also use the helper:
+const stack = app.stack('MyStack');
 
 Lambda.schedule(stack, 'MyFunction', {
   schedule: Schedule.rate(cdk.Duration.minutes(1)),
