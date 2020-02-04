@@ -97,7 +97,7 @@ export class MapperVisitor implements ShapeVisitor<Mapper<any, any>> {
           visitor: this
         })
       }))
-      .reduce((a, b) => ({...a, ...b}));
+      .reduce((a, b) => ({...a, ...b}), {});
 
     return {
       read: (value: any) => {

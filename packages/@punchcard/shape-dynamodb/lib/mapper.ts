@@ -48,7 +48,7 @@ export namespace Mapper {
       if (ShapeGuards.isRecordShape(shape)) {
         const mappers: {[key: string]: Mapper<any>; } = Object.values(shape.Members)
           .map(m => ({ [m.Name]: Mapper.of(m.Shape, options) }))
-          .reduce((a, b) => ({...a, ...b}));
+          .reduce((a, b) => ({...a, ...b}), {});
 
         function traverse(f: (mapper: Mapper<any>, value: any) => any): (value: any) => any {
           return value => {

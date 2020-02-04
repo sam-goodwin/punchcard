@@ -90,3 +90,9 @@ test('should read shape from json', () => {
 test('should write shape to json', () => {
   expect(mapper.write(runtimeRepr)).toEqual(jsonRepr);
 });
+
+class Empty extends Record({}) {}
+
+test('should support empty record', () => {
+  expect(() => json.mapper(Empty)).not.toThrow();
+});

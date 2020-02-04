@@ -4,6 +4,7 @@ import cdk = require('@aws-cdk/core');
 import fs = require('fs');
 import path = require('path');
 import { Build } from 'punchcard/lib/core/build';
+import { Global } from 'punchcard/lib/core';
 
 const apps = fs.readdirSync(path.join(__dirname, '../lib/'))
   .filter(f => f.endsWith('.ts'))
@@ -11,6 +12,7 @@ const apps = fs.readdirSync(path.join(__dirname, '../lib/'))
 
 for (const app of apps) {
   describe(app, () => {
+    Global.clear();
     const a = require(`../lib/${app}`).app.root as Build<cdk.App>;
     Build.walk(a);
     for (const stack of Build.resolve(a).node.children) {

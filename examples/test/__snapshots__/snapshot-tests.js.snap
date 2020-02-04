@@ -1185,7 +1185,7 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "invoke-function/Caller",
-            "entrypoint_id": "5",
+            "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_tableName": Object {
               "Ref": "sortedtable7B46B3EA",
@@ -1371,6 +1371,108 @@ Object {
 exports[`hello-world stack hello-world should match snapshot 1`] = `
 Object {
   "Resources": Object {
+    "ForEachMessage77313248": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "bootstrap_construct_path": "hello-world/ForEachMessage",
+            "entrypoint_id": "2",
+            "is_runtime": "true",
+          },
+        },
+        "Handler": "index.handler",
+        "MemorySize": 128,
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "ForEachMessageServiceRoleEF81D5ED",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+        "Timeout": 10,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "ForEachMessageServiceRoleDefaultPolicy55776E2C": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "sqs:ReceiveMessage",
+                "sqs:ChangeMessageVisibility",
+                "sqs:GetQueueUrl",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes",
+              ],
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "queue276F7297",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ForEachMessageServiceRoleDefaultPolicy55776E2C",
+        "Roles": Array [
+          Object {
+            "Ref": "ForEachMessageServiceRoleEF81D5ED",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "ForEachMessageServiceRoleEF81D5ED": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ForEachMessageSqsEventSourcehelloworldqueueD87B605BDC9D499A": Object {
+      "Properties": Object {
+        "EventSourceArn": Object {
+          "Fn::GetAtt": Array [
+            "queue276F7297",
+            "Arn",
+          ],
+        },
+        "FunctionName": Object {
+          "Ref": "ForEachMessage77313248",
+        },
+      },
+      "Type": "AWS::Lambda::EventSourceMapping",
+    },
     "MyFunction3BAA72D1": Object {
       "Properties": Object {
         "Code": Object {
@@ -1379,8 +1481,14 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "hello-world/MyFunction",
-            "entrypoint_id": "6",
+            "entrypoint_id": "1",
             "is_runtime": "true",
+            "punchcard_queueUrl": Object {
+              "Ref": "queue276F7297",
+            },
+            "punchcard_tableName": Object {
+              "Ref": "TableCD117FA1",
+            },
           },
         },
         "Handler": "index.handler",
@@ -1462,6 +1570,88 @@ Object {
       },
       "Type": "AWS::IAM::Role",
     },
+    "MyFunctionServiceRoleDefaultPolicyB705ABD4": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "TableCD117FA1",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+            Object {
+              "Action": Array [
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:GetQueueUrl",
+              ],
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "queue276F7297",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyFunctionServiceRoleDefaultPolicyB705ABD4",
+        "Roles": Array [
+          Object {
+            "Ref": "MyFunctionServiceRole3C357FF2",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "TableCD117FA1": Object {
+      "DeletionPolicy": "Retain",
+      "Properties": Object {
+        "AttributeDefinitions": Array [
+          Object {
+            "AttributeName": "key",
+            "AttributeType": "S",
+          },
+        ],
+        "KeySchema": Array [
+          Object {
+            "AttributeName": "key",
+            "KeyType": "HASH",
+          },
+        ],
+        "ProvisionedThroughput": Object {
+          "ReadCapacityUnits": 5,
+          "WriteCapacityUnits": 5,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "queue276F7297": Object {
+      "Type": "AWS::SQS::Queue",
+    },
   },
 }
 `;
@@ -1477,7 +1667,7 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "invoke-function-example/Callable",
-            "entrypoint_id": "7",
+            "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_tableName": Object {
               "Ref": "mytable0324D45C",
@@ -1595,7 +1785,7 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "invoke-function-example/Caller",
-            "entrypoint_id": "8",
+            "entrypoint_id": "2",
             "is_runtime": "true",
             "punchcard_functionArn": Object {
               "Fn::GetAtt": Array [
@@ -1754,7 +1944,7 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "pet-store/MyEndpoint",
-            "entrypoint_id": "9",
+            "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_tableName": Object {
               "Ref": "petstore3A6A0F62",
@@ -2129,7 +2319,6 @@ Object {
           "Ref": "PetApi503401F5",
         },
         "Schema": Object {
-          "additionalProperties": false,
           "properties": Object {},
           "type": "object",
         },
@@ -2144,7 +2333,6 @@ Object {
         },
         "Schema": Object {
           "items": Object {
-            "additionalProperties": false,
             "properties": Object {
               "id": Object {
                 "type": "string",
@@ -2164,6 +2352,7 @@ Object {
             "type": "object",
           },
           "type": "array",
+          "uniqueItems": false,
         },
       },
       "Type": "AWS::ApiGateway::Model",
@@ -2175,7 +2364,6 @@ Object {
           "Ref": "PetApi503401F5",
         },
         "Schema": Object {
-          "additionalProperties": false,
           "properties": Object {
             "errorMessage": Object {
               "type": "string",
@@ -2226,7 +2414,7 @@ $inputRoot
             "application/json": "#set($inputRoot = $input.path('$'))
 {
   \\"type\\":\\"$inputRoot.type\\",
-  \\"price\\":$inputRoot.price,
+  \\"price\\":\\"$inputRoot.price\\",
   \\"__resourceId\\": \\"$context.resourceId\\",
   \\"__httpMethod\\": \\"$context.httpMethod\\"
 }
@@ -2382,9 +2570,10 @@ $inputRoot
           "Ref": "PetApi503401F5",
         },
         "Schema": Object {
-          "additionalProperties": false,
           "properties": Object {
             "price": Object {
+              "exclusiveMinimum": false,
+              "minimum": 0,
               "type": "number",
             },
             "type": Object {
@@ -2407,7 +2596,6 @@ $inputRoot
           "Ref": "PetApi503401F5",
         },
         "Schema": Object {
-          "additionalProperties": false,
           "properties": Object {
             "id": Object {
               "type": "string",
@@ -2440,7 +2628,6 @@ $inputRoot
           "Ref": "PetApi503401F5",
         },
         "Schema": Object {
-          "additionalProperties": false,
           "properties": Object {
             "errorMessage": Object {
               "type": "string",
@@ -2658,7 +2845,6 @@ $inputRoot
           "Ref": "PetApi503401F5",
         },
         "Schema": Object {
-          "additionalProperties": false,
           "properties": Object {
             "id": Object {
               "type": "string",
@@ -2679,7 +2865,6 @@ $inputRoot
           "Ref": "PetApi503401F5",
         },
         "Schema": Object {
-          "additionalProperties": false,
           "properties": Object {
             "id": Object {
               "type": "string",
@@ -2720,7 +2905,6 @@ $inputRoot
           "Ref": "PetApi503401F5",
         },
         "Schema": Object {
-          "additionalProperties": false,
           "properties": Object {
             "errorMessage": Object {
               "type": "string",
@@ -2772,7 +2956,7 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "scheduled-function-example/Poller",
-            "entrypoint_id": "10",
+            "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_tableName": Object {
               "Ref": "mytable0324D45C",
@@ -3094,7 +3278,7 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/DummyData",
-            "entrypoint_id": "11",
+            "entrypoint_id": "1",
             "is_runtime": "true",
             "punchcard_tableName": Object {
               "Ref": "Enrichments5620103C",
@@ -3270,7 +3454,7 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/ForEachNotification",
-            "entrypoint_id": "12",
+            "entrypoint_id": "2",
             "is_runtime": "true",
           },
         },
@@ -3491,7 +3675,7 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/Stream/ToStream",
-            "entrypoint_id": "13",
+            "entrypoint_id": "3",
             "is_runtime": "true",
             "punchcard_streamName": Object {
               "Ref": "Stream790BDEE4",
@@ -3756,7 +3940,7 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/ToGlue/ToTable",
-            "entrypoint_id": "15",
+            "entrypoint_id": "5",
             "is_runtime": "true",
             "punchcard_bucketName": Object {
               "Ref": "ToS3DeliveryStreamBucket410C5594",
@@ -4212,7 +4396,7 @@ Object {
         "Environment": Object {
           "Variables": Object {
             "bootstrap_construct_path": "stream-processing/ToS3/Validator/Processor",
-            "entrypoint_id": "14",
+            "entrypoint_id": "4",
             "is_runtime": "true",
           },
         },

@@ -116,3 +116,9 @@ it('should validate', () => {
     }
   })).toThrowError('expected string with length <= 1, but received: 01');
 });
+
+it('should support empty record', () => {
+  class Empty extends Record({}) {}
+
+  expect(() => Mapper.of(Empty)).not.toThrow();
+});

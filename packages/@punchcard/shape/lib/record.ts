@@ -140,7 +140,7 @@ export type MakeRecordType<T extends RecordMembers = any> = {
 export function Record<T extends RecordMembers>(members: T): MakeRecordType<T> {
   const memberShapes: any = Object.entries(members).map(([name, member]) => ({
     [name]: Shape.of(member)
-  })).reduce((a, b) => ({...a, ...b}));
+  })).reduce((a, b) => ({...a, ...b}), {});
 
   class NewType {
     /**

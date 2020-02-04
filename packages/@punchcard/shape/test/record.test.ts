@@ -79,3 +79,9 @@ it('should parse members', () => {
     'complexMap', new MapShape(nestedShape), {}
   ));
 });
+
+class Empty extends Record({}) {}
+
+it('should support no members', () => {
+  expect(Shape.of(Empty).Members).toEqual({});
+});
