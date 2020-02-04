@@ -11,7 +11,7 @@ type _Config = Stream.Config & events.SqsEventSourceProps;
 /**
  * A `Stream` of Messages from a SQS Queue.
  */
-export class Messages<T, D extends any[]> extends Stream<Event, T, D, Config>  {
+export class Messages<T, D extends any[]> extends Stream<typeof Event.Payload, T, D, Config>  {
   constructor(public readonly queue: Queue<any>, previous: Messages<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;

@@ -18,7 +18,9 @@
     "noFallthroughCasesInSwitch": true,
     "inlineSourceMap": true,
     "declaration": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "exclude": [
     "node_modules"

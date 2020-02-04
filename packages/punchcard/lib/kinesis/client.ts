@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { RuntimeShape, Shape } from '../shape';
+import { ShapeOrRecord, Value } from '@punchcard/shape';
 import { sink, Sink, SinkProps } from '../util/sink';
 import { Stream } from './stream';
 
@@ -10,19 +10,20 @@ import { Stream } from './stream';
  * @typeparam T type of data in the stream.
  * @see https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
  */
-export class Client<T extends Shape<any>> implements Sink<RuntimeShape<T>> {
+export class Client<T extends ShapeOrRecord> implements Sink<Value.Of<T>> {
   constructor(
     public readonly stream: Stream<T>,
     public readonly streamName: string,
     public readonly client: AWS.Kinesis
-  ) {}
+  ) {
+  }
 
   /**
    * Gets and deserrializes data records from a Kinesis data stream's shard.
    *
    * @param request get records input request payload.
    */
-  public async getRecords(request: GetRecordsInput): Promise<GetRecordsOutput<RuntimeShape<T>>> {
+  public async getRecords(request: GetRecordsInput): Promise<GetRecordsOutput<Value.Of<T>>> {
     const response = await this.client.getRecords(request).promise();
 
     return {
@@ -30,7 +31,7 @@ export class Client<T extends Shape<any>> implements Sink<RuntimeShape<T>> {
       Records: response.Records.map(r => ({
         ...r,
         Data: this.stream.mapper.read(r.Data as Buffer)
-      }))
+      })) as any
     };
   }
 
@@ -39,12 +40,12 @@ export class Client<T extends Shape<any>> implements Sink<RuntimeShape<T>> {
    *
    * @param input Data and optional ExplicitHashKey and SequenceNumberForOrdering
    */
-  public putRecord(input: PutRecordInput<RuntimeShape<T>>): Promise<PutRecordOutput> {
+  public putRecord(record: Value.Of<T>, input: PutRecordInput = {}): Promise<PutRecordOutput> {
     return this.client.putRecord({
       ...input,
       StreamName: this.streamName,
-      Data: this.stream.mapper.write(input.Data),
-      PartitionKey: this.stream.partitionBy(input.Data),
+      Data: this.stream.mapper.write(record),
+      PartitionKey: this.stream.partitionBy(record),
     }).promise();
   }
 
@@ -61,7 +62,7 @@ export class Client<T extends Shape<any>> implements Sink<RuntimeShape<T>> {
    * @returns output containing sequence numbers of successful records and error codes of failed records.
    * @see https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
    */
-  public putRecords(request: PutRecordsInput<RuntimeShape<T>>): Promise<PutRecordsOutput> {
+  public putRecords(request: PutRecordsInput<Value.Of<T>>): Promise<PutRecordsOutput> {
     return this.client.putRecords({
       StreamName: this.streamName,
       Records: request.map(record => ({
@@ -82,13 +83,13 @@ export class Client<T extends Shape<any>> implements Sink<RuntimeShape<T>> {
    * @param records array of records to 'sink' to the stream.
    * @param props configure retry and ordering behavior
    */
-  public async sink(records: Array<RuntimeShape<T>>, props?: SinkProps): Promise<void> {
+  public async sink(records: Array<Value.Of<T>>, props?: SinkProps): Promise<void> {
     await sink(records, async values => {
       const result = await this.putRecords(values.map(value => ({
         Data: value
       })));
 
-      const redrive: Array<RuntimeShape<T>> = [];
+      const redrive: Array<Value.Of<T>> = [];
       if (result.FailedRecordCount) {
         result.Records.forEach((r, i) => {
           if (!r.SequenceNumber) {
@@ -115,8 +116,7 @@ type _Record<T> = Omit<AWS.Kinesis.Record, 'Data'> & {
   Data: T;
 };
 
-export interface PutRecordInput<T> extends _PutRecordInput<T> {}
-type _PutRecordInput<T> = {Data: T} & Pick<AWS.Kinesis.PutRecordInput, 'ExplicitHashKey' | 'SequenceNumberForOrdering'>;
+export interface PutRecordInput extends Pick<AWS.Kinesis.PutRecordInput, 'ExplicitHashKey' | 'SequenceNumberForOrdering'> {}
 
 export interface PutRecordOutput extends AWS.Kinesis.PutRecordOutput {}
 

@@ -4,8 +4,10 @@ To contact other services in your Function, data structures such as `SNS.Topic`,
 
 First, create the Construct you want to access from Lambda, like an `SQS.Queue`:
 ```ts
+import { string } from '@punchcard/shape';
+
 const queue = new SQS.Queue(stack, 'MyQueue', {
-  shape: string()
+  shape: string // data type will be orindary strings
 });
 ```
 
@@ -25,9 +27,8 @@ The result is that your `handle` function is now passed a `queue` client instanc
 ```ts
 new Lambda.Function(stack, 'MyFunction', {
   depends: queue,
-  handle: async (event, queue) => {
-    await queue.sendMessage('Hello, World!');
-  }
+}, async (event, queue) => {
+  await queue.sendMessage('Hello, World!');
 });
 ```
 
@@ -63,10 +64,9 @@ new Lambda.Function(stack, 'MyFunction', {
     queue: queue.sendAccess(),
     topic
   }),
-  handle: async (event, ({queue, topic})) => {
-    await queue.sendMessage('Hello, SQS!');
-    await topic.publish('Hello, SNS!');
-  }
+}, async (event, ({queue, topic})) => {
+  await queue.sendMessage('Hello, SQS!');
+  await topic.publish('Hello, SNS!');
 });
 ```
 
@@ -120,7 +120,7 @@ const namedDependency: Dependency.Named<{
 You may have noticed something strange about the definition of our `SQS.Queue`:
 ```ts
 const queue: SQS.Queue<StringShape> = new SQS.Queue(this, 'Q', {
-  shape: string()
+  shape: string
 });
 ```
 

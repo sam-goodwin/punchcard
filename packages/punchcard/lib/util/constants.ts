@@ -1,7 +1,8 @@
-export const RUNTIME_ENV = 'bootstrap_construct_path';
-
-export const WEBPACK_MODE = 'punchcard:webpack:mode';
+export const ENTRYPOINT_ENV_KEY = 'entrypoint_id';
 export const ENTRYPOINT_SYMBOL_NAME = 'punchcard:entrypoint';
+export const GLOBAL_SYMBOL_NAME = 'punchcard.global';
+export const IS_RUNTIME_ENV_KEY = 'is_runtime';
+export const WEBPACK_MODE = 'punchcard_webpack_mode';
 
 export function isRuntime(): boolean {
   return tryGetRuntime() !== undefined;
@@ -9,13 +10,13 @@ export function isRuntime(): boolean {
 export function getRuntime(): string {
   const r = tryGetRuntime();
   if (!r) {
-    throw new Error(`environment does not contain '${RUNTIME_ENV}' environment varibable`);
+    throw new Error(`environment does not contain '${IS_RUNTIME_ENV_KEY}' environment varibable`);
   }
   return r;
 }
 export function tryGetRuntime(): string | undefined {
-  return process.env[RUNTIME_ENV];
+  return process.env[IS_RUNTIME_ENV_KEY];
 }
-export function setRuntime(value?: string): void {
-  process.env[RUNTIME_ENV] = value || 'runtime';
+export function setRuntime(): void {
+  process.env[IS_RUNTIME_ENV_KEY] = 'runtime';
 }

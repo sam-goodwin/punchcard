@@ -2,12 +2,10 @@
  * Core packages.
  */
 import * as Core from './core';
-import * as Shape from './shape';
 import * as Util from './util';
 
 export {
   Core,
-  Shape,
   Util
 };
 

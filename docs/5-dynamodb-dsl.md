@@ -4,26 +4,25 @@ Punchcard uses TypeScript's [Advanced Types](https://www.typescriptlang.org/docs
 
 To demonstrate, let's create a `DynamoDB.Table` "with some Shape":
 ```ts
+class TableRecord extends Record({
+  id: string,
+  count: integer
+}) {}
+
 const table = new DynamoDB.Table(stack, 'my-table', {
+  key: 'id',
+  attributes: TableRecord
   partitionKey: 'id',
-  shape: {
-    id: string(),
-    count: integer()
-  },
-  tableProps: Build.lazy(() => ({
-    billingMode: BillingMode.PAY_PER_REQUEST
-  })
-});
+}, Build.lazy(() => ({
+  billingMode: BillingMode.PAY_PER_REQUEST
+})));
 ```
 # Table Type
 
 The Table API is derived from the definition encoded within the `DynamoDB.Table` type, containing the partition key (`'id'`), sort key (`undefined`) and the `Shape` of an item.
 
 ```ts
-DynamoDB.Table<'id', undefined, {
-  id: StringType,
-  count: IntegerType
-}>
+DynamoDB.Table<TableRecord, 'id'>
 ```
 This model enables a dynamic interface to DynamoDB while also maintaining type-safety.
 
@@ -31,9 +30,7 @@ This model enables a dynamic interface to DynamoDB while also maintaining type-s
 When getting an item from DynamoDB, there is no need to use `AttributeValues` such as `{ S: 'my string' }`. You simply use ordinary javascript types:
 
 ```ts
-const item = await table.get({
-  id: 'state'
-});
+const item = await table.get('state');
 item.id; // string
 item.count; // number
 //item.missing // does not compile
@@ -44,24 +41,20 @@ item.count; // number
 Putting an item is as simple as putting to an ordinary `Map`.
 
 ```ts
-await table.put({
-  item: {
-    id: 'state',
-    count: 1,
-    //invalid: 'value', // does not compile
-  },
-})
+await table.put(new TableRecord({
+  id: 'state',
+  count: 1,
+  //invalid: 'value', // does not compile
+}));
 ```
 
 A **Condition Expression** can optionally be included with `if`:
 ```ts
-await table.put({
-  item: {
-    id: 'state',
-    count: 1
-  },
-  // equivalent to: if (item.count === 0)
-  if: item => item.count.equals(0)
+await table.put(new TableRecord({
+  id: 'state',
+  count: 1
+}), {
+  if: _ => _.count.equals(0)
 });
 ```
 
@@ -84,12 +77,9 @@ Which automatically (and safely) renders the following expression:
 
 Build **Update Expressions** by assembling an array of `actions`:
 ```ts
-await table.update({
-  key: {
-    id: 'state'
-  },
-  actions: item => [
-    item.count.increment(1)
+await table.update('state', {
+  actions: _ => [
+    _.count.increment(1)
   ]
 });
 ```
@@ -114,26 +104,20 @@ Which automaticlaly (and safely) renders the following expression:
 If you also specified a `sortKey` for your Table:
 ```ts
 const table = new DynamoDB.Table(stack, 'my-table', {
-  partitionKey: 'id',
-  sortKey: 'count', // specify a sortKey
-  // ...
+  key: ['id', 'count'] // specify a sortKey with a tuple
+  attributes: TableRecord
 });
 ```
 
 *(Where the Table type looks like this)*
 ```ts
-DynamoDB.Table<'id', 'count' /* sort key is now defined */, { .. }>
+DynamoDB.Table<TableRecord, ['id', 'count']>
 ```
 
 Then, you can also build typesafe **Query Expressions**:
 
 ```ts
-await table.query({
-  key: {
-    id: 'id',
-    count: DynamoDB.greaterThan(1)
-  },
-})
+await table.query(['id', _ => _.greaterThan(1)]);
 ```
 
 Which automatically (and safely) renders the following low-level expression:

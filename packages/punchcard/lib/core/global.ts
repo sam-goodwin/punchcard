@@ -1,4 +1,5 @@
-import { Entrypoint } from "./entrypoint";
+import { GLOBAL_SYMBOL_NAME } from '../util';
+import { Entrypoint } from './entrypoint';
 
 interface State {
   idCounter: number;
@@ -7,7 +8,7 @@ interface State {
   }
 }
 
-const symbol = Symbol.for('punchcard.global');
+const symbol = Symbol.for(GLOBAL_SYMBOL_NAME);
 const state: State = (() => {
   let s: State = (global as any)[symbol];
   if (!s) {
@@ -21,6 +22,10 @@ const state: State = (() => {
 })();
 
 export namespace Global {
+  export function clear(): void {
+    state.idCounter = 0;
+    state.entrypoints = {};
+  }
   export function addEntrypoint(e: Entrypoint): string {
     state.idCounter += 1;
     const id = state.idCounter.toString();

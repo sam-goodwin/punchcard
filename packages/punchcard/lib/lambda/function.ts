@@ -3,6 +3,9 @@ import AWS = require('aws-sdk');
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/core');
 
+import { Json } from '@punchcard/shape-json';
+
+import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -13,28 +16,34 @@ import { Entrypoint, entrypoint } from '../core/entrypoint';
 import { Global } from '../core/global';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
-import { Json, Mapper, Raw, Shape } from '../shape';
-import { RUNTIME_ENV } from '../util/constants';
+import { ENTRYPOINT_ENV_KEY, IS_RUNTIME_ENV_KEY } from '../util/constants';
 
 /**
  * Overridable subset of @aws-cdk/aws-lambda.FunctionProps
  */
 export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'handler'> {}
 
-export interface FunctionProps<T, U, D extends Dependency<any> | undefined = undefined> {
+export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> {
   /**
    * Type of the request
    *
    * @default any
    */
-  request?: Shape<T>;
+  request?: T;
 
   /**
    * Type of the response
    *
    * @default any
    */
-  response?: Shape<U>;
+  response?: U;
+
+  /**
+   * Factory for a `Mapper` to serialize shapes to/from a `string`.
+   *
+   * @default Json
+   */
+  mapper?: MapperFactory<Json.Of<T>>;
 
   /**
    * Dependency resources which this Function needs clients for.
@@ -56,7 +65,7 @@ export interface FunctionProps<T, U, D extends Dependency<any> | undefined = und
  * @typeparam U return type
  * @typeparam D runtime dependencies
  */
-export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Resource<lambda.Function> {
+export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> implements Entrypoint, Resource<lambda.Function> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
@@ -76,25 +85,33 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
    * @param event the parsed request
    * @param clients initialized clients to dependency resources
    */
-  public readonly handle: (event: T, clients: Client<D>, context: any) => Promise<U>;
+  public readonly handle: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<Value.Of<U>>;
 
-  private readonly request?: Shape<T>;
-  private readonly response?: Shape<U>;
   private readonly dependencies?: D;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: T, run: Client<D>, context: any) => Promise<U>) {
+  private readonly requestMapper: Mapper<Value.Of<T>, Json.Of<T>>;
+  private readonly responseMapper: Mapper<Value.Of<U>, Json.Of<T>>;
+
+  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<Value.Of<U>>) {
     this.handle = handle;
     const entrypointId = Global.addEntrypoint(this);
+
+    // default to JSON serialization
+    const mapperFactory = (props.mapper || Json.mapper) as MapperFactory<Json.Of<T>>;
+    this.requestMapper = mapperFactory(props.request || any);
+    this.responseMapper = mapperFactory(props.response || any);
+    this.dependencies = props.depends;
 
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
       const lambdaFunction = new lambda.Function(scope, id, {
         code: Code.tryGetCode(scope) || Code.mock,
         runtime: lambda.Runtime.NODEJS_10_X,
         handler: 'index.handler',
+        memorySize: 256,
         ...functionProps,
       });
-      lambdaFunction.addEnvironment('is_runtime', 'true');
-      lambdaFunction.addEnvironment('entrypoint_id', entrypointId);
+      lambdaFunction.addEnvironment(IS_RUNTIME_ENV_KEY, 'true');
+      lambdaFunction.addEnvironment(ENTRYPOINT_ENV_KEY, entrypointId);
 
       const assembly = new Assembly();
       if (this.dependencies) {
@@ -103,7 +120,6 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
       for (const [name, p] of Object.entries(assembly.properties)) {
         lambdaFunction.addEnvironment(name, p);
       }
-      lambdaFunction.addEnvironment(RUNTIME_ENV, lambdaFunction.node.path);
 
       return lambdaFunction;
     }));
@@ -120,47 +136,42 @@ export class Function<T, U, D extends Dependency<any>> implements Entrypoint, Re
       if (this.dependencies) {
         const cache = new Cache();
         const runtimeProperties = new Assembly(bag);
-        client = await (Run.resolve(this.dependencies.bootstrap))(runtimeProperties, cache);
+        client = await (Run.resolve(this.dependencies!.bootstrap))(runtimeProperties, cache);
       }
-      const requestMapper: Mapper<T, any> = this.request === undefined ? Raw.passthrough() : Raw.forShape(this.request);
-      const responseMapper: Mapper<U, any> = this.response === undefined ? Raw.passthrough() : Raw.forShape(this.response);
       return (async (event: any, context: any) => {
-        const parsed = requestMapper.read(event);
+        const parsed = this.requestMapper.read(event);
         try {
-          const result = await this.handle(parsed, client, context);
-          return responseMapper.write(result);
+          const result = await this.handle(parsed as any, client, context);
+          return this.responseMapper.write(result as any);
         } catch (err) {
           console.error(err);
           throw err;
         }
       });
     });
-
-    this.request = props.request;
-    this.response = props.response;
-    this.dependencies = props.depends;
   }
 
   /**
    * Depend on invoking this Function.
    */
-  public invokeAccess(): Dependency<Function.Client<T, U>> {
+  public invokeAccess(): Dependency<Function.Client<Value.Of<T>, Value.Of<U>>> {
     return {
       install: this.resource.map(fn => (ns, g) => {
         fn.grantInvoke(g);
         ns.set('functionArn', fn.functionArn);
       }),
       bootstrap: Run.of(async (ns, cache) => {
-        const requestMapper: Mapper<T, string> = this.request === undefined ? Json.forAny() : Json.forShape(this.request);
-        const responseMapper: Mapper<U, string> = this.response === undefined ? Json.forAny() : Json.forShape(this.response);
         return new Function.Client(
           cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
           ns.get('functionArn'),
-          requestMapper,
-          responseMapper
-        );
+          Json.asString(this.requestMapper),
+          Json.asString(this.requestMapper)
+        ) as any;
       })
     };
+  }
+  request(request: any): Mapper<unknown, string> {
+    throw new Error("Method not implemented.");
   }
 }
 

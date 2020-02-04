@@ -1,9 +1,9 @@
 import iam = require('@aws-cdk/aws-iam');
 
-import { Assembly, Namespace } from '../core/assembly';
+import { Namespace } from '../core/assembly';
 import { Cache } from '../core/cache';
-import { Cons, Head, HList, Tail } from '../util/hlist';
-import { Client, Clients } from './client';
+import { HList } from '../util/hlist';
+import { Clients } from './client';
 
 import { Build } from './build';
 import { Run } from './run';

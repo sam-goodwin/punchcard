@@ -1,4 +1,3 @@
-export * from './codec';
 export * from './collector';
 export * from './compression';
 export * from './constants';

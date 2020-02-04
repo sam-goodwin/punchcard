@@ -5,7 +5,7 @@ import _fs = require('fs');
 const fs = _fs.promises;
 import path = require('path');
 
-import { WEBPACK_MODE } from '../util/constants';
+import { ENTRYPOINT_ENV_KEY, ENTRYPOINT_SYMBOL_NAME, GLOBAL_SYMBOL_NAME, WEBPACK_MODE } from '../util/constants';
 
 class MockCode extends lambda.Code {
   public readonly isInline: boolean = true;
@@ -139,11 +139,11 @@ export namespace Code {
 // TODO: substitute values?
 const indexFile = `
 require('./app');
-const entrypointId = process.env.entrypoint_id;
+const entrypointId = process.env.${ENTRYPOINT_ENV_KEY};
 if (!entrypointId) {
-  throw new Error('entrypoint_id environment variable is missing');
+  throw new Error('${ENTRYPOINT_ENV_KEY} environment variable is missing');
 }
-const state = global[Symbol.for('punchcard.global')];
+const state = global[Symbol.for('${GLOBAL_SYMBOL_NAME}')];
 if (!state) {
   throw new Error('global state missing');
 }

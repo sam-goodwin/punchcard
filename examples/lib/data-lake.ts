@@ -5,20 +5,23 @@ import { Core, Lambda } from 'punchcard';
 
 import * as Analytics from '@punchcard/data-lake';
 
-import { integer, string, timestamp, char, array, } from 'punchcard/lib/shape';
+import { Record, string, array, integer, timestamp } from '@punchcard/shape';
+import { char } from '@punchcard/shape-hive';
 
 export const app = new Core.App();
-const stack = app.root.map(app => new core.Stack(app, 'data-lake'));
+const stack = app.stack('data-lake');
+
+class DataPoint extends Record({
+  key: string,
+  value: char(10),
+  data_points: array(integer),
+  timestamp
+}) {}
 
 // create a schema to describe our data
 const dataPoints = new Analytics.Schema({
   schemaName: 'data_points',
-  shape: {
-    key: string(),
-    value: char(10),
-    data_points: array(integer()),
-    timestamp
-  },
+  shape: DataPoint,
   timestampField: 'timestamp'
 });
 
@@ -53,12 +56,10 @@ Lambda.schedule(stack, 'DummyDataPoints', {
   depends: lake.pipelines.dataPoints.stream.writeAccess(),
   schedule: Schedule.rate(Duration.minutes(1)),
 }, async (_, stream) => {
-  await stream.putRecord({
-    Data: {
-      key: 'key',
-      data_points: [0, 1, 2],
-      timestamp: new Date(),
-      value: 'some-value'
-    }
-  });
+  await stream.putRecord(new DataPoint({
+    key: 'key',
+    data_points: [0, 1, 2],
+    timestamp: new Date(),
+    value: 'some-value'
+  }));
 });

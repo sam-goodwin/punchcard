@@ -10,7 +10,7 @@ import { Dependency } from '../core/dependency';
 import { Function, FunctionProps } from './function';
 
 export interface ScheduleProps<D extends Dependency<any>> extends _ScheduleProps<D> {}
-type _ScheduleProps<D extends Dependency<any>> = FunctionProps<CloudWatch.Event, any, D> & {
+type _ScheduleProps<D extends Dependency<any>> = FunctionProps<typeof CloudWatch.Event.Payload, any, D> & {
   schedule: events.Schedule;
 };
 
@@ -21,8 +21,8 @@ type _ScheduleProps<D extends Dependency<any>> = FunctionProps<CloudWatch.Event,
  * @param id id of the Function construct.
  * @param props function and schedule props.
  */
-export function schedule<D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: ScheduleProps<D>, handler: (event: CloudWatch.Event, clients: Client<D>, context: any) => Promise<any>) {
-  const f = new Function<CloudWatch.Event, any, D>(scope, id, props, handler);
+export function schedule<D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: ScheduleProps<D>, handler: (event: CloudWatch.Event.Payload, clients: Client<D>, context: any) => Promise<any>) {
+  const f = new Function<typeof CloudWatch.Event.Payload, any, D>(scope, id, props, handler);
 
   f.resource.map(f => new events.Rule(f, 'Schedule', {
     schedule: props.schedule,
