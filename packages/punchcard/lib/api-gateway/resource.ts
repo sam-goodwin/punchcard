@@ -11,7 +11,7 @@ import { Method, MethodName, Response, Responses } from './method';
 import { StatusCode } from './request-response';
 import { $context, isMapping, Mapping, TypedMapping } from './variable';
 
-import json = require('@punchcard/shape-json');
+import { Json } from '@punchcard/shape-json';
 import { JsonSchema } from '@punchcard/shape-jsonschema';
 
 type ResponseMappers = {
@@ -191,11 +191,11 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
     const responseMappers: ResponseMappers = {} as ResponseMappers;
     Object.keys(method.responses).forEach(statusCode => {
       // TODO: can we return raw here?
-      (responseMappers as any)[statusCode] = json.mapper(method.responses[statusCode]);
+      (responseMappers as any)[statusCode] = Json.mapper(method.responses[statusCode]);
     });
     this.methods[httpMethod.toUpperCase()] = {
       handler: Run.of(method.handle as any),
-      requestMapper: json.mapper(method.request.shape) as any,
+      requestMapper: Json.mapper(method.request.shape) as any,
       responseMappers
     };
   }

@@ -5,6 +5,9 @@ import { Shape } from './shape';
 import { Value } from './value';
 import { Visitor as ShapeVisitor } from './visitor';
 
+/**
+ * Computes whether two Values of a Shape are equal.
+ */
 export type Equals<T extends Shape> = (a: Value.Of<T>, b: Value.Of<T>) => boolean;
 
 export namespace Equals {

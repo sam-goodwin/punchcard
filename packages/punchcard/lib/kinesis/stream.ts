@@ -1,7 +1,7 @@
 import iam = require('@aws-cdk/aws-iam');
 import kinesis = require('@aws-cdk/aws-kinesis');
 import core = require('@aws-cdk/core');
-import json = require('@punchcard/shape-json');
+import { Json } from '@punchcard/shape-json';
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
@@ -64,7 +64,7 @@ export class Stream<T extends ShapeOrRecord = AnyShape> implements Resource<kine
 
     this.shape = (props.shape || any) as T;
     this.partitionBy = props.partitionBy || (_ => uuid());
-    this.mapperFactory = (props.mapper || json.bufferMapper);
+    this.mapperFactory = (props.mapper || Json.bufferMapper);
     this.mapper = this.mapperFactory(this.shape);
   }
 

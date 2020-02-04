@@ -3,7 +3,7 @@ import 'jest';
 import { bool, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, Optional, Pattern, Record, string } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
-import json = require('../lib');
+import { Json } from '../lib';
 
 // tslint:disable: member-access
 
@@ -41,7 +41,7 @@ class MyType extends Record({
   null: nothing,
 }) {}
 
-const mapper = json.mapper(MyType);
+const mapper = Json.mapper(MyType);
 
 const jsonRepr = {
   id: 'id',
@@ -94,5 +94,5 @@ test('should write shape to json', () => {
 class Empty extends Record({}) {}
 
 test('should support empty record', () => {
-  expect(() => json.mapper(Empty)).not.toThrow();
+  expect(() => Json.mapper(Empty)).not.toThrow();
 });

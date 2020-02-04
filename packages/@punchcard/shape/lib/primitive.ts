@@ -62,5 +62,5 @@ export const boolean = bool;
 export const string = new StringShape();
 export const number = new NumberShape();
 export const int = new IntegerShape();
-export const integer = new IntegerShape();
+export const integer = int;
 export const timestamp = new TimestampShape();

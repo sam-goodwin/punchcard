@@ -4,7 +4,7 @@ import sns = require('@aws-cdk/aws-sns');
 import snsSubs = require('@aws-cdk/aws-sns-subscriptions');
 import core = require('@aws-cdk/core');
 
-import json = require('@punchcard/shape-json');
+import { Json } from '@punchcard/shape-json';
 
 import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
@@ -55,7 +55,7 @@ export class Topic<T extends ShapeOrRecord = AnyShape> implements Resource<sns.T
 
     this.shape = (props.shape || any) as T;
 
-    this.mapperFactory = props.mapper || json.stringifyMapper;
+    this.mapperFactory = props.mapper || Json.stringifyMapper;
     this.mapper = this.mapperFactory(this.shape);
   }
 

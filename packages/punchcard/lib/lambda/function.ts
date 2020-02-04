@@ -2,7 +2,7 @@ import AWS = require('aws-sdk');
 
 import lambda = require('@aws-cdk/aws-lambda');
 import cdk = require('@aws-cdk/core');
-import json = require('@punchcard/shape-json');
+
 import { Json } from '@punchcard/shape-json';
 
 import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
@@ -43,7 +43,7 @@ export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends Sha
    *
    * @default Json
    */
-  mapper?: MapperFactory<Json<T>>;
+  mapper?: MapperFactory<Json.Of<T>>;
 
   /**
    * Dependency resources which this Function needs clients for.
@@ -89,15 +89,15 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
 
   private readonly dependencies?: D;
 
-  private readonly requestMapper: Mapper<Value.Of<T>, Json<T>>;
-  private readonly responseMapper: Mapper<Value.Of<U>, Json<T>>;
+  private readonly requestMapper: Mapper<Value.Of<T>, Json.Of<T>>;
+  private readonly responseMapper: Mapper<Value.Of<U>, Json.Of<T>>;
 
   constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<Value.Of<U>>) {
     this.handle = handle;
     const entrypointId = Global.addEntrypoint(this);
 
     // default to JSON serialization
-    const mapperFactory = (props.mapper || json.mapper) as MapperFactory<Json<T>>;
+    const mapperFactory = (props.mapper || Json.mapper) as MapperFactory<Json.Of<T>>;
     this.requestMapper = mapperFactory(props.request || any);
     this.responseMapper = mapperFactory(props.response || any);
     this.dependencies = props.depends;
@@ -164,8 +164,8 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
         return new Function.Client(
           cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
           ns.get('functionArn'),
-          json.asString(this.requestMapper),
-          json.asString(this.requestMapper)
+          Json.asString(this.requestMapper),
+          Json.asString(this.requestMapper)
         ) as any;
       })
     };

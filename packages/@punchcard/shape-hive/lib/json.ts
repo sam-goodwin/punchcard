@@ -1,15 +1,16 @@
 import { Mapper, Shape, TimestampShape, Value } from '@punchcard/shape';
-import json = require('@punchcard/shape-json');
 import moment = require('moment');
 
 import { DataFormat } from '@aws-cdk/aws-glue';
 import { DataType } from './data-type';
 
+import { Json } from '@punchcard/shape-json';
+
 /**
  * JSON Mapper specifically for AWS Glue (Hive JSON Format) which
  * requires timestamps be stored as `YYYY-MM-DD HH:mm:ss.SSS`.
  */
-export class JsonMapperVisitor extends json.MapperVisitor {
+export class JsonMapperVisitor extends Json.MapperVisitor {
   public static readonly instance = new JsonMapperVisitor();
 
   public timestampShape(shape: TimestampShape): Mapper<Date, string> {
@@ -29,7 +30,7 @@ export class JsonDataType implements DataType {
   public readonly extension: 'json' = 'json';
 
   public mapper<T extends Shape>(type: T): Mapper<Value.Of<T>, Buffer> {
-    const jsonMapper = json.mapper(type, {
+    const jsonMapper = Json.mapper(type, {
       visitor: JsonMapperVisitor.instance
     });
 

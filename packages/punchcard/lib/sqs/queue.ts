@@ -4,7 +4,7 @@ import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 
 import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
-import json = require('@punchcard/shape-json');
+import { Json } from '@punchcard/shape-json';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
@@ -48,7 +48,7 @@ export class Queue<T extends ShapeOrRecord = AnyShape> implements Resource<sqs.Q
         new sqs.Queue(scope, id, props)));
 
     this.shape = (props.shape || any) as T;
-    this.mapperFactory = props.mapper || json.stringifyMapper;
+    this.mapperFactory = props.mapper || Json.stringifyMapper;
     this.mapper = this.mapperFactory(this.shape);
   }
 
