@@ -2,8 +2,10 @@ import { ShapeGuards } from './guards';
 import { Member, Members } from './member';
 import { Meta, Metadata } from './metadata';
 import { Shape } from './shape';
-import { RequiredKeys } from './util';
+import { ArrayToTuple, AssertIsKey, RequiredKeys } from './util';
 import { Value } from './value';
+
+import { Compact, RowLacks } from 'typelevel-ts';
 
 export interface RecordMembers {
   [member: string]: ShapeOrRecord;
@@ -62,7 +64,8 @@ export namespace RecordShape {
  */
 export type RecordType<I = any, M extends RecordMembers = any> =
   (new (...args: any[]) => I) & {
-    [RecordShape.Members]: M;
+    readonly [RecordShape.Members]: M;
+    readonly members: M;
   };
 
 export type ShapeOrRecord = Shape | RecordType;
@@ -88,7 +91,7 @@ export type ShapeOrRecordWithValue<T> = (Shape & { [Value.Tag]: T; }) | RecordTy
  * }).a; // <- same here
  * ```
  */
-type MakeRecordMembers<T extends RecordMembers> = {
+export type MakeRecordMembers<T extends RecordMembers> = {
   /**
    * Write each member and their documentation to the structure.
    * Write them all as '?' for now.
@@ -101,7 +104,7 @@ type MakeRecordMembers<T extends RecordMembers> = {
   [M in RequiredKeys<T>]-?: Value.Of<T[M]>;
 };
 
-type MakeRecordInstance<T extends RecordMembers> = MakeRecordMembers<T> & {
+export type MakeRecordInstance<T extends RecordMembers> = MakeRecordMembers<T> & {
   /**
    * Instance reference to this record's members.
    *
@@ -119,6 +122,52 @@ export type MakeRecordType<T extends RecordMembers = any> = {
   readonly [RecordShape.Members]: {
     [M in keyof T]: Shape.Of<T[M]>;
   };
+
+  /**
+   * Static reference to this record's members.
+   */
+  readonly members: {
+    [M in keyof T]: Shape.Of<T[M]>;
+  };
+
+  /**
+   * Extend this Record with new members to create a new `RecordType`.
+   *
+   * Example:
+   * ```ts
+   * class A extends Record({
+   *   a: string,
+   *   b: string
+   * }) {}
+   *
+   * class B extends A.Extend({
+   *   c: string
+   * }) {}
+   * ```
+   *
+   * @param members new Record members
+   */
+  Extend<M extends RecordMembers>(members: RowLacks<M, keyof T>): Extend<T, M>;
+
+  /**
+   * Select members from a `Record` to create a new `RecordType`.
+   *
+   * Example:
+   * ```ts
+   * class A extends Record({
+   *   a: string,
+   *   b: string
+   * }) {}
+   *
+   * class B extends A.Select(['a']) {}
+   * B.members.a;
+   * B.members.b; // <- compile-time error
+   * ```
+   *
+   * @param members array of members to select
+   */
+  Select<M extends Array<keyof T>>(members: M): Select<T, AssertIsKey<T, ArrayToTuple<M>>>;
+
   /**
    * Constructor takes values for each member.
    */
@@ -147,10 +196,16 @@ export function Record<T extends RecordMembers>(members: T): MakeRecordType<T> {
      * This Record type's members and their shape.
      */
     public static readonly [RecordShape.Members] = memberShapes;
-    /**
-     * This Record type's members and their shape.
-     */
+    // duplicate
     public static readonly members = memberShapes;
+
+    public static Extend<M extends RecordMembers>(members: RowLacks<M, keyof T>): Extend<T, M> {
+      return Extend(this, members) as any;
+    }
+
+    public static Select<M extends Array<keyof T>>(members: M): Select<T, AssertIsKey<T, ArrayToTuple<M>>> {
+      return Select(this, members);
+    }
 
     /**
      * This instance's members - useful for reflection.
@@ -167,6 +222,83 @@ export function Record<T extends RecordMembers>(members: T): MakeRecordType<T> {
   }
   return NewType as any;
 }
+
+/**
+ * Extend this Record with new members to create a new `RecordType`.
+ *
+ * Example:
+ * ```ts
+ * class A extends Record({
+ *   a: string,
+ *   b: string
+ * }) {}
+ *
+ * class B extends Extend(A, {
+ *   c: string
+ * }) {}
+ * ```
+ *
+ * You can not override the parent Record's members.
+ *
+ * ```ts
+ * class A extends Extend(A, { a: integer }) {} // compile-time error
+ * ```
+ *
+ * @param members new Record members
+ */
+export function Extend<T extends RecordType, M extends RecordMembers>(type: T, members: RowLacks<M, keyof T['members']>): Extend<T['members'], M> {
+  const originalMembers = new Set(Object.keys(type.members));
+  for (const m of Object.keys(members)) {
+    if (originalMembers.has(m)) {
+      throw new Error(`attempted to override Record's member: ${m}`);
+    }
+  }
+  return Record({
+    ...type.members,
+    ...members
+  }) as any;
+}
+
+/**
+ * Combine two sets of Members into a single `RecordType`.
+ */
+export type Extend<T extends RecordMembers, M extends RecordMembers> = MakeRecordType<Compact<T & M>>;
+
+/**
+ * Select members from a `Record` to create a new `RecordType`.
+ *
+ * Example:
+ * ```ts
+ * class A extends Record({
+ *   a: string,
+ *   b: string
+ * }) {}
+ *
+ * class B extends Select(A, ['a']) {}
+ * B.members.a;
+ * B.members.b; // <- compile-time error
+ * ```
+ *
+ * @param type to select from
+ * @param select array of members to select
+ */
+export function Select<T extends RecordType, P extends Array<keyof T['members']>>(type: T, select: P): Select<T['members'], AssertIsKey<T['members'], ArrayToTuple<P>>> {
+  const members: any = {};
+  for (const key of select) {
+    members[key] = type.members[key];
+    if (members[key] === undefined) {
+      throw new Error(`attempted to select non-existent member: ${key}`);
+    }
+  }
+  return Record(members) as any;
+}
+
+/**
+ * Selects members from a `Record` to create a new `RecordType`.
+ */
+export type Select<T extends RecordMembers, K extends keyof T> = MakeRecordType<{
+  [M in K]: T[M];
+}>;
 
 // augment to avoid circular dependency
 declare module './shape' {

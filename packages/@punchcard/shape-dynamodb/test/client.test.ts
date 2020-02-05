@@ -3,7 +3,7 @@ import 'jest';
 import sinon = require('sinon');
 
 import { any, array, map, number, Record, string } from '@punchcard/shape';
-import { DynamoDBClient } from '../lib/client';
+import { DDB } from '../lib/client';
 
 // tslint:disable: member-access
 class Type extends Record({
@@ -14,11 +14,11 @@ class Type extends Record({
   dynamic: any,
 }) {}
 
-const hashTable = new DynamoDBClient(Type, 'key', {
+const hashTable = new TableClient(Type, 'key', {
   tableName: 'my-table-name'
 });
 
-const sortedTable = new DynamoDBClient(Type, ['key', 'count'], {
+const sortedTable = new TableClient(Type, ['key', 'count'], {
   tableName: 'my-table-name'
 });
 // leaving this here as a compile time test for now

@@ -6,11 +6,12 @@ import sinon = require('sinon');
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
-import { array, binary, integer, map, Optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
+import { array, binary, integer, map, number, Optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
 import { bigint, double, float, smallint, tinyint } from '@punchcard/shape-hive';
 import { Core, DynamoDB } from '../../lib';
 import { Build } from '../../lib/core/build';
 import { Run } from '../../lib/core/run';
+import { Index } from '../../lib/dynamodb/table-index';
 
 class Struct extends Record({
   key: string
@@ -139,7 +140,7 @@ describe('DynamoDB.Table', () => {
         key: type
       }) {}
       const table = new DynamoDB.Table(stack, 'table', {
-        attributes: Data,
+        data: Data,
         key: 'key'
       });
       expect(table.key).toEqual('key');
@@ -153,7 +154,7 @@ describe('DynamoDB.Table', () => {
       key: string
     }) {}
     return new DynamoDB.Table(stack, 'table', {
-      attributes: Data,
+      data: Data,
       key: 'key'
     });
   }
@@ -173,7 +174,7 @@ describe('SortedTable', () => {
         sortKey: type
       }) {}
       const table = new DynamoDB.Table(stack, 'table', {
-        attributes: Data,
+        data: Data,
         key: ['key', 'sortKey']
       });
       expect(table.key).toEqual(['key', 'sortKey']);
@@ -186,7 +187,7 @@ describe('SortedTable', () => {
       sortKey: string
     }) {}
     const table = new DynamoDB.Table(stack, 'table', {
-      attributes: Data,
+      data: Data,
       key: ['key', 'sortKey']
     });
     Build.resolve(table.resource);
@@ -197,5 +198,54 @@ describe('SortedTable', () => {
   });
   describe('bootstrap', () => {
     bootstrapTests(boringTable);
+  });
+});
+
+describe('gloal secondary index', () => {
+  it('should', () => {
+    const stack = Build.of(new core.Stack(new core.App(), 'stack'));
+    class Data extends Record({
+      /**
+       * Docs
+       */
+      a: integer,
+      b: number,
+      c: timestamp,
+      d: map(string),
+    }) {}
+
+    const table = new DynamoDB.Table(stack, 'table', {
+      data: Data,
+      key: ['a', 'b']
+    });
+
+    class DataProjection extends Data.Select(['a', 'b']) {}
+
+    const successfulProjection = table.globalIndex({
+      indexName: 'name',
+      key: ['a', 'b'],
+      projection: DataProjection
+    });
+
+    // test that the Index RecordType is never - best validation we can achieve is compile-time failure after use, not during construction :(
+    class IncompatibleProjection extends Record({z: string}) {}
+    // const failsCompileCheck = table.globalIndex({
+    //   indexName: 'illegal',
+    //   key: 'z',
+    //   projection: IncompatibleProjection
+    // });
+
+    const i2 = table.globalIndex({
+      indexName: 'project-sorted',
+      key: ['b', 'c'],
+      projection: Data
+    });
+
+    class HashedByA extends Data.Select(['a']) {}
+    table.globalIndex({
+      indexName: 'project-hashed',
+      key: 'a',
+      projection: HashedByA
+    });
   });
 });
