@@ -51,10 +51,9 @@ A `Lambda.Function` often requires access to multiple resources, not just one. Y
 ```ts
 new Lambda.Function(stack, 'MyFunction', {
   depends: Dependency.tuple(queue.sendAccess(), topic),
-  handle: async (event, [queue, topic]) => {
-    await queue.sendMessage('Hello, SQS!');
-    await topic.publish('Hello, SNS!');
-  }
+}, async (event, [queue, topic]) => {
+  await queue.sendMessage('Hello, SQS!');
+  await topic.publish('Hello, SNS!');
 });
 ```
 * `Dependency.named` - a set of explicitly named Dependencies (key-value pairs)

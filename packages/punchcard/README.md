@@ -15,10 +15,10 @@ Running code in AWS is almost as simple as running it locally!
 
 const app = new Core.App();
 
-const stack = app.root.map(app => new cdk.Stack(app, 'hello, world!'));
+const stack = app.stack('hello, world!');
 
 const topic: SNS.Topic<StringShape> = new SNS.Topic(this, 'Topic', {
-  shape: string()
+  shape: string
 });
 
 Lambda.schedule(this, 'SendNotification', {
@@ -31,9 +31,11 @@ Lambda.schedule(this, 'SendNotification', {
 
 const queue = topic.toSQSQueue(this, 'Queue');
 
-queue.messages().forEach(this, 'ForEachMessge', {
-  handle: async(message) => console.log(`message '${message}' has length ${message.length}`);
-});
+queue.messages().forEach(this, 'ForEachMessge', {},
+  async(message) => {
+    console.log(`message '${message}' has length ${message.length}`);
+  }
+);
 ```
 
 ## Example Stacks

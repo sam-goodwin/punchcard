@@ -138,11 +138,11 @@ const stream = queue.messages() // gives us a nice chainable API
     // here we transform messages received from SQS by looking up some data in DynamoDB
     const enrichment = await e.get(message.key);
 
-    return {
+    return new LogDataRecord({
       ...message,
       tags: enrichment ? enrichment.tags : [],
       timestamp: new Date()
-    };
+    });
   })
   .toKinesisStream(stack, 'Stream', {
     shape: LogDataRecord,

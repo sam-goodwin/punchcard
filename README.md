@@ -51,11 +51,11 @@ This will create the required IAM policies for your Function's IAM Role, add any
 new Lambda.Function(stack, 'MyFunction', {
   depends: topic,
 }, async (event, topic) => {
-  await topic.publish({
+  await topic.publish(new NotificationRecord({
     key: 'some key',
     count: 1,
     timestamp: new Date()
-  });
+  }));
 });
 ```
 
@@ -65,20 +65,20 @@ Furthermore, its interface is higher-level than what would normally be expected 
 /**
  * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
  */
-class NotificationType extends Record({
+class NotificationRecord extends Record({
   key: string,
   count: integer,
   timestamp
 }) {}
 
 const topic = new SNS.Topic(stack, 'Topic', {
-  shape: NofiticationType
+  shape: NofiticationRecord
 });
 ```
 
 This `Topic` is now of type:
 ```ts
-Topic<NotificationType>
+Topic<NotificationRecord>
 ```
 
 ## Type-Safe DynamoDB Expressions
@@ -95,8 +95,8 @@ class TableRecord extends Record({
 
 // table of TableRecord, with a single hash-key: 'id'
 const table = new DynamoDB.Table(stack, 'my-table', {
-  attributes: TableRecord, 
-  key: 'id'
+  key: 'id',
+  attributes: TableRecord
 });
 ```
 
@@ -131,7 +131,10 @@ await table.update('state', {
 To also specify `sortKey`, use a tuple of `TableRecord's` keys:
 
 ```ts
-const table = new DynamoDB.Table(stack, 'my-table', TablerRecord, ['id', 'count']);
+const table = new DynamoDB.Table(stack, 'my-table',{
+  attributes: TableRecord,
+  key: ['id', 'count']
+});
 ```
 
 Now, you can also build typesafe query expressions:
@@ -148,15 +151,16 @@ Punchcard has the concept of `Stream` data structures, which should feel similar
 For example, given an SNS Topic:
 ```ts
 const topic = new SNS.Topic(stack, 'Topic', {
-  shape: NotificationType
+  shape: NotificationRecord
 });
 ```
 
 You can attach a new Lambda Function to process each notification:
 ```ts
-topic.notifications().forEach(stack, 'ForEachNotification', {}, async (notification) => {
-  console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
-});
+topic.notifications().forEach(stack, 'ForEachNotification', {},
+  async (notification) => {
+    console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
+  });
 ```
 
 Or, create a new SQS Queue and subscribe notifications to it:
@@ -170,7 +174,7 @@ const queue = topic.toSQSQueue(stack, 'MyNewQueue');
 We can then, perhaps, `map` over each message in the `Queue` and collect the results into a new AWS Kinesis `Stream`:
 
 ```ts
-class LogData extends Record({
+class LogDataRecord extends Record({
   key: string,
   count: integer,
   tags: array(string)
@@ -178,10 +182,10 @@ class LogData extends Record({
 }) {}
 
 const stream = queue.messages()
-  .map(async (message, e) => ({
+  .map(async (message, e) => new LogDataRecord({
     ...message,
     tags: ['some', 'tags'],
-  })
+  }))
   .toKinesisStream(stack, 'Stream', {
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
@@ -209,7 +213,7 @@ const database = stack.map(stack => new glue.Database(stack, 'Database', {
 s3DeliveryStream.objects().toGlueTable(stack, 'ToGlue', {
   database,
   tableName: 'my_table',
-  columns: stream.type.shape,
+  columns: LogDataRecord,
   partition: {
     // Glue Table partition keys: minutely using the timestamp field
     keys: Glue.Partition.Minutely,

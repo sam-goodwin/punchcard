@@ -29,8 +29,8 @@ These types will be serialized to and from JSON based on their JS types (using `
 ```ts
 // Lambda.Function<string, number>
 new Lambda.Function(stack, 'MyFunction', {
-  request: string(),
-  response: integer(),
+  request: string,
+  response: integer,
 }, async(str) => str.length);
 ```
 

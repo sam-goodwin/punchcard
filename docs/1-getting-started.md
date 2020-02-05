@@ -26,8 +26,7 @@ const stack = app.stack('MyStack');
 
 Lambda.schedule(stack, 'MyFunction', {
   schedule: Schedule.rate(cdk.Duration.minutes(1)),
-  handle: async() => console.log('Hello, World!')
-});
+}, async() => console.log('Hello, World!'));
 ```
 
 This app schedules a Lambda Function to log out `"Hello, World"` every minute. To deploy it to CloudFormation, compile your code and run `cdk deploy`:

@@ -19,9 +19,10 @@ const topic = new SNS.Topic(stack, 'Topic', {
 
 You can attach a new Lambda Function to process each notification with `forEach`:
 ```ts
-topic.notifications().forEach(stack, 'ForEachNotification', {}, async (notification) => {
-  console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
-});
+topic.notifications().forEach(stack, 'ForEachNotification', {},
+  async (notification) => {
+    console.log(`notification delayed by ${new Date().getTime() - notification.timestamp.getTime()}ms`);
+  });
 ```
 
 Or, create a new SQS Queue and subscribe notifications to it:
@@ -42,7 +43,7 @@ These functions are called `Collectors` and they follow the naming convention `t
 We can then, perhaps, `map` over each message in the `Queue` and collect the results into a new AWS Kinesis `Stream`:
 
 ```ts
-class StreamData extends Record({
+class StreamDataRecord extends Record({
   key: string,
   count: integer,
   tags: array(string),
@@ -50,13 +51,13 @@ class StreamData extends Record({
 }) {}
 
 const stream = queue.messages()
-  .map(async(message, e) => ({
+  .map(async(message, e) => new StreamDataRecord({
     ...message,
     tags: ['some', 'tags'],
   })
   .toKinesisStream(stack, 'Stream', {
     // type of the data in the stream
-    shape: StreamData,
+    shape: StreamDataRecord,
 
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
@@ -81,7 +82,7 @@ const database = new glue.Database(stack, 'Database', {
 s3DeliveryStream.objects().toGlueTable(stack, 'ToGlue', {
   database,
   tableName: 'my_table',
-  columns: stream.type.shape,
+  columns: StreamDataRecord,
   partition: {
     // Glue Table partition keys: minutely using the timestamp field
     keys: Glue.Partition.Minutely,

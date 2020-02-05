@@ -25,9 +25,10 @@ export class HelloPunchcardStack extends cdk.Stack {
 
     const queue = topic.toSQSQueue(this, 'Queue');
 
-    queue.messages().forEach(this, 'ForEachMessge', {}, async(message) => {
-      console.log(`message '${message}' has length ${message.length}`);
-    });
+    queue.messages().forEach(this, 'ForEachMessge', {},
+      async(message) => {
+        console.log(`message '${message}' has length ${message.length}`);
+      });
   }
 }
 ```
