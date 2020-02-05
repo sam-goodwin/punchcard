@@ -150,7 +150,7 @@ export type MakeRecordType<T extends RecordMembers = any> = {
   Extend<M extends RecordMembers>(members: RowLacks<M, keyof T>): Extend<T, M>;
 
   /**
-   * Select members from a `Record` to create a new `RecordType`.
+   * Pick members from a `Record` to create a new `RecordType`.
    *
    * Example:
    * ```ts
@@ -159,14 +159,14 @@ export type MakeRecordType<T extends RecordMembers = any> = {
    *   b: string
    * }) {}
    *
-   * class B extends A.Select(['a']) {}
+   * class B extends A.Pick(['a']) {}
    * B.members.a;
    * B.members.b; // <- compile-time error
    * ```
    *
    * @param members array of members to select
    */
-  Select<M extends Array<keyof T>>(members: M): Select<T, AssertIsKey<T, ArrayToTuple<M>>>;
+  Pick<M extends Array<keyof T>>(members: M): Pick<T, AssertIsKey<T, ArrayToTuple<M>>>;
 
   /**
    * Constructor takes values for each member.
@@ -203,8 +203,8 @@ export function Record<T extends RecordMembers>(members: T): MakeRecordType<T> {
       return Extend(this, members) as any;
     }
 
-    public static Select<M extends Array<keyof T>>(members: M): Select<T, AssertIsKey<T, ArrayToTuple<M>>> {
-      return Select(this, members);
+    public static Pick<M extends Array<keyof T>>(members: M): Pick<T, AssertIsKey<T, ArrayToTuple<M>>> {
+      return Pick(this, members);
     }
 
     /**
@@ -265,7 +265,7 @@ export function Extend<T extends RecordType, M extends RecordMembers>(type: T, m
 export type Extend<T extends RecordMembers, M extends RecordMembers> = MakeRecordType<Compact<T & M>>;
 
 /**
- * Select members from a `Record` to create a new `RecordType`.
+ * Pick members from a `Record` to create a new `RecordType`.
  *
  * Example:
  * ```ts
@@ -274,7 +274,7 @@ export type Extend<T extends RecordMembers, M extends RecordMembers> = MakeRecor
  *   b: string
  * }) {}
  *
- * class B extends Select(A, ['a']) {}
+ * class B extends Pick(A, ['a']) {}
  * B.members.a;
  * B.members.b; // <- compile-time error
  * ```
@@ -282,7 +282,7 @@ export type Extend<T extends RecordMembers, M extends RecordMembers> = MakeRecor
  * @param type to select from
  * @param select array of members to select
  */
-export function Select<T extends RecordType, P extends Array<keyof T['members']>>(type: T, select: P): Select<T['members'], AssertIsKey<T['members'], ArrayToTuple<P>>> {
+export function Pick<T extends RecordType, P extends Array<keyof T['members']>>(type: T, select: P): Pick<T['members'], AssertIsKey<T['members'], ArrayToTuple<P>>> {
   const members: any = {};
   for (const key of select) {
     members[key] = type.members[key];
@@ -294,9 +294,9 @@ export function Select<T extends RecordType, P extends Array<keyof T['members']>
 }
 
 /**
- * Selects members from a `Record` to create a new `RecordType`.
+ * Picks members from a `Record` to create a new `RecordType`.
  */
-export type Select<T extends RecordMembers, K extends keyof T> = MakeRecordType<{
+export type Pick<T extends RecordMembers, K extends keyof T> = MakeRecordType<{
   [M in K]: T[M];
 }>;
 

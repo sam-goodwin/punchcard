@@ -219,7 +219,7 @@ describe('gloal secondary index', () => {
       key: ['a', 'b']
     });
 
-    class DataProjection extends Data.Select(['a', 'b']) {}
+    class DataProjection extends Data.Pick(['a', 'b']) {}
 
     const successfulProjection = table.globalIndex({
       indexName: 'name',
@@ -241,7 +241,7 @@ describe('gloal secondary index', () => {
       projection: Data
     });
 
-    class HashedByA extends Data.Select(['a']) {}
+    class HashedByA extends Data.Pick(['a']) {}
     table.globalIndex({
       indexName: 'project-hashed',
       key: 'a',

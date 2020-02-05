@@ -65,9 +65,9 @@ export class BaseClient<T extends RecordType, K extends DDB.KeyOf<T>> {
       const hashKeyMapper = Mapper.of(shape.Members[hk].Shape);
       const sortKeyMapper = Mapper.of(shape.Members[sk].Shape);
       this.writeKey = (k: any) => ({
-          [hk]: hashKeyMapper.write(k[0]),
-          [sk]: sortKeyMapper.write(k[1])
-        });
+        [hk]: hashKeyMapper.write(k[0]),
+        [sk]: sortKeyMapper.write(k[1])
+      });
       this.readKey = (k: AWS.DynamoDB.Key) => ({
         [hk]: hashKeyMapper.read(k[hk]),
         [sk]: sortKeyMapper.read(k[sk])
