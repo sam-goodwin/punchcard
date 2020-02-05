@@ -4,7 +4,7 @@ import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 
-import { AssertExtends, RecordType, Shape } from '@punchcard/shape';
+import { RecordType, Shape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';

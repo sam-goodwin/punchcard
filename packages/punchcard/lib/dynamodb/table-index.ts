@@ -7,7 +7,7 @@ import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Run } from '../core/run';
 
-import { AssertExtends, RecordType, Shape } from '@punchcard/shape';
+import { RecordType, Shape } from '@punchcard/shape';
 
 import { DDB, IndexClient } from '@punchcard/shape-dynamodb';
 import { Table, TableOverrideProps } from './table';
@@ -113,10 +113,7 @@ export namespace Index {
   export type Of<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>>
     = Index<
       SourceTable,
-      AssertExtends<
-        Table.Data<SourceTable>['members'],
-        Projection['members'],
-        Projection>,
+      Table.Data<SourceTable>['members'] extends Projection['members'] ? Projection : never,
       Key>;
 
   type _GlobalSecondaryIndexProps<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>> =
@@ -141,11 +138,7 @@ export namespace Index {
        *
        * AssertExtends ensures that the Projection type is a subset of the SourceTable's data.
        */
-      AssertExtends<
-        Table.Data<SourceTable>['members'],
-        Projection['members'],
-        // return Projection if constraint passes
-        Projection>,
+      Table.Data<SourceTable>['members'] extends Projection['members'] ? Projection : never,
       /**
        * Key structure of the Index.
        */
