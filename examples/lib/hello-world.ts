@@ -27,12 +27,6 @@ const hashTable = new DynamoDB.Table(stack, 'Table', {
   key: 'key',
 });
 
-// index the counters by their value
-const counterIndex = hashTable.globalIndex({
-  indexName: 'byCounter',
-  key: ['count', 'key'],
-  projection: Counter
-});
 
 const queue = new SQS.Queue(stack, 'queue', {
   shape: Counter
@@ -43,9 +37,8 @@ Lambda.schedule(stack, 'MyFunction', {
   schedule: Schedule.rate(cdk.Duration.minutes(1)),
   depends: Dependency.concat(
     hashTable.readWriteAccess(),
-    counterIndex.readAccess(),
     queue.sendAccess()),
-}, async (_, [hashTable, counterIndex, queue]) => {
+}, async (_, [hashTable, queue]) => {
   console.log('Hello, World!');
 
   // lookup the rate type
@@ -57,18 +50,9 @@ Lambda.schedule(stack, 'MyFunction', {
     });
     // put it with initial value if it doesn't exist
     await hashTable.put(rateType);
-  } 
-
-  // query the counter index to find any counters with the same value
-  const otherOfCount = await counterIndex.query(rateType.count);
-  for (const other of otherOfCount.Items || []) {
-    // print them out - enjoy the automatic de/serialization
-    console.log(`also with count=${rateType.count}: ${other.key}`)
   }
 
-  // send the rate type and all other rates with the same count to the SQS queue
-  // retries of batches are handled automatically
-  await queue.sink([rateType, ...(otherOfCount.Items || [])]);
+  await queue.sendMessage(rateType);
 
   // increment the counter by 1
   await hashTable.update('key', {

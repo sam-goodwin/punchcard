@@ -47,7 +47,7 @@ class TagLookupRecord extends Record({
  */
 const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
   key: 'key',
-  attributes: TagLookupRecord,
+  data: TagLookupRecord,
 }, Build.lazy(() => ({
   billingMode: BillingMode.PAY_PER_REQUEST
 })));

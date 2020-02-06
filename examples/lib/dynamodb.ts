@@ -29,7 +29,7 @@ class Item extends Record({
 // the type can be inferred, but we explicitly define them to illustrate how it works
 // 'id' is the partitionKey, undefined is the sortKey (no sort key), and Item is the attributes of data in the table
 const table = new DynamoDB.Table(stack, 'hash-table', {
-  attributes: Item,
+  data: Item,
   key: 'id'
 }, Build.of({
   billingMode: BillingMode.PAY_PER_REQUEST
@@ -37,7 +37,7 @@ const table = new DynamoDB.Table(stack, 'hash-table', {
 
 // 'count' is the sortKey in this case
 const sortedTable = new DynamoDB.Table(stack, 'sorted-table', {
-  attributes: Item, 
+  data: Item, 
   key: ['id', 'count']
 }, Build.of({
   billingMode: BillingMode.PAY_PER_REQUEST

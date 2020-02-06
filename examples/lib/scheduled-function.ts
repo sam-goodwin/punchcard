@@ -17,7 +17,7 @@ class CounterRecord extends Record({
 }) {}
 
 const table = new DynamoDB.Table(stack, 'my-table', {
-  attributes: CounterRecord, 
+  data: CounterRecord, 
   key: 'id'
 }, Build.lazy(() => ({
   billingMode: BillingMode.PAY_PER_REQUEST

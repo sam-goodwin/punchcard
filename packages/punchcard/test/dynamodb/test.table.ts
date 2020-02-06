@@ -219,33 +219,31 @@ describe('gloal secondary index', () => {
       key: ['a', 'b']
     });
 
-    class DataProjection extends Data.Pick(['a', 'b']) {}
+    class DataProjection extends Data.Pick(['a', 'b', 'c']) {}
 
-    const successfulProjection = table.globalIndex({
-      indexName: 'name',
-      key: ['a', 'b'],
-      projection: DataProjection
-    });
+    const successfulProjection = table
+      .projectTo(DataProjection)
+      .globalIndex({
+        indexName: 'name',
+        key: ['a', 'c'],
+      });
 
-    // test that the Index RecordType is never - best validation we can achieve is compile-time failure after use, not during construction :(
-    class IncompatibleProjection extends Record({z: string}) {}
-    // const failsCompileCheck = table.globalIndex({
+    // this does not compile since it is an invalid projection
+    // class IncompatibleProjection extends Record({z: string}) {}
+    // const failsCompileCheck = table.project(IncompatibleProjection).globalIndex({
     //   indexName: 'illegal',
     //   key: 'z',
-    //   projection: IncompatibleProjection
     // });
 
     const i2 = table.globalIndex({
       indexName: 'project-sorted',
       key: ['b', 'c'],
-      projection: Data
     });
 
     class HashedByA extends Data.Pick(['a']) {}
-    table.globalIndex({
+    table.projectTo(HashedByA).globalIndex({
       indexName: 'project-hashed',
       key: 'a',
-      projection: HashedByA
     });
   });
 });

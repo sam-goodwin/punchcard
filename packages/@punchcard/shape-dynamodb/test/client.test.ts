@@ -3,7 +3,7 @@ import 'jest';
 import sinon = require('sinon');
 
 import { any, array, map, number, Record, string } from '@punchcard/shape';
-import { DDB } from '../lib/client';
+import { TableClient } from '../lib/client';
 
 // tslint:disable: member-access
 class Type extends Record({
@@ -19,7 +19,7 @@ const hashTable = new TableClient(Type, 'key', {
 });
 
 const sortedTable = new TableClient(Type, ['key', 'count'], {
-  tableName: 'my-table-name'
+  tableName: 'my-table-name',
 });
 // leaving this here as a compile time test for now
 

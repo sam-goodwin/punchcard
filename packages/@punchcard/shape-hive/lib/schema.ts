@@ -1,6 +1,7 @@
-import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, KeysOfType, MapShape, Member, Meta, NothingShape, NumberShape, RecordShape, RecordType, SetShape, Shape, StringShape, TimestampShape, Trait, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, MapShape, Member, Meta, NothingShape, NumberShape, RecordShape, RecordType, SetShape, Shape, StringShape, TimestampShape, Trait, Visitor as ShapeVisitor } from '@punchcard/shape';
 
 import glue = require('@aws-cdk/aws-glue');
+import { KeysOfType } from 'typelevel-ts';
 
 export type Tag = typeof Tag;
 export const Tag = Symbol.for('@punchcard/shape-glue.Tag');

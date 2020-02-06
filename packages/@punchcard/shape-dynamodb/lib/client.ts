@@ -8,7 +8,7 @@ import { Mapper } from './mapper';
 import { Update } from './update';
 import { Writer } from './writer';
 
-export interface TableClientProps {
+export interface BaseClientProps {
   /**
    * DynamoDB Table Name.
    */
@@ -43,7 +43,7 @@ export class BaseClient<T extends RecordType, K extends DDB.KeyOf<T>> {
 
   protected readonly dsl: DSL.Root<T>;
 
-  constructor(public readonly type: T, public readonly key: K, config: TableClientProps)  {
+  constructor(public readonly type: T, public readonly key: K, config: BaseClientProps)  {
     const shape = Shape.of(type);
     this.dsl = DSL.of(type);
     this.client = config.client || new AWS.DynamoDB();
@@ -125,7 +125,7 @@ export class BaseClient<T extends RecordType, K extends DDB.KeyOf<T>> {
       FilterExpression: filterExpr?.Expression,
       ExpressionAttributeNames: queryExpr?.ExpressionAttributeNames,
       ExpressionAttributeValues: queryExpr?.ExpressionAttributeValues,
-      ExclusiveStartKey: props.exclusiveStartKey === undefined ? undefined : this.writeKey(props.exclusiveStartKey)
+      ExclusiveStartKey: props.ExclusiveStartKey === undefined ? undefined : this.writeKey(props.ExclusiveStartKey)
     };
     if (this.indexName) {
       req.IndexName = this.indexName;
@@ -146,7 +146,13 @@ export class BaseClient<T extends RecordType, K extends DDB.KeyOf<T>> {
   }
 }
 
+export interface TableClientProps extends Omit<BaseClientProps, 'indexName'> {}
+
 export class TableClient<T extends RecordType, K extends DDB.KeyOf<T>> extends BaseClient<T, K> {
+  constructor(type: T, key: K, config: TableClientProps)  {
+    super(type, key, config);
+  }
+
   public async get(key: DDB.KeyValue<T, K>): Promise<Value.Of<T> | undefined> {
     const req: AWS.DynamoDB.GetItemInput = {
       TableName: this.tableName,
@@ -299,7 +305,7 @@ export namespace DDB {
     never
     ;
 
-  export type SortKeyName<T extends RecordType, K extends KeyOf<T>> = K extends [any, infer S] ? S : T;
+  export type SortKeyName<T extends RecordType, K extends KeyOf<T>> = K extends [any, infer S] ? S : undefined;
   export type SortKeyValue<T extends RecordType, K extends KeyOf<T>> = Value.Of<SortKeyShape<T, K>>;
   export type SortKeyShape<T extends RecordType, K extends KeyOf<T>> = K extends [any, infer S] ?
     T[RecordShape.Members][AssertIsKey<T[RecordShape.Members], S>] :
@@ -312,8 +318,11 @@ export namespace DDB {
     never
     ;
   export interface QueryProps<T extends RecordType, K extends KeyOf<T>> {
-    exclusiveStartKey?: DDB.KeyValue<T, K>;
     filter?: DDB.Condition<T>;
+
+    Limit?: number;
+    ExclusiveStartKey?: DDB.KeyValue<T, K>;
+    ContinuationToken?: string;
   }
 
   export type Condition<T extends RecordType> = (item: DSL.Root<T>) => DSL.Bool;

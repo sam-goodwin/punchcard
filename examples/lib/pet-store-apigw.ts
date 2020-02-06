@@ -18,8 +18,8 @@ class PetRecord extends Record({
 }) {}
 
 const petStore = new DynamoDB.Table(stack, 'pet-store', {
+  data: PetRecord,
   key: 'id',
-  attributes: PetRecord
 });
 
 const executorService = new Lambda.ExecutorService({
@@ -47,7 +47,7 @@ pets.setGetMethod({
     shape: EmptyPayload
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: array(petStore.attributesType),
+    [ApiGateway.StatusCode.Ok]: array(petStore.dataType),
     [ApiGateway.StatusCode.InternalError]: Shape.of(ErrorResponse)
   },
   handle: async (_, petStore) => {
@@ -69,7 +69,7 @@ pet.setGetMethod({
     }
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: petStore.attributesShape,
+    [ApiGateway.StatusCode.Ok]: petStore.dataShape,
     [ApiGateway.StatusCode.NotFound]: string,
     [ApiGateway.StatusCode.InternalError]: Shape.of(ErrorResponse)
   },

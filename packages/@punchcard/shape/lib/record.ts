@@ -182,7 +182,6 @@ export type MakeRecordType<T extends RecordMembers = any> = {
  *    *\/
  *   a: string
  * }) {}
- * A
  *
  * @param members key-value pairs of members and their shape (type).
  */

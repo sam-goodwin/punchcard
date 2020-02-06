@@ -107,13 +107,30 @@ export class Table<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRe
     }));
   }
 
-  public globalIndex<IndexKey extends DDB.KeyOf<Projection>, Projection extends RecordType = TableRecord>(
-    props: Index.GlobalSecondaryIndexProps<this, Projection, IndexKey>): Index.Of<this, Projection, IndexKey> {
+  public get partitionKeyName(): Table.HashKeyName<this> {
+    return (typeof this.key === 'string' ? this.key : (this.key as string[])[0]) as any;
+  }
 
+  public get sortKeyName(): Table.SortKeyName<this> {
+    return (typeof this.key === 'string' ? undefined : (this.key as string[])[1]) as any;
+  }
+
+  public projectTo<Projection extends RecordType>(projection: AssertValidProjection<TableRecord, Projection>): Projected<this, Projection> {
+    return new Projected(this, projection) as any;
+  }
+
+  /**
+   * Creates a global index that projects ALL attributes
+   * @param props
+   */
+  public globalIndex<IndexKey extends DDB.KeyOf<TableRecord>>(
+      props: Index.GlobalProps<TableRecord, IndexKey>):
+        Index.Of<this, TableRecord, IndexKey> {
     return new Index({
+      indexType: 'global',
       indexName: props.indexName,
       key: props.key,
-      projection: props.projection,
+      projection: this.dataType,
       sourceTable: this
     }) as any;
   }
@@ -163,6 +180,24 @@ export class Table<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRe
   }
 }
 
+type AssertValidProjection<T extends RecordType, P extends RecordType> = T['members'] extends P['members'] ? P : never;
+
+export class Projected<SourceTable extends Table<any, any>, Projection extends RecordType> {
+  constructor(public readonly sourceTable: SourceTable, public readonly projection: Projection) {}
+
+  public globalIndex<IndexKey extends DDB.KeyOf<Projection>>(
+      props: Index.GlobalProps<Projection, IndexKey>):
+        Index.Of<SourceTable, Projection, IndexKey> {
+    return new Index({
+      indexName: props.indexName,
+      indexType: 'global',
+      key: props.key,
+      projection: this.projection,
+      sourceTable: this.sourceTable
+    }) as any;
+  }
+}
+
 export namespace Table {
   /**
    * A DynamoDB Table with read-only permissions.
@@ -187,4 +222,6 @@ export namespace Table {
 export namespace Table {
   export type Data<T extends Table<any, any>> = T extends Table<infer D, any> ? D : never;
   export type Key<T extends Table<any, any>> = T extends Table<any, infer K> ? K : never;
+  export type HashKeyName<T extends Table<any, any>> = DDB.HashKeyName<Data<T>, Key<T>>;
+  export type SortKeyName<T extends Table<any, any>> = DDB.SortKeyName<Data<T>, Key<T>>;
 }

@@ -3,14 +3,14 @@ import AWS = require('aws-sdk');
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 
-import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Run } from '../core/run';
 
 import { RecordType, Shape } from '@punchcard/shape';
 
+import { ProjectionType } from '@aws-cdk/aws-dynamodb';
 import { DDB, IndexClient } from '@punchcard/shape-dynamodb';
-import { Table, TableOverrideProps } from './table';
+import { Table } from './table';
 import { getKeyNames, keyType } from './util';
 
 export interface IndexProps<T extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>> {
@@ -18,6 +18,7 @@ export interface IndexProps<T extends Table<any, any>, Projection extends Record
   indexName: string;
   projection: Projection;
   key: Key;
+  indexType: 'global' | 'local';
 }
 
 /**
@@ -49,7 +50,7 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
    */
   public readonly indexName: string;
 
-  constructor(props: IndexProps<SourceTable, Projection, Key>, buildProps?: Build<TableOverrideProps>) {
+  constructor(props: IndexProps<SourceTable, Projection, Key>) {
     this.sourceTable = props.sourceTable;
     if (!props.projection) {
       props.projection = this.projection as any;
@@ -59,20 +60,60 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
 
     const [partitionKeyName, sortKeyName] = getKeyNames<Projection>(props.key);
 
-    this.sourceTable.resource.chain(table => (buildProps || Build.of({})).map(tableProps => {
-      table.addGlobalSecondaryIndex({
-        ...tableProps,
+    this.sourceTable.resource.map(table => {
+      const partitionKey = {
+        name: partitionKeyName,
+        type: keyType(type[partitionKeyName])
+      };
+      const sortKey = sortKeyName ? {
+        name: sortKeyName,
+        type: keyType(type[sortKeyName])
+      } : undefined;
+
+      // the names of both the table and the index's partition+sort keys.
+      // projections are required to at least have these properties
+      const KEY_MEMBERS = new Set([
+        ...(typeof props.sourceTable.key === 'string' ? [props.sourceTable.key] : props.sourceTable.key),
+        partitionKeyName,
+        sortKeyName
+      ].filter(_ => _ !== undefined));
+
+      // name of the properties in the projection
+      const PROJECTION_MEMBERS = new Set(Object.keys(props.projection.members));
+      for (const KEY of KEY_MEMBERS.values()) {
+        if (!PROJECTION_MEMBERS.has(KEY)) {
+          throw new Error(`invalid projection, missing key: ${KEY}`);
+        }
+      }
+
+      // all properties in the Table
+      const TABLE_MEMBERS = new Set(Object.keys(props.sourceTable.dataType.members));
+
+      const projectionType =
+        PROJECTION_MEMBERS.size === TABLE_MEMBERS.size ? ProjectionType.ALL :
+        PROJECTION_MEMBERS.size === KEY_MEMBERS.size ? ProjectionType.KEYS_ONLY :
+        ProjectionType.INCLUDE
+        ;
+
+      const definition: any = {
         indexName: props.indexName,
-        partitionKey: {
-          name: partitionKeyName,
-          type: keyType(type[partitionKeyName])
-        },
-        sortKey: sortKeyName ? {
-          name: sortKeyName,
-          type: keyType(type[sortKeyName])
-        } : undefined,
-      });
-    }));
+        partitionKey,
+        sortKey,
+        projectionType,
+      };
+      if (projectionType === ProjectionType.INCLUDE) {
+        definition.nonKeyAttributes = Array.from(PROJECTION_MEMBERS.values()).filter(p => !KEY_MEMBERS.has(p));
+      }
+      if (props.indexType === 'global') {
+        table.addGlobalSecondaryIndex(definition);
+      } else {
+        if (definition.sortKey === undefined) {
+          throw new Error(`sortKey cannot be undefined when creating a Local Secondary Index`);
+        }
+        delete definition.partitionKey;
+        table.addLocalSecondaryIndex(definition);
+      }
+    });
     this.projection = props.projection;
     this.projectionShape = Shape.of(props.projection) as any;
 
@@ -112,12 +153,15 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
 export namespace Index {
   export type Of<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>>
     = Index<
-      SourceTable,
-      Table.Data<SourceTable>['members'] extends Projection['members'] ? Projection : never,
-      Key>;
+        SourceTable,
+        Table.Data<SourceTable>['members'] extends Projection['members'] ? Projection : never,
+        Key>;
 
-  type _GlobalSecondaryIndexProps<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>> =
-  Omit<IndexProps<SourceTable, Projection, Key>, 'sourceTable'> & {
+  export interface GlobalProps<Projection extends RecordType, Key extends DDB.KeyOf<Projection>> {
+    indexName: string;
+
+    key: Key;
+
     /**
      * Read capacity of the Index.
      */
@@ -126,21 +170,20 @@ export namespace Index {
      * Write capacity of the Index.
      */
     writerCapacity?: number;
-  };
-  export interface GlobalSecondaryIndexProps<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>, >
-    extends _GlobalSecondaryIndexProps<
-      /**
-       * Source Table index was created from.
-       */
-      SourceTable,
-      /**
-       * Type representing the projection.
-       *
-       * AssertExtends ensures that the Projection type is a subset of the SourceTable's data.
-       */
-      Table.Data<SourceTable>['members'] extends Projection['members'] ? Projection : never,
-      /**
-       * Key structure of the Index.
-       */
-      Key> {}
+  }
+
+  export interface LocalProps<Projection extends RecordType, Key extends keyof Projection['members']> {
+    indexName: string;
+
+    key: Key;
+
+    /**
+     * Read capacity of the Index.
+     */
+    readCapacity?: number;
+    /**
+     * Write capacity of the Index.
+     */
+    writerCapacity?: number;
+  }
 }

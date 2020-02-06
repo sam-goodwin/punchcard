@@ -19,7 +19,7 @@ class TableRecord extends Record({
 }) {}
 
 const table = new DynamoDB.Table(stack, 'my-table', {
-  attributes: TableRecord,
+  data: TableRecord,
   key: 'id'
 }, Build.of({
   billingMode: BillingMode.PAY_PER_REQUEST
