@@ -1380,6 +1380,7 @@ Object {
           "Variables": Object {
             "entrypoint_id": "2",
             "is_runtime": "true",
+            "punchcard_indexName": "high-scores",
             "punchcard_tableName": Object {
               "Ref": "ScoreStore37F34C0E",
             },
