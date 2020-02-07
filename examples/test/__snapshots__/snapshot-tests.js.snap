@@ -392,27 +392,10 @@ Object {
           "Ref": "AWS::AccountId",
         },
         "DatabaseInput": Object {
-          "LocationUri": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "s3://",
-                Object {
-                  "Ref": "LakeDatabaseBucketE18A52BB",
-                },
-                "/my_lake",
-              ],
-            ],
-          },
           "Name": "my_lake",
         },
       },
       "Type": "AWS::Glue::Database",
-    },
-    "LakeDatabaseBucketE18A52BB": Object {
-      "DeletionPolicy": "Retain",
-      "Type": "AWS::S3::Bucket",
-      "UpdateReplacePolicy": "Retain",
     },
     "LakeDatabasedataPointsBucketB080069E": Object {
       "DeletionPolicy": "Retain",
@@ -3530,27 +3513,10 @@ Object {
           "Ref": "AWS::AccountId",
         },
         "DatabaseInput": Object {
-          "LocationUri": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "s3://",
-                Object {
-                  "Ref": "DatabaseBucket318AF64F",
-                },
-                "/my_database",
-              ],
-            ],
-          },
           "Name": "my_database",
         },
       },
       "Type": "AWS::Glue::Database",
-    },
-    "DatabaseBucket318AF64F": Object {
-      "DeletionPolicy": "Retain",
-      "Type": "AWS::S3::Bucket",
-      "UpdateReplacePolicy": "Retain",
     },
     "DummyData3BBFD842": Object {
       "Properties": Object {

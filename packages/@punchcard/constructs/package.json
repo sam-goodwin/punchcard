@@ -29,7 +29,7 @@
     "cloudformation"
   ],
   "devDependencies": {
-    "@aws-cdk/assert": "^1.22.0",
+    "@aws-cdk/assert": "^1.23.0",
     "@types/node": "^12.0.0",
     "@types/webpack": "^4.41.0",
     "sinon": "^8.0.1",
@@ -37,23 +37,23 @@
     "typescript": "^3.7.2"
   },
   "dependencies": {
-    "@aws-cdk/aws-iam": "^1.22.0",
-    "@aws-cdk/aws-kinesis": "^1.22.0",
-    "@aws-cdk/aws-kinesisfirehose": "^1.22.0",
-    "@aws-cdk/aws-kms": "^1.22.0",
-    "@aws-cdk/aws-lambda": "^1.22.0",
-    "@aws-cdk/aws-logs": "^1.22.0",
-    "@aws-cdk/aws-s3": "^1.22.0",
-    "@aws-cdk/core": "^1.22.0"
+    "@aws-cdk/aws-iam": "^1.23.0",
+    "@aws-cdk/aws-kinesis": "^1.23.0",
+    "@aws-cdk/aws-kinesisfirehose": "^1.23.0",
+    "@aws-cdk/aws-kms": "^1.23.0",
+    "@aws-cdk/aws-lambda": "^1.23.0",
+    "@aws-cdk/aws-logs": "^1.23.0",
+    "@aws-cdk/aws-s3": "^1.23.0",
+    "@aws-cdk/core": "^1.23.0"
   },
   "peerDependencies": {
-    "@aws-cdk/aws-iam": "^1.22.0",
-    "@aws-cdk/aws-kinesis": "^1.22.0",
-    "@aws-cdk/aws-kinesisfirehose": "^1.22.0",
-    "@aws-cdk/aws-kms": "^1.22.0",
-    "@aws-cdk/aws-lambda": "^1.22.0",
-    "@aws-cdk/aws-logs": "^1.22.0",
-    "@aws-cdk/aws-s3": "^1.22.0",
-    "@aws-cdk/core": "^1.22.0"
+    "@aws-cdk/aws-iam": "^1.23.0",
+    "@aws-cdk/aws-kinesis": "^1.23.0",
+    "@aws-cdk/aws-kinesisfirehose": "^1.23.0",
+    "@aws-cdk/aws-kms": "^1.23.0",
+    "@aws-cdk/aws-lambda": "^1.23.0",
+    "@aws-cdk/aws-logs": "^1.23.0",
+    "@aws-cdk/aws-s3": "^1.23.0",
+    "@aws-cdk/core": "^1.23.0"
   }
 }

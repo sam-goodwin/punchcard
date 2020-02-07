@@ -1,5 +1,5 @@
 import { Core, Lambda, DynamoDB } from 'punchcard';
-import { string, integer, Record, Minimum, optional, array, boolean, nothing, Maximum, number } from '@punchcard/shape';
+import { string, integer, Record, Minimum, optional, array, boolean, nothing, Maximum } from '@punchcard/shape';
 
 /**
  * Create a new Punchcard Application.
@@ -9,7 +9,7 @@ export const app = new Core.App();
 /**
  * Create a CloudFormation stack with the AWS CDK.
  */
-const stack = app.stack('hello-world');
+const stack = app.stack('game-score-service');
 
 /**
  * Record of data to maintain a user's statistics for a game.
