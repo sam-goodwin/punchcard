@@ -1,5 +1,4 @@
 import { BillingMode } from '@aws-cdk/aws-dynamodb';
-import cdk = require('@aws-cdk/core');
 import { Duration } from '@aws-cdk/core';
 import { Schedule } from '@aws-cdk/aws-events';
 
@@ -30,7 +29,9 @@ class Item extends Record({
 // 'id' is the partitionKey, undefined is the sortKey (no sort key), and Item is the attributes of data in the table
 const table = new DynamoDB.Table(stack, 'hash-table', {
   data: Item,
-  key: 'id'
+  key: {
+    partition: 'id'
+  }
 }, Build.of({
   billingMode: BillingMode.PAY_PER_REQUEST
 }));
@@ -38,7 +39,10 @@ const table = new DynamoDB.Table(stack, 'hash-table', {
 // 'count' is the sortKey in this case
 const sortedTable = new DynamoDB.Table(stack, 'sorted-table', {
   data: Item, 
-  key: ['id', 'count']
+  key: {
+    partition: 'id',
+    sort: 'count' 
+  }
 }, Build.of({
   billingMode: BillingMode.PAY_PER_REQUEST
 }));
@@ -48,7 +52,9 @@ Lambda.schedule(stack, 'Caller', {
   depends: Core.Dependency.concat(table.readWriteAccess(), sortedTable.readAccess()),
   schedule: Schedule.rate(Duration.minutes(1)),
 }, async (_, [table, sortedTable]) => {
-  await table.get('id');
+  await table.get({
+    id: 'id'
+  });
 
   await table.put(new Item({
     // the item is type-safe and well structured
@@ -100,10 +106,13 @@ Lambda.schedule(stack, 'Caller', {
         })))
   });
 
-  await table.update('id', {
+  await table.update({
+    id: 'id'
+  }, {
     actions: _ => [
       // strings
       _.name.set('name'), // item.name = 'name'
+
       // numbers
       _.count.set(1), // item.count = 1
       _.count.decrement(1), // item.count -- or item.count -= 1
@@ -128,7 +137,10 @@ Lambda.schedule(stack, 'Caller', {
   });
 
   // sorted tables can be queried
-  await sortedTable.query(['id', count => count.greaterThan(1)], {
+  await sortedTable.query({
+    id: 'id', 
+    count: _ => _.greaterThan(1)
+  }, {
     filter: item => item.array.length.equals(item.count) // item.array.lenth === item.count
   });
 });

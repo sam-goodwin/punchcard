@@ -21,13 +21,23 @@ You then create a `Client` by passing the Type of data and the hash key and (opt
 ```ts
 import dynamodb = require('@punchcard/shape-dynamodb');
 
-const hashKeyOnlyTable = new dynamodb.Client(Type, 'key' /* must be a keyof Type */, {
-  tableArn: 'my-table-arn' // <- provide the table ARN or name
+const hashKeyOnlyTable = new dynamodb.Client({
+  tableName: 'my-table-name' // <- provide the table ARN or name
+  data: Type,
+  key: {
+    // attribute to use as the partition key
+    partition: 'key' // <- must be a keyof the data type
+  }
 });
 
 // pass a tuple [keyof Type, keyof Type]
-const sortedTable = new dynamodb.Client(Type, ['key', 'count'], {
-  tableArn: 'my-table-arn'
+const sortedTable = new dynamodb.Client({
+  tableName: 'my-table-arn',
+  data: Type, 
+  key: {
+    partition: 'key',
+    sort: 'count',
+  }
 });
 ```
 
@@ -35,15 +45,30 @@ Based on the type, `dynamodb.Client` provides a high-level DSL for conditional, 
 
 # Conditional Expressions
 
-`putIf` accepts a lambda that constructs a conditional expression:
+`put` accepts an `if` lambda that constructs a conditional expression:
 
 ```ts
-table.putIf(new MyType({..}), _ => _.key.exists()) // attribute_exists("key")
-table.putIf(.., _ => _.count.greaterThan(0))
-table.putIf(.., _ => _.count.greaterThan(0).and(_.count.lessThan(10))
-table.putIf(.., _ => _.list.equals([1, 2]))
-table.putIf(.., _ => _.list[0].equals(1)) // array index
-table.putIf(.., _ => _.list.get(0).equals(1)) // equiv. to array index above
+table.put(new MyType({..}), {
+  // attribute_exists("key")
+  if: _ => _.key.exists()
+})
+table.put(.., {
+  if: _ => _.count.greaterThan(0)
+});
+table.put(.., {
+  if: _ => _.count.greaterThan(0).and(_.count.lessThan(10)
+});
+table.put(.., {
+  if: _ => _.list.equals([1, 2])
+});
+table.put(.., {
+  // array index
+  if: _ => _.list[0].equals(1)
+});
+table.put(.., {
+  // equiv. to array index above
+  if: _ => _.list.get(0).equals(1)
+})
 ```
 
 # Update Expressions
@@ -51,18 +76,24 @@ table.putIf(.., _ => _.list.get(0).equals(1)) // equiv. to array index above
 `update` accepts a lambda that constructs an array of "actions":
 
 ```ts
-await table.update('key', _ => [
-  _.count.set(0), // count := 0
-  _.count.set(_.count.plus(1)),
-  // equiv to:
-  _.count.increment(),
-  // increment can be parameterized
-  _.count.increment(10),
+await table.update({
+  key: 'key'
+}, {
+  actions: _ => [
+    _.count.set(0), // count := 0
+    _.count.set(_.count.plus(1)),
+    // equiv to:
+    _.count.increment(),
+    // increment can be parameterized
+    _.count.increment(10),
 
-  _.array.set([1, 2]),
-  _.array[0].set(1),
-  _.array.push(0)
-]);
+    _.array.set([1, 2]),
+    _.array[0].set(1),
+    _.array.push(0)
+  ],
+  // optional: conditional expression on the update
+  if: _ => _.key.exists()
+});
 ```
 
 # Query Expressions
@@ -70,6 +101,13 @@ await table.update('key', _ => [
 `query` is supported when there is a sort key. 
 
 ```ts
-await table.query('key'); // no condition on the sort key
-await table.query(['key', _ => _.count.greaterThan(0)]) // conditional query on the count
+await table.query({
+  // no condition on the sort key
+  key: 'key'
+});
+await table.query({
+  key: 'key', 
+  // conditional query on the count
+  count: _ => _.greaterThan(0)
+})
 ```

@@ -14,12 +14,21 @@ class Type extends Record({
   dynamic: any,
 }) {}
 
-const hashTable = new TableClient(Type, 'key', {
-  tableName: 'my-table-name'
+const hashTable = new TableClient({
+  tableName: 'my-table-name',
+  data: Type,
+  key: {
+    partition: 'key'
+  },
 });
 
-const sortedTable = new TableClient(Type, ['key', 'count'], {
+const sortedTable = new TableClient({
   tableName: 'my-table-name',
+  data: Type,
+  key: {
+    partition: 'key',
+    sort: 'count'
+  },
 });
 // leaving this here as a compile time test for now
 
@@ -44,8 +53,8 @@ test('getItem', async () => {
     getItem
   });
 
-  const hkResult = await hashTable.get('value');
-  const skResult = await sortedTable.get(['value', 1]);
+  const hkResult = await hashTable.get({ key: 'value' });
+  const skResult = await sortedTable.get({ key: 'value', count: 1});
 
   expect(hkResult).toEqual(skResult);
   expect(skResult).toEqual(new Type({
@@ -121,7 +130,10 @@ test('update', async () => {
     updateItem
   });
 
-  await sortedTable.update(['key', 1], {
+  await sortedTable.update({
+    key: 'key',
+    count: 1
+  }, {
     actions: item => [
       item.list.push('item'),
       item.dynamic.as(string).set('dynamic-value'),
@@ -158,7 +170,10 @@ test('update-if', async () => {
     updateItem
   });
 
-  await sortedTable.update(['key', 1], {
+  await sortedTable.update({
+    key: 'key',
+    count: 1
+  }, {
     actions: item => [
       item.list.push('item'),
       item.dynamic.as(string).set('dynamic-value'),
@@ -187,6 +202,32 @@ test('update-if', async () => {
       ':2': { S: 'dynamic-value' },
       ':3': { N: '1' },
       ':4': { N: '1' }
+    }
+  });
+});
+
+test('query', async () => {
+  const queryPromise = sinon.fake.resolves({});
+  const query = sinon.fake.returns({ promise: queryPromise });
+  mockClient({
+    query
+  });
+
+  await sortedTable.query({
+    key: 'key',
+    count: _ => _.greaterThan(0)
+  });
+
+  expect(query.args[0][0]).toEqual({
+    TableName: 'my-table-name',
+    KeyConditionExpression: '(#1=:1 AND #2>:2)',
+    ExpressionAttributeNames: {
+      '#1': 'key',
+      '#2': 'count'
+    },
+    ExpressionAttributeValues: {
+      ':1': { S: 'key' },
+      ':2': { N: '0' }
     }
   });
 });

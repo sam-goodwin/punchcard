@@ -141,9 +141,11 @@ describe('DynamoDB.Table', () => {
       }) {}
       const table = new DynamoDB.Table(stack, 'table', {
         data: Data,
-        key: 'key'
+        key: {
+          partition: 'key'
+        }
       });
-      expect(table.key).toEqual('key');
+      expect(table.key).toEqual({partition: 'key'});
       Build.resolve(table.resource);
     });
   });
@@ -155,7 +157,9 @@ describe('DynamoDB.Table', () => {
     }) {}
     return new DynamoDB.Table(stack, 'table', {
       data: Data,
-      key: 'key'
+      key: {
+        partition: 'key'
+      }
     });
   }
   describe('install', () => {
@@ -175,9 +179,15 @@ describe('SortedTable', () => {
       }) {}
       const table = new DynamoDB.Table(stack, 'table', {
         data: Data,
-        key: ['key', 'sortKey']
+        key: {
+          partition: 'key',
+          sort: 'sortKey'
+        }
       });
-      expect(table.key).toEqual(['key', 'sortKey']);
+      expect(table.key).toEqual({
+        partition: 'key',
+        sort: 'sortKey'
+      });
       Build.resolve(table.resource);
     });
   });
@@ -188,7 +198,10 @@ describe('SortedTable', () => {
     }) {}
     const table = new DynamoDB.Table(stack, 'table', {
       data: Data,
-      key: ['key', 'sortKey']
+      key: {
+        partition: 'key',
+        sort: 'sortKey'
+      }
     });
     Build.resolve(table.resource);
     return table;
@@ -216,7 +229,10 @@ describe('gloal secondary index', () => {
 
     const table = new DynamoDB.Table(stack, 'table', {
       data: Data,
-      key: ['a', 'b']
+      key: {
+        partition: 'a',
+        sort: 'b'
+      }
     });
 
     class DataProjection extends Data.Pick(['a', 'b', 'c']) {}
@@ -225,25 +241,35 @@ describe('gloal secondary index', () => {
       .projectTo(DataProjection)
       .globalIndex({
         indexName: 'name',
-        key: ['a', 'c'],
+        key: {
+          partition: 'a',
+          sort: 'c'
+        }
       });
 
     // this does not compile since it is an invalid projection
     // class IncompatibleProjection extends Record({z: string}) {}
-    // const failsCompileCheck = table.project(IncompatibleProjection).globalIndex({
+    // const failsCompileCheck = table.projectTo(IncompatibleProjection).globalIndex({
     //   indexName: 'illegal',
-    //   key: 'z',
+    //   key: {
+    //     partition: 'z'
+    //   },
     // });
 
     const i2 = table.globalIndex({
       indexName: 'project-sorted',
-      key: ['b', 'c'],
+      key: {
+        partition: 'a',
+        sort: 'c'
+      },
     });
 
-    class HashedByA extends Data.Pick(['a']) {}
+    class HashedByA extends Data.Pick(['a', 'b']) {}
     table.projectTo(HashedByA).globalIndex({
       indexName: 'project-hashed',
-      key: 'a',
+      key: {
+        partition: 'a'
+      },
     });
   });
 });

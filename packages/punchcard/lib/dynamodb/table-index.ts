@@ -141,7 +141,9 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
         grant(table, grantable);
       }),
       bootstrap: Run.of(async (ns, cache) =>
-        new IndexClient(this.projection, this.key, {
+        new IndexClient({
+          data: this.projection,
+          key: this.key,
           tableName: ns.get('tableName'),
           indexName: ns.get('indexName'),
           client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())

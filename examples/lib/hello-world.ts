@@ -24,7 +24,9 @@ class Counter extends Record({
 // create a table to store counts for a key
 const hashTable = new DynamoDB.Table(stack, 'Table', {
   data: Counter,
-  key: 'key',
+  key: {
+    partition: 'key'
+  },
 });
 
 
@@ -42,7 +44,9 @@ Lambda.schedule(stack, 'MyFunction', {
   console.log('Hello, World!');
 
   // lookup the rate type
-  let rateType = await hashTable.get('key');
+  let rateType = await hashTable.get({
+    key: 'key'
+  });
   if (rateType === undefined) {
     rateType = new Counter({
       key: 'key',
@@ -55,7 +59,9 @@ Lambda.schedule(stack, 'MyFunction', {
   await queue.sendMessage(rateType);
 
   // increment the counter by 1
-  await hashTable.update('key', {
+  await hashTable.update({
+    key: 'key'
+  }, {
     actions: _ => [
       _.count.increment()
     ]

@@ -109,8 +109,11 @@ export type MakeRecordInstance<T extends RecordMembers> = MakeRecordMembers<T> &
    * Instance reference to this record's members.
    *
    * Hide it with a symbol so we don't clash with the members.
+   *
+   * Marked as optional (?) so structural interfaces can be passed around.
+   * TODO: Consider removing this entirely - do we really need dynamic reflection when most things can be done statically?
    */
-  [RecordShape.Members]: {
+  [RecordShape.Members]?: {
     [M in keyof T]: Shape.Of<T[M]>;
   };
 };

@@ -43,16 +43,20 @@ class UserGameScore extends Record({
    * Version of the DynamoDB record - use for optimistic locking.
    */
   version: integer
-}) { }
+}) {}
 
-class UserScoresKey extends UserGameScore.Pick(['userId', 'gameTitle']) {}
-
+namespace UserGameScore {
+  export class Key extends UserGameScore.Pick(['userId', 'gameTitle']) {}
+}
 /**
  * DynamoDB Table storing the User-Game statistics. 
  */
 const UserScores = new DynamoDB.Table(stack, 'ScoreStore', {
   data: UserGameScore,
-  key: ['userId', 'gameTitle'],
+  key: {
+    partition: 'userId',
+    sort: 'gameTitle'
+  }
 });
 
 /**
@@ -96,17 +100,21 @@ const submitScore = new Lambda.Function(stack, 'SubmitScore', {
    */
   depends: UserScores.readWriteAccess()
 }, async (request, highScores) => {
+  const key = new UserGameScore.Key({
+    userId: request.userId,
+    gameTitle: request.gameTitle
+  });
   await update();
 
   async function update() {
-    const gameScore = await highScores.get([request.userId, request.gameTitle]);
+    const gameScore = await highScores.get(key);
     if (gameScore) {
       try {
         /**
          * If the record already exists, then use an efficient update expression to 
          * safely, and atomically update the game score in DynamoDB.
          */
-        await highScores.update([request.userId, request.gameTitle], {
+        await highScores.update(key, {
           /**
            * Ensure that there was no concurrent modification
            */
@@ -160,15 +168,21 @@ const submitScore = new Lambda.Function(stack, 'SubmitScore', {
   };
 });
 
-class HighScoresKey extends UserGameScore.Pick(['gameTitle', 'topScore']) {}
-
 /**
  * Global Secondary Index to lookup a game title's high scores.
  */
 const HighScores = UserScores.globalIndex({
   indexName: 'high-scores',
-  key: ['gameTitle', 'topScore'],
+  key: {
+    partition: 'gameTitle',
+    sort: 'topScore'
+  }
 });
+
+/**
+ * Helper class for creating and passing around keys of the High Score Index.
+ */
+class HighScoresKey extends UserGameScore.Pick(['gameTitle', 'topScore']) {}
 
 /**
  * A request for a game's high scores.
@@ -212,11 +226,14 @@ const getHighScores = new Lambda.Function(stack, 'GetTopN', {
   
   return await query([]);
   
-  async function query(scores: UserGameScore[], LastEvaluatedKey?: [string, number]): Promise<UserGameScore[]> {
+  async function query(scores: UserGameScore[], LastEvaluatedKey?: HighScoresKey): Promise<UserGameScore[]> {
     const numberToFetch = Math.min(maxResults - scores.length, 100);
-    const nextScores = await highScores.query(request.gameTitle, {
+    const nextScores = await highScores.query({
+      gameTitle: request.gameTitle,
+      topScore: _ => _.greaterThan(0)
+    }, {
       Limit: numberToFetch,
-      ExclusiveStartKey: LastEvaluatedKey,
+      ExclusiveStartKey: LastEvaluatedKey
     });
 
     scores = scores.concat(nextScores.Items!);

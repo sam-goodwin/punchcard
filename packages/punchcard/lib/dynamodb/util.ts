@@ -4,8 +4,8 @@ import { Meta, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
 import { DDB } from '@punchcard/shape-dynamodb';
 
 export function getKeyNames<A extends RecordType>(key: DDB.KeyOf<A>): [string, string | undefined] {
-  const partitionKeyName: string = typeof key === 'string' ? key : (key as any)[0];
-  const sortKeyName: string | undefined = typeof key === 'string' ? undefined : (key as any)[1];
+  const partitionKeyName: string = key.partition as string;
+  const sortKeyName: string | undefined = key.sort as string;
 
   return [partitionKeyName, sortKeyName];
 }

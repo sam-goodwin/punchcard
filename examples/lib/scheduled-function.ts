@@ -18,7 +18,9 @@ class CounterRecord extends Record({
 
 const table = new DynamoDB.Table(stack, 'my-table', {
   data: CounterRecord, 
-  key: 'id'
+  key: {
+    partition: 'id'
+  }
 }, Build.lazy(() => ({
   billingMode: BillingMode.PAY_PER_REQUEST
 })));
@@ -27,10 +29,12 @@ Lambda.schedule(stack, 'Poller', {
   depends: table.readWriteAccess(),
   schedule: Schedule.rate(Duration.minutes(1)),
 }, async (_, table) => {
-  const item = await table.get('state');
+  const item = await table.get({ id: 'state' });
 
   if (item) {
-    await table.update('state', {
+    await table.update({
+      id: 'state'
+    }, {
       actions: _ => [
         _.count.increment(1)
       ]

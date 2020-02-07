@@ -10,13 +10,19 @@ import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
-import { Index, IndexProps } from './table-index';
+import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
 export interface TableOverrideProps extends Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'> {}
 
 export interface TableProps<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRecord>> {
+  /**
+   * Type of Data in the Table.
+   */
   data: TableRecord;
+  /**
+   * Partition and optional Sort key of the Table.
+   */
   key: Key;
 }
 
@@ -33,19 +39,24 @@ export interface TableProps<TableRecord extends RecordType, Key extends DDB.KeyO
  * }) {}
  * ```
  *
- * Then, when creating a table, you can specify just a hash key:
+ * Then, when creating a table, you can specify just a partition key:
  * ```ts
  * const table = new DynamoDB.Table(stack, 'table', {
  *   data: Data,
- *   key: 'a' // name of the field to index on
+ *   key: {
+ *     partition: 'a'
+ *   }
  * });
  * ```
  *
- * ... or a [hash, sort] key pair as a tuple:
+ * ... or a partition and sort key:
  * ```ts
  * const table = new DynamoDB.Table(stack, 'table', {
  *   data: Data,
- *   key: ['a', 'b'] // [hash, sort] key tuple
+ *   key: {
+ *     partition: 'a',
+ *     sort: 'b'
+ *   }
  * });
  * ```
  *
@@ -54,9 +65,17 @@ export interface TableProps<TableRecord extends RecordType, Key extends DDB.KeyO
  * new Lambda.Function(stack, 'id', {
  *   depends: table.readAccess()
  * }, async (request, table) => {
- *   await table.get('key');
- *   // if sorted:
- *   await table.get(['hash', 'sort]);
+ *   // partitio key only
+ *   await table.get({
+ *     a: 'partition key'
+ *   });
+ *
+ *   // if sort key provided:
+ *   await table.get({
+ *     a: 'partition key',
+ *     b: 'sort key'
+ *   });
+ *
  *   // etc.
  * })
  * ```
@@ -107,12 +126,12 @@ export class Table<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRe
     }));
   }
 
-  public get partitionKeyName(): Table.HashKeyName<this> {
-    return (typeof this.key === 'string' ? this.key : (this.key as string[])[0]) as any;
+  public get partitionKeyName(): DDB.HashKeyName<Key> {
+    return this.key.partition as any;
   }
 
-  public get sortKeyName(): Table.SortKeyName<this> {
-    return (typeof this.key === 'string' ? undefined : (this.key as string[])[1]) as any;
+  public get sortKeyName(): DDB.SortKeyName<Key> {
+    return this.key.sort as any;
   }
 
   public projectTo<Projection extends RecordType>(projection: AssertValidProjection<TableRecord, Projection>): Projected<this, Projection> {
@@ -172,7 +191,9 @@ export class Table<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRe
         grant(table, grantable);
       }),
       bootstrap: Run.of(async (ns, cache) =>
-        new TableClient(this.dataType, this.key, {
+        new TableClient({
+          data: this.dataType,
+          key: this.key,
           tableName: ns.get('tableName'),
           client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())
         }))
@@ -204,24 +225,22 @@ export namespace Table {
    *
    * Unavailable methods: `put`, `putBatch`, `delete`, `update`.
    */
-  export interface ReadOnly<A extends RecordType, K extends DDB.KeyOf<InstanceType<A>>> extends Omit<TableClient<A, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
+  export interface ReadOnly<A extends RecordType, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
 
   /**
    * A DynamoDB Table with write-only permissions.
    *
    * Unavailable methods: `batchGet`, `get`, `scan`, `query`
    */
-  export interface WriteOnly<A extends RecordType, K extends DDB.KeyOf<InstanceType<A>>> extends Omit<TableClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
+  export interface WriteOnly<A extends RecordType, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
 
   /**
    * A DynamODB Table with read and write permissions.
    */
-  export interface ReadWrite<A extends RecordType, K extends DDB.KeyOf<InstanceType<A>>> extends TableClient<A, K> {}
+  export interface ReadWrite<A extends RecordType, K extends DDB.KeyOf<A>> extends TableClient<A, K> {}
 }
 
 export namespace Table {
   export type Data<T extends Table<any, any>> = T extends Table<infer D, any> ? D : never;
   export type Key<T extends Table<any, any>> = T extends Table<any, infer K> ? K : never;
-  export type HashKeyName<T extends Table<any, any>> = DDB.HashKeyName<Data<T>, Key<T>>;
-  export type SortKeyName<T extends Table<any, any>> = DDB.SortKeyName<Data<T>, Key<T>>;
 }
