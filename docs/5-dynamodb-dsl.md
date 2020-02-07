@@ -10,9 +10,10 @@ class TableRecord extends Record({
 }) {}
 
 const table = new DynamoDB.Table(stack, 'my-table', {
-  key: 'id',
-  attributes: TableRecord
-  partitionKey: 'id',
+  data: TableRecord
+  key: {
+    partition: 'id'
+  }
 }, Build.lazy(() => ({
   billingMode: BillingMode.PAY_PER_REQUEST
 })));
@@ -22,7 +23,7 @@ const table = new DynamoDB.Table(stack, 'my-table', {
 The Table API is derived from the definition encoded within the `DynamoDB.Table` type, containing the partition key (`'id'`), sort key (`undefined`) and the `Shape` of an item.
 
 ```ts
-DynamoDB.Table<TableRecord, 'id'>
+DynamoDB.Table<TableRecord, { partition: 'id' }>
 ```
 This model enables a dynamic interface to DynamoDB while also maintaining type-safety.
 
@@ -30,7 +31,9 @@ This model enables a dynamic interface to DynamoDB while also maintaining type-s
 When getting an item from DynamoDB, there is no need to use `AttributeValues` such as `{ S: 'my string' }`. You simply use ordinary javascript types:
 
 ```ts
-const item = await table.get('state');
+const item = await table.get({
+  id: 'state'
+});
 item.id; // string
 item.count; // number
 //item.missing // does not compile
@@ -77,7 +80,9 @@ Which automatically (and safely) renders the following expression:
 
 Build **Update Expressions** by assembling an array of `actions`:
 ```ts
-await table.update('state', {
+await table.update({
+  id: 'state'
+}, {
   actions: _ => [
     _.count.increment(1)
   ]
@@ -104,20 +109,26 @@ Which automaticlaly (and safely) renders the following expression:
 If you also specified a `sortKey` for your Table:
 ```ts
 const table = new DynamoDB.Table(stack, 'my-table', {
-  key: ['id', 'count'] // specify a sortKey with a tuple
-  attributes: TableRecord
+  data: TableRecord,
+  key: {
+    partition: 'id',
+    sort: 'count'
+  }
 });
 ```
 
 *(Where the Table type looks like this)*
 ```ts
-DynamoDB.Table<TableRecord, ['id', 'count']>
+DynamoDB.Table<TableRecord, { partition: 'id', sort: 'count' }>
 ```
 
 Then, you can also build typesafe **Query Expressions**:
 
 ```ts
-await table.query(['id', _ => _.greaterThan(1)]);
+await table.query({
+  id: 'id',
+  count: _ => _.greaterThan(1)
+});
 ```
 
 Which automatically (and safely) renders the following low-level expression:

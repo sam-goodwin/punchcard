@@ -95,15 +95,19 @@ class TableRecord extends Record({
 
 // table of TableRecord, with a single hash-key: 'id'
 const table = new DynamoDB.Table(stack, 'my-table', {
-  key: 'id',
-  attributes: TableRecord
+  data: TableRecord
+  key: {
+    partition: 'id'
+  }
 });
 ```
 
 Now, when getting an item from DynamoDB, there is no need to use `AttributeValues` such as `{ S: 'my string' }`, like you would when using the low-level `aws-sdk`. You simply use ordinary javascript types:
 
 ```ts
-const item = await table.get('state');
+const item = await table.get({
+  id: 'state'
+});
 ```
 
 The interface is statically typed and derived from the definition of the `Table` - we specified the `partitionKey` as the `id` field which has type `string`, and so the object passed to the `get` method must correspond.
@@ -120,10 +124,15 @@ await table.put(new TableRecord({
 });
 
 // increment the count property by 1 if it is less than 0
-await table.update('state', {
+await table.update({
+  // value of the partition key
+  id: 'state'
+}, {
+  // use the DSL to construt an array of update actions
   actions: _ => [
     _.count.increment(1)
   ],
+  // optional: use the DSL to construct a conditional expression for the update
   if: _ => _.id.lessThan(0)
 });
 ```
@@ -132,15 +141,24 @@ To also specify `sortKey`, use a tuple of `TableRecord's` keys:
 
 ```ts
 const table = new DynamoDB.Table(stack, 'my-table',{
-  attributes: TableRecord,
-  key: ['id', 'count']
+  data: TableRecord,
+  key: {
+    partition: 'id',
+    sort: 'count'
+  }
 });
 ```
 
 Now, you can also build typesafe query expressions:
 
 ```ts
-await table.query(['id', _ => _.count.greaterThan(1)], {
+await table.query({
+  // id is the partition key, so we must provide a literal value
+  id: 'id',
+  // count is the sort key, so use the DSL to construct the sort-key condition
+  count: _ => _.greaterThan(1)
+}, {
+  // optional: use the DSL to construct a filter expression
   filter: _ => _.count.lessThan(0)
 })
 ```

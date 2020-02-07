@@ -1,4 +1,4 @@
-import { OptionalKeys, RecordType, RequiredKeys } from '@punchcard/shape';
+import { isOptional, RecordType, RequiredKeys } from '@punchcard/shape';
 import { HashSet, Mapper, ValidatingMapper, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
@@ -58,9 +58,16 @@ declare module '@punchcard/shape/lib/collection' {
 declare module '@punchcard/shape/lib/record' {
   export interface RecordShape<M extends RecordMembers, I extends any> {
     [Tag]: {
-      [member in RequiredKeys<this['Members']>]: this['Members'][member]['Shape'][Tag];
+      /**
+       * Write each member and their documentation to the structure.
+       * Write them all as '?' for now.
+       */
+      [m in keyof M]+?: Json.Of<M[m]>;
     } & {
-      [member in OptionalKeys<this['Members']>]+?: this['Members'][member]['Shape'][Tag];
+      /**
+       * Remove '?' from required properties.
+       */
+      [m in RequiredKeys<M>]-?: Json.Of<M[m]>;
     };
   }
 }
@@ -72,10 +79,29 @@ export namespace Json {
   }
 
   export function mapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json.Of<T>> {
-    let mapper = (Shape.of(type) as any).visit(options.visitor || new MapperVisitor());
+    const shape = Shape.of(type) as any;
+    let mapper = (shape as any).visit(options.visitor || new MapperVisitor());
     if (options.validate === true) {
       mapper = ValidatingMapper.of(type, mapper);
     }
+
+    if (isOptional(shape)) {
+      return {
+        read: (v: any) => {
+          if (v === undefined || v === null) {
+            return v;
+          }
+          return mapper.read(v);
+        },
+        write: (v: any) => {
+          if (v === undefined || v === null) {
+            return v;
+          }
+          return mapper.write(v);
+        }
+      };
+    }
+
     return mapper;
   }
 

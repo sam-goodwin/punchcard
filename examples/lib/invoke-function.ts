@@ -19,8 +19,10 @@ class TableRecord extends Record({
 }) {}
 
 const table = new DynamoDB.Table(stack, 'my-table', {
-  attributes: TableRecord,
-  key: 'id'
+  data: TableRecord,
+  key: {
+    partition: 'id'
+  }
 }, Build.of({
   billingMode: BillingMode.PAY_PER_REQUEST
 }));
@@ -38,12 +40,16 @@ const incrementer = new Lambda.Function(stack, 'Callable', {
   depends: table.readWriteAccess(),
 }, async (request, table) => {
   console.log(request);
-  const item = await table.get(request.id);
+  const item = await table.get({
+    id: request.id
+  });
 
   let newCount: number;
   if (item) {
     newCount = item.count + 1;
-    await table.update(request.id, {
+    await table.update({
+      id: request.id
+    }, {
       actions: item => [
         item.count.increment(1),
       ]

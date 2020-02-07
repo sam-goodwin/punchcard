@@ -45,13 +45,13 @@ class MyType {
 }
 ```
 
-But this is unfortunately redundant: we're defining the type twice!
+But this is unfortunately redundant. We're defining the type twice!
 
 # Shapes
 
-Punchcard Shapes is another workaround, except it eliminates the above redundancy while also supporting type-level machinery such as [conditional types](https://www.typescriptlang.org/docs/handbook/advanced-types.html#conditional-types) and [mapped types](https://www.typescriptlang.org/docs/handbook/advanced-types.html#mapped-types), which comes in handy when implementing type-safe ORMs and DSLs.
+Punchcard Shapes is another workaround, except it eliminates the above redundancy while also supporting advanced type-level machinery such as [conditional types](https://www.typescriptlang.org/docs/handbook/advanced-types.html#conditional-types) and [mapped types](https://www.typescriptlang.org/docs/handbook/advanced-types.html#mapped-types), which comes in handy when implementing type-safe ORMs and DSLs.
 
-Types are constructed in the same way as ordinary data in JavaScript:
+Types are constructed in the same way as ordinary data in JavaScript!
 
 ```ts
 class MyType extends Record({
@@ -73,7 +73,7 @@ const myType = new MyType({
 ```
 
 ## Static Reflection
-The `MyType` class has a static reference to the record's member's type information:
+The `MyType` class has a static reference to the record's type information:
 ```ts
 MyType.members.items; // ArrayShape<StringShape>
 ```
@@ -103,7 +103,7 @@ Decorators in TypeScript can only be declared on top-level declarations, so we c
 
 ```ts
 class MyType extends Record({
-  @Decorator() // not possible
+  @Decorator() // not possible, bummer
   items: array(string)
 }) {}
 ```
@@ -136,18 +136,21 @@ For example, the minimum value of an integer can be annotated on the type and us
 
 ```ts
 class MyType extends Record({
-  myNumber: integer.apply(Minimum(0))
+  myNumber: integer
+    .apply(Minimum(0))
 }) {}
 MyType.members.myNumber;
 // is of type:
 NumberShape & {
-  [import('@punchcard/shape').Trait.Data]: {
+  [import('@punchcard/shape').Decorated.Data]: {
     minimum: 0
   }
 }
 ```
 
-Then, using conditional types, we could vary behavior of a DSL derived from this type:
+The metadata is made available on the shape with the `Decorated.Data` symbol.
+
+Then, using conditional types, we can vary behavior of a DSL derived from this type:
 ```ts
 type ChangeBehavior<T> =
   T extends Decorated<any, {minimum: 0}> ?
@@ -157,7 +160,7 @@ type ChangeBehavior<T> =
 ```
 
 ## Validation
-Traits are used to annotate records with validation information. Common use-cases such as:
+Traits are used to annotate records with validation information. Common use-cases include:
 
 ### `Optional` - mark a member as optional, equivalent to `?` in TS.
 ```ts

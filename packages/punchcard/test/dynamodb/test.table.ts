@@ -6,11 +6,12 @@ import sinon = require('sinon');
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
-import { array, binary, integer, map, Optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
+import { array, binary, integer, map, number, Optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
 import { bigint, double, float, smallint, tinyint } from '@punchcard/shape-hive';
 import { Core, DynamoDB } from '../../lib';
 import { Build } from '../../lib/core/build';
 import { Run } from '../../lib/core/run';
+import { Index } from '../../lib/dynamodb/table-index';
 
 class Struct extends Record({
   key: string
@@ -139,10 +140,12 @@ describe('DynamoDB.Table', () => {
         key: type
       }) {}
       const table = new DynamoDB.Table(stack, 'table', {
-        attributes: Data,
-        key: 'key'
+        data: Data,
+        key: {
+          partition: 'key'
+        }
       });
-      expect(table.key).toEqual('key');
+      expect(table.key).toEqual({partition: 'key'});
       Build.resolve(table.resource);
     });
   });
@@ -153,8 +156,10 @@ describe('DynamoDB.Table', () => {
       key: string
     }) {}
     return new DynamoDB.Table(stack, 'table', {
-      attributes: Data,
-      key: 'key'
+      data: Data,
+      key: {
+        partition: 'key'
+      }
     });
   }
   describe('install', () => {
@@ -173,10 +178,16 @@ describe('SortedTable', () => {
         sortKey: type
       }) {}
       const table = new DynamoDB.Table(stack, 'table', {
-        attributes: Data,
-        key: ['key', 'sortKey']
+        data: Data,
+        key: {
+          partition: 'key',
+          sort: 'sortKey'
+        }
       });
-      expect(table.key).toEqual(['key', 'sortKey']);
+      expect(table.key).toEqual({
+        partition: 'key',
+        sort: 'sortKey'
+      });
       Build.resolve(table.resource);
     });
   });
@@ -186,8 +197,11 @@ describe('SortedTable', () => {
       sortKey: string
     }) {}
     const table = new DynamoDB.Table(stack, 'table', {
-      attributes: Data,
-      key: ['key', 'sortKey']
+      data: Data,
+      key: {
+        partition: 'key',
+        sort: 'sortKey'
+      }
     });
     Build.resolve(table.resource);
     return table;
@@ -197,5 +211,65 @@ describe('SortedTable', () => {
   });
   describe('bootstrap', () => {
     bootstrapTests(boringTable);
+  });
+});
+
+describe('gloal secondary index', () => {
+  it('should', () => {
+    const stack = Build.of(new core.Stack(new core.App(), 'stack'));
+    class Data extends Record({
+      /**
+       * Docs
+       */
+      a: integer,
+      b: number,
+      c: timestamp,
+      d: map(string),
+    }) {}
+
+    const table = new DynamoDB.Table(stack, 'table', {
+      data: Data,
+      key: {
+        partition: 'a',
+        sort: 'b'
+      }
+    });
+
+    class DataProjection extends Data.Pick(['a', 'b', 'c']) {}
+
+    const successfulProjection = table
+      .projectTo(DataProjection)
+      .globalIndex({
+        indexName: 'name',
+        key: {
+          partition: 'a',
+          sort: 'c'
+        }
+      });
+
+    // this does not compile since it is an invalid projection
+    // class IncompatibleProjection extends Record({z: string}) {}
+    // const failsCompileCheck = table.projectTo(IncompatibleProjection).globalIndex({
+    //   indexName: 'illegal',
+    //   key: {
+    //     partition: 'z'
+    //   },
+    // });
+
+    const i2 = table.globalIndex({
+      indexName: 'project-sorted',
+      key: {
+        partition: 'a',
+        sort: 'c'
+      },
+    });
+
+    class HashedByA extends Data.Pick(['a', 'b']) {}
+    table.projectTo(HashedByA).globalIndex({
+      indexName: 'project-hashed',
+      key: {
+        partition: 'a'
+      },
+    });
   });
 });

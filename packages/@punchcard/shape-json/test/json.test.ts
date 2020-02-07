@@ -1,6 +1,6 @@
 import 'jest';
 
-import { bool, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, Optional, Pattern, Record, string } from '@punchcard/shape';
+import { bool, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, Optional, optional, Pattern, Record, string } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import { Json } from '../lib';
@@ -39,6 +39,7 @@ class MyType extends Record({
   complexMap: map(Nested),
 
   null: nothing,
+  optional: optional(string)
 }) {}
 
 const mapper = Json.mapper(MyType);

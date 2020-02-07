@@ -31,9 +31,6 @@ it('should read attribute values', () => {
           key: complexValue
         }
       },
-      count: {
-        N: '1.1'
-      },
       integer: {
         N: '1'
       },
@@ -91,7 +88,6 @@ it('should read attribute values', () => {
         a: 'complex value'
       })
     },
-    count: 1.1,
     integer: 1,
     bool: true,
     ts: new Date(0),

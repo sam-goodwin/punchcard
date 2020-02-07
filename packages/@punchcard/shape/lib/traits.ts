@@ -1,4 +1,4 @@
-import { Apply, Trait } from './metadata';
+import { Apply, Decorated, Trait } from './metadata';
 import { RecordType } from './record';
 import { Shape } from './shape';
 
@@ -15,6 +15,9 @@ export const Optional: Trait<any, IsOptional> = {
 export type IsOptional = {
   nullable: true
 };
+export function isOptional(a: any) {
+  return a[Decorated.Data] && a[Decorated.Data].nullable === true;
+}
 
 /**
  * Helper for constructing Optional shapes.

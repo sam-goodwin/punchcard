@@ -18,8 +18,10 @@ class PetRecord extends Record({
 }) {}
 
 const petStore = new DynamoDB.Table(stack, 'pet-store', {
-  key: 'id',
-  attributes: PetRecord
+  data: PetRecord,
+  key: {
+    partition: 'id'
+  }
 });
 
 const executorService = new Lambda.ExecutorService({
@@ -47,7 +49,7 @@ pets.setGetMethod({
     shape: EmptyPayload
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: array(petStore.attributesType),
+    [ApiGateway.StatusCode.Ok]: array(petStore.dataType),
     [ApiGateway.StatusCode.InternalError]: Shape.of(ErrorResponse)
   },
   handle: async (_, petStore) => {
@@ -69,12 +71,12 @@ pet.setGetMethod({
     }
   },
   responses: {
-    [ApiGateway.StatusCode.Ok]: petStore.attributesShape,
+    [ApiGateway.StatusCode.Ok]: petStore.dataShape,
     [ApiGateway.StatusCode.NotFound]: string,
     [ApiGateway.StatusCode.InternalError]: Shape.of(ErrorResponse)
   },
   handle: async ({id}, petStore) => {
-    const item = await petStore.get(id);
+    const item = await petStore.get({id});
     if (item === undefined) {
       return ApiGateway.response(ApiGateway.StatusCode.NotFound, id);
     }

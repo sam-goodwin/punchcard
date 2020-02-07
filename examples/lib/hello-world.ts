@@ -21,10 +21,14 @@ class Counter extends Record({
   count: integer
 }) {}
 
+// create a table to store counts for a key
 const hashTable = new DynamoDB.Table(stack, 'Table', {
-  key: 'key',
-  attributes: Counter,
+  data: Counter,
+  key: {
+    partition: 'key'
+  },
 });
+
 
 const queue = new SQS.Queue(stack, 'queue', {
   shape: Counter
@@ -39,17 +43,25 @@ Lambda.schedule(stack, 'MyFunction', {
 }, async (_, [hashTable, queue]) => {
   console.log('Hello, World!');
 
-  let rateType = await hashTable.get('key');
+  // lookup the rate type
+  let rateType = await hashTable.get({
+    key: 'key'
+  });
   if (rateType === undefined) {
     rateType = new Counter({
       key: 'key',
       count: 0
     });
+    // put it with initial value if it doesn't exist
     await hashTable.put(rateType);
-  } 
+  }
 
   await queue.sendMessage(rateType);
-  await hashTable.update('key', {
+
+  // increment the counter by 1
+  await hashTable.update({
+    key: 'key'
+  }, {
     actions: _ => [
       _.count.increment()
     ]

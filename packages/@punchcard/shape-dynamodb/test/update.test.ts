@@ -27,7 +27,7 @@ test('repeated clauses', () => {
     _.id.set('value'),
     _.id.set('value'),
   ])).toEqual({
-    UpdateExpression: 'SET #1=:1 SET #1=:2',
+    UpdateExpression: 'SET #1=:1, #1=:2',
     ExpressionAttributeNames: {
       '#1': 'id'
     },

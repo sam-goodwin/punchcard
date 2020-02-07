@@ -392,27 +392,10 @@ Object {
           "Ref": "AWS::AccountId",
         },
         "DatabaseInput": Object {
-          "LocationUri": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "s3://",
-                Object {
-                  "Ref": "LakeDatabaseBucketE18A52BB",
-                },
-                "/my_lake",
-              ],
-            ],
-          },
           "Name": "my_lake",
         },
       },
       "Type": "AWS::Glue::Database",
-    },
-    "LakeDatabaseBucketE18A52BB": Object {
-      "DeletionPolicy": "Retain",
-      "Type": "AWS::S3::Bucket",
-      "UpdateReplacePolicy": "Retain",
     },
     "LakeDatabasedataPointsBucketB080069E": Object {
       "DeletionPolicy": "Retain",
@@ -1363,6 +1346,287 @@ Object {
       },
       "Type": "AWS::DynamoDB::Table",
       "UpdateReplacePolicy": "Retain",
+    },
+  },
+}
+`;
+
+exports[`game-score-service stack game-score-service should match snapshot 1`] = `
+Object {
+  "Resources": Object {
+    "GetTopNC659863B": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "2",
+            "is_runtime": "true",
+            "punchcard_indexName": "high-scores",
+            "punchcard_tableName": Object {
+              "Ref": "ScoreStore37F34C0E",
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "MemorySize": 256,
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "GetTopNServiceRole4A9A8699",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "GetTopNServiceRole4A9A8699": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "GetTopNServiceRoleDefaultPolicyC559803E": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "ScoreStore37F34C0E",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Fn::Join": Array [
+                    "",
+                    Array [
+                      Object {
+                        "Fn::GetAtt": Array [
+                          "ScoreStore37F34C0E",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "GetTopNServiceRoleDefaultPolicyC559803E",
+        "Roles": Array [
+          Object {
+            "Ref": "GetTopNServiceRole4A9A8699",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "ScoreStore37F34C0E": Object {
+      "DeletionPolicy": "Retain",
+      "Properties": Object {
+        "AttributeDefinitions": Array [
+          Object {
+            "AttributeName": "userId",
+            "AttributeType": "S",
+          },
+          Object {
+            "AttributeName": "gameTitle",
+            "AttributeType": "S",
+          },
+          Object {
+            "AttributeName": "topScore",
+            "AttributeType": "N",
+          },
+        ],
+        "GlobalSecondaryIndexes": Array [
+          Object {
+            "IndexName": "high-scores",
+            "KeySchema": Array [
+              Object {
+                "AttributeName": "gameTitle",
+                "KeyType": "HASH",
+              },
+              Object {
+                "AttributeName": "topScore",
+                "KeyType": "RANGE",
+              },
+            ],
+            "Projection": Object {
+              "ProjectionType": "ALL",
+            },
+            "ProvisionedThroughput": Object {
+              "ReadCapacityUnits": 5,
+              "WriteCapacityUnits": 5,
+            },
+          },
+        ],
+        "KeySchema": Array [
+          Object {
+            "AttributeName": "userId",
+            "KeyType": "HASH",
+          },
+          Object {
+            "AttributeName": "gameTitle",
+            "KeyType": "RANGE",
+          },
+        ],
+        "ProvisionedThroughput": Object {
+          "ReadCapacityUnits": 5,
+          "WriteCapacityUnits": 5,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "SubmitScore55BB32E4": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "1",
+            "is_runtime": "true",
+            "punchcard_tableName": Object {
+              "Ref": "ScoreStore37F34C0E",
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "MemorySize": 256,
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "SubmitScoreServiceRole9FD5C776",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "SubmitScoreServiceRole9FD5C776": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "SubmitScoreServiceRoleDefaultPolicy70E0CBA9": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "ScoreStore37F34C0E",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Fn::Join": Array [
+                    "",
+                    Array [
+                      Object {
+                        "Fn::GetAtt": Array [
+                          "ScoreStore37F34C0E",
+                          "Arn",
+                        ],
+                      },
+                      "/index/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "SubmitScoreServiceRoleDefaultPolicy70E0CBA9",
+        "Roles": Array [
+          Object {
+            "Ref": "SubmitScoreServiceRole9FD5C776",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
     },
   },
 }
@@ -3249,27 +3513,10 @@ Object {
           "Ref": "AWS::AccountId",
         },
         "DatabaseInput": Object {
-          "LocationUri": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "s3://",
-                Object {
-                  "Ref": "DatabaseBucket318AF64F",
-                },
-                "/my_database",
-              ],
-            ],
-          },
           "Name": "my_database",
         },
       },
       "Type": "AWS::Glue::Database",
-    },
-    "DatabaseBucket318AF64F": Object {
-      "DeletionPolicy": "Retain",
-      "Type": "AWS::S3::Bucket",
-      "UpdateReplacePolicy": "Retain",
     },
     "DummyData3BBFD842": Object {
       "Properties": Object {

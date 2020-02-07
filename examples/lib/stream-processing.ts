@@ -46,8 +46,10 @@ class TagLookupRecord extends Record({
  * Create a DynamoDB Table to store `TagLookupRecord` records.
  */
 const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
-  key: 'key',
-  attributes: TagLookupRecord,
+  data: TagLookupRecord,
+  key: {
+    partition: 'key'
+  },
 }, Build.lazy(() => ({
   billingMode: BillingMode.PAY_PER_REQUEST
 })));
@@ -136,7 +138,9 @@ const stream = queue.messages() // gives us a nice chainable API
     depends: enrichments.readAccess(),
   }, async(message, e) => {
     // here we transform messages received from SQS by looking up some data in DynamoDB
-    const enrichment = await e.get(message.key);
+    const enrichment = await e.get({
+      key: message.key
+    });
 
     return new LogDataRecord({
       ...message,

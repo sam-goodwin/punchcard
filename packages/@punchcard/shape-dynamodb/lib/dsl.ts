@@ -225,8 +225,8 @@ export namespace DSL {
       return new Number(new FunctionCall('size', number, [this]));
     }
 
-    public set(value: Expression<T> | Computation<T>): Object.Assign<T> {
-      return new Object.Assign(this, resolveExpression(this[DataType], value));
+    public set(value: Expression<T> | Computation<T>): Action {
+      return new Action(ActionType.SET, new Object.Assign(this, resolveExpression(this[DataType], value)));
     }
 
     public exists(): Bool {
@@ -250,7 +250,6 @@ export namespace DSL {
       }
 
       public [Synthesize](writer: Writer): void {
-        writer.writeToken('SET ');
         this.instance[Synthesize](writer);
         writer.writeToken('=');
         this.value[Synthesize](writer);
@@ -450,31 +449,11 @@ export namespace DSL {
     }
   }
 
-  abstract class Action<T extends Shape> extends StatementNode {
-    public abstract readonly actionName: string;
-
-    public [Synthesize](writer: Writer): void {
-      writer.writeToken(`${this.actionName} `);
-      this.synthesizeAction(writer);
-    }
-
-    protected abstract synthesizeAction(writer: Writer): void;
+  export enum ActionType {
+    SET = 'SET'
   }
-  export class SetAction<T extends Shape> extends Action<T> {
-    public [SubNodeType]: string;
-    public [SubNodeType] = 'set-action';
-
-    public readonly actionName: 'SET' = 'SET';
-
-    constructor(public readonly path: ExpressionNode<T>, public readonly value: ExpressionNode<T>) {
-      super();
-    }
-
-    protected synthesizeAction(writer: Writer): void {
-      this.path[Synthesize](writer);
-      writer.writeToken('=');
-      this.value[Synthesize](writer);
-    }
+  export class Action {
+    constructor(public readonly actionType: ActionType, public readonly statement: StatementNode) {}
   }
 
   /**
@@ -550,12 +529,12 @@ export namespace DSL {
       return this[DataType].Items.visit(DSL.DslVisitor as any, new List.Item(this, resolveExpression(number, index)));
     }
 
-    public push(item: Expression<T>): SetAction<T> {
-      return new SetAction(this.get(1) as any, resolveExpression(this[DataType].Items, item));
+    public push(item: Expression<T>): Action {
+      return new Action(ActionType.SET, new Object.Assign(this.get(1) as any, resolveExpression(this[DataType].Items, item)));
     }
 
-    public concat(list: Expression<ArrayShape<T>>): SetAction<ArrayShape<T>> {
-      return new SetAction(this, new List.Append(this, resolveExpression(this[DataType], list) as List<T>));
+    public concat(list: Expression<ArrayShape<T>>): Action {
+      return new Action(ActionType.SET, new Object.Assign(this, new List.Append(this, resolveExpression(this[DataType], list) as List<T>)));
     }
   }
   export namespace List {
@@ -604,8 +583,8 @@ export namespace DSL {
     public get(key: Expression<StringShape>): Of<T> {
       return this[DataType].Items.visit(DSL.DslVisitor as any, typeof key === 'string' ? new Map.GetValue(this, new Id(key)) as any : new Map.GetValue(this, resolveExpression(string, key)));
     }
-    public put(key: Expression<StringShape>, value: Expression<T>) {
-      return new SetAction(this.get(key) as ExpressionNode<T>, resolveExpression(this[DataType].Items, value));
+    public put(key: Expression<StringShape>, value: Expression<T>): Action {
+      return new Action(ActionType.SET, new Object.Assign(this.get(key) as any, resolveExpression(this[DataType].Items, value)));
     }
   }
   export namespace Map {
