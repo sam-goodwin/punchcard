@@ -108,6 +108,7 @@ const submitScore = new Lambda.Function(stack, 'SubmitScore', {
 
   async function update() {
     const gameScore = await highScores.get(key);
+    console.log('got game score', gameScore);
     if (gameScore) {
       try {
         /**
@@ -125,15 +126,19 @@ const submitScore = new Lambda.Function(stack, 'SubmitScore', {
           actions: _ => [
             _.losses.increment(request.victory ? 0 : 1),
             _.wins.increment(request.victory ? 1 : 0),
-            _.topScore.set(request.score > gameScore.topScore ? request.score : gameScore.topScore)
+            _.topScore.set(request.score > gameScore.topScore ? request.score : gameScore.topScore),
+            _.version.increment()
           ]
         });
       } catch (err) {
+        console.error(err);
         if (err.code === 'ConditionCheckFailedException') {
           /**
            * Record was concurrently modified - start again.
            */
           await update();
+        } else {
+          throw err;
         }
       }
     } else {
@@ -233,7 +238,8 @@ const getHighScores = new Lambda.Function(stack, 'GetTopN', {
       topScore: _ => _.greaterThan(0)
     }, {
       Limit: numberToFetch,
-      ExclusiveStartKey: LastEvaluatedKey
+      ExclusiveStartKey: LastEvaluatedKey,
+      ScanIndexForward: false
     });
 
     scores = scores.concat(nextScores.Items!);

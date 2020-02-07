@@ -13,11 +13,26 @@ import { DDB, IndexClient } from '@punchcard/shape-dynamodb';
 import { Table } from './table';
 import { getKeyNames, keyType } from './util';
 
-export interface IndexProps<T extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>> {
-  sourceTable: T;
+export interface IndexProps<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>> {
+  /**
+   * Table this index is for.
+   */
+  sourceTable: SourceTable;
+  /**
+   * Name of the Index.
+   */
   indexName: string;
+  /**
+   * Type of data projected from the SourceTable
+   */
   projection: Projection;
+  /**
+   * The key by which the Index will be queried.
+   */
   key: Key;
+  /**
+   * Typeof index: `global` or `local`.
+   */
   indexType: 'global' | 'local';
 }
 
@@ -50,38 +65,42 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
    */
   public readonly indexName: string;
 
+  /**
+   * Type of index (`global` or `local`).
+   */
+  public readonly indexType: 'global' | 'local';
+
   constructor(props: IndexProps<SourceTable, Projection, Key>) {
+    this.indexName = props.indexName;
+    this.indexType = props.indexType;
     this.sourceTable = props.sourceTable;
-    if (!props.projection) {
-      props.projection = this.projection as any;
-    }
+    this.key = props.key;
+    this.projection = props.projection || props.sourceTable.dataShape;
+    this.projectionShape = Shape.of(this.projection) as any;
 
-    const type: any = props.projection;
-
-    const [partitionKeyName, sortKeyName] = getKeyNames<Projection>(props.key);
+    const type: any = this.projection;
 
     this.sourceTable.resource.map(table => {
       const partitionKey = {
-        name: partitionKeyName,
-        type: keyType(type[partitionKeyName])
+        name: this.key.partition,
+        type: keyType(type.members[this.key.partition])
       };
-      const sortKey = sortKeyName ? {
-        name: sortKeyName,
-        type: keyType(type[sortKeyName])
+      const sortKey = this.key.sort ? {
+        name: this.key.sort,
+        type: keyType(type.members[this.key.sort])
       } : undefined;
 
       // the names of both the table and the index's partition+sort keys.
       // projections are required to at least have these properties
       const KEY_MEMBERS = new Set([
-        ...(typeof props.sourceTable.key === 'string' ? [props.sourceTable.key] : props.sourceTable.key),
-        partitionKeyName,
-        sortKeyName
+        this.key.partition,
+        this.key.sort
       ].filter(_ => _ !== undefined));
 
       // name of the properties in the projection
       const PROJECTION_MEMBERS = new Set(Object.keys(props.projection.members));
       for (const KEY of KEY_MEMBERS.values()) {
-        if (!PROJECTION_MEMBERS.has(KEY)) {
+        if (!PROJECTION_MEMBERS.has(KEY as string)) {
           throw new Error(`invalid projection, missing key: ${KEY}`);
         }
       }
@@ -96,7 +115,7 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
         ;
 
       const definition: any = {
-        indexName: props.indexName,
+        indexName: this.indexName,
         partitionKey,
         sortKey,
         projectionType,
@@ -104,7 +123,7 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
       if (projectionType === ProjectionType.INCLUDE) {
         definition.nonKeyAttributes = Array.from(PROJECTION_MEMBERS.values()).filter(p => !KEY_MEMBERS.has(p));
       }
-      if (props.indexType === 'global') {
+      if (this.indexType === 'global') {
         table.addGlobalSecondaryIndex(definition);
       } else {
         if (definition.sortKey === undefined) {
@@ -114,10 +133,6 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
         table.addLocalSecondaryIndex(definition);
       }
     });
-    this.projection = props.projection;
-    this.projectionShape = Shape.of(props.projection) as any;
-
-    this.key = props.key;
   }
 
   /**
@@ -153,6 +168,9 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
 }
 
 export namespace Index {
+  /**
+   * Constrains an Index to a valid Projection of a SourceTable.
+   */
   export type Of<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>>
     = Index<
         SourceTable,
@@ -160,10 +178,14 @@ export namespace Index {
         Key>;
 
   export interface GlobalProps<Projection extends RecordType, Key extends DDB.KeyOf<Projection>> {
+    /**
+     * Name of the Secondary Index.
+     */
     indexName: string;
-
+    /**
+     * Key by which the Index will be queried.
+     */
     key: Key;
-
     /**
      * Read capacity of the Index.
      */
@@ -175,10 +197,14 @@ export namespace Index {
   }
 
   export interface LocalProps<Projection extends RecordType, Key extends keyof Projection['members']> {
+    /**
+     * Name of the Secondary Index.
+     */
     indexName: string;
-
+    /**
+     * Key by which the Index will be queried.
+     */
     key: Key;
-
     /**
      * Read capacity of the Index.
      */

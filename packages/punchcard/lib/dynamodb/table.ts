@@ -13,15 +13,24 @@ import { Run } from '../core/run';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
+/**
+ * Subset of the CDK's DynamoDB TableProps that can be overriden.
+ */
 export interface TableOverrideProps extends Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'> {}
 
-export interface TableProps<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRecord>> {
+/**
+ * TableProps for creating a new DynamoDB Table.
+ *
+ * @typeparam DataType type of data in the Table.
+ * @typeparam Key partition and optional sort keys of the Table (members of DataType)
+ */
+export interface TableProps<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> {
   /**
-   * Type of Data in the Table.
+   * Type of data in the Table.
    */
-  data: TableRecord;
+  data: DataType;
   /**
-   * Partition and optional Sort key of the Table.
+   * Partition and (optional) Sort Key of the Table.
    */
   key: Key;
 }
@@ -80,10 +89,10 @@ export interface TableProps<TableRecord extends RecordType, Key extends DDB.KeyO
  * })
  * ```
  *
- * @typeparam TableRecord type of data in the table.
+ * @typeparam DataType type of data in the Table.
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
-export class Table<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRecord>> implements Resource<dynamodb.Table> {
+export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> implements Resource<dynamodb.Table> {
   /**
    * The DynamoDB Table Construct.
    */
@@ -92,24 +101,24 @@ export class Table<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRe
   /**
    * RecordType of data in the table.
    */
-  public readonly dataType: TableRecord;
+  public readonly dataType: DataType;
 
   /**
    * Shape of data in the table.
    */
-  public readonly dataShape: Shape.Of<TableRecord>;
+  public readonly dataShape: Shape.Of<DataType>;
 
   /**
    * The table's key (hash key, or hash+sort key pair).
    */
   public readonly key: Key;
 
-  constructor(scope: Build<core.Construct>, id: string, props: TableProps<TableRecord, Key>, buildProps?: Build<TableOverrideProps>) {
+  constructor(scope: Build<core.Construct>, id: string, props: TableProps<DataType, Key>, buildProps?: Build<TableOverrideProps>) {
     this.dataType = props.data;
     this.dataShape = Shape.of(props.data) as any;
 
     this.key = props.key;
-    const [partitionKeyName, sortKeyName] = getKeyNames<TableRecord>(props.key);
+    const [partitionKeyName, sortKeyName] = getKeyNames<DataType>(props.key);
 
     this.resource = (buildProps || Build.of({})).chain(extraTableProps => scope.map(scope => {
       return new dynamodb.Table(scope, id, {
@@ -126,25 +135,42 @@ export class Table<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRe
     }));
   }
 
-  public get partitionKeyName(): DDB.HashKeyName<Key> {
-    return this.key.partition as any;
-  }
-
-  public get sortKeyName(): DDB.SortKeyName<Key> {
-    return this.key.sort as any;
-  }
-
-  public projectTo<Projection extends RecordType>(projection: AssertValidProjection<TableRecord, Projection>): Projected<this, Projection> {
+  /**
+   * Project this table to a subset of its properties.
+   *
+   * Best done by "Picking" properties from the table's RecordType:
+   * ```ts
+   * class TableData extends Record({
+   *   a: string,
+   *   b: string,
+   *   c: string,
+   *   d: string,
+   * }) {}
+   * const table = new DynamoDB.Table(.., {
+   *   data: TableData,
+   *   // etc.
+   * }});
+   *
+   * const TableProjection extends TableData.Pick(['a', 'b']) {}
+   *
+   * table.projectTo(TableProjection)
+   * ```
+   * @param projection type of projected data (subset of the Table's properties)
+   */
+  public projectTo<Projection extends RecordType>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
     return new Projected(this, projection) as any;
   }
 
   /**
-   * Creates a global index that projects ALL attributes
-   * @param props
+   * Creates a global index that projects ALL attributes.
+   *
+   * To create a projected gobal index, first call `projectTo` on this table.
+   *
+   * @param props Global Index props such as name and key information.
    */
-  public globalIndex<IndexKey extends DDB.KeyOf<TableRecord>>(
-      props: Index.GlobalProps<TableRecord, IndexKey>):
-        Index.Of<this, TableRecord, IndexKey> {
+  public globalIndex<IndexKey extends DDB.KeyOf<DataType>>(
+      props: Index.GlobalProps<DataType, IndexKey>):
+        Index.Of<this, DataType, IndexKey> {
     return new Index({
       indexType: 'global',
       indexName: props.indexName,
@@ -157,21 +183,21 @@ export class Table<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRe
   /**
    * Take a *read-only* dependency on this table.
    */
-  public readAccess(): Dependency<Table.ReadOnly<TableRecord, Key>> {
+  public readAccess(): Dependency<Table.ReadOnly<DataType, Key>> {
     return this.dependency((t, g) => t.grantReadData(g));
   }
 
   /**
    * Take a *read-write* dependency on this table.
    */
-  public readWriteAccess(): Dependency<Table.ReadWrite<TableRecord, Key>> {
+  public readWriteAccess(): Dependency<Table.ReadWrite<DataType, Key>> {
     return this.dependency((t, g) => t.grantReadWriteData(g));
   }
 
   /**
    * Take a *write-only* dependency on this table.
    */
-  public writeAccess(): Dependency<Table.WriteOnly<TableRecord, Key>> {
+  public writeAccess(): Dependency<Table.WriteOnly<DataType, Key>> {
     return this.dependency((t, g) => t.grantWriteData(g));
   }
 
@@ -180,11 +206,11 @@ export class Table<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRe
    *
    * TODO: return type of Table.FullAccessClient?
    */
-  public fullAccess(): Dependency<Table.ReadWrite<TableRecord, Key>> {
+  public fullAccess(): Dependency<Table.ReadWrite<DataType, Key>> {
     return this.dependency((t, g) => t.grantFullAccess(g));
   }
 
-  private dependency(grant: (table: dynamodb.Table, grantable: iam.IGrantable) => void): Dependency<TableClient<TableRecord, Key>> {
+  private dependency(grant: (table: dynamodb.Table, grantable: iam.IGrantable) => void): Dependency<TableClient<DataType, Key>> {
     return {
       install: this.resource.map(table => (ns, grantable) => {
         ns.set('tableName', table.tableName);
@@ -198,24 +224,6 @@ export class Table<TableRecord extends RecordType, Key extends DDB.KeyOf<TableRe
           client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())
         }))
     };
-  }
-}
-
-type AssertValidProjection<T extends RecordType, P extends RecordType> = T['members'] extends P['members'] ? P : never;
-
-export class Projected<SourceTable extends Table<any, any>, Projection extends RecordType> {
-  constructor(public readonly sourceTable: SourceTable, public readonly projection: Projection) {}
-
-  public globalIndex<IndexKey extends DDB.KeyOf<Projection>>(
-      props: Index.GlobalProps<Projection, IndexKey>):
-        Index.Of<SourceTable, Projection, IndexKey> {
-    return new Index({
-      indexName: props.indexName,
-      indexType: 'global',
-      key: props.key,
-      projection: this.projection,
-      sourceTable: this.sourceTable
-    }) as any;
   }
 }
 
@@ -243,4 +251,30 @@ export namespace Table {
 export namespace Table {
   export type Data<T extends Table<any, any>> = T extends Table<infer D, any> ? D : never;
   export type Key<T extends Table<any, any>> = T extends Table<any, infer K> ? K : never;
+}
+
+type AssertValidProjection<T extends RecordType, P extends RecordType> = T['members'] extends P['members'] ? P : never;
+
+/**
+ * Represents a Projection of some DynamoDB Table.
+ *
+ * Used to build projected Secondary Indexes or (todo) Streams.
+ *
+ * @typeparam SourceTable the projected table
+ * @typeparam Projection the type of projected data
+ */
+export class Projected<SourceTable extends Table<any, any>, Projection extends RecordType> {
+  constructor(public readonly sourceTable: SourceTable, public readonly projection: Projection) {}
+
+  public globalIndex<IndexKey extends DDB.KeyOf<Projection>>(
+      props: Index.GlobalProps<Projection, IndexKey>):
+        Index.Of<SourceTable, Projection, IndexKey> {
+    return new Index({
+      indexName: props.indexName,
+      indexType: 'global',
+      key: props.key,
+      projection: this.projection,
+      sourceTable: this.sourceTable
+    }) as any;
+  }
 }

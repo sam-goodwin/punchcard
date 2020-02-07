@@ -1,5 +1,6 @@
 import AWS = require('aws-sdk');
 
+import { isOptional } from '@punchcard/shape';
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
 import { ValidatingMapper } from '@punchcard/shape/lib/mapper';
@@ -23,7 +24,7 @@ export namespace Mapper {
     const shape = Shape.of(type);
 
     if (!options.cache.has(shape)) {
-      let m = resolveShape();
+      let m = resolve();
       if (options.validate) {
         m = ValidatingMapper.of(type, m);
       }
@@ -44,7 +45,29 @@ export namespace Mapper {
       return true;
     }
 
+    function resolve() {
+      const mapper = resolveShape();
+      if (isOptional(shape)) {
+        return {
+          read: (v: any) => {
+            if (v === undefined || v === null) {
+              return v;
+            }
+            return mapper.read(v);
+          },
+          write: (v: any) => {
+            if (v === undefined || v === null) {
+              return v;
+            }
+            return mapper.write(v);
+          }
+        };
+      }
+      return mapper;
+    }
+
     function resolveShape() {
+
       if (ShapeGuards.isRecordShape(shape)) {
         const mappers: {[key: string]: Mapper<any>; } = Object.values(shape.Members)
           .map(m => ({ [m.Name]: Mapper.of(m.Shape, options) }))

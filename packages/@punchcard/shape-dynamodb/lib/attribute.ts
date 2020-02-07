@@ -1,5 +1,5 @@
-import { OptionalKeys, RequiredKeys, Shape } from '@punchcard/shape';
-import { RecordShape, ShapeOrRecord } from '@punchcard/shape/lib/record';
+import { RequiredKeys, Shape } from '@punchcard/shape';
+import { RecordMembers, ShapeOrRecord } from '@punchcard/shape/lib/record';
 
 declare module '@punchcard/shape/lib/shape' {
   export interface Shape {
@@ -46,11 +46,18 @@ export namespace AttributeValue {
       [key: string]: Of<T> | undefined;
     };
   }
-  export interface Struct<T extends RecordShape<any>> {
+  export interface Struct<T extends RecordMembers> {
     M: {
-      [member in RequiredKeys<T['Members']>]: T['Members'][member]['Shape'][AttributeValue.Tag];
+      /**
+       * Write each member and their documentation to the structure.
+       * Write them all as '?' for now.
+       */
+      [M in keyof T]+?: AttributeValue.Of<T[M]>;
     } & {
-      [member in OptionalKeys<T['Members']>]+?: T['Members'][member]['Shape'][AttributeValue.Tag];
+      /**
+       * Remove '?' from required properties.
+       */
+      [M in RequiredKeys<T>]-?: AttributeValue.Of<T[M]>;
     };
   }
   export interface NumberValue {

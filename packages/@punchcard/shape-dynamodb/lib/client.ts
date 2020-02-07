@@ -121,8 +121,12 @@ export class BaseClient<T extends RecordType, K extends DDB.KeyOf<T>> {
       FilterExpression: filterExpr?.Expression,
       ExpressionAttributeNames: queryExpr?.ExpressionAttributeNames,
       ExpressionAttributeValues: queryExpr?.ExpressionAttributeValues,
-      ExclusiveStartKey: props.ExclusiveStartKey === undefined ? undefined : this.writeKey(props.ExclusiveStartKey)
+      ExclusiveStartKey: props.ExclusiveStartKey === undefined ? undefined : this.writeKey(props.ExclusiveStartKey),
+      ScanIndexForward: props.ScanIndexForward
     };
+    if (req.ScanIndexForward === undefined) {
+      delete req.ScanIndexForward;
+    }
     if (req.FilterExpression === undefined) {
       delete req.FilterExpression;
     }
@@ -245,7 +249,7 @@ export class TableClient<T extends RecordType, K extends DDB.KeyOf<T>> extends B
     const req: AWS.DynamoDB.UpdateItemInput = {
       TableName: this.tableName,
       Key: this.writeKey(key),
-      ...(Update.compile(props.actions(this.dsl), writer))
+      ...(Update.compile(props.actions(this.dsl), writer)),
     };
     if (props.if) {
       const expr = Condition.compile(props.if(this.dsl), new Writer(writer.namespace));
@@ -330,11 +334,12 @@ export namespace DDB {
     Limit?: number;
     ExclusiveStartKey?: DDB.KeyValue<T, K>;
     ContinuationToken?: string;
+    ScanIndexForward?: boolean;
   }
 
   export type Condition<T extends RecordType> = (item: DSL.Root<T>) => DSL.Bool;
   export interface Update<T extends RecordType> {
-    actions: (item: DSL.Root<T>) => DSL.StatementNode[];
+    actions: (item: DSL.Root<T>) => DSL.Action[];
     if?: DDB.Condition<T>;
   }
 }

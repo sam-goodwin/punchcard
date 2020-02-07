@@ -14,7 +14,7 @@ for (const app of apps) {
   describe(app, () => {
     Global.clear();
     const a = require(`../lib/${app}`).app.root as Build<cdk.App>;
-    Build.walk(a);
+    Build.walkAll();
     for (const stack of Build.resolve(a).node.children) {
       if (cdk.Stack.isStack(stack)) {
         it(`stack ${app} should match snapshot`, () => {

@@ -22,34 +22,32 @@ export const BUILD: Monad1<URI> = {
 
 const get = Symbol.for('Build.get');
 
-const children = Symbol.for('Build.children');
+const Global = global as any;
+const buildNodes = Symbol.for('Build.nodes');
+
+/**
+ * Store all Build nodes in a global array for easy resolution.
+ *
+ * @param node
+ */
+function add(node: Build<any>) {
+  if (Global[buildNodes] === undefined) {
+    Global[buildNodes] = [];
+  }
+  Global[buildNodes].push(node);
+}
+
+function all() {
+  return Global[buildNodes] || [];
+}
 
 /**
  * The Build-Time Universe. An AST defining Build-Time Infrastructure "Constructs".
  */
 export class Build<A> {
-  public static walk(b: Build<any>): void {
-    // const wm = new WeakSet();
-
-    walk(b);
-
-    function walk(b: Build<any>): void {
-      if (!Build.isBuild(b)) {
-        return;
-      }
-      // if (wm.has(b)) {
-      //   return;
-      // }
-      // wm.add(b);
-      if (b[children]) {
-        for (const child of b[children]) {
-          Build.walk(child);
-        }
-      }
-      const resolved = Build.resolve(b);
-      if (Build.isBuild(resolved)) {
-        Build.walk(resolved);
-      }
+  public static walkAll() {
+    for (const b of all()) {
+      Build.resolve(b);
     }
   }
 
@@ -69,18 +67,12 @@ export class Build<A> {
     return a[get]();
   }
 
-  public static children(a: Build<any>): Array<Build<any>> {
-    return a[children];
-  }
-
   public readonly [get]: IO<A>;
 
-  public readonly [children]: Array<Build<A>> = [];
-
   constructor(_get: IO<A>, public readonly parent?: Build<any>) {
-    if (parent) {
-      parent[children].push(this);
-    }
+    // add this Build instance to the global state
+    add(this);
+
     // memoize
     let isMemoized = false;
     let value: A | undefined;

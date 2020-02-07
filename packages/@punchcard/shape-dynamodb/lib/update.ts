@@ -5,13 +5,22 @@ import { Writer } from './writer';
 export namespace Update {
   export interface Expression extends Pick<AWS.DynamoDB.UpdateItemInput, 'UpdateExpression' | 'ExpressionAttributeNames' | 'ExpressionAttributeValues'> {}
 
-  export function compile(statements: DSL.StatementNode[], writer: Writer = new Writer()): Update.Expression {
-    for (let i = 0; i < statements.length; i++) {
-      statements[i][DSL.Synthesize](writer);
-      if (i + 1 < statements.length) {
-        writer.writeToken(' ');
+  export function compile(actions: DSL.Action[], writer: Writer = new Writer()): Update.Expression {
+    function write(actionType: DSL.ActionType) {
+      const a = actions.filter(a => a.actionType === actionType);
+      if (a) {
+        writer.writeToken(actionType + ' ');
+        a.forEach((action, i) => {
+          action.statement[DSL.Synthesize](writer);
+          if (i + 1 < a.length) {
+            writer.writeToken(', ');
+          }
+        });
       }
     }
+
+    write(DSL.ActionType.SET);
+
     const expr = writer.toExpression();
     const res = {
       UpdateExpression: expr.Expression,

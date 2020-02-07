@@ -148,7 +148,7 @@ test('update', async () => {
       key: { S: 'key' },
       count: { N: '1' },
     },
-    UpdateExpression: 'SET #1[1]=:1 SET #2=:2 SET #3=#3+:3 SET #3=#3+:4',
+    UpdateExpression: 'SET #1[1]=:1, #2=:2, #3=#3+:3, #3=#3+:4',
     ExpressionAttributeNames: {
       '#1': 'list',
       '#2': 'dynamic',
@@ -189,7 +189,7 @@ test('update-if', async () => {
       key: { S: 'key' },
       count: { N: '1' },
     },
-    UpdateExpression: 'SET #1[1]=:1 SET #2=:2 SET #3=#3+:3 SET #3=#3+:4',
+    UpdateExpression: 'SET #1[1]=:1, #2=:2, #3=#3+:3, #3=#3+:4',
     ConditionExpression: 'attribute_exists(#4)',
     ExpressionAttributeNames: {
       '#1': 'list',
