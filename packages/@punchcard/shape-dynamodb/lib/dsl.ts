@@ -320,14 +320,14 @@ export namespace DSL {
 
     export class And extends Operands {
       public readonly operator = 'AND';
-      public [SubNodeType] = 'and';
+      public [SubNodeType]: 'and' = 'and';
     }
     export class Or extends Operands {
       public readonly operator = 'OR';
-      public [SubNodeType] = 'or';
+      public [SubNodeType]: 'or' = 'or';
     }
     export class Not extends ExpressionNode<BoolShape> {
-      public [SubNodeType] = 'or';
+      public [SubNodeType]: 'not' = 'not';
 
       constructor(public readonly operand: ExpressionNode<BoolShape>) {
         super(bool);
@@ -397,12 +397,10 @@ export namespace DSL {
 
       public [Synthesize](writer: Writer): void {
         this.lhs[Synthesize](writer);
-        writer.writeToken('BEGTWEEN');
-        writer.writeToken('(');
+        writer.writeToken(' BETWEEN ');
         this.lowerBound[Synthesize](writer);
-        writer.writeToken(',');
+        writer.writeToken(' AND ');
         this.upperBound[Synthesize](writer);
-        writer.writeToken(')');
       }
     }
   }
@@ -558,7 +556,7 @@ export namespace DSL {
       }
     }
     export class Append<T extends Shape> extends FunctionCall<ArrayShape<T>> {
-      public [SubNodeType]: 'list-concat' = 'list-concat';
+      public [SubNodeType]: 'list-append' = 'list-append';
 
       constructor(public readonly list: List<T>, public readonly values: List<T>) {
         super('list_append', list[DataType], [list, values]);

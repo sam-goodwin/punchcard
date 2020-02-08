@@ -17,7 +17,19 @@ test('stringProperty = stringLiteral', () => {
       }
     },
   });
+});
 
+test('stringProperty BETWEEN a AND b', () => {
+  expect(Condition.compile(_.id.between('a', 'b'))).toEqual({
+    Expression: '#1 BETWEEN :1 AND :2',
+    ExpressionAttributeNames: {
+      '#1': 'id'
+    },
+    ExpressionAttributeValues: {
+      ':1': { S: 'a' },
+      ':2': { S: 'b' }
+    },
+  });
 });
 
 test('array[index] = stringiteral', () => {
