@@ -118,7 +118,7 @@ export type MakeRecordInstance<T extends RecordMembers> = MakeRecordMembers<T> &
   };
 };
 
-export type MakeRecordType<T extends RecordMembers = any> = {
+export type MakeRecordType<T extends RecordMembers = any> = Deriving & {
   /**
    * Static reference to this record's members.
    */
@@ -175,6 +175,10 @@ export type MakeRecordType<T extends RecordMembers = any> = {
    * Constructor takes values for each member.
    */
 } & (new (values: MakeRecordMembers<T>) => MakeRecordInstance<T>);
+
+export interface Deriving {
+  Deriving<D>(f: (t: this) => D): this & D;
+}
 
 /**
  * Dynamically constructs a class using a map of member names to shapes.

@@ -8,7 +8,7 @@ import { Clients } from './client';
 import { Build } from './build';
 import { Run } from './run';
 
-export interface Dependency<D> {
+export interface Dependency<D = any> {
   install: Build<Install>;
   bootstrap: Run<Bootstrap<D>>;
 }

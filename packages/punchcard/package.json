@@ -41,7 +41,8 @@
     "jest": "^24.9.0",
     "sinon": "^8.0.1",
     "tslint": "^5.16.0",
-    "typescript": "^3.7.4"
+    "typescript": "^3.7.5",
+    "typelevel-ts": "0.4.0"
   },
   "dependencies": {
     "@punchcard/constructs": "^0.3.0",
@@ -51,6 +52,7 @@
     "@punchcard/shape-json": "^0.1.0",
     "@punchcard/shape-jsonpath": "^0.1.0",
     "@punchcard/shape-jsonschema": "^0.1.0",
+    "@punchcard/shape-velocity-template": "^0.1.0",
     "@aws-cdk/aws-apigateway": "^1.23.0",
     "@aws-cdk/aws-dynamodb": "^1.23.0",
     "@aws-cdk/aws-events": "^1.23.0",
@@ -74,7 +76,8 @@
     "moment": "^2.24.0",
     "uuid": "^3.3.2",
     "webpack": "^4.31.0",
-    "ts-loader": "^6.2.1"
+    "ts-loader": "^6.2.1",
+    "reflect-metadata": "^0.1.13"
   },
   "peerDependencies": {
     "@punchcard/constructs": "^0.3.0",
@@ -84,6 +87,7 @@
     "@punchcard/shape-json": "^0.1.0",
     "@punchcard/shape-jsonpath": "^0.1.0",
     "@punchcard/shape-jsonschema": "^0.1.0",
+    "@punchcard/shape-velocity-template": "^0.1.0",
     "@aws-cdk/aws-apigateway": "^1.23.0",
     "@aws-cdk/aws-dynamodb": "^1.23.0",
     "@aws-cdk/aws-events": "^1.23.0",

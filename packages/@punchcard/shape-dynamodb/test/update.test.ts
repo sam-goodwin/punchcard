@@ -22,6 +22,36 @@ test('stringProperty = stringLiteral', () => {
   });
 });
 
+test('stringProperty = if_not_exists(stringProperty, "a")', () => {
+  expect(Update.compile([
+    _.id.set(_.id.ifNotExists('value'))
+  ])).toEqual({
+    UpdateExpression: 'SET #1=if_not_exists(#1,:1)',
+    ExpressionAttributeNames: {
+      '#1': 'id'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        S: 'value'
+      }
+    },
+  });
+
+  expect(Update.compile([
+    _.id.setIfNotExists('value')
+  ])).toEqual({
+    UpdateExpression: 'SET #1=if_not_exists(#1,:1)',
+    ExpressionAttributeNames: {
+      '#1': 'id'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        S: 'value'
+      }
+    },
+  });
+});
+
 test('repeated clauses', () => {
   expect(Update.compile([
     _.id.set('value'),
@@ -60,7 +90,7 @@ test('list-push', () => {
 
 test('list-append', () => {
   expect(Update.compile([
-    _.array.concat(['value'])
+    _.array.pushAll(['value'])
   ])).toEqual({
     UpdateExpression: 'SET #1=list_append(#1,:1)',
     ExpressionAttributeNames: {
@@ -70,6 +100,24 @@ test('list-append', () => {
       ':1': {
         L: [{
           S: 'value'
+        }]
+      }
+    },
+  });
+});
+
+test('prop = list_append(a, b)', () => {
+  expect(Update.compile([
+    _.array.set(_.array.concat(['a']))
+  ])).toEqual({
+    UpdateExpression: 'SET #1=list_append(#1,:1)',
+    ExpressionAttributeNames: {
+      '#1': 'array'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        L: [{
+          S: 'a'
         }]
       }
     },

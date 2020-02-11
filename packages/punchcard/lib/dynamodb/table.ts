@@ -12,6 +12,7 @@ import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
+import { VTL } from '@punchcard/shape-velocity-template';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
@@ -178,6 +179,10 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
       projection: this.dataType,
       sourceTable: this
     }) as any;
+  }
+
+  public put(item: VTL.DSL<DataType>) {
+    
   }
 
   /**

@@ -229,12 +229,24 @@ export namespace DSL {
       return new Action(ActionType.SET, new Object.Assign(this, resolveExpression(this[DataType], value)));
     }
 
+    public setIfNotExists(value: Expression<T> | Computation<T>): Action {
+      return this.set(this.ifNotExists(value));
+    }
+
     public exists(): Bool {
       return new Bool(new FunctionCall('attribute_exists', bool, [this]));
     }
 
     public notExists(): Bool {
       return new Bool(new FunctionCall('attribute_not_exists', bool, [this]));
+    }
+
+    public ifNotExists(defaultValue: Expression<T> | Computation<T>): this {
+      return this.clone(new FunctionCall('if_not_exists', this[DataType], [this, resolveExpression(this[DataType], defaultValue)])) as this;
+    }
+
+    protected clone(expressionNode: ExpressionNode<T>): Object<T> {
+      return new Object(this[DataType], expressionNode);
     }
   }
   export namespace Object {
@@ -297,6 +309,10 @@ export namespace DSL {
 
     public not(): Bool {
       return new Bool(new Bool.Not(this), this[DataType]);
+    }
+
+    protected clone(expression: ExpressionNode<BoolShape>): Bool {
+      return new Bool(expression, this[DataType]);
     }
   }
   export namespace Bool {
@@ -477,6 +493,10 @@ export namespace DSL {
     public plus(value: Expression<NumericShape>): Number.Plus {
       return new Number.Plus(this, resolveExpression(this[DataType], value));
     }
+
+    protected clone(expression: ExpressionNode<NumericShape>): Number {
+      return new Number(expression, this[DataType]);
+    }
   }
   export namespace Number {
     export class Plus extends Computation<NumericShape> {
@@ -498,6 +518,9 @@ export namespace DSL {
     }
     public get length() {
       return this.size;
+    }
+    protected clone(expression: ExpressionNode<StringShape>): String {
+      return new String(expression, this[DataType]);
     }
   }
   export namespace String {
@@ -531,8 +554,16 @@ export namespace DSL {
       return new Action(ActionType.SET, new Object.Assign(this.get(1) as any, resolveExpression(this[DataType].Items, item)));
     }
 
-    public concat(list: Expression<ArrayShape<T>>): Action {
-      return new Action(ActionType.SET, new Object.Assign(this, new List.Append(this, resolveExpression(this[DataType], list) as List<T>)));
+    public pushAll(list: Expression<ArrayShape<T>>): Action {
+      return new Action(ActionType.SET, new Object.Assign(this, this.concat(list)));
+    }
+
+    public concat(list: Expression<ArrayShape<T>>) {
+      return new List(this[DataType], new FunctionCall('list_append', this[DataType], [this, resolveExpression(this[DataType], list)]));
+    }
+
+    protected clone(expression: ExpressionNode<ArrayShape<T>>): List<T> {
+      return new List<T>(this[DataType], expression);
     }
   }
   export namespace List {
@@ -555,18 +586,14 @@ export namespace DSL {
         writer.writeToken(']');
       }
     }
-    export class Append<T extends Shape> extends FunctionCall<ArrayShape<T>> {
-      public [SubNodeType]: 'list-append' = 'list-append';
-
-      constructor(public readonly list: List<T>, public readonly values: List<T>) {
-        super('list_append', list[DataType], [list, values]);
-      }
-    }
   }
 
   export class Set<T extends Shape> extends Object<SetShape<T>> {
     public contains(value: Expression<T>): Bool {
       return new Bool(new Set.Contains(this, resolveExpression(this[DataType].Items, value)));
+    }
+    protected clone(expression: ExpressionNode<SetShape<T>>): Set<T> {
+      return new Set<T>(this[DataType], expression);
     }
   }
   export namespace Set {
@@ -583,6 +610,9 @@ export namespace DSL {
     }
     public put(key: Expression<StringShape>, value: Expression<T>): Action {
       return new Action(ActionType.SET, new Object.Assign(this.get(key) as any, resolveExpression(this[DataType].Items, value)));
+    }
+    protected clone(expression: ExpressionNode<MapShape<T>>): Map<T> {
+      return new Map<T>(this[DataType], expression);
     }
   }
   export namespace Map {
@@ -612,6 +642,10 @@ export namespace DSL {
         Member.assertInstance(prop);
         (this.fields as any)[name] = prop.Shape.visit(DslVisitor, new Struct.Field(this, prop.Shape, name));
       }
+    }
+
+    protected clone(expression: ExpressionNode<T>): Struct<T> {
+      return new Struct<T>(this[DataType], expression);
     }
   }
   export namespace Struct {

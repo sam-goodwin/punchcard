@@ -35,6 +35,7 @@
     "@punchcard/shape": "^0.1.0",
     "@punchcard/shape-hive": "^0.1.0",
     "@punchcard/shape-json": "^0.1.0",
+    "@punchcard/shape-velocity-template": "^0.1.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {

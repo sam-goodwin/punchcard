@@ -12,7 +12,7 @@ export {
 /**
  * Export namespaces for each AWS service
  */
-import * as ApiGateway from './api-gateway';
+import * as ApiGateway from './api-gateway'; // TODO: deprecate
 import * as CloudWatch from './cloudwatch';
 import * as DynamoDB from './dynamodb';
 import * as Firehose from './firehose';
@@ -23,7 +23,10 @@ import * as S3 from './s3';
 import * as SNS from './sns';
 import * as SQS from './sqs';
 
+import * as Api from './api';
+
 export {
+  Api,
   ApiGateway,
   CloudWatch,
   DynamoDB,
