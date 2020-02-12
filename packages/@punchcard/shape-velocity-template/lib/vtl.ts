@@ -152,31 +152,36 @@ export namespace VTL {
    *
    * @param members mappings for each member in the Record.
    */
-  export function Record<M extends { [member: string]: VTL.Object; }>(members: M): MakeRecord<RecordShape<{
+  export function Dynamic<M extends { [member: string]: VTL.Object; }>(members: M): Record<RecordType<{
     [m in keyof M]: Object.Shape<M[m]>;
-  }, MakeRecordInstance<{
-    [m in keyof M]: Object.Shape<M[m]>;
-  }>>> {
+  }>> {
     return null as any;
   }
 
   export function DSL<T extends RecordType>(type: T): {
     VTL: (value: {
       [M in keyof T['members']]: VTL.DSL<T['members'][M]>;
-    }) => MakeRecord<Shape.Of<T>>
+    }) => VTL.DSL<T>
   } {
     return {
-      VTL: v => {}
+      VTL: v => {
+        return null as any;
+      }
     };
+  }
+  export function Of<T extends RecordType>(type: T, value: {
+    [M in keyof T['members']]: VTL.DSL<T['members'][M]>;
+  }): VTL.DSL<T> {
+    return DSL(type).VTL(value);
   }
 
   /**
    * Map a RecordShape to its corresponding VTL RecordObject type.
    */
-  export type MakeRecord<T extends RecordShape<any>> = RecordObject<T> & {
-    [M in keyof T['Members']]: DSL<T['Members'][M]['Shape']>;
+  export type Record<T extends RecordType> = RecordObject<T> & {
+    [M in keyof T['members']]: DSL<T['members'][M]>;
   };
-  export class RecordObject<T extends RecordShape<any>> extends Object<T> {}
+  export class RecordObject<T extends RecordType> extends Object<T> {}
 }
 
 declare module '@punchcard/shape/lib/shape' {
@@ -204,6 +209,9 @@ declare module '@punchcard/shape/lib/primitive' {
   interface StringShape {
     [VTL.Instance]: VTL.String;
   }
+  interface TimestampShape {
+    [VTL.Instance]: VTL.String;
+  }
 }
 declare module '@punchcard/shape/lib/collection' {
   interface ArrayShape<T> {
@@ -213,6 +221,6 @@ declare module '@punchcard/shape/lib/collection' {
 
 declare module '@punchcard/shape/lib/record' {
   interface RecordShape<M, I> {
-    [VTL.Instance]: VTL.MakeRecord<this>;
+    [VTL.Instance]: VTL.Record<this['Type']>;
   }
 }

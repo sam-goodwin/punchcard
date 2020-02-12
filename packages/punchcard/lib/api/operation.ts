@@ -108,6 +108,13 @@ export namespace OperationBuilder {
           OriginalOutput<I, O, E> {
       return null as any;
     }
+
+    public proxy<O extends ShapeOrRecord, E extends Errors | undefined>(
+      fn: (request: VTL.DSL<I2>) => InputHandler<I, O, E>):
+        OriginalOutput<I, O, E> {
+
+      return null as any;
+    }
   }
 
   export const isOutput = Symbol.for('punchcard/lib/api.OperationBuilder.isOutput');
@@ -149,7 +156,7 @@ export class Call<T extends ShapeOrRecord, U extends ShapeOrRecord, E extends Er
     // todo
   }
 
-  public call(value: VTL.DSL<T>): OperationBuilder.OriginalOutput<T, U, E> {
+  public call(value: VTL.DSL<T>): VTL.DSL<U> {
     return null as any;
   }
 }

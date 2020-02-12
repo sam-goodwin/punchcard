@@ -19,12 +19,11 @@ export class Service {
   }
 
   public addOperation<I extends ShapeOrRecord, T extends ShapeOrRecord, U extends ShapeOrRecord, E extends Errors>(
-    props: {
-      name: string;
-      input: I;
-    },
-    integration: (value: VTL.DSL<I>) => OperationBuilder.Output<T, U, E>):
-      Operation<T, U, E> {
+      props: {
+        name: string;
+        input: I;
+      },
+      integration: (value: VTL.DSL<I>) => VTL.DSL<U>): Operation<T, U, E> {
     return null as any;
   }
 }

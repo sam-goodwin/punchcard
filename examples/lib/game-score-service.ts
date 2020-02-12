@@ -74,9 +74,11 @@ export const GameService = new Api.Service({
 });
 
 class GetTimeRequest extends Record({
+  /**
+   * Length. `hi`.
+   */
   length: integer
-})
-.Deriving(VTL.DSL) {}
+}) {}
 
 class GetTimeResponse extends Record({
   currentTime: timestamp
@@ -95,9 +97,19 @@ const GetTime = GameService.addOperation({
   name: 'GetTime',
   input: string
 }, request => {
-  return GetTimeCall.call(GetTimeRequest.VTL({
+  // transform the string request into a GetTimeRequest using VTL
+  const input = VTL.Of(GetTimeRequest, {
     length: request.length
-  }));
+  });
+
+  // call the GetTimeCall operation and pass the VTL output
+  const response = GetTimeCall.call(input);
+
+  // could just return here ...
+  // return response;
+
+  // ... or transform the response with VTL 
+  return response.currentTime;
 });
 
 // /user/<userId>
@@ -117,28 +129,27 @@ class CreateUserRequest extends Record({
 class CreateUserResponse extends Record({
   userId: string
 }) {}
-const CreateUser = User.onCreate(builder => builder
-  .input(CreateUserRequest)
-  .execute({
-    output: CreateUserResponse
-  }, async (request) => {
-    return Ok(new CreateUserResponse({
-      userId: `todo: ${request.userName}`
-    }))
-  }));
+const CreateUserHandler = new Api.Call({
+  input: string,
+  output: CreateUserResponse,
+  endpoint
+}, async (request) => {
+  return Ok(new CreateUserResponse({
+    userId: `todo: ${request}`
+  }))
+});
+const CreateUser = User.onCreate(CreateUserRequest, request => CreateUserHandler.call(request.userName).userId);
 
 // PUT: /user/<userId>
 class UpdateUserRequest extends Record({
   userId: string
 }) {}
-const UpdateUser = User.onUpdate(_ => _
-  .input(UpdateUserRequest)
-  .execute({
-    output: nothing
-  }, async () =>
-    Ok(null)
-  )
-);
+const UpdateUserHandler = new Api.Call({
+  endpoint,
+  input: UpdateUserRequest,
+  output: nothing
+}, async () => Ok(null));
+const UpdateUser = User.onUpdate(UpdateUserRequest, request => UpdateUserHandler.call(request));
 
 /**
  * GET: /user/<userId>
@@ -149,20 +160,17 @@ class GetUserRequest extends Record({
 class GetUserResponse extends Record({
   userName: string
 }) {}
-const GetUser = User.onGet(_ => _
-  .input(GetUserRequest)
-  // have API GW extract the userId with a Velocity Template
-  .transform(_ => _.userId)
-  // execute some code in Lambda to handle the request
-  .execute({
-    output: GetUserResponse
-  }, async (userId) => {
-    // TODO: lookup user in DDB
-    return Ok(new GetUserResponse({
-      userName: `todo: ${userId}` 
-    }));
-  })
-);
+const GetUserHandler = new Api.Call({
+  endpoint,
+  input: string,
+  output: GetUserResponse
+}, async (userId) => {
+  // TODO: lookup user in DDB
+  return Ok(new GetUserResponse({
+    userName: `todo: ${userId}` 
+  }));
+});
+const GetUser = User.onGet(GetUserRequest, request => GetUserHandler.call(request.userId));
 
 /**
  * /score/<scoreId>
@@ -198,6 +206,94 @@ class SubmitScoreRequest extends Record({
     .apply(Minimum(0)),
 }) { }
 
+const SubmitScoreCall = new Api.Call({
+  endpoint,
+  input: SubmitScoreRequest,
+  output: nothing,
+  errors: {
+    InternalServerError
+  },
+  depends: UserScores.readWriteAccess()
+}, async (request, highScores) => {
+  const key = new UserGameScore.Key({
+    userId: request.userId,
+    gameId: request.gameId
+  });
+  try {
+    await update();
+    return Ok(null);
+  } catch (err) {
+    return Fail('InternalServerError', new InternalServerError({
+      errorMessage: err.message
+    }));
+  }
+
+  async function update() {
+    const gameScore = await highScores.get(key);
+    if (gameScore) {
+      try {
+        /**
+         * If the record already exists, then use an efficient update expression to 
+         * safely, and atomically update the game score in DynamoDB.
+         */
+        await highScores.update(key, {
+          /**
+           * Ensure that there was no concurrent modification
+           */
+          if: _ => _.version.equals(gameScore.version),
+          /**
+           * increment, wins, losses and record the top score
+           */
+          actions: _ => [
+            _.losses.increment(request.victory ? 0 : 1),
+            _.wins.increment(request.victory ? 1 : 0),
+            _.topScore.set(request.score > gameScore.topScore ? request.score : gameScore.topScore),
+            _.version.increment()
+          ]
+        });
+      } catch (err) {
+        console.error(err);
+        if (err.code === 'ConditionCheckFailedException') {
+          /**
+           * Record was concurrently modified - start again.
+           */
+          await update();
+        } else {
+          throw err;
+        }
+      }
+    } else {
+      try {
+        /**
+         * No record exists, so put the initial value.
+         */
+        await highScores.put(new UserGameScore({
+          gameId: request.gameId,
+          losses: request.victory ? 0 : 1,
+          wins: request.victory ? 1 : 0,
+          topScore: request.score,
+          userId: request.userId,
+          version: 1
+        }), {
+          /**
+           * Don't overwrite if a score was submitted in-between our get request.
+           */
+          if: _ => _.userId.notExists()
+        });
+      } catch (err) {
+        if (err.code === 'ConditionCheckFailedException') {
+          /**
+           * A record was put before we could submit our request, start again.
+           */
+          await update();
+        } else {
+          throw err;
+        }
+      }
+    }
+  };
+});
+
 /**
  * POST: /score {
  *   userId: string,
@@ -206,93 +302,7 @@ class SubmitScoreRequest extends Record({
  *   score: number
  * }
  */
-const SubmitScore = Score.onCreate(_ => _
-  .input(SubmitScoreRequest)
-  .execute({
-    output: nothing,
-    errors: {
-      InternalServerError
-    },
-    depends: UserScores.readWriteAccess()
-  }, async (request, highScores) => {
-    const key = new UserGameScore.Key({
-      userId: request.userId,
-      gameId: request.gameId
-    });
-    try {
-      await update();
-      return Ok(null);
-    } catch (err) {
-      return Fail('InternalServerError', new InternalServerError({
-        errorMessage: err.message
-      }));
-    }
-
-    async function update() {
-      const gameScore = await highScores.get(key);
-      if (gameScore) {
-        try {
-          /**
-           * If the record already exists, then use an efficient update expression to 
-           * safely, and atomically update the game score in DynamoDB.
-           */
-          await highScores.update(key, {
-            /**
-             * Ensure that there was no concurrent modification
-             */
-            if: _ => _.version.equals(gameScore.version),
-            /**
-             * increment, wins, losses and record the top score
-             */
-            actions: _ => [
-              _.losses.increment(request.victory ? 0 : 1),
-              _.wins.increment(request.victory ? 1 : 0),
-              _.topScore.set(request.score > gameScore.topScore ? request.score : gameScore.topScore),
-              _.version.increment()
-            ]
-          });
-        } catch (err) {
-          console.error(err);
-          if (err.code === 'ConditionCheckFailedException') {
-            /**
-             * Record was concurrently modified - start again.
-             */
-            await update();
-          } else {
-            throw err;
-          }
-        }
-      } else {
-        try {
-          /**
-           * No record exists, so put the initial value.
-           */
-          await highScores.put(new UserGameScore({
-            gameId: request.gameId,
-            losses: request.victory ? 0 : 1,
-            wins: request.victory ? 1 : 0,
-            topScore: request.score,
-            userId: request.userId,
-            version: 1
-          }), {
-            /**
-             * Don't overwrite if a score was submitted in-between our get request.
-             */
-            if: _ => _.userId.notExists()
-          });
-        } catch (err) {
-          if (err.code === 'ConditionCheckFailedException') {
-            /**
-             * A record was put before we could submit our request, start again.
-             */
-            await update();
-          } else {
-            throw err;
-          }
-        }
-      }
-    };
-  }));
+const SubmitScore = Score.onCreate(SubmitScoreRequest, request => SubmitScoreCall.call(request));
 
 /**
  * Global Secondary Index to lookup a game title's high scores.
@@ -331,58 +341,57 @@ class ListHighScoresRequest extends Record({
     .apply(Maximum(1000))
 }) {}
 
+const ListHighScoresHandler = new Api.Call({
+  endpoint,
+  input: ListHighScoresRequest,
+  /**
+   * Returns an array of `UserGameScore` objects.
+   */
+  output: array(UserGameScore),
+  /**
+   * Enumeration of errors returned by ListHighScores.
+   */
+  errors: {
+    InternalServerError
+  },
+  /**
+   * We need reac access to the HighScores index to lookup results.
+   */
+  depends: HighScores.readAccess(),
+}, async (request, highScores) => {
+  const maxResults = request.maxResults === undefined ? 100 : request.maxResults;
+  try {
+    return Ok(await query([]));
+  } catch (err) {
+    return Fail('InternalServerError', new InternalServerError({
+      errorMessage: err.message
+    }));
+  }
+  
+  async function query(scores: UserGameScore[], LastEvaluatedKey?: HighScoresKey): Promise<UserGameScore[]> {
+    const numberToFetch = Math.min(maxResults - scores.length, 100);
+    const nextScores = await highScores.query({
+      gameId: request.gameId,
+      topScore: _ => _.greaterThan(0)
+    }, {
+      Limit: numberToFetch,
+      ExclusiveStartKey: LastEvaluatedKey,
+      ScanIndexForward: false
+    });
+
+    scores = scores.concat(nextScores.Items!);
+
+    if (!nextScores.LastEvaluatedKey || scores.length >= maxResults) {
+      return scores;
+    }
+
+    return await query(scores, nextScores.LastEvaluatedKey);
+  }
+})
+
 /**
  * Lambda Function to get High Scores for a given game.
  * 
  * GET: /score?gameId=<gameId>&maxResults=100
  */
-const ListHighScores = Score.onList(_ => _
-  /**
-   * Accepts a `GetHighScoresRequest`.
-   */
-  .input(ListHighScoresRequest)
-  .execute({
-    /**
-     * Returns an array of `UserGameScore` objects.
-     */
-    output: array(UserGameScore),
-    /**
-     * Enumeration of errors returned by ListHighScores.
-     */
-    errors: {
-      InternalServerError
-    },
-    /**
-     * We need reac access to the HighScores index to lookup results.
-     */
-    depends: HighScores.readAccess(),
-  }, async (request, highScores) => {
-    const maxResults = request.maxResults === undefined ? 100 : request.maxResults;
-    try {
-      return Ok(await query([]));
-    } catch (err) {
-      return Fail('InternalServerError', new InternalServerError({
-        errorMessage: err.message
-      }));
-    }
-    
-    async function query(scores: UserGameScore[], LastEvaluatedKey?: HighScoresKey): Promise<UserGameScore[]> {
-      const numberToFetch = Math.min(maxResults - scores.length, 100);
-      const nextScores = await highScores.query({
-        gameId: request.gameId,
-        topScore: _ => _.greaterThan(0)
-      }, {
-        Limit: numberToFetch,
-        ExclusiveStartKey: LastEvaluatedKey,
-        ScanIndexForward: false
-      });
-
-      scores = scores.concat(nextScores.Items!);
-
-      if (!nextScores.LastEvaluatedKey || scores.length >= maxResults) {
-        return scores;
-      }
-
-      return await query(scores, nextScores.LastEvaluatedKey);
-    }
-  }));
+const ListHighScores = Score.onList(ListHighScoresRequest, request => ListHighScoresHandler.call(request));
