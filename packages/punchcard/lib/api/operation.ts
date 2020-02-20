@@ -1,7 +1,7 @@
 import { any, array, integer, Record, RecordType, ShapeOrRecord, string, Value } from '@punchcard/shape';
 import { Client, Dependency } from '../core';
 
-import { VTL } from '@punchcard/shape-velocity-template';
+import VTL = require('@punchcard/shape-velocity-template');
 
 // references for setting up methods
 // https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-method-settings-method-request.html#setup-method-add-http-method
@@ -62,103 +62,42 @@ export interface RunProps<O extends ShapeOrRecord, E extends Errors | undefined,
 
 export class Endpoint {}
 
-export class OperationBuilder {
-  public input<Input extends ShapeOrRecord>(input: Input): OperationBuilder.Input<Input> {
-    return new OperationBuilder.Input(input);
-  }
-}
-export namespace OperationBuilder {
-  export interface InputHandler<I extends ShapeOrRecord, O extends ShapeOrRecord, E extends Errors | undefined> {
-
-  }
-  export class Input<I extends ShapeOrRecord> {
-    constructor(public readonly input: I) {}
-
-    public transform<I2 extends VTL.Object>(f: (value: VTL.DSL<I>) => I2): MappedInput<I, VTL.Object.Shape<I2>> {
-      const mapped = f(VTL.dsl(this.input));
-      const mappedShape = mapped[VTL.ExpressionNode][VTL.ExpressionType];
-      return new MappedInput(this.input, mappedShape);
-    }
-
-    public proxy<O extends ShapeOrRecord, E extends Errors | undefined>(
-      fn: (request: VTL.DSL<I>) => InputHandler<I, O, E>):
-        OriginalOutput<I, O, E> {
-
-      return null as any;
-    }
-
-    public execute<O extends ShapeOrRecord, E extends Errors = {}, D extends Dependency | undefined = undefined>(
-        props: RunProps<O, E, D>, handler: CallHandler<I, O, E, D>):
-          OriginalOutput<I, O, E> {
-      return null as any;
-    }
-  }
-
-  export class MappedInput<I extends ShapeOrRecord, I2 extends ShapeOrRecord> {
-    constructor(public readonly input: I, public readonly mappedInput: I2) {}
-
-    /**
-     * Run some code to handle the request.
-     *
-     * @param props configuration of the handler
-     * @param handler implementation of the handler.
-     */
-    public execute<O extends ShapeOrRecord, E extends Errors = {}, D extends Dependency | undefined = undefined>(
-        props: RunProps<O, E, D>, handler: CallHandler<I2, O, E, D>):
-          OriginalOutput<I, O, E> {
-      return null as any;
-    }
-
-    public proxy<O extends ShapeOrRecord, E extends Errors | undefined>(
-      fn: (request: VTL.DSL<I2>) => InputHandler<I, O, E>):
-        OriginalOutput<I, O, E> {
-
-      return null as any;
-    }
-  }
-
-  export const isOutput = Symbol.for('punchcard/lib/api.OperationBuilder.isOutput');
-  export class Output<T extends ShapeOrRecord, O extends ShapeOrRecord, E extends Errors | undefined> {
-    readonly [isOutput]: true = true;
-
-    constructor(public readonly input: T, public readonly output: O, public readonly errors: E) {}
-  }
-  export class OriginalOutput<I extends ShapeOrRecord, O extends ShapeOrRecord, E extends Errors | undefined> extends Output<I, O, E> {
-    public transform<O2 extends VTL.Object>(f: (value: VTL.DSL<O>) => O2): MappedOutput<I, O, VTL.Object.Shape<O2>, E> {
-      const mapped = f(VTL.dsl(this.output));
-      const mappedShape = mapped[VTL.ExpressionNode][VTL.ExpressionType];
-      return new MappedOutput(this.input, this.output, mappedShape, this.errors);
-    }
-  }
-  export class MappedOutput<I extends ShapeOrRecord, O extends ShapeOrRecord, O2 extends ShapeOrRecord, E extends Errors | undefined> extends Output<I, O2, E> {
-    constructor(input: I, public readonly originalOutput: O, public readonly mappedOutput: O2, errors: E) {
-      super(input, mappedOutput, errors);
-    }
-  }
-}
-
-const IsIntegration = Symbol.for('punchcard/lib/api.Integration');
+const IntegrationType = Symbol.for('punchcard/lib/api/operation.IntegrationType');
 export interface Integration<T extends ShapeOrRecord, U extends ShapeOrRecord, E extends Errors | undefined> {
-  [IsIntegration]: true;
+  [IntegrationType]: string;
 }
 
-export interface CallProps<T extends ShapeOrRecord, U extends ShapeOrRecord, E extends Errors, D extends Dependency | undefined>
+export interface HandlerProps<T extends ShapeOrRecord, U extends ShapeOrRecord, E extends Errors, D extends Dependency | undefined>
     extends OperationProps<T, U, E> {
   endpoint: Endpoint;
   depends?: D;
 }
 
-export type CallHandler<T extends ShapeOrRecord, U extends ShapeOrRecord, E extends Errors, D extends Dependency | undefined> = (request: Value.Of<T>, client: Client<D>) => Promise<Response<U, E>>;
+export type HandlerFunction<T extends ShapeOrRecord, U extends ShapeOrRecord, E extends Errors, D extends Dependency | undefined> = (request: Value.Of<T>, client: Client<D>) => Promise<Response<U, E>>;
 
-export class Call<T extends ShapeOrRecord, U extends ShapeOrRecord, E extends Errors, D extends Dependency | undefined> implements Integration<T, U, E> {
-  public readonly [IsIntegration] = true;
-  constructor(props: CallProps<T, U, E, D>, handler: CallHandler<T, U, E, D>) {
+export class Handler<T extends ShapeOrRecord, U extends ShapeOrRecord, E extends Errors, D extends Dependency | undefined> {
+  public readonly [IntegrationType] = true;
+  constructor(props: HandlerProps<T, U, E, D>, handler: HandlerFunction<T, U, E, D>) {
     // todo
   }
 
   public call(value: VTL.DSL<T>): VTL.DSL<U> {
     return null as any;
   }
+}
+
+export class Call<T extends ShapeOrRecord = any, U extends ShapeOrRecord = any, E extends Errors = any> implements Integration<T, U, E> {
+  public readonly [IntegrationType]: 'call' = 'call';
+  constructor() {
+    
+  }
+
+  public get data(): VTL.DSL<U> {
+    return 'todo' as any;
+  }
+}
+export function isCall(a: any): a is Call {
+  return a[IntegrationType] === 'call';
 }
 
 // https://aws.amazon.com/blogs/compute/using-amazon-api-gateway-as-a-proxy-for-dynamodb/

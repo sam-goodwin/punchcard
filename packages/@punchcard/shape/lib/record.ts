@@ -176,6 +176,16 @@ export type MakeRecordType<T extends RecordMembers = any> = Deriving & {
    */
 } & (new (values: MakeRecordMembers<T>) => MakeRecordInstance<T>);
 
+/**
+ * Deriving supports injecting static methods to a RecordType based on its type-information.
+ * 
+ * ```ts
+ * class MyRecord extends Record({
+ *   key: string
+ * })
+ * .Deriving(Json.Dsl)
+ * ```
+ */
 export interface Deriving {
   Deriving<D>(f: (t: this) => D): this & D;
 }

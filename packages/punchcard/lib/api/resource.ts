@@ -1,5 +1,5 @@
 import { NumericShape, RecordType, ShapeOrRecord, StringShape } from '@punchcard/shape';
-import { VTL } from '@punchcard/shape-velocity-template';
+import VTL = require('@punchcard/shape-velocity-template');
 import { RowLacks } from '@punchcard/shape/node_modules/typelevel-ts';
 import { Errors, Operation, OperationBuilder } from './operation';
 

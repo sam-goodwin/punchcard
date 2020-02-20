@@ -2,7 +2,7 @@ import { Core, DynamoDB, Api } from 'punchcard';
 import { string, integer, Record, Minimum, optional, array, boolean, nothing, Maximum, timestamp } from '@punchcard/shape';
 import { Ok, Operation, Fail } from 'punchcard/lib/api';
 
-import { VTL } from '@punchcard/shape-velocity-template/lib';
+import VTL = require('@punchcard/shape-velocity-template');
 
 /**
  * Create a new Punchcard Application.
@@ -51,7 +51,7 @@ class UserGameScore extends Record({
    */
   version: integer
 })
-.Deriving(VTL.DSL) {}
+.Deriving(VTL.Factory) {}
 
 namespace UserGameScore {
   export class Key extends UserGameScore.Pick(['userId', 'gameId']) {}
@@ -75,45 +75,32 @@ export const GameService = new Api.Service({
 
 class GetTimeRequest extends Record({
   /**
-   * Length. `hi`.
+   * Epoch. `hi`.
    */
-  length: integer
-}) {}
+  epoch: integer
+}).Deriving(VTL.Factory) {}
 
 class GetTimeResponse extends Record({
   currentTime: timestamp
-}) {}
-const GetTimeCall = new Api.Call({
+}).Deriving(VTL.Factory) {}
+
+const GetTimeHandler = new Api.Handler({
   input: GetTimeRequest,
   output: GetTimeResponse,
   endpoint,
-}, async () =>
+}, async request =>
   Ok(new GetTimeResponse({
-    currentTime: new Date()
+    currentTime: new Date(request.epoch)
   }))
 );
 
-const GetTime = GameService.addOperation({
-  name: 'GetTime',
-  input: string
-}, request => {
-  // transform the string request into a GetTimeRequest using VTL
-  const input = VTL.Of(GetTimeRequest, {
-    length: request.length
-  });
-
-  // call the GetTimeCall operation and pass the VTL output
-  const response = GetTimeCall.call(input);
-
-  // could just return here ...
-  // return response;
-
-  // ... or transform the response with VTL 
-  return response.currentTime;
-});
+const GetTime = GameService.addOperation('GetTime', {
+  input: GetTimeRequest,
+  output: GetTimeResponse
+}, input => GetTimeHandler.call(input.request));
 
 // /user/<userId>
-const User = GameService.addChild({
+const User = GameService.addResource({
   name: 'user',
   identifiers: {
     userId: string
@@ -129,7 +116,7 @@ class CreateUserRequest extends Record({
 class CreateUserResponse extends Record({
   userId: string
 }) {}
-const CreateUserHandler = new Api.Call({
+const CreateUserHandler = new Api.Handler({
   input: string,
   output: CreateUserResponse,
   endpoint
@@ -138,13 +125,14 @@ const CreateUserHandler = new Api.Call({
     userId: `todo: ${request}`
   }))
 });
-const CreateUser = User.onCreate(CreateUserRequest, request => CreateUserHandler.call(request.userName).userId);
+const CreateUser = User.onCreate(CreateUserRequest,
+  request => CreateUserHandler.call(request.userName).userId);
 
 // PUT: /user/<userId>
 class UpdateUserRequest extends Record({
   userId: string
 }) {}
-const UpdateUserHandler = new Api.Call({
+const UpdateUserHandler = new Api.Handler({
   endpoint,
   input: UpdateUserRequest,
   output: nothing
@@ -160,9 +148,9 @@ class GetUserRequest extends Record({
 class GetUserResponse extends Record({
   userName: string
 }) {}
-const GetUserHandler = new Api.Call({
+const GetUserHandler = new Api.Handler({
   endpoint,
-  input: string,
+  input: GetUserRequest,
   output: GetUserResponse
 }, async (userId) => {
   // TODO: lookup user in DDB
@@ -170,12 +158,12 @@ const GetUserHandler = new Api.Call({
     userName: `todo: ${userId}` 
   }));
 });
-const GetUser = User.onGet(GetUserRequest, request => GetUserHandler.call(request.userId));
+const GetUser = User.onGet(GetUserRequest, request => GetUserHandler.call(request));
 
 /**
  * /score/<scoreId>
  */
-const Score = GameService.addChild({
+const Score = GameService.addResource({
   name: 'score',
   identifiers: {
     scoreId: string
@@ -206,7 +194,7 @@ class SubmitScoreRequest extends Record({
     .apply(Minimum(0)),
 }) { }
 
-const SubmitScoreCall = new Api.Call({
+const SubmitScoreCall = new Api.Handler({
   endpoint,
   input: SubmitScoreRequest,
   output: nothing,
@@ -341,7 +329,7 @@ class ListHighScoresRequest extends Record({
     .apply(Maximum(1000))
 }) {}
 
-const ListHighScoresHandler = new Api.Call({
+const ListHighScoresHandler = new Api.Handler({
   endpoint,
   input: ListHighScoresRequest,
   /**

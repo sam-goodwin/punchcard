@@ -44,6 +44,11 @@ test(`$.array[?(@=='value')]`, () => {
   expect(JsonPath.compile(jp)).toEqual(`$['array'][?(@=='value')]`);
 });
 
+test(`$.array[?(@=='value')]`, () => {
+  const jp = _.array.filter(_ => _.equals('value'));
+  expect(JsonPath.compile(jp)).toEqual(`$['array'][?(@=='value')]`);
+});
+
 test(`$['complexArray'][?(@['a']=='value')]`, () => {
   const jp = _.complexArray.filter(_ => _.a.equals('value'));
   expect(JsonPath.compile(jp)).toEqual(`$['complexArray'][?(@['a']=='value')]`);
