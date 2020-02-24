@@ -1,9 +1,38 @@
 import { Scope } from './scope';
 import { Statement } from './statement';
 
-export function Try(fn: (scope: Scope) => void, Catch?: CatchBlock) {
-
+export function $try(fn: (scope: Scope) => void): Try {
+  return new Try();
 }
+
+export class Try extends Statement {
+  public kind: 'try' = 'try';
+
+  public $catch(errorsName: string | string[], fn: (scope: Scope) => void): Catch {
+    return new Catch(errorsName, fn, this);
+  }
+}
+
+export class Catch {
+  constructor(
+    public readonly errorsName: string | string[],
+    public readonly scope: Scope,
+    public readonly parent: Try | Catch) {}
+
+  public $catch(errorsName: string | string[], fn: (scope: Scope) => void): Catch {
+    return new Catch(errorsName, fn, this);
+  }
+
+  public $finally(fn: (scope: Scope) => void): Finally {
+    
+    return new Finally(, this)
+  }
+}
+
+export class Finally {
+  constructor(public readonly scope: Scope, public readonly parent: Try | Catch) {}
+}
+
 
 export enum Errors {
   ALL = 'States.ALL',
@@ -11,17 +40,4 @@ export enum Errors {
   Runtime = 'States.Runtime',
   TaskFailed = 'States.TaskFailed',
   Timeout = 'States.Timeout',
-}
-
-export function Catch(errorsName: string | string[], fn: (scope: Scope) => void, catchBlock?: CatchBlock): CatchBlock {
-  return new CatchBlock();
-}
-
-export class CatchBlock {
-
-}
-
-export class TryCatch extends Statement {
-  public kind: 'tryCatch' = 'tryCatch';
-
 }

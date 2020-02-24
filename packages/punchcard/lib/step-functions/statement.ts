@@ -1,6 +1,5 @@
 import { Node } from './node';
 import { Scope } from './scope';
-import { Thread } from './thread';
 
 /**
  * A statement is an execution within some scope.
@@ -14,7 +13,7 @@ export abstract class Statement extends Node {
 
   constructor(scope?: Scope) {
     super();
-    this.scope = scope || Thread.currentThread()!;
+    this.scope = scope || Thread.get()!;
     if (this.scope === undefined) {
       throw new Error(`no scope provided and no global scope found for statement`);
     }

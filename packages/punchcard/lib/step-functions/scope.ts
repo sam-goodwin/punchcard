@@ -1,12 +1,53 @@
 import { Node } from './node';
 import { Statement } from './statement';
-import { Thread } from './thread';
 
 export interface LexicalScope {
   [id: string]: any;
 }
 
+export const IsScope = Symbol.for('punchcard.Scope');
+
+export function isScope(a: any): a is Scope {
+  return a !== undefined && a[IsScope] === true;
+}
+
 export class Scope extends Node {
+  public static set(scope: Scope | undefined): void {
+    const glob = global as any;
+    glob[IsScope] = scope;
+  }
+
+  public static push(): Scope {
+    const curr = Scope.get();
+    const next = new Scope(curr);
+    Scope.set(next);
+    return next;
+  }
+
+  public static pop(): Scope | undefined {
+    const curr = Scope.get();
+    const parent = curr.parent;
+    Scope.set(parent);
+    return parent;
+  }
+
+  public static get(): Scope {
+    const glob = global as any;
+    if (isScope(glob[IsScope])) {
+      return glob[IsScope];
+    }
+    throw new Error(`global scope is undefined`);
+  }
+
+  public static block<T>(f: (scope: Scope) => T): T {
+    const scope = Scope.push();
+    const ret = f(scope);
+    Scope.pop();
+    return ret;
+  }
+
+  public readonly [IsScope]: true = true;
+
   public readonly children: Scope[] = [];
   public readonly lexicalScope: LexicalScope = {};
   public readonly statements: Statement[];
@@ -26,34 +67,13 @@ export class Scope extends Node {
     this.statements.push(statement);
   }
 
-  public get thread(): Thread {
-    if (!this.parent) {
-      throw new Error(`frame had no thread`);
-    }
-    return this.parent.thread;
-  }
-
   public newId(): string {
     this.counter += 1;
     return this.counter.toString();
   }
 
-  public block(block: (frame: Scope) => any) {
-    const frame = this.push();
-    block(frame);
-    frame.pop();
-  }
-
-  public push(): Scope {
-    return new Scope(this);
-  }
-
-  public pop(): Scope | undefined {
-    return this.parent;
-  }
-
   public add(value: any): string {
-    const id = this.thread.newId();
+    const id = this.newId();
     this.set(id, value);
     return id;
   }

@@ -2,8 +2,8 @@ import sfn = require('@aws-cdk/aws-stepfunctions');
 
 import { array, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, Equals, integer, IntegerShape, MapShape, NothingShape, number, NumberShape, NumericShape, RecordMembers, RecordShape, RecordType, SetShape, Shape, ShapeOrRecord, string, StringShape, TimestampShape, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
 import { Condition } from './choice';
-import { ForEach } from './control';
-import { Expression } from './expression';
+import { Expression,  } from './expression';
+import { List } from './list';
 import { Expr, Kind, Path, Type } from './symbols';
 
 // tslint:disable: no-construct
@@ -19,6 +19,13 @@ export class Thing<T extends ShapeOrRecord = any> {
   }
 }
 export namespace Thing {
+  export function getType<T extends ShapeOrRecord>(thing: Thing<T>): T {
+    return thing[Type];
+  }
+  export function getExpression<T extends Thing>(thing: T): Expression<Thing.GetType<T>> {
+    return thing[Expr];
+  }
+
   export function of<T extends ShapeOrRecord>(type: T, expression: Expression<T>): Of<T> {
     return Shape.of(type).visit(visitor, expression);
   }
@@ -31,43 +38,43 @@ export namespace Thing {
 
   export type Of<T extends ShapeOrRecord> = Shape.Of<T>[Tag];
   export type Literal<T extends ShapeOrRecord> = Value.Of<T>;
-  export type GetShape<T extends Thing> = T extends Thing<infer S> ? S : never;
+  export type GetType<T extends Thing> = T extends Thing<infer S> ? S : never;
 
   export class Visitor implements ShapeVisitor<Thing, Expression> {
-    arrayShape(shape: ArrayShape<any>, expression: Expression): List {
-      return new List(shape.Items, path);
+    public arrayShape(shape: ArrayShape<any>, expression: Expression): List {
+      return new List(expression);
     }
-    binaryShape(shape: BinaryShape, expression: Expression): Thing<any> {
+    public binaryShape(shape: BinaryShape, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
-    boolShape(shape: BoolShape, expression: Expression): Thing<any> {
-      return new Bool(path);
+    public boolShape(shape: BoolShape, expression: Expression): Thing<any> {
+      return new Bool(expression);
     }
-    recordShape(shape: RecordShape<any, any>, expression: Expression): Thing<any> {
+    public recordShape(shape: RecordShape<any, any>, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
-    dynamicShape(shape: DynamicShape<any>, expression: Expression): Thing<any> {
+    public dynamicShape(shape: DynamicShape<any>, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
-    integerShape(shape: IntegerShape, expression: Expression): Thing<any> {
+    public integerShape(shape: IntegerShape, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
-    mapShape(shape: MapShape<any>, expression: Expression): Thing<any> {
+    public mapShape(shape: MapShape<any>, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
-    nothingShape(shape: NothingShape, expression: Expression): Thing<any> {
+    public nothingShape(shape: NothingShape, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
-    numberShape(shape: NumberShape, expression: Expression): Thing<any> {
+    public numberShape(shape: NumberShape, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
-    setShape(shape: SetShape<any>, expression: Expression): Thing<any> {
+    public setShape(shape: SetShape<any>, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
-    stringShape(shape: StringShape, expression: Expression): Thing<any> {
-      return new String(path);
+    public stringShape(shape: StringShape, expression: Expression): Thing<any> {
+      return new String(expression);
     }
-    timestampShape(shape: TimestampShape, expression: Expression): Thing<any> {
+    public timestampShape(shape: TimestampShape, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
   }
@@ -103,9 +110,7 @@ declare module '@punchcard/shape/lib/primitive' {
 }
 declare module '@punchcard/shape/lib/collection' {
   interface ArrayShape<T> {
-    [Tag]: List<Thing.Of<T>> & {
-      [index: number]: Thing.Of<T>;
-    }
+    [Tag]: List<Thing.Of<T>>;
   }
 }
 declare module '@punchcard/shape/lib/record' {
@@ -125,7 +130,7 @@ export class Ord<T extends Condition.Comparable> extends Thing<T> {
 
 export class String extends Ord<StringShape> {
   constructor(expression: Expression<StringShape>) {
-    super(expression, string);
+    super(expression);
   }
 }
 export class Timestamp extends Ord<TimestampShape> {
@@ -135,52 +140,23 @@ export class Numeric<N extends NumericShape> extends Ord<N> {}
 
 export class Integer extends Numeric<IntegerShape> {
   constructor(expression: Expression<IntegerShape>) {
-    super(integer, path);
+    super(expression);
   }
 }
 export class Number extends Numeric<NumberShape> {
   constructor(expression: Expression<NumberShape>) {
-    super(number, path);
+    super(expression);
   }
 }
 export class Bool extends Thing<BoolShape> implements Condition {
   constructor(expression: Expression<BoolShape>) {
-    super(bool, path);
+    super(expression);
   }
 
   public toCondition(): sfn.Condition {
-    return sfn.Condition.booleanEquals(this[Path], true);
+    // todo: Epxression to condition...
+    // return sfn.Condition.booleanEquals(this[Expr], true);
   }
-}
-
-export class List<T extends Thing = any> extends Thing<ArrayShape<Thing.GetShape<T>>> {
-  constructor(item: Thing.GetShape<T>, path: string) {
-    super(array(item) as any, path);
-  }
-
-  public get(index: number): T {
-    return this[Type].Items.visit(Thing.visitor, this[Path] + `[${index}]`);
-  }
-
-  public Filter(fn: (item: T) => Bool | Condition): List._<Timestamp> {
-    return null as any;
-  }
-
-  public Map<U extends Thing>(fn: (item: T) => U): List._<U> {
-    const item = fn(this[Type].Items.visit(Thing.visitor, this[Path]));
-    return this[Type].Items.visit(Thing.visitor, item[Path]);
-  }
-
-  public ForEach(fn: (item: T) => void): void {
-    return ForEach(this, fn);
-  }
-
-  public Length(): Integer {
-    return new Integer(this[Path] + '.length()');
-  }
-}
-export namespace List {
-  export type _<I extends Thing> = List<I> & { [index: number]: I; };
 }
 
 export class Record<M extends RecordMembers, I> extends Thing<RecordShape<M, I>> {
@@ -189,7 +165,3 @@ export class Record<M extends RecordMembers, I> extends Thing<RecordShape<M, I>>
 export type MakeRecord<M extends RecordMembers, I> = Record<M, I> & {
   [m in keyof M]: Thing.Of<M[m]>;
 };
-
-const a = array(string);
-
-const t = Thing.of(a);

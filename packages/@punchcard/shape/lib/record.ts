@@ -52,6 +52,8 @@ export class RecordShape<M extends RecordMembers, I = any> extends Shape {
 export namespace RecordShape {
   export type Members = typeof Members;
   export const Members = Symbol.for('@punchcard/shape.ClassShape.Members');
+  export type Type = typeof Type;
+  export const Type = Symbol.for('@punchcard/shape.ClassShape.Type');
 }
 
 /**
@@ -104,7 +106,9 @@ export type MakeRecordMembers<T extends RecordMembers> = {
   [M in RequiredKeys<T>]-?: Value.Of<T[M]>;
 };
 
-export type MakeRecordInstance<T extends RecordMembers> = MakeRecordMembers<T> & {
+export type MakeRecordInstance<M extends RecordMembers, V extends RecordType<any, M>> = MakeRecordMembers<M> & {
+  [RecordShape.Type]: V;
+
   /**
    * Instance reference to this record's members.
    *
@@ -114,7 +118,7 @@ export type MakeRecordInstance<T extends RecordMembers> = MakeRecordMembers<T> &
    * TODO: Consider removing this entirely - do we really need dynamic reflection when most things can be done statically?
    */
   [RecordShape.Members]?: {
-    [M in keyof T]: Shape.Of<T[M]>;
+    [m in keyof M]: Shape.Of<M[m]>;
   };
 };
 
@@ -174,11 +178,11 @@ export type MakeRecordType<T extends RecordMembers = any> = Deriving & {
   /**
    * Constructor takes values for each member.
    */
-} & (new (values: MakeRecordMembers<T>) => MakeRecordInstance<T>);
+} & (new (values: MakeRecordMembers<T>) => MakeRecordInstance<T, any>);
 
 /**
  * Deriving supports injecting static methods to a RecordType based on its type-information.
- * 
+ *
  * ```ts
  * class MyRecord extends Record({
  *   key: string

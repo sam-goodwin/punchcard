@@ -39,6 +39,8 @@ export function StepFunction<T extends ShapeOrRecord, U extends ShapeOrRecord>(r
   };
 }
 
+export const $function = StepFunction;
+
 export namespace StepFunction {
   export function DSL<T extends RecordType>(type: T): T & {
     new: (members: {

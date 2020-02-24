@@ -1,7 +1,7 @@
 import { ArrayShape, MapShape } from './collection';
-import { AnyShape, BoolShape, NothingShape, NumberShape, StringShape, TimestampShape, bool, string, number } from './primitive';
+import { AnyShape, bool, BoolShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from './primitive';
+import { MakeRecordType, RecordShape, RecordType } from './record';
 import { Shape } from './shape';
-import { MakeRecordType } from './record';
 
 export namespace Value {
   export type Tag = typeof Tag;
@@ -30,7 +30,7 @@ export namespace Value {
     V extends {
       [key: string]: any;
     } ? MakeRecordType<{
-      [K in keyof V]: InferShape<V[K]>;
+      [K in Extract<keyof V, string>]: InferShape<V[K]>;
     }> :
     AnyShape
     ;
@@ -39,7 +39,7 @@ export namespace Value {
       case 'boolean': return bool as any;
       case 'string': return string as any;
       case 'number': return number as any;
-      case 'object': 
+      case 'object':
     }
     if (Array.isArray(value)) {
 

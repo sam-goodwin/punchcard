@@ -5,11 +5,10 @@ import { BoolShape, NumericShape, ShapeGuards, StringShape, TimestampShape, Valu
 import { Scope } from './scope';
 import { Statement } from './statement';
 import { Thing } from './thing';
-import { Thread } from './thread';
 
 abstract class Block extends Statement {
   constructor(then: (scope: Scope) => any, scope?: Scope) {
-    scope = scope || Thread.currentThread();
+    scope = scope || Thread.get();
     super(scope!.push());
     then(scope!);
     scope!.pop();
@@ -52,9 +51,9 @@ export class Branch extends Block {
     return this.Else(then);
   }
   public Else(then: (scope: Scope) => any): Otherwise {
-    Thread.currentThread()!.push();
+    Thread.get()!.push();
     const terminalBranch = new Otherwise(this, then);
-    Thread.currentThread()!.pop();
+    Thread.get()!.pop();
     return terminalBranch;
   }
 }
@@ -69,9 +68,9 @@ export class Otherwise {
 }
 
 export function If(condition: Condition, then: (frame: Scope) => any, parent?: Branch): Branch {
-  Thread.currentThread()!.push();
+  Thread.get()!.push();
   const branch = new Branch(parent, condition, then);
-  Thread.currentThread()!.pop();
+  Thread.get()!.pop();
   return branch;
 }
 export const $if = If;

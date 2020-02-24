@@ -1,7 +1,8 @@
-import { Condition } from "./choice";
-import { Scope } from "./scope";
-import { Statement } from "./statement";
-import { List, Thing } from "./thing";
+import { Condition } from './choice';
+import { List } from './list';
+import { Scope } from './scope';
+import { Statement } from './statement';
+import { Integer, Thing } from './thing';
 
 export class WhileLoop extends Statement {
   public readonly kind: 'whileLoop' = 'whileLoop';
@@ -10,21 +11,23 @@ export class WhileLoop extends Statement {
   }
 }
 
-export function While(condition: Condition, body: (scope: Scope) => void) {
+export function $while(condition: Condition, body: (scope: Scope) => void) {
   return new WhileLoop(condition, body);
 }
 
-export function ForEach<I extends Thing>(list: List<I>, f: (item: I, scope: Scope) => void) {
+export function $forEach<I extends Thing>(list: List<I>, f: (item: I, index: Integer, scope: Scope) => void) {
   // todo
 }
 
-export function Parallel(fn: Array<(scope: Scope) => void>) {
+export function $parallel(fn: Thing[]) {
   // todo
 }
 
-export const $forEach = ForEach;
-export const $ForEach = ForEach;
-export const $parallal = Parallel;
-export const $Parallal = Parallel;
-export const $while = While;
-export const $While = While;
+/**
+ * Delete some state (by reference or id).
+ *
+ * @param state reference to some state
+ */
+export function $delete(state: State | string): void {
+  // todo
+}
