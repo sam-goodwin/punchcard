@@ -6,26 +6,29 @@ import { Scope } from './scope';
 import { Statement } from './statement';
 import { Thing } from './thing';
 
-abstract class Block extends Statement {
-  constructor(then: (scope: Scope) => any, scope?: Scope) {
-    scope = scope || Thread.get();
-    super(scope!.push());
-    then(scope!);
-    scope!.pop();
-  }
+export function $if<T = void>(condition: Condition, then: (scope: Scope) => Generator<unknown, T>, elseIf: If<T> | Else<T>): Generator<unknown, T> {
+  return Scope.block(scope => new If(elseIf, condition, then(scope), scope));
 }
 
-export class Branch extends Block {
+export function $elseIf<T>(condition: Condition, then: (scope: Scope) => Generator<unknown, T>, elseIf: If<T> | Else<T>): If<T> | Else<T> {
+
+}
+
+export function $else<T>(then: (scope: Scope) => Generator<unknown, T>): Else<T> {
+  
+}
+
+export class If<T = any> extends Statement {
   public readonly kind: 'branch' = 'branch';
 
-  public readonly next?: Branch | Otherwise;
+  public readonly next?: If<T> | Else<T>;
 
   constructor(
-      public readonly parent: Branch | undefined,
+      public readonly parent: If<T> | undefined,
       public readonly condition: Condition,
-      public readonly then: (frame: Scope) => any,
-      scope?: Scope) {
-    super(then, scope);
+      public readonly result: T,
+      public readonly scope: Scope) {
+    super(scope);
     if (parent) {
       if (parent.next) {
         throw new Error(`branch already has a child`);
@@ -34,49 +37,27 @@ export class Branch extends Block {
     }
   }
 
-  public $elseIf(condition: Condition, then: (scope: Scope) => any): Branch {
-    return this.ElseIf(condition, then);
-  }
-  public $ElseIf(condition: Condition, then: (scope: Scope) => any): Branch {
-    return this.ElseIf(condition, then);
-  }
-  public ElseIf(condition: Condition, then: (scope: Scope) => any): Branch {
-    return If(condition, then, this);
+  public $elseIf(condition: Condition, then: (scope: Scope) => T): If<T> {
+    return $if(condition, then, this);
   }
 
-  public $else(then: (scope: Scope) => any): Otherwise {
-    return this.Else(then);
-  }
-  public $Else(then: (scope: Scope) => any): Otherwise {
-    return this.Else(then);
-  }
-  public Else(then: (scope: Scope) => any): Otherwise {
-    Thread.get()!.push();
-    const terminalBranch = new Otherwise(this, then);
-    Thread.get()!.pop();
-    return terminalBranch;
+  public $else(then: (scope: Scope) => T): T {
+    return Scope.block(scope => {
+      const t = then(scope);
+      new Else(this, t, scope);
+      return t;
+    });
   }
 }
 
-export class Otherwise {
-  constructor(public readonly parent: Branch, public readonly then: (frame: Scope) => any) {
+export class Else<T> {
+  constructor(public readonly parent: If, public readonly result: T, public readonly scope: Scope) {
     if (parent.next) {
       throw new Error(`branch already has a child`);
     }
     (parent as any).next = this;
   }
 }
-
-export function If(condition: Condition, then: (frame: Scope) => any, parent?: Branch): Branch {
-  Thread.get()!.push();
-  const branch = new Branch(parent, condition, then);
-  Thread.get()!.pop();
-  return branch;
-}
-export const $if = If;
-export const $If = If;
-export const When = If;
-export const $when = When;
 
 export interface Condition {
   toCondition(): sfn.Condition;

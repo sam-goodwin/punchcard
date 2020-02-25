@@ -3,7 +3,7 @@ import sqs = require('@aws-cdk/aws-sqs');
 import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 
-import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
+import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value, Record, string } from '@punchcard/shape';
 import { Json } from '@punchcard/shape-json';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
@@ -12,6 +12,8 @@ import { Run } from '../core/run';
 import { sink, Sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 import { Messages } from './messages';
+import { Task } from '../step-functions/task';
+import { Thing } from '../step-functions/thing';
 
 export interface QueueProps<T extends ShapeOrRecord = AnyShape> {
   /**
@@ -36,7 +38,7 @@ export interface QueueProps<T extends ShapeOrRecord = AnyShape> {
 /**
  * Represents a SQS Queue containtining messages of type, `T`, serialized with some `Codec`.
  */
-export class Queue<T extends ShapeOrRecord = AnyShape> implements Resource<sqs.Queue> {
+export class Queue<T extends ShapeOrRecord = AnyShape> implements Resource<sqs.Queue>, Task.DSL<any> {
   public readonly mapper: Mapper<Value.Of<T>, string>;
   public readonly mapperFactory: MapperFactory<string>;
   public readonly resource: Build<sqs.Queue>;
@@ -50,6 +52,10 @@ export class Queue<T extends ShapeOrRecord = AnyShape> implements Resource<sqs.Q
     this.shape = (props.shape || any) as T;
     this.mapperFactory = props.mapper || Json.stringifyMapper;
     this.mapper = this.mapperFactory(this.shape);
+  }
+
+  public [Task.DSL](): Queue.StepFunctionInterface<T> {
+    return new Queue.StepFunctionInterface(this);
   }
 
   /**
@@ -197,6 +203,26 @@ export namespace Queue {
         }
         return [];
       }, props, 10);
+    }
+  }
+}
+
+export namespace Queue {
+  export namespace Api {
+    export class SendMessageResponse extends Record({
+      MD5OfMessageAttributes: string,
+      MD5OfMessageBody: string,
+      MD5OfMessageSystemAttributes: string,
+      MessageId: string,
+      SequenceNumber: string,
+    }) {}
+  }
+
+  export class StepFunctionInterface<T extends ShapeOrRecord> {
+    constructor(public readonly queue: Queue<T>) {}
+
+    public sendMessage(message: Thing.Of<T>): Generator<any, Thing.Of<typeof Api.SendMessageResponse>, any> {
+      return null as any;
     }
   }
 }

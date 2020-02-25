@@ -11,3 +11,12 @@ export abstract class Task extends Statement {
 
   public abstract next(state: sfn.IChainable): sfn.State;
 }
+
+export namespace Task {
+  export const DSL = Symbol.for('punchcard/lib/step-functions.Task.DSL');
+  export interface DSL<T = any> {
+    [DSL](): T
+  }
+
+  export type GetDSL<T extends DSL> = ReturnType<T[typeof DSL]>;
+}

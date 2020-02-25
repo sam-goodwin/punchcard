@@ -11,7 +11,7 @@ export class WhileLoop extends Statement {
   }
 }
 
-export function $while(condition: Condition, body: (scope: Scope) => void) {
+export function $while(condition: Condition, body: (scope: Scope) => void): Generator<unknown, void> {
   return new WhileLoop(condition, body);
 }
 
@@ -19,7 +19,11 @@ export function $forEach<I extends Thing>(list: List<I>, f: (item: I, index: Int
   // todo
 }
 
-export function $parallel(fn: Thing[]) {
+
+export function $parallel<T1>(t1: Generator<unknown, T1, any>): [T1];
+export function $parallel<T1, T2>(t1: Generator<unknown, T1, any>, t2: Generator<unknown, T2, any>): Generator<unknown, [T1, T2], any>;
+
+export function $parallel(...fn: Array<Generator<unknown>>): any {
   // todo
 }
 

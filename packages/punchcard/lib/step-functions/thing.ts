@@ -8,6 +8,8 @@ import { Expr, Kind, Path, Type } from './symbols';
 
 // tslint:disable: no-construct
 
+export const IsRef = Symbol.for('punchcard/lib/step-functions.IsRef');
+
 export class Thing<T extends ShapeOrRecord = any> {
   public readonly [Kind]: 'thing' = 'thing';
   public readonly [Expr]: Expression<T>;
@@ -131,6 +133,10 @@ export class Ord<T extends Condition.Comparable> extends Thing<T> {
 export class String extends Ord<StringShape> {
   constructor(expression: Expression<StringShape>) {
     super(expression);
+  }
+
+  public get length(): Integer {
+    
   }
 }
 export class Timestamp extends Ord<TimestampShape> {

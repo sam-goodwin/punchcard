@@ -13,7 +13,7 @@ export abstract class Statement extends Node {
 
   constructor(scope?: Scope) {
     super();
-    this.scope = scope || Thread.get()!;
+    this.scope = scope || Scope.get();
     if (this.scope === undefined) {
       throw new Error(`no scope provided and no global scope found for statement`);
     }

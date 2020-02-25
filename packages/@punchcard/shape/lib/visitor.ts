@@ -17,6 +17,9 @@ export interface Visitor<T = unknown, C = undefined> {
   timestampShape(shape: TimestampShape, context: C): T;
 }
 export namespace Visitor {
-  export type YieldType<V extends Visitor> = V extends Visitor<infer T, any>  ? T : never;
+  export type ReturnType<V extends Visitor> = V extends Visitor<infer T, any>  ? T : never;
   export type ContextType<V extends Visitor> = V extends Visitor<any, infer C>  ? C : null;
 }
+
+
+

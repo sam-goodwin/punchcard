@@ -10,9 +10,10 @@ import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
+import { Task } from '../step-functions/task';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
-import { VTL } from '@punchcard/shape-velocity-template';
+import { Thing } from '../step-functions/thing';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
@@ -93,7 +94,7 @@ export interface TableProps<DataType extends RecordType, Key extends DDB.KeyOf<D
  * @typeparam DataType type of data in the Table.
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
-export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> implements Resource<dynamodb.Table> {
+export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> implements Resource<dynamodb.Table>, Task.DSL<Table.StepFunctionInterface<DataType, Key>> {
   /**
    * The DynamoDB Table Construct.
    */
@@ -134,6 +135,10 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
         } : undefined
       });
     }));
+  }
+
+  public [Task.DSL](): Table.StepFunctionInterface<DataType, Key> {
+    return new Table.StepFunctionInterface(this);
   }
 
   /**
@@ -179,10 +184,6 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
       projection: this.dataType,
       sourceTable: this
     }) as any;
-  }
-
-  public put(item: VTL.DSL<DataType>) {
-    
   }
 
   /**
@@ -281,5 +282,15 @@ export class Projected<SourceTable extends Table<any, any>, Projection extends R
       projection: this.projection,
       sourceTable: this.sourceTable
     }) as any;
+  }
+}
+
+export namespace Table {
+  export class StepFunctionInterface<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> {
+    constructor(public readonly table: Table<DataType, Key>) {}
+
+    public put(item: Thing.Of<DataType>) {
+
+    }
   }
 }

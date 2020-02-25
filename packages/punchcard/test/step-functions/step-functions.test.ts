@@ -1,5 +1,11 @@
-import { array, Record, string } from '@punchcard/shape';
-import { $, $delete, $function, $if, $parallel, $try, $while, Errors, Thing } from '../../lib/step-functions';
+import { array, integer, nothing, Record, string, timestamp } from '@punchcard/shape';
+import { App } from '../../lib/core';
+import { Table } from '../../lib/dynamodb';
+import { Queue } from '../../lib/sqs';
+import { $, $catch, $delete, $else, $fail, $finally, $function, $if, $parallel, $try, $while, Errors, Thing } from '../../lib/step-functions';
+import { List } from '../../lib/step-functions/list';
+import { Integer, String } from '../../lib/step-functions/thing';
+import { $wait } from '../../lib/step-functions/wait';
 
 class B extends Record({
   key: string,
@@ -11,84 +17,122 @@ class A extends Record({
   items: array(B)
 }).Deriving(Thing.DSL) {}
 
-const ProcessString = $function(string, string)((request, Return, Throw) => {
+const app = new App();
+const stack = app.stack('test');
 
-  Return(request);
+const table = new Table(stack, 'table', {
+  data: B,
+  key: {
+    partition: 'key'
+  }
 });
 
-const DoWork = $function(A, string)(
-  (request, $return, $fail) => {
-    const arr = $('arr', '=', [1, 2]);
-    const a = $('arr', '=', new A({
-      key: 'a',
-      items: []
+const queue = new Queue(stack, 'queue', {
+  shape: string
+});
+
+const ProcessString = $function(string, string)((request, $return, $fail) => {
+  $return(request);
+});
+
+// tslint:disable: ban-types
+
+export function StringLengths(list: List<String>): List<Integer> {
+  return list.map(item => item.length);
+}
+
+export const Counter = $function(nothing, nothing)(function*(request) {
+  const { counter, ts } = yield* $({
+    counter: integer,
+    ts: timestamp
+  });
+
+  yield* $(counter, '=', 0);
+
+  yield* $while($(ts).greaterThan(new Date()), function*() {
+    yield $(counter, '=', 1);
+  });
+});
+
+function* b() {
+  const { id } = yield* $({
+    id: string
+  });
+
+  function* send(id: String) {
+    return yield* $if(id.equals('id'), function*() {
+      yield* $(queue).sendMessage(null as any);
+    }, $else(function*() {
+      // no-op
+      throw $fail(null);
     }));
-    const arr2 = $('arr2', ':', array(string), '=', ['1', '2']);
-    const arr3 = $('arr2', ':', array(string), '=', arr2);
-
-    $(arr3, '=', $(arr2));
-    $(arr2, '=', ['string']);
-
-    $(a, '=', new A({
-      key: '',
-      items: []
-    }));
-
-    // overwrite state
-    $(arr[0], '=', arr[1]);
-
-    // arr.$[0] = $(arr)[1];
-
-    const job = $('job', '=', {
-      name: 'string',
-      ids: ['1', '2']
-    });
-
-    $(job).ids.forEach(id => {
-      const processed = $('processed', '=', ProcessString(id));
-    });
-
-    $while($(job).name.equals('string'), () => {
-      $if($(arr)[0].equals(1), () => {
-        $try(() => {
-          $(request.items.map(item => ProcessString(item.key, {
-            Retry: {
-              ErrorEquals: [Errors.ALL],
-              MaxAttempts: 5
-            }
-          })));
-
-          $(job, '=', request.items.map(item => ProcessString(item.key, {
-            Retry: {
-              ErrorEquals: [Errors.ALL],
-              MaxAttempts: 5
-            }
-          })));
-
-          const j = $('jobs', '=', request.items.map(item => ProcessString(item.key)));
-        }).$catch(Errors.ALL, () => {
-          // todo
-          job.$.ids = []  as any;
-        }).$finally(() => {
-          // finally
-        });
-
-        $(job).ids.forEach(item => {
-          //
-        });
-
-        $delete(arr);
-      }).$else(() => {
-        job.$.ids = request.items
-          .filter(item => item.key.equals('key'))
-          .map(item => ProcessString(item.key));
-      });
-    });
-
-    $parallel([
-      request.items.map(item => ProcessString(item.key)),
-    ]);
-
-    $return($(job).name);
   }
-);
+
+  function* safeSend() {
+    return yield* $try(function*() {
+      return yield* $if($(id).equals('f'), function*() {
+        const response = yield* $(queue).sendMessage(null as any);
+
+        yield* $(id, '=', response.MessageId);
+
+        return $(id);
+      }, $else(function*() {
+        yield* $(id, '=', 'f');
+
+        throw $fail('todo');
+      }));
+    }, $catch(Errors.ALL, function*() {
+      throw $fail('todo');
+    }, $finally(function*() {
+      $delete(id);
+    })));
+  }
+
+  const results = yield* $parallel(
+    send($(id)),
+    safeSend()
+  );
+}
+
+/*
+function*() {
+  const table = yield* DynamoDB.Table('table', {
+    data: Data,
+    key: {
+      partition: 'key'
+    }
+  });
+
+  yield* Stack('stack', function*() {
+    return yield* Lambda.Function('handler', function*(event) {
+      const result = yield* event.map(e => e.length);
+
+      yield* $(table).put({
+        key: $(event.key)
+      });
+    }, {
+      memorySize: 128
+    });
+  });
+
+  yield* table.resource.map(table => {
+    table.addSortKey(..);
+  });
+
+  const fn = yield* Step(function*(id: String) {
+    return yield* $if(id.equals('0'), function*() {
+      return yield* id.length
+    }, $else(function*() {
+      throw $fail(null);
+    }));
+  });
+}
+
+const state = $('state', '=', 1);
+
+$if(state.id.equals('id), () => {
+  transition(state);
+}, $else(() => {
+  transition(state);
+}))
+*/
