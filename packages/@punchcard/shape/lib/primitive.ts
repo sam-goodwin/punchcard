@@ -1,6 +1,8 @@
 import { Shape } from './shape';
 import { Value } from './value';
 
+export type PrimitiveShape = BoolShape | StringShape | NumberShape | IntegerShape | TimestampShape;
+
 export abstract class DynamicShape<T extends any | unknown> extends Shape {
   public readonly [Value.Tag]: T;
 

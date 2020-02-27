@@ -14,6 +14,7 @@ import { Task } from '../step-functions/task';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 import { Thing } from '../step-functions/thing';
+import { Infra } from '../../test/step-functions/step-functions.test';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
@@ -95,6 +96,15 @@ export interface TableProps<DataType extends RecordType, Key extends DDB.KeyOf<D
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
 export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> implements Resource<dynamodb.Table>, Task.DSL<Table.StepFunctionInterface<DataType, Key>> {
+  public static newInstance<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>(id: string, props: TableProps<DataType, Key>): Generator<unknown, Table<DataType, Key>> {
+
+  }
+
+  public static of<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>(dataType: DataType, key: Key):
+    new(id: string) => Table<DataType, Key> {
+      return null as any;
+    };
+
   /**
    * The DynamoDB Table Construct.
    */
@@ -289,7 +299,9 @@ export namespace Table {
   export class StepFunctionInterface<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> {
     constructor(public readonly table: Table<DataType, Key>) {}
 
-    public put(item: Thing.Of<DataType>) {
+    public put(item: {
+      [m in keyof DataType['members']]: Thing.Of<DataType['members'][m]>
+    }): Generator<unknown, void /* TODO: response type*/> {
 
     }
   }

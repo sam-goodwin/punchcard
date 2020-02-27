@@ -1,6 +1,7 @@
 export * from './choice';
 export * from './control';
 export * from './eval';
+export * from './list';
 export * from './scope';
 export * from './state-machine';
 export * from './state';

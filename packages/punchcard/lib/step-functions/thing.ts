@@ -10,6 +10,8 @@ import { Expr, Kind, Path, Type } from './symbols';
 
 export const IsRef = Symbol.for('punchcard/lib/step-functions.IsRef');
 
+export interface SFN<T extends Thing> extends Generator<unknown, T> {}
+
 export class Thing<T extends ShapeOrRecord = any> {
   public readonly [Kind]: 'thing' = 'thing';
   public readonly [Expr]: Expression<T>;
@@ -58,7 +60,7 @@ export namespace Thing {
     public dynamicShape(shape: DynamicShape<any>, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
-    public integerShape(shape: IntegerShape, expression: Expression): Thing<any> {
+    public integerShape(shape: IntegerShape, expression: Expression): Integer {
       throw new Error("Method not implemented.");
     }
     public mapShape(shape: MapShape<any>, expression: Expression): Thing<any> {
@@ -88,7 +90,7 @@ type Tag = typeof Tag;
 
 declare module '@punchcard/shape/lib/shape' {
   interface Shape {
-    [Tag]: Thing<this>;
+    [Tag]: Thing<any>;
   }
 }
 // tslint:disable: ban-types
@@ -100,6 +102,9 @@ declare module '@punchcard/shape/lib/primitive' {
   interface StringShape {
     [Tag]: String;
   }
+  // interface NumericShape {
+  //   [Tag]: Integer | Number;
+  // }
   interface IntegerShape {
     [Tag]: Integer;
   }
@@ -108,6 +113,9 @@ declare module '@punchcard/shape/lib/primitive' {
   }
   interface TimestampShape {
     [Tag]: Timestamp;
+  }
+  interface NothingShape {
+    [Tag]: Nothing;
   }
 }
 declare module '@punchcard/shape/lib/collection' {
@@ -120,6 +128,8 @@ declare module '@punchcard/shape/lib/record' {
     [Tag]: MakeRecord<M, I>;
   }
 }
+
+export class Nothing extends Thing<NothingShape> {}
 
 export class Ord<T extends Condition.Comparable> extends Thing<T> {
   public equals(value: Value.Of<T>): Condition.Equals<T> {
@@ -136,7 +146,7 @@ export class String extends Ord<StringShape> {
   }
 
   public get length(): Integer {
-    
+    throw new Error('todo');
   }
 }
 export class Timestamp extends Ord<TimestampShape> {
@@ -160,6 +170,7 @@ export class Bool extends Thing<BoolShape> implements Condition {
   }
 
   public toCondition(): sfn.Condition {
+    throw new Error('todo');
     // todo: Epxression to condition...
     // return sfn.Condition.booleanEquals(this[Expr], true);
   }

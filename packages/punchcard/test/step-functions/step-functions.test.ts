@@ -1,11 +1,13 @@
-import { array, integer, nothing, Record, string, timestamp } from '@punchcard/shape';
-import { App } from '../../lib/core';
+import { array, integer, nothing, Record, string, timestamp, ShapeOrRecord, RecordType, StringShape, IntegerShape, PrimitiveShape, MakeRecordType, Value } from '@punchcard/shape';
+import { App, Dependency, Client } from '../../lib/core';
 import { Table } from '../../lib/dynamodb';
 import { Queue } from '../../lib/sqs';
-import { $, $catch, $delete, $else, $fail, $finally, $function, $if, $parallel, $try, $while, Errors, Thing } from '../../lib/step-functions';
-import { List } from '../../lib/step-functions/list';
-import { Integer, String } from '../../lib/step-functions/thing';
+import { $, $catch, $delete, $else, $fail, $finally, $function, $get, $if, $parallel, $set, $state, $try, $while, Errors, List, State, Thing, $function2, Integer, String, SFN } from '../../lib/step-functions';
+
+import DynamoDB = require('../../lib/dynamodb');
+import { DDB } from '@punchcard/shape-dynamodb/lib/client';
 import { $wait } from '../../lib/step-functions/wait';
+import { Run } from '../../lib/core/run';
 
 class B extends Record({
   key: string,
@@ -31,108 +33,133 @@ const queue = new Queue(stack, 'queue', {
   shape: string
 });
 
-const ProcessString = $function(string, string)((request, $return, $fail) => {
-  $return(request);
+const ProcessString = $function(array(string), string)(function*(request) {
+  const m = yield* request.map(function*(s) {
+    return s;
+  });
+
+  const id2 = yield* $state('id2', string);
+
+  return m[0];
 });
 
 // tslint:disable: ban-types
 
-export function StringLengths(list: List<String>): List<Integer> {
-  return list.map(item => item.length);
-}
-
-export const Counter = $function(nothing, nothing)(function*(request) {
-  const { counter, ts } = yield* $({
-    counter: integer,
-    ts: timestamp
+export const Counter = $function(array(string), string)(function*(request) {
+  const { id } = yield* $state({
+    id: array(string)
   });
 
-  yield* $(counter, '=', 0);
+  const id2 = yield* $state('id2', string);
 
-  yield* $while($(ts).greaterThan(new Date()), function*() {
-    yield $(counter, '=', 1);
-  });
+  const a = $(id);
+
+
+  // const li = yield* $(id).map(function*(i) {
+  //   const a3 = yield* $var('a3', integer, );
+  //   return i;
+  // });
+
+  return null as any;
 });
 
-function* b() {
-  const { id } = yield* $({
-    id: string
-  });
 
-  function* send(id: String) {
-    return yield* $if(id.equals('id'), function*() {
-      yield* $(queue).sendMessage(null as any);
-    }, $else(function*() {
-      // no-op
-      throw $fail(null);
-    }));
+export abstract class $Function<T extends ShapeOrRecord, U extends ShapeOrRecord> {
+  constructor(public readonly request: T, public readonly response: U) {
+
   }
 
-  function* safeSend() {
-    return yield* $try(function*() {
-      return yield* $if($(id).equals('f'), function*() {
-        const response = yield* $(queue).sendMessage(null as any);
-
-        yield* $(id, '=', response.MessageId);
-
-        return $(id);
-      }, $else(function*() {
-        yield* $(id, '=', 'f');
-
-        throw $fail('todo');
-      }));
-    }, $catch(Errors.ALL, function*() {
-      throw $fail('todo');
-    }, $finally(function*() {
-      $delete(id);
-    })));
-  }
-
-  const results = yield* $parallel(
-    send($(id)),
-    safeSend()
-  );
+  public abstract apply<ID extends string>(request: State<Thing.Of<T>, ID>): Generator<unknown, Thing.Of<U>>;
 }
 
-/*
-function*() {
-  const table = yield* DynamoDB.Table('table', {
-    data: Data,
-    key: {
-      partition: 'key'
-    }
-  });
+export type LambdaFunctionHandler<T extends ShapeOrRecord, U extends ShapeOrRecord> = (event: Value.Of<T>) => Promise<Value.Of<U>>;
+// export function LambdaFunction<T extends ShapeOrRecord, U extends ShapeOrRecord>(
+//   input: T, output: U, f: () => Generator<unknown, LambdaFunctionHandler<T, U>>):
+//     new(g: () => Generator) => Generator<unknown, LambdaFunctionHandler<T, U>> {
+//       return null as any;
+// }
 
-  yield* Stack('stack', function*() {
-    return yield* Lambda.Function('handler', function*(event) {
-      const result = yield* event.map(e => e.length);
+class LambdaFunctionImpl<T extends ShapeOrRecord, U extends ShapeOrRecord> {
+  constructor(handler: LambdaFunctionHandler<T, U>) {}
+}
 
-      yield* $(table).put({
-        key: $(event.key)
-      });
-    }, {
-      memorySize: 128
+export function LambdaFunction<T extends ShapeOrRecord, U extends ShapeOrRecord>(
+  t: T, u: U, handler: () => Generator<unknown, LambdaFunctionHandler<T, U>>):
+    new() => Generator<unknown, LambdaFunctionImpl<T, U>> {
+      return null as any;
+}
+
+
+export interface Infra<T> extends Generator<unknown , T> {}
+
+export type Run<T> = Generator<unknown, T>;
+
+function connect<D extends Dependency>(d: D): Generator<unknown, Client<D>> {
+  return null as any;
+}
+
+export function Construct<T>(infra: () => Generator<unknown, T>): (new(id: string) => T) & {
+  new: (id: string) => Generator<unknown, T>
+} {
+  return null as any;
+}
+
+
+function construct<T extends new(...args: any[]) => any>(type: T, ...args: ConstructorParameters<T>): Generator<unknown, InstanceType<T>> {
+
+}
+
+export function* application() {
+  const t = yield* construct(MyServiceTable, 'table');
+
+  const myService = new MyServiceTable(t);
+}
+
+export class Data extends Record({
+  key: string
+}) {}
+
+export class MyServiceTable extends Table.of(Data, { partition: 'key' }) {}
+
+// tslint:disable: ban-types
+export class MyService {
+  constructor(public readonly table: MyServiceTable) {}
+
+  public *process(str: String): SFN<Integer> {
+    // put data to DDB
+    yield* $(this.table).put({
+      key: str
     });
-  });
 
-  yield* table.resource.map(table => {
-    table.addSortKey(..);
-  });
-
-  const fn = yield* Step(function*(id: String) {
-    return yield* $if(id.equals('0'), function*() {
-      return yield* id.length
+    const length = yield* $if(str.equals(''), function*() {
+      return str.length;
     }, $else(function*() {
-      throw $fail(null);
+      return str.length;
     }));
-  });
+
+    yield* $while(length.greaterThan(10), function*() {
+      yield* $wait(10);
+    });
+
+    return length;
+  }
+
+  public *processAll(strings: List<String>): SFN<List<Integer>> {
+    return yield* strings.map(this.process);
+  }
 }
 
-const state = $('state', '=', 1);
 
-$if(state.id.equals('id), () => {
-  transition(state);
-}, $else(() => {
-  transition(state);
-}))
-*/
+// tslint:disable-next-line: new-parens
+class Reader extends LambdaFunction(string, integer, function*() {
+  const read = yield* connect(d.readAccess());
+
+  return (async (str: string) => {
+    const item = await read.get({
+      key: 'key'
+    });
+    // await Run.resolve(read.bootstrap)(null as any, null as any);
+    return 1;
+  });
+}) {}
+

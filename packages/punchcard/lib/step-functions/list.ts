@@ -58,7 +58,7 @@ export class List<T extends Thing = any> extends Thing<ArrayShape<Thing.GetType<
     return null as any;
   }
 
-  public map<U extends Thing>(fn: (item: T, index: Integer, scope: Scope) => U): List<U> {
+  public map<U extends Thing>(fn: (item: T, index: Integer) => Generator<unknown, U>): Generator<unknown, List<U>> {
     const expr = Thing.getExpression(this);
     if (Expression.Guards.isListMap(expr)) {
       
@@ -69,7 +69,7 @@ export class List<T extends Thing = any> extends Thing<ArrayShape<Thing.GetType<
     // const scope = Thread.get()!.push();
     // const outputValue: U = fn(inputValue as T, index, scope);
 
-    return new List(new List.Map(this, fn) as any);
+    return new List(new List.Map(this, fn) as any) as any;
   }
 
   public forEach(fn: (item: T, index: Integer, scope: Scope) => void): void {
@@ -103,7 +103,7 @@ export namespace List {
     public [ExpressionKind]: 'listMap' = 'listMap';
 
     constructor(public readonly from: L, public readonly map: ((item: List.GetItem<L>, index: Integer, scope: Scope) => Thing.Of<U>)) {
-      super();
+      super(null as any);
     }
   }
 }
