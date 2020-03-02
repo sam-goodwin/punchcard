@@ -38,7 +38,7 @@
     "jest": "^24.9.0",
     "sinon": "^8.0.1",
     "tslint": "^5.16.0",
-    "typescript": "^3.7.4",
+    "typescript": "^3.8.3",
     "@types/moment": "^2.13.0"
   },
   "dependencies": {

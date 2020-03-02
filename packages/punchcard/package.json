@@ -41,7 +41,7 @@
     "jest": "^24.9.0",
     "sinon": "^8.0.1",
     "tslint": "^5.16.0",
-    "typescript": "^3.7.4"
+    "typescript": "^3.8.3"
   },
   "dependencies": {
     "@punchcard/constructs": "^0.3.0",
