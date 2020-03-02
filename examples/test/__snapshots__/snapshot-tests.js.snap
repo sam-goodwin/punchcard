@@ -450,6 +450,8 @@ Object {
                 "kms:ScheduleKeyDeletion",
                 "kms:CancelKeyDeletion",
                 "kms:GenerateDataKey",
+                "kms:TagResource",
+                "kms:UntagResource",
               ],
               "Effect": "Allow",
               "Principal": Object {
@@ -3855,6 +3857,8 @@ Object {
                 "kms:ScheduleKeyDeletion",
                 "kms:CancelKeyDeletion",
                 "kms:GenerateDataKey",
+                "kms:TagResource",
+                "kms:UntagResource",
               ],
               "Effect": "Allow",
               "Principal": Object {
