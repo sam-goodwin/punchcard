@@ -3,17 +3,17 @@ import sqs = require('@aws-cdk/aws-sqs');
 import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 
-import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value, Record, string } from '@punchcard/shape';
+import { any, AnyShape, Mapper, MapperFactory, Record, ShapeOrRecord, string, Value } from '@punchcard/shape';
 import { Json } from '@punchcard/shape-json';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
+import { Task } from '../step-functions/task';
+import { SFN, Thing } from '../step-functions/thing';
 import { sink, Sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 import { Messages } from './messages';
-import { Task } from '../step-functions/task';
-import { Thing } from '../step-functions/thing';
 
 export interface QueueProps<T extends ShapeOrRecord = AnyShape> {
   /**
@@ -221,7 +221,10 @@ export namespace Queue {
   export class StepFunctionInterface<T extends ShapeOrRecord> {
     constructor(public readonly queue: Queue<T>) {}
 
-    public sendMessage(message: Thing.Of<T>): Generator<any, Thing.Of<typeof Api.SendMessageResponse>, any> {
+    public sendMessage(message: Value.Of<T>): SFN<Thing.Of<typeof Api.SendMessageResponse>>;
+    public sendMessage(message: Thing.Value<T>): SFN<Thing.Of<typeof Api.SendMessageResponse>>;
+
+    public sendMessage(message: any): SFN<Thing.Of<typeof Api.SendMessageResponse>> {
       return null as any;
     }
   }

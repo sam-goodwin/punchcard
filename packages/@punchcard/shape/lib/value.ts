@@ -1,7 +1,6 @@
 import { ArrayShape, MapShape } from './collection';
 import { AnyShape, bool, BoolShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from './primitive';
-import { MakeRecordType, RecordShape, RecordType } from './record';
-import { Shape } from './shape';
+import { StructShape } from './struct';
 
 export namespace Value {
   export type Tag = typeof Tag;
@@ -25,15 +24,16 @@ export namespace Value {
     V extends boolean ? BoolShape :
     V extends (undefined | null | void) ? NothingShape :
     V extends Date ? TimestampShape :
-    V extends Array<infer I> ? ArrayShape<Shape.Of<InferShape<I>>> :
-    V extends Map<string, infer I> ? MapShape<Shape.Of<InferShape<I>>> :
-    V extends {
-      [key: string]: any;
-    } ? MakeRecordType<{
-      [K in Extract<keyof V, string>]: InferShape<V[K]>;
-    }> :
+    V extends Array<infer I> ? ArrayShape<I extends never ? AnyShape : InferShape<I>> :
+    V extends Map<string, infer I> ? MapShape<InferShape<I>> :
+    V extends { [key: string]: any; } ? InferredRecord<V> :
     AnyShape
     ;
+
+  export interface InferredRecord<V extends { [key: string]: any }> extends StructShape<{
+    [K in Extract<keyof V, string>]: InferShape<V[K]>;
+  }> {}
+
   export function inferShape<V>(value: V): InferShape<V> {
     switch (typeof value) {
       case 'boolean': return bool as any;
@@ -46,12 +46,3 @@ export namespace Value {
     }
   }
 }
-
-class A extends Value.inferShape({
-  a: 'hello',
-  b: new Date(),
-  c: [new Date()],
-  d: {
-    key: 1
-  }
-}) {}

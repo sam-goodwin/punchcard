@@ -1,5 +1,6 @@
-import { RequiredKeys, Shape } from '@punchcard/shape';
-import { RecordMembers, ShapeOrRecord } from '@punchcard/shape/lib/record';
+import { ArrayShape, BinaryShape, BoolShape, MapShape, NumericShape, RequiredKeys, Shape, StringShape, TimestampShape, SetShape } from '@punchcard/shape';
+import { RecordMembers, RecordShape, RecordType, ShapeOrRecord } from '@punchcard/shape/lib/record';
+import { StructShape } from '@punchcard/shape/lib/struct';
 
 declare module '@punchcard/shape/lib/shape' {
   export interface Shape {
@@ -26,6 +27,52 @@ export namespace AttributeValue {
     | AttributeValue.StringValue
     | AttributeValue.Struct<any>
     ;
+
+  export function shapeOf<T extends ShapeOrRecord>(type: T): AttributeValue.ShapeOf<T> {
+
+  }
+  /**
+   * Map a ShapeOrRecord to its DynamoDB shape.
+   */
+  export type ShapeOf<T extends ShapeOrRecord> =
+    T extends BinaryShape ? StructShape<{B: StringShape}> :
+    T extends BoolShape ? StructShape<{BOOL: BoolShape}> :
+    T extends NumericShape ? StructShape<{N: StringShape}> :
+    T extends StringShape | TimestampShape ? StructShape<{S: StringShape}> :
+    T extends StructShape<infer M> ? StructShape<{
+      M: StructShape<{
+        [m in keyof M]: AttributeValue.ShapeOf<M[m]>;
+      }>
+    }> :
+    T extends RecordShape<infer M> ? StructShape<{
+      M: StructShape<{
+        [m in keyof M]: AttributeValue.ShapeOf<M[m]>;
+      }>
+    }> :
+    T extends RecordType<any, infer M> ? StructShape<{
+      M: StructShape<{
+        [m in keyof M]: AttributeValue.ShapeOf<M[m]>;
+      }>
+    }> :
+    T extends ArrayShape<infer I> ? StructShape<{
+      L: ArrayShape<AttributeValue.ShapeOf<I>>;
+    }> :
+    T extends MapShape<infer V> ? StructShape<{
+      M: MapShape<AttributeValue.ShapeOf<V>>;
+    }> :
+    T extends SetShape<infer I> ?
+      I extends BinaryShape ? StructShape<{
+        BS: ArrayShape<StringShape>;
+      }> :
+      I extends StringShape ? StructShape<{
+        SS: ArrayShape<StringShape>;
+      }> :
+      I extends NumericShape ? StructShape<{
+        BS: ArrayShape<I>;
+      }> :
+      never :
+    T
+  ;
 
   export type Of<T extends ShapeOrRecord> = Shape.Of<T> extends { [Tag]: infer T2 } ? T2 : never;
 

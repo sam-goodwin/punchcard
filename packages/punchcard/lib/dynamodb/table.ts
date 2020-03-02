@@ -4,17 +4,19 @@ import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 
-import { RecordType, Shape } from '@punchcard/shape';
-import { DDB, TableClient } from '@punchcard/shape-dynamodb';
+import { ArrayShape, BinaryShape, BoolShape, IntegerShape, MapShape, NumberShape, NumericShape, RecordShape, RecordType, Shape, ShapeOrRecord, StringShape, TimestampShape, Value } from '@punchcard/shape';
+import { DDB, TableClient, AttributeValue } from '@punchcard/shape-dynamodb';
+import { StructShape } from '@punchcard/shape/lib/struct';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { Task } from '../step-functions/task';
+import { Thing } from '../step-functions/thing';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
-import { Thing } from '../step-functions/thing';
-import { Infra } from '../../test/step-functions/step-functions.test';
+
+import { Record } from '../step-functions/thing';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
@@ -96,15 +98,6 @@ export interface TableProps<DataType extends RecordType, Key extends DDB.KeyOf<D
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
 export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> implements Resource<dynamodb.Table>, Task.DSL<Table.StepFunctionInterface<DataType, Key>> {
-  public static newInstance<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>(id: string, props: TableProps<DataType, Key>): Generator<unknown, Table<DataType, Key>> {
-
-  }
-
-  public static of<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>(dataType: DataType, key: Key):
-    new(id: string) => Table<DataType, Key> {
-      return null as any;
-    };
-
   /**
    * The DynamoDB Table Construct.
    */
@@ -299,10 +292,10 @@ export namespace Table {
   export class StepFunctionInterface<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> {
     constructor(public readonly table: Table<DataType, Key>) {}
 
-    public put(item: {
-      [m in keyof DataType['members']]: Thing.Of<DataType['members'][m]>
-    }): Generator<unknown, void /* TODO: response type*/> {
-
+    public put(item: Value.Of<DataType>): Generator<unknown, void /* TODO: response type*/>;
+    public put(item: Thing.Value<AttributeValue.ShapeOf<DataType>>['M']): Generator<unknown, void /* TODO: response type*/>;
+    public put(item: any): any {
+      return null as any;
     }
   }
 }

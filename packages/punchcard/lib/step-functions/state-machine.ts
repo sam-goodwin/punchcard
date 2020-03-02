@@ -1,5 +1,5 @@
 import { integer, RecordType, ShapeOrRecord, unknown} from '@punchcard/shape';
-import { $, $set, $state } from './eval';
+import { $, $pass, $set } from './eval';
 import { State } from './state';
 import { Integer, String, Thing } from './thing';
 

@@ -10,6 +10,7 @@ export * from './metadata';
 export * from './primitive';
 export * from './record';
 export * from './shape';
+export * from './struct';
 export * from './traits';
 export * from './util';
 export * from './validation';

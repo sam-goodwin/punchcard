@@ -31,7 +31,7 @@ export class SetShape<T extends Shape> extends CollectionShape<T> {
   public readonly [Value.Tag]: T extends StringShape | NumberShape | BoolShape ? Set<T[Value.Tag]> : HashSet<T>;
   public readonly Kind = 'setShape';
 }
-export const set = <T extends ShapeOrRecord>(items: T) => new SetShape(Shape.of(items)) as SetShape<Shape.Of<T>>;
+export const set = <T extends ShapeOrRecord>(items: T) => new SetShape(Shape.of(items)) as any as SetShape<Shape.Of<T>>;
 
 /**
  * Map of `string` keys to some shape, `T`.

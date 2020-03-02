@@ -1,10 +1,12 @@
 import sfn = require('@aws-cdk/aws-stepfunctions');
 
 import { array, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, Equals, integer, IntegerShape, MapShape, NothingShape, number, NumberShape, NumericShape, RecordMembers, RecordShape, RecordType, SetShape, Shape, ShapeOrRecord, string, StringShape, TimestampShape, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { StructShape } from '@punchcard/shape/lib/struct';
 import { Condition } from './choice';
 import { Expression,  } from './expression';
 import { List } from './list';
-import { Expr, Kind, Path, Type } from './symbols';
+import { Map } from './map';
+import { Expr, Kind, Path, SubKind, Type } from './symbols';
 
 // tslint:disable: no-construct
 
@@ -16,6 +18,8 @@ export class Thing<T extends ShapeOrRecord = any> {
   public readonly [Kind]: 'thing' = 'thing';
   public readonly [Expr]: Expression<T>;
   public readonly [Type]: T;
+
+  public readonly [SubKind]: string = 'thing';
 
   constructor(expression: Expression<T>) {
     this[Expr] = expression;
@@ -41,8 +45,29 @@ export namespace Thing {
   }
 
   export type Of<T extends ShapeOrRecord> = Shape.Of<T>[Tag];
-  export type Literal<T extends ShapeOrRecord> = Value.Of<T>;
   export type GetType<T extends Thing> = T extends Thing<infer S> ? S : never;
+
+  /**
+   * A value of a Thing - can be a mix of references and literal values.
+   *
+   * E.g. `StringShape` can be either a `string` literal of a `Thing.String` reference.
+   */
+  export type Value<T extends ShapeOrRecord> = Thing.Of<T> | Value.Of<T> | (
+    T extends StructShape<infer M> ? {
+      [m in keyof M]: Thing.Value<M[m]>;
+    } :
+    T extends MapShape<infer V> ? {
+      [key: string]: Thing.Value<V>;
+    } :
+    T extends ArrayShape<infer V> ? Array<Thing.Value<V>> :
+    T extends RecordType<any, infer M> ? {
+      [m in keyof M]: Thing.Value<M[m]>;
+    } :
+    T extends RecordShape<infer M> ? {
+      [m in keyof M]: Thing.Value<M[m]>;
+    } :
+    never
+  );
 
   export class Visitor implements ShapeVisitor<Thing, Expression> {
     public arrayShape(shape: ArrayShape<any>, expression: Expression): List {
@@ -78,6 +103,9 @@ export namespace Thing {
     public stringShape(shape: StringShape, expression: Expression): Thing<any> {
       return new String(expression);
     }
+    public structShape(shape: StructShape<any>, expression: Expression): Struct<any> {
+      return new Struct(expression);
+    }
     public timestampShape(shape: TimestampShape, expression: Expression): Thing<any> {
       throw new Error("Method not implemented.");
     }
@@ -96,6 +124,9 @@ declare module '@punchcard/shape/lib/shape' {
 // tslint:disable: ban-types
 
 declare module '@punchcard/shape/lib/primitive' {
+  interface AnyShape {
+    [Tag]: Thing<any>;
+  }
   interface BoolShape {
     [Tag]: Bool;
   }
@@ -122,10 +153,23 @@ declare module '@punchcard/shape/lib/collection' {
   interface ArrayShape<T> {
     [Tag]: List<Thing.Of<T>>;
   }
+  interface MapShape<T> {
+    [Tag]: Map<Thing.Of<T>>;
+  }
 }
 declare module '@punchcard/shape/lib/record' {
   interface RecordShape<M, I> {
-    [Tag]: MakeRecord<M, I>;
+    // [Tag]: MakeRecord<M, I>;
+    [Tag]: MakeStruct<{
+      [m in keyof M]: Thing.Of<M[m]>;
+    }>;
+  }
+}
+declare module '@punchcard/shape/lib/struct' {
+  interface StructShape<M> {
+    [Tag]: MakeStruct<{
+      [m in keyof M]: Thing.Of<M[m]>;
+    }>;
   }
 }
 
@@ -141,6 +185,8 @@ export class Ord<T extends Condition.Comparable> extends Thing<T> {
 }
 
 export class String extends Ord<StringShape> {
+  public readonly [SubKind]: 'string' = 'string';
+
   constructor(expression: Expression<StringShape>) {
     super(expression);
   }
@@ -155,11 +201,13 @@ export class Timestamp extends Ord<TimestampShape> {
 export class Numeric<N extends NumericShape> extends Ord<N> {}
 
 export class Integer extends Numeric<IntegerShape> {
+  public readonly [SubKind]: 'integer' = 'integer';
   constructor(expression: Expression<IntegerShape>) {
     super(expression);
   }
 }
 export class Number extends Numeric<NumberShape> {
+  public readonly [SubKind]: 'number' = 'number';
   constructor(expression: Expression<NumberShape>) {
     super(expression);
   }
@@ -175,6 +223,18 @@ export class Bool extends Thing<BoolShape> implements Condition {
     // return sfn.Condition.booleanEquals(this[Expr], true);
   }
 }
+
+export interface StructMembers {
+  [m: string]: Thing;
+}
+
+export class Struct<M extends StructMembers> extends Thing<StructShape<{
+  [m in keyof M]: Thing.GetType<M[m]>;
+}>> {}
+
+export type MakeStruct<M extends StructMembers> = Struct<M> & {
+  [m in keyof M]: M[m];
+};
 
 export class Record<M extends RecordMembers, I> extends Thing<RecordShape<M, I>> {
 

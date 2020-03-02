@@ -1,6 +1,7 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape } from './record';
+import { StructShape } from './struct';
 
 export interface Visitor<T = unknown, C = undefined> {
   arrayShape(shape: ArrayShape<any>, context: C): T;
@@ -14,12 +15,10 @@ export interface Visitor<T = unknown, C = undefined> {
   numberShape(shape: NumberShape, context: C): T;
   setShape(shape: SetShape<any>, context: C): T;
   stringShape(shape: StringShape, context: C): T;
+  structShape(shape: StructShape<any>, context: C): T;
   timestampShape(shape: TimestampShape, context: C): T;
 }
 export namespace Visitor {
   export type ReturnType<V extends Visitor> = V extends Visitor<infer T, any>  ? T : never;
   export type ContextType<V extends Visitor> = V extends Visitor<any, infer C>  ? C : null;
 }
-
-
-
