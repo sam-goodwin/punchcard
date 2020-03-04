@@ -39,13 +39,15 @@ const Seq = new Sequence({
   increment: 1
 });
 
-const m = UserTable
-  .where(_ => _.age.equals(0))
-  .select(_ => ({a: _.user.age}));
-
+// select * from users where userId = 'userId'
 UserTable.get({
   userId: 'userId'
 });
+
+// select age as a from users where age = 0
+UserTable
+  .where(_ => _.age.equals(0))
+  .select(_ => ({a: _.user.age}));
 
 // https://scala-slick.org/doc/3.1.1/queries.html
 
@@ -56,14 +58,20 @@ Query
     age: _.user.age
   }));
 
-const j = Query
+/*
+select user.userId, f.friendId, avg(users.age) as avg from users
+join friends f on user.userId = f.friendId
+where user.age = 0 & f.friendId like '%sam'
+group by user.userId, f.friendId
+*/
+Query
   .from(UserTable)
-  .join(FriendsTable, { on: _ => _.user.userId.equals('sam') })
+  .join(FriendsTable, { as: 'f', on: _ => _.user.userId.equals(_.f.friendId) })
   .where(_ => Bool.and(
-    _.user.age.equals(1),
-    _.friends.friendId.like('%')
+    _.user.age.equals(0),
+    _.f.friendId.like('%sam')
   ))
-  .groupBy(_ => [_.user.userId, _.friends.friendId])
+  .groupBy(_ => [_.user.userId, _.f.friendId])
   .having(_ => Agg.avg(_.map(_ => _.user.age)).equals(0))
   .select(([userId, friendId], rows) => ({
     userId,
