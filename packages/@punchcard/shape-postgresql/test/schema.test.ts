@@ -2,7 +2,7 @@
 import { number, Record, string } from '@punchcard/shape';
 
 import { Bool, rollback, savepoint, Sequence, Table, transaction } from '../lib';
-import { Agg, Query } from '../lib/query';
+import { Agg, avg, from, Query, select } from '../lib/query';
 import { sql } from '../lib/sql';
 
 class User extends Record({
@@ -47,29 +47,56 @@ UserTable.get({
 // select age as a from users where age = 0
 UserTable
   .where(_ => _.age.equals(0))
-  .select(_ => ({a: _.user.age}));
+  .select(_ => ({
+    a: _.user.age
+  }));
 
 // https://scala-slick.org/doc/3.1.1/queries.html
 
-Query
-  .from(UserTable)
+select(([userId], _) => ({
+  userId,
+}),
+from(UserTable).
+join(FriendsTable).
+where(_ => _.user.age.equals(0)).
+groupBy(_ => [_.user.userId]));
+
+select('*', from(UserTable).where(_ => _.user.age.equals(0)));
+
+select(([userId], _) => ({
+  userId,
+}),
+from(UserTable)
+  .join(FriendsTable)
   .where(_ => _.user.age.equals(0))
-  .select(_ => ({
-    age: _.user.age
-  }));
+  .groupBy(_ => [_.user.userId])
+);
+
+// optional: select-clause at the top
+select(([userId], _) => ({
+  userId,
+  avg: Agg.avg(_.map(_ => _.user.age)) 
+}),
+from(UserTable)
+  .join(FriendsTable, { on: _ => _.user.userId.equals(_.friends.friendId) })
+  .where(_ => _.user.userId.equals('sam'))
+  .groupBy(_ => [_.user.userId])
+  .having(_ => avg(_.user.age).greaterThan(0))
+);
 
 /*
 select user.userId, f.friendId, avg(users.age) as avg from users
 join friends f on user.userId = f.friendId
 where user.age = 0 & f.friendId like '%sam'
 group by user.userId, f.friendId
+having avg(users.age) = 0
 */
 Query
   .from(UserTable)
   .join(FriendsTable, { as: 'f', on: _ => _.user.userId.equals(_.f.friendId) })
   .where(_ => Bool.and(
     _.user.age.equals(0),
-    _.f.friendId.like('%sam')
+    _.f.friendId.like('%sam'),
   ))
   .groupBy(_ => [_.user.userId, _.f.friendId])
   .having(_ => Agg.avg(_.map(_ => _.user.age)).equals(0))
@@ -79,6 +106,8 @@ Query
     avg: Agg.avg(rows.map(_ => _.user.age))
   }))
   ;
+
+sql`select * from ${UserTable}`.as(User);
 
 const t = sql`
 select user.userId, avg(user.age) avg from ${UserTable} user
@@ -113,6 +142,26 @@ async function createUser() {
     const user = yield* UserTable.get({
       userId
     });
+
+    yield* UserTable
+      .where(row => row.userId.equals('sam'))
+      .groupBy(_ => [_.user.userId])
+      .having(_ => avg(_.user.age).greaterThan(0))
+      .select(([userId], _) => ({
+        userId,
+        avg: Agg.avg(_.map(_ => _.user.age))
+      })) as any;
+
+    yield* select(([[userId], _]) => ({
+      userId,
+      avg: Agg.avg(_.map(_ => _.user.age))
+    }), from(UserTable)
+      .where(_ => _.userId.equals('sam'))
+      .groupBy(_ => [_.user.userId])
+      .having(_ => avg(_.user.age).greaterThan(0))
+    ) as any;
+
+    yield* sql`select * from ${UserTable}`.as(User) as any;
 
     yield* FriendsTable.insert(new Friend({
       userId,

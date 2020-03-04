@@ -17,7 +17,7 @@ enum IndexType {
 }
 
 export class Table<Name extends string, T extends RecordType, PK extends Field<T> | undefined = undefined> {
-  public readonly rep: Postgresql.Rep<T>;
+  public readonly row: Postgresql.Fields<T>;
   public readonly tableName: Name;
   public readonly type: T;
   public readonly primarykey: PK;
@@ -33,7 +33,7 @@ export class Table<Name extends string, T extends RecordType, PK extends Field<T
       using?: IndexType;
     }>
   }) {
-    this.rep = Postgresql.rep(props.type);
+    this.row = Postgresql.rep(props.type).fields;
     this.tableName = props.tableName;
     this.type = props.type;
     this.primarykey = props.primaryKey!;
@@ -46,14 +46,14 @@ export class Table<Name extends string, T extends RecordType, PK extends Field<T
   }
 
   public select<F extends Query.Fields>(f: (row: Postgresql.Fields<T>) => F): Query.Select<F> {
-    return new Query.Select(f(this.rep.fields as any));
+    return new Query.Select(f(this.row.fields as any));
   }
 
   public where(f: (row: Postgresql.Fields<T>) => Bool): Query.Filtered<{ [N in Name]: Postgresql.Fields<T>; }> {
-    return new Query.Filtered(this, f(this.groups));
+    return new Query.Filtered(this.row, f(this.row)) as any;
   }
 
-  public groupBy<G extends Query.Fields>(f: (row: Postgresql.Fields<T>) => G): Query.Grouped<G, { [N in Name]: Postgresql.Fields<T> }> {
+  public groupBy<G extends Rep[]>(f: (row: Postgresql.Fields<T>) => G): Query.Grouped<G, { [N in Name]: Postgresql.Fields<T> }> {
     throw new Error('todo');
   }
 
