@@ -1,5 +1,4 @@
 import { Mapper, Shape, TimestampShape, Value } from '@punchcard/shape';
-import moment = require('moment');
 
 import { DataFormat } from './data-format';
 import { DataType } from './data-type';
@@ -13,13 +12,38 @@ import { Json } from '@punchcard/shape-json';
 export class JsonMapperVisitor extends Json.MapperVisitor {
   public static readonly instance = new JsonMapperVisitor();
 
+  private static readonly TIME_FORMAT = /^\d{4}-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})$/;
+
   public timestampShape(shape: TimestampShape): Mapper<Date, string> {
     return {
       // TODO: why the f doesn't athena support ISO8601 string lol
-      write: (value: Date) => moment.utc(value).format('YYYY-MM-DD HH:mm:ss.SSS'),
-      read: (value: string) => moment.utc(value).toDate()
+      write: (value: Date) => `${pad(value.getUTCFullYear(), 4)}-${pad(value.getUTCMonth(), 2)}-${pad(value.getUTCDate(), 2)} ${pad(value.getUTCHours(), 2)}:${pad(value.getUTCMinutes(), 2)}:${value.getUTCSeconds(), 2}.${pad(value.getUTCMilliseconds(), 3)}`,
+      read: (value: string) => {
+        const match = value.match(JsonMapperVisitor.TIME_FORMAT);
+        if (!match) {
+          throw new Error(`invalid Hive timestamp format, expected YYYY-MM-DD HH:mm:ss.SSS`);
+        }
+        const year = parseInt(match[0], 10);
+        const month = parseInt(match[1], 10);
+        const day = parseInt(match[2], 10);
+        const hour = parseInt(match[3], 10);
+        const minute = parseInt(match[4], 10);
+        const second = parseInt(match[5], 10);
+        const ms = parseInt(match[6], 10);
+        return new Date(year, month, day, hour, minute, second, ms);
+      }
     };
   }
+}
+
+function pad(str: string | number, length: number) {
+  if (typeof str === 'number') {
+    str = str.toString(10);
+  }
+  while (str.length < length) {
+    str = '0' + str;
+  }
+  return str;
 }
 
 export class JsonDataType implements DataType {
