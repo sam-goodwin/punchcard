@@ -1,26 +1,15 @@
-import lambda = require('@aws-cdk/aws-lambda');
-import cdk = require('@aws-cdk/core');
+import type * as lambda from '@aws-cdk/aws-lambda';
+import type * as cdk from '@aws-cdk/core';
 
 import _fs = require('fs');
 const fs = _fs.promises;
 import path = require('path');
 
-import { ENTRYPOINT_ENV_KEY, ENTRYPOINT_SYMBOL_NAME, GLOBAL_SYMBOL_NAME, WEBPACK_MODE } from '../util/constants';
-
-class MockCode extends lambda.Code {
-  public readonly isInline: boolean = true;
-
-  public bind(): lambda.CodeConfig {
-    return {
-      inlineCode: 'exports.handler = function(){ throw new Error("Mocked code is running, oops!");}'
-    };
-  }
-}
+import { ENTRYPOINT_ENV_KEY, GLOBAL_SYMBOL_NAME, WEBPACK_MODE } from '../util/constants';
+import { CDK } from './cdk';
 
 export namespace Code {
   const symbol = Symbol.for('punchcard:code');
-
-  export const mock = new MockCode();
 
   function findApp(c: cdk.IConstruct): cdk.App {
     while (c.node.scope !== undefined) {
@@ -53,8 +42,8 @@ export namespace Code {
     }
   }
 
-  export async function initCode(app: cdk.App, externals: string[], plugins: any[]): Promise<lambda.Code> {
-    class MockCode extends lambda.Code {
+  export function mock(): lambda.Code {
+    class MockCode extends CDK.Lambda.Code {
       public readonly isInline: boolean = true;
 
       public bind(): lambda.CodeConfig {
@@ -63,10 +52,14 @@ export namespace Code {
         };
       }
     }
+    return new MockCode();
+  }
+
+  export async function initCode(app: cdk.App, externals: string[], plugins: any[]): Promise<lambda.Code> {
     if ((app as any)[symbol] === undefined) {
       if (process.mainModule === undefined) {
         // console.warn('Mocking code, assuming its a unit test. Are you running the node process from another tool like jest?');
-        return new MockCode();
+        return mock();
       }
       const index = process.mainModule.filename;
       // TODO: probably better to stash things in the CWD instead of next to the app
@@ -83,9 +76,9 @@ export namespace Code {
         await fs.mkdir(codePath);
       }
 
-      const webpack = require('webpack');
+      const webpack = require('webpack') as typeof import('webpack');
 
-      const config = {
+      const config: import('webpack').Configuration = {
         mode: app.node.tryGetContext(WEBPACK_MODE) || 'production',
         entry: index,
         target: 'node',
@@ -122,7 +115,7 @@ export namespace Code {
             // one individually to the console
             stats.compilation.errors.map((s: any) => console.error(s.message ?? s));
           }
-          resolve(lambda.Code.asset(codePath));
+          resolve(CDK.Lambda.Code.asset(codePath));
         });
       });
 

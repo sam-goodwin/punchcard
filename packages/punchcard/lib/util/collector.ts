@@ -1,5 +1,3 @@
-import core = require('@aws-cdk/core');
-
 import { Shape } from '@punchcard/shape';
 import { Build } from '../core/build';
 import * as Firehose from '../firehose';
@@ -7,6 +5,8 @@ import * as Kinesis from '../kinesis';
 import * as SNS from '../sns';
 import * as SQS from '../sqs';
 import { Stream } from './stream';
+
+import type * as cdk from '@aws-cdk/core';
 
 /**
  * Collects data from an `Stream`.
@@ -18,7 +18,7 @@ export interface Collector<T, S extends Stream<any, any, any, any>> {
   /**
    * Create Constructs to collect data from the `Stream` and returns the result of that collection.
    */
-  collect(scope: Build<core.Construct>, id: string, stream: S): T
+  collect(scope: Build<cdk.Construct>, id: string, stream: S): T
 }
 
 /**

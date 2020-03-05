@@ -1,6 +1,8 @@
+import type { Construct } from '@aws-cdk/core';
+
 import { Database } from '@aws-cdk/aws-glue';
-import cdk = require('@aws-cdk/core');
 import { Build } from 'punchcard/lib/core/build';
+import { CDK } from 'punchcard/lib/core/cdk';
 import { DataPipeline } from './data-pipeline';
 import { Schema, Schemas } from './schema';
 
@@ -12,8 +14,8 @@ export class DataLake<S extends Schemas> {
   public readonly database: Build<Database>;
   public readonly pipelines: Pipelines<S>;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: DataLakeProps<S>) {
-    scope = scope.map(scope => new cdk.Construct(scope, id));
+  constructor(scope: Build<Construct>, id: string, props: DataLakeProps<S>) {
+    scope = scope.map(scope => new CDK.Core.Construct(scope, id));
 
     this.database = scope.map(scope => new Database(scope, 'Database', {
       databaseName: props.lakeName

@@ -1,5 +1,3 @@
-import cdk = require('@aws-cdk/core');
-
 import { ShapeOrRecord, Value } from '@punchcard/shape';
 import { Integration, LambdaIntegration, Resource } from '../api-gateway';
 import * as CloudWatch from '../cloudwatch';
@@ -9,19 +7,21 @@ import { Dependency } from '../core/dependency';
 import { Function, FunctionOverrideProps, FunctionProps } from './function';
 import { schedule, ScheduleProps } from './schedule';
 
+import * as cdk from '@aws-cdk/core';
+
 /**
  * Alias for creating a LambdaExecutorService
  * @param props
  */
-export function λ(props?: FunctionOverrideProps) {
+export function λ(props?: Build<FunctionOverrideProps>) {
   return new ExecutorService(props);
 }
 export const L = λ;
 
 export class ExecutorService {
-  constructor(private readonly props: FunctionOverrideProps = {
+  constructor(private readonly props: Build<FunctionOverrideProps> = Build.lazy(() => ({
     memorySize: 128
-  }) {}
+  }))) {}
 
   public spawn<T extends ShapeOrRecord, U extends ShapeOrRecord, D extends Dependency<any> = any>(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handler: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<Value.Of<U>>): Function<T, U, D> {
     return new Function<T, U, D>(scope, id, this.applyDefaultProps(props), handler);
@@ -38,7 +38,7 @@ export class ExecutorService {
         ...p,
       }));
     } else {
-      props.functionProps = Build.of(this.props);
+      props.functionProps = this.props;
     }
     return props;
   }

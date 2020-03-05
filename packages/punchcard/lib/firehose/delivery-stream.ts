@@ -1,9 +1,8 @@
 import AWS = require('aws-sdk');
 
-import core = require('@aws-cdk/core');
-
 import { Mapper, Shape, ShapeOrRecord, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
@@ -16,8 +15,10 @@ import { Client } from './client';
 import { FirehoseEvent, FirehoseResponse, FirehoseResponseRecord, ValidationResult } from './event';
 import { Objects } from './objects';
 
-import { DeliveryStream as DeliveryStreamConstruct, DeliveryStreamDestination, DeliveryStreamType } from '@punchcard/constructs';
 import { DataType } from '@punchcard/shape-hive';
+
+import type * as cdk from '@aws-cdk/core';
+import type { DeliveryStream as DeliveryStreamConstruct } from '@punchcard/constructs';
 
 export type DeliveryStreamProps<T extends ShapeOrRecord> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 
@@ -69,8 +70,8 @@ export class DeliveryStream<T extends ShapeOrRecord> implements Resource<Deliver
   public readonly dataType: DataType;
   public readonly mapper: Mapper<Value.Of<T>, Buffer>;
 
-  constructor(scope: Build<core.Construct>, id: string, props: DeliveryStreamProps<T>) {
-    scope = scope.map(scope => new core.Construct(scope, id));
+  constructor(scope: Build<cdk.Construct>, id: string, props: DeliveryStreamProps<T>) {
+    scope = scope.map(scope => new CDK.Core.Construct(scope, id));
 
     const fromStream = props as DeliveryStreamFromKinesis<T>;
     const fromType = props as DeliveryStreamDirectPut<T>;
@@ -92,23 +93,27 @@ export class DeliveryStream<T extends ShapeOrRecord> implements Resource<Deliver
     if (fromStream.stream) {
       this.resource = scope.chain(scope =>
         this.processor.processor.resource.chain(transformFunction =>
-          fromStream.stream.resource.map(kinesisStream =>
-            new DeliveryStreamConstruct(scope, 'DeliveryStream', {
+          fromStream.stream.resource.map(kinesisStream => {
+            const c = (require('@punchcard/constructs') as typeof import('@punchcard/constructs'));
+            return new c.DeliveryStream(scope, 'DeliveryStream', {
               kinesisStream,
-              destination: DeliveryStreamDestination.S3,
-              type: DeliveryStreamType.KinesisStreamAsSource,
+              destination: c.DeliveryStreamDestination.S3,
+              type: c.DeliveryStreamType.KinesisStreamAsSource,
               compression: props.compression.type,
               transformFunction
-            }))));
+            });
+          })));
     } else {
       this.resource = scope.chain(scope =>
-        this.processor.processor.resource.map(transformFunction =>
-          new DeliveryStreamConstruct(scope, 'DeliveryStream', {
-            destination: DeliveryStreamDestination.S3,
-            type: DeliveryStreamType.DirectPut,
+        this.processor.processor.resource.map(transformFunction => {
+          const c = (require('@punchcard/constructs') as typeof import('@punchcard/constructs'));
+          return new c.DeliveryStream(scope, 'DeliveryStream', {
+            destination: c.DeliveryStreamDestination.S3,
+            type: c.DeliveryStreamType.DirectPut,
             compression: props.compression.type,
             transformFunction
-          })));
+          });
+        }));
     }
 
     this.bucket = new S3.Bucket(this.resource.map(ds => ds.s3Bucket!));
@@ -182,12 +187,12 @@ interface ValidatorProps<S> {
 class Validator<T> {
   public readonly processor: Function<typeof FirehoseEvent, typeof FirehoseResponse, Dependency.None>;
 
-  constructor(scope: Build<core.Construct>, id: string, props: ValidatorProps<T>) {
-    scope = scope.map(scope => new core.Construct(scope, id));
-    const executorService = props.executorService || new ExecutorService({
+  constructor(scope: Build<cdk.Construct>, id: string, props: ValidatorProps<T>) {
+    scope = scope.map(scope => new CDK.Core.Construct(scope, id));
+    const executorService = props.executorService || new ExecutorService(Build.lazy(() => ({
       memorySize: 256,
-      timeout: core.Duration.seconds(60)
-    });
+      timeout: CDK.Core.Duration.seconds(60)
+    })));
 
     this.processor = executorService.spawn(scope, 'Processor', {
       request: FirehoseEvent,

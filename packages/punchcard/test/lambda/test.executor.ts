@@ -8,10 +8,10 @@ import assert = require('@aws-cdk/assert');
 import { Schedule } from '@aws-cdk/aws-events';
 
 it('should support default properties', async () => {
-  const executorService = new Lambda.ExecutorService({
+  const executorService = new Lambda.ExecutorService(Build.lazy(() => ({
     memorySize: 512,
     timeout: core.Duration.seconds(15)
-  });
+  })));
 
   const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
@@ -24,10 +24,10 @@ it('should support default properties', async () => {
 });
 
 it('schedule should support default properties', async () => {
-  const executorService = new Lambda.ExecutorService({
+  const executorService = new Lambda.ExecutorService(Build.lazy(() => ({
     memorySize: 512,
     timeout: core.Duration.seconds(15)
-  });
+  })));
 
   const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 

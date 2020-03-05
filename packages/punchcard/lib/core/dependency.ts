@@ -1,4 +1,4 @@
-import iam = require('@aws-cdk/aws-iam');
+import type * as iam from '@aws-cdk/aws-iam';
 
 import { Namespace } from '../core/assembly';
 import { Cache } from '../core/cache';

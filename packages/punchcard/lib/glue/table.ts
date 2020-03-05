@@ -3,20 +3,21 @@ import AWS = require('aws-sdk');
 import crypto = require('crypto');
 import path = require('path');
 
-import glue = require('@aws-cdk/aws-glue');
-import iam = require('@aws-cdk/aws-iam');
-import s3 = require('@aws-cdk/aws-s3');
-import cdk = require('@aws-cdk/core');
-
 import { integer, Mapper, Record, RecordType, Shape, ShapeGuards, Value } from '@punchcard/shape';
 import { Columns, DataType, PartitionKeys, schema } from '@punchcard/shape-hive';
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import * as S3 from '../s3';
 import { Compression } from '../util/compression';
 import { Sink } from '../util/sink';
+
+import type * as glue from '@aws-cdk/aws-glue';
+import type * as iam from '@aws-cdk/aws-iam';
+import type * as s3 from '@aws-cdk/aws-s3';
+import type * as cdk from '@aws-cdk/core';
 
 /**
  * Augmentation of `glue.TableProps`, using a `Shape` to define the
@@ -149,7 +150,7 @@ export class Table<T extends RecordType, P extends RecordType> implements Resour
     this.s3Prefix = props.s3Prefix || props.tableName + '/';
     this.resource = scope.chain(scope => props.database.chain(database => {
       const makeTable = (bucket?: s3.Bucket) => {
-        const table = new glue.Table(scope, id, {
+        const table = new CDK.Glue.Table(scope, id, {
           ...props,
           database,
           bucket,
@@ -163,7 +164,7 @@ export class Table<T extends RecordType, P extends RecordType> implements Resour
 
         (table as any).grant = (grantee: iam.IGrantable, actions: string[]) => {
           // Hack: override grant to also add catalog and database arns as resources
-          return iam.Grant.addToPrincipal({
+          return CDK.IAM.Grant.addToPrincipal({
             grantee,
             resourceArns: [table.tableArn, table.database.databaseArn, table.database.catalogArn],
             actions,

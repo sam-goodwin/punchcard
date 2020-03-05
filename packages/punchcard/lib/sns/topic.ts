@@ -1,13 +1,9 @@
 import AWS = require('aws-sdk');
 
-import sns = require('@aws-cdk/aws-sns');
-import snsSubs = require('@aws-cdk/aws-sns-subscriptions');
-import core = require('@aws-cdk/core');
-
-import { Json } from '@punchcard/shape-json';
-
 import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
+import { Json } from '@punchcard/shape-json';
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
@@ -15,6 +11,9 @@ import { Queue } from '../sqs/queue';
 import { Sink, sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 import { Notifications } from './notifications';
+
+import type * as sns from '@aws-cdk/aws-sns';
+import type * as cdk from '@aws-cdk/core';
 
 export interface TopicProps<T extends ShapeOrRecord = AnyShape> {
   /**
@@ -48,10 +47,9 @@ export class Topic<T extends ShapeOrRecord = AnyShape> implements Resource<sns.T
   public readonly resource: Build<sns.Topic>;
   public readonly shape: T;
 
-  constructor(scope: Build<core.Construct>, id: string, props: TopicProps<T> = {}) {
+  constructor(scope: Build<cdk.Construct>, id: string, props: TopicProps<T> = {}) {
     this.resource = scope.chain(scope =>
-      (props.topicProps || Build.of({})).map(props =>
-        new sns.Topic(scope, id, props)));
+      (props.topicProps || Build.of({})).map(props => new CDK.SNS.Topic(scope, id, props)));
 
     this.shape = (props.shape || any) as T;
 
@@ -91,7 +89,7 @@ export class Topic<T extends ShapeOrRecord = AnyShape> implements Resource<sns.T
    * @see https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html
    * @see https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
    */
-  public toSQSQueue(scope: Build<core.Construct>, id: string): Queue<T> {
+  public toSQSQueue(scope: Build<cdk.Construct>, id: string): Queue<T> {
     const q = new Queue(scope, id, {
       shape: this.shape,
       mapper: this.mapperFactory
@@ -108,7 +106,8 @@ export class Topic<T extends ShapeOrRecord = AnyShape> implements Resource<sns.T
    * @param queue to subscribe to this `Topic`.
    */
   public subscribeQueue(queue: Queue<T>): Build<void> {
-    return this.resource.chain(topic => queue.resource.map(queue => topic.addSubscription(new snsSubs.SqsSubscription(queue, {
+    return this.resource.chain(topic => queue.resource.map(queue =>
+      topic.addSubscription(new (require('@aws-cdk/aws-sns-subscriptions')).SqsSubscription(queue, {
       rawMessageDelivery: true
     }))));
   }

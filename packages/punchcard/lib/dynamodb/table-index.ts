@@ -1,17 +1,15 @@
 import AWS = require('aws-sdk');
 
-import dynamodb = require('@aws-cdk/aws-dynamodb');
-import iam = require('@aws-cdk/aws-iam');
-
+import { RecordType, Shape } from '@punchcard/shape';
+import { DDB, IndexClient } from '@punchcard/shape-dynamodb';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Run } from '../core/run';
-
-import { RecordType, Shape } from '@punchcard/shape';
-
-import { ProjectionType } from '@aws-cdk/aws-dynamodb';
-import { DDB, IndexClient } from '@punchcard/shape-dynamodb';
 import { Table } from './table';
-import { getKeyNames, keyType } from './util';
+import { keyType } from './util';
+
+import type * as dynamodb from '@aws-cdk/aws-dynamodb';
+import type * as iam from '@aws-cdk/aws-iam';
 
 export interface IndexProps<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>> {
   /**
@@ -109,9 +107,9 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
       const TABLE_MEMBERS = new Set(Object.keys(props.sourceTable.dataType.members));
 
       const projectionType =
-        PROJECTION_MEMBERS.size === TABLE_MEMBERS.size ? ProjectionType.ALL :
-        PROJECTION_MEMBERS.size === KEY_MEMBERS.size ? ProjectionType.KEYS_ONLY :
-        ProjectionType.INCLUDE
+        PROJECTION_MEMBERS.size === TABLE_MEMBERS.size ? CDK.DynamoDB.ProjectionType.ALL :
+        PROJECTION_MEMBERS.size === KEY_MEMBERS.size ? CDK.DynamoDB.ProjectionType.KEYS_ONLY :
+        CDK.DynamoDB.ProjectionType.INCLUDE
         ;
 
       const definition: any = {
@@ -120,7 +118,7 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
         sortKey,
         projectionType,
       };
-      if (projectionType === ProjectionType.INCLUDE) {
+      if (projectionType === CDK.DynamoDB.ProjectionType.INCLUDE) {
         definition.nonKeyAttributes = Array.from(PROJECTION_MEMBERS.values()).filter(p => !KEY_MEMBERS.has(p));
       }
       if (this.indexType === 'global') {

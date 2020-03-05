@@ -1,17 +1,18 @@
 import AWS = require('aws-sdk');
 
-import dynamodb = require('@aws-cdk/aws-dynamodb');
-import iam = require('@aws-cdk/aws-iam');
-import core = require('@aws-cdk/core');
-
 import { RecordType, Shape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
+
+import type * as dynamodb from '@aws-cdk/aws-dynamodb';
+import type * as iam from '@aws-cdk/aws-iam';
+import type * as cdk from '@aws-cdk/core';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
@@ -113,7 +114,7 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
    */
   public readonly key: Key;
 
-  constructor(scope: Build<core.Construct>, id: string, props: TableProps<DataType, Key>, buildProps?: Build<TableOverrideProps>) {
+  constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<DataType, Key>, buildProps?: Build<TableOverrideProps>) {
     this.dataType = props.data;
     this.dataShape = Shape.of(props.data) as any;
 
@@ -121,7 +122,7 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
     const [partitionKeyName, sortKeyName] = getKeyNames<DataType>(props.key);
 
     this.resource = (buildProps || Build.of({})).chain(extraTableProps => scope.map(scope => {
-      return new dynamodb.Table(scope, id, {
+      return new CDK.DynamoDB.Table(scope, id, {
         ...extraTableProps,
         partitionKey: {
           name: partitionKeyName,

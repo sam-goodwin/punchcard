@@ -1,20 +1,17 @@
-import events = require('@aws-cdk/aws-lambda-event-sources');
-import s3 = require('@aws-cdk/aws-s3');
-
+import { CDK } from '../core/cdk';
 import { Clients } from '../core/client';
 import { Stream } from '../util/stream';
 import { Bucket } from './bucket';
 import { Event } from './event';
 
-type _ObjectStreamConfig = Stream.Config & events.S3EventSourceProps;
-export interface ObjectStreamConfig extends _ObjectStreamConfig {}
+import type * as events from '@aws-cdk/aws-lambda-event-sources';
 
 /**
  * A `Stream` of S3 Notifications from a S3 Bucket.
  *
  * @see https://docs.aws.amazon.com/AmazonS3/latest/dev/NotificationHowTo.html
  */
-export class Notifications<T, D extends any[]> extends Stream<typeof Event.Payload, T, D, ObjectStreamConfig> {
+export class Notifications<T, D extends any[]> extends Stream<typeof Event.Payload, T, D, events.S3EventSourceProps> {
   constructor(public readonly bucket: Bucket, previous: Notifications<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
@@ -26,10 +23,12 @@ export class Notifications<T, D extends any[]> extends Stream<typeof Event.Paylo
    * Create a `KinesisEventSource` which attaches a Lambda Function to this Stream.
    * @param props optional tuning properties for the event source.
    */
-  public eventSource(props?: ObjectStreamConfig) {
-    return this.bucket.resource.map(bucket => new events.S3EventSource(bucket, props || {
-      events: [s3.EventType.OBJECT_CREATED],
-    }));
+  public eventSource(props?: events.S3EventSourceProps) {
+    return this.bucket.resource.map(bucket => {
+      return new CDK.LambdaEventSources.S3EventSource(bucket, props || {
+        events: [CDK.S3.EventType.OBJECT_CREATED],
+      });
+    });
   }
 
   /**

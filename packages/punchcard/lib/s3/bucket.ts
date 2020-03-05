@@ -1,5 +1,3 @@
-import iam = require('@aws-cdk/aws-iam');
-import s3 = require('@aws-cdk/aws-s3');
 import AWS = require('aws-sdk');
 
 import { Build } from '../core/build';
@@ -8,6 +6,9 @@ import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { Client, DeleteClient, PutClient, ReadClient, ReadWriteClient, WriteClient } from './client';
 import { Notifications } from './notifications';
+
+import type * as iam from '@aws-cdk/aws-iam';
+import type * as s3 from '@aws-cdk/aws-s3';
 
 export class Bucket implements Resource<s3.Bucket> {
   constructor(public readonly resource: Build<s3.Bucket>) {}

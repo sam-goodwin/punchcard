@@ -1,14 +1,12 @@
 import AWS = require('aws-sdk');
 
-import lambda = require('@aws-cdk/aws-lambda');
-import cdk = require('@aws-cdk/core');
-
 import { Json } from '@punchcard/shape-json';
 
 import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
+import { CDK } from '../core/cdk';
 import { Client } from '../core/client';
 import { Code } from '../core/code';
 import { Dependency } from '../core/dependency';
@@ -17,6 +15,9 @@ import { Global } from '../core/global';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { ENTRYPOINT_ENV_KEY, IS_RUNTIME_ENV_KEY } from '../util/constants';
+
+import type * as lambda from '@aws-cdk/aws-lambda';
+import type * as cdk from '@aws-cdk/core';
 
 /**
  * Overridable subset of @aws-cdk/aws-lambda.FunctionProps
@@ -103,9 +104,9 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
     this.dependencies = props.depends;
 
     this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
-      const lambdaFunction = new lambda.Function(scope, id, {
-        code: Code.tryGetCode(scope) || Code.mock,
-        runtime: lambda.Runtime.NODEJS_10_X,
+      const lambdaFunction = new CDK.Lambda.Function(scope, id, {
+        code: Code.tryGetCode(scope) || Code.mock(),
+        runtime: CDK.Lambda.Runtime.NODEJS_10_X,
         handler: 'index.handler',
         memorySize: 256,
         ...functionProps,
@@ -169,9 +170,6 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
         ) as any;
       })
     };
-  }
-  request(request: any): Mapper<unknown, string> {
-    throw new Error("Method not implemented.");
   }
 }
 

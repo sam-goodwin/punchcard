@@ -1,8 +1,8 @@
-import apigateway = require('@aws-cdk/aws-apigateway');
-import cdk = require('@aws-cdk/core');
+import type * as apigateway from '@aws-cdk/aws-apigateway';
 
 import { Mapper, RecordShape, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Resource as RResource } from '../core/resource';
 import { Run } from '../core/run';
@@ -163,18 +163,18 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
           cfnMethod.addPropertyOverride('RequestValidatorId', bodyRequestValidator.ref);
         }
         cfnMethod.addPropertyOverride('RequestModels', {
-          'application/json': new apigateway.CfnModel(methodResource, 'Request', {
+          'application/json': new CDK.APIGateway.CfnModel(methodResource, 'Request', {
             restApiId: resource.restApi.restApiId,
             contentType: 'application/json',
             schema: JsonSchema.of(requestShape)
           }).ref
         });
-        const responses = new cdk.Construct(methodResource, 'Response');
+        const responses = new CDK.Core.Construct(methodResource, 'Response');
         cfnMethod.addPropertyOverride('MethodResponses', Object.keys(method.responses).map(statusCode => {
           return {
             StatusCode: statusCode,
             ResponseModels: {
-              'application/json': new apigateway.CfnModel(responses, statusCode, {
+              'application/json': new CDK.APIGateway.CfnModel(responses, statusCode, {
                 restApiId: resource.restApi.restApiId,
                 contentType: 'application/json',
                 schema: JsonSchema.of((method.responses as {[key: string]: Shape})[statusCode])

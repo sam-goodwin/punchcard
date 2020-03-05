@@ -1,5 +1,3 @@
-import core = require('@aws-cdk/core');
-
 /**
  * A namespaced bag of properties stored as a flat key-value store of strings.
  *

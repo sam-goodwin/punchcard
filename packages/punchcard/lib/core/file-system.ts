@@ -1,15 +1,8 @@
 import AWS = require('aws-sdk');
 
-import iam = require('@aws-cdk/aws-iam');
-import assets = require('@aws-cdk/aws-s3-assets');
-
 import fs = require('fs');
 import path = require('path');
 import util = require('util');
-
-import { Assembly, Namespace } from './assembly';
-import { Cache } from './cache';
-import { Dependency } from './dependency';
 
 const copyFile = util.promisify(fs.copyFile);
 const exists = util.promisify(fs.exists);

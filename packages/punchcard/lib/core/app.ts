@@ -1,7 +1,8 @@
-import cdk = require('@aws-cdk/core');
+import type * as cdk from '@aws-cdk/core';
 
 import { isRuntime } from '../util/constants';
 import { Build } from './build';
+import { CDK } from './cdk';
 import { Code } from './code';
 
 export class App {
@@ -10,16 +11,16 @@ export class App {
   public readonly plugins: any[] = [];
 
   constructor() {
-    this.root = Build.lazy(() => new cdk.App({
+    this.root = Build.lazy(() => new CDK.Core.App({
       autoSynth: false
     }));
     if (!isRuntime()) {
-      const webpack: any = require('webpack');
+      const webpack = require('webpack') as typeof import('webpack');
 
       this.addExternal('aws-sdk');
       this.addExternal('webpack');
       this.addPlugin(new webpack.IgnorePlugin({
-        resourceRegExp: /^webpack$/ // don't generate imports for webpack
+        resourceRegExp: /^(webpack|@aws-cdk.*|@punchcard\/constructs)$/
       }));
 
       process.once('beforeExit', () => {
@@ -39,7 +40,7 @@ export class App {
   }
 
   public stack(id: string): Build<cdk.Stack> {
-    return this.root.map(app => new cdk.Stack(app, id));
+    return this.root.map(app => new CDK.Core.Stack(app, id));
   }
 
   public addExternal(external: string): void {

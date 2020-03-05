@@ -1,14 +1,8 @@
-import glue = require('@aws-cdk/aws-glue');
+import { CDK } from 'punchcard/lib/core/cdk';
 import { Core, SNS, Lambda, DynamoDB, Glue } from 'punchcard';
-
 import { integer, string, array, timestamp, Record, } from '@punchcard/shape';
 
 import uuid = require('uuid');
-import { Duration } from '@aws-cdk/core';
-import { BillingMode } from '@aws-cdk/aws-dynamodb';
-import { StreamEncryption } from '@aws-cdk/aws-kinesis';
-import { Schedule } from '@aws-cdk/aws-events';
-import { Build } from 'punchcard/lib/core/build';
 
 export const app = new Core.App();
 
@@ -50,9 +44,7 @@ const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
   key: {
     partition: 'key'
   },
-}, Build.lazy(() => ({
-  billingMode: BillingMode.PAY_PER_REQUEST
-})));
+});
 
 /**
  * Schedule a Lambda Function to send a (dummy) message to the SNS topic:
@@ -64,7 +56,7 @@ Lambda.schedule(stack, 'DummyData', {
   /**
    * Trigger the function every minute.
    */
-  schedule: Schedule.rate(Duration.minutes(1)),
+  schedule: Lambda.Schedule.rate(Core.Duration.minutes(1)),
 
   /**
    * Define our runtime dependencies:
@@ -153,11 +145,6 @@ const stream = queue.messages() // gives us a nice chainable API
 
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
-
-    streamProps: Build.of({
-      // encrypt values in the stream with a customer-managed KMS key.
-      encryption: StreamEncryption.KMS,
-    })
   });
 
 /**
@@ -166,7 +153,7 @@ const stream = queue.messages() // gives us a nice chainable API
  * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioned by `year`, `month`, `day`, `hour` and `minute`)
  *                                                                      -> Glue Catalog
  */
-const database = stack.map(stack => new glue.Database(stack, 'Database', {
+const database = stack.map(stack => new CDK.Glue.Database(stack, 'Database', {
   databaseName: 'my_database'
 }));
 const table = stream

@@ -1,13 +1,11 @@
-import iam = require('@aws-cdk/aws-iam');
-import kinesis = require('@aws-cdk/aws-kinesis');
-import core = require('@aws-cdk/core');
-import { Json } from '@punchcard/shape-json';
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
 import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
 import { DataType } from '@punchcard/shape-hive';
+import { Json } from '@punchcard/shape-json';
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
@@ -16,6 +14,10 @@ import { Compression } from '../util/compression';
 import { Client } from './client';
 import { Event } from './event';
 import { Records } from './records';
+
+import type * as iam from '@aws-cdk/aws-iam';
+import type * as kinesis from '@aws-cdk/aws-kinesis';
+import type * as cdk from '@aws-cdk/core';
 
 export interface StreamProps<T extends ShapeOrRecord = AnyShape> {
   /**
@@ -57,10 +59,10 @@ export class Stream<T extends ShapeOrRecord = AnyShape> implements Resource<kine
   public readonly resource: Build<kinesis.Stream>;
   public readonly shape: T;
 
-  constructor(scope: Build<core.Construct>, id: string, props: StreamProps<T>) {
+  constructor(scope: Build<cdk.Construct>, id: string, props: StreamProps<T>) {
     this.resource = scope.chain(scope =>
       (props.streamProps || Build.of({})).map(props =>
-        new kinesis.Stream(scope, id, props)));
+        new CDK.Kinesis.Stream(scope, id, props)));
 
     this.shape = (props.shape || any) as T;
     this.partitionBy = props.partitionBy || (_ => uuid());
@@ -95,7 +97,7 @@ export class Stream<T extends ShapeOrRecord = AnyShape> implements Resource<kine
    *
    * Stream -> Firehose -> S3 (minutely).
    */
-  public toFirehoseDeliveryStream(scope: Build<core.Construct>, id: string, props: {
+  public toFirehoseDeliveryStream(scope: Build<cdk.Construct>, id: string, props: {
     dataType?: DataType;
     compression: Compression;
   } = {
