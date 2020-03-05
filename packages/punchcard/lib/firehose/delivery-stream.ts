@@ -202,7 +202,7 @@ class Validator<T> {
       const response: FirehoseResponse = new FirehoseResponse({records: []});
       event.records.forEach(record => {
         try {
-          const data = new Buffer(record.data, 'base64');
+          const data = Buffer.from(record.data, 'base64');
           const parsed = props.mapper.read(data);
           let result = ValidationResult.Ok;
           if (props.validate) {
@@ -216,6 +216,7 @@ class Validator<T> {
               : record.data // original record if dropped or processing failed
           }));
         } catch (err) {
+          console.error(err);
           response.records.push(new FirehoseResponseRecord({
             result: ValidationResult.ProcessingFailed,
             recordId: record.recordId,

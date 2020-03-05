@@ -17,11 +17,15 @@ export class JsonMapperVisitor extends Json.MapperVisitor {
   public timestampShape(shape: TimestampShape): Mapper<Date, string> {
     return {
       // TODO: why the f doesn't athena support ISO8601 string lol
-      write: (value: Date) => `${pad(value.getUTCFullYear(), 4)}-${pad(value.getUTCMonth(), 2)}-${pad(value.getUTCDate(), 2)} ${pad(value.getUTCHours(), 2)}:${pad(value.getUTCMinutes(), 2)}:${value.getUTCSeconds(), 2}.${pad(value.getUTCMilliseconds(), 3)}`,
+      write: formatHiveDateString,
       read: (value: string) => {
         const match = value.match(JsonMapperVisitor.TIME_FORMAT);
         if (!match) {
-          throw new Error(`invalid Hive timestamp format, expected YYYY-MM-DD HH:mm:ss.SSS`);
+          const ms = Date.parse(value);
+          if (!isNaN(ms)) {
+            return new Date(ms);
+          }
+          throw new Error(`invalid Hive timestamp format, expected ISO8601 or YYYY-MM-DD HH:mm:ss.SSS, got: ${value}`);
         }
         const year = parseInt(match[0], 10);
         const month = parseInt(match[1], 10);
@@ -30,10 +34,14 @@ export class JsonMapperVisitor extends Json.MapperVisitor {
         const minute = parseInt(match[4], 10);
         const second = parseInt(match[5], 10);
         const ms = parseInt(match[6], 10);
-        return new Date(year, month, day, hour, minute, second, ms);
+        return new Date(Date.UTC(year, month, day, hour, minute, second, ms));
       }
     };
   }
+}
+
+function formatHiveDateString(d: Date) {
+  return `${pad(d.getUTCFullYear(), 4)}-${pad(d.getUTCMonth() + 1, 2)}-${pad(d.getUTCDate(), 2)} ${pad(d.getUTCHours(), 2)}:${pad(d.getUTCMinutes(), 2)}:${pad(d.getUTCSeconds(), 2)}.${pad(d.getUTCMilliseconds(), 3)}`;
 }
 
 function pad(str: string | number, length: number) {
