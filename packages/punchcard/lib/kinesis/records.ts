@@ -4,7 +4,7 @@ import { Stream as SStream } from '../util/stream';
 import { Event } from './event';
 import { Stream } from './stream';
 
-import * as eventSources from '@aws-cdk/aws-lambda-event-sources';
+import type * as eventSources from '@aws-cdk/aws-lambda-event-sources';
 
 /**
  * A `Stream` of Records from a Kinesis Stream.
@@ -22,7 +22,7 @@ export class Records<T, D extends any[]> extends SStream<typeof Event.Payload, T
    * @param props optional tuning properties for the event source.
    */
   public eventSource(props?: eventSources.KinesisEventSourceProps) {
-    return this.stream.resource.map(stream => new eventSources.KinesisEventSource(stream, props || {
+    return this.stream.resource.map(stream => new CDK.LambdaEventSources.KinesisEventSource(stream, props || {
       batchSize: 100,
       startingPosition: CDK.Lambda.StartingPosition.TRIM_HORIZON
     }));

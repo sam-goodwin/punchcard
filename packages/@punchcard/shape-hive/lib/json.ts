@@ -1,7 +1,7 @@
 import { Mapper, Shape, TimestampShape, Value } from '@punchcard/shape';
 import moment = require('moment');
 
-import { DataFormat } from '@aws-cdk/aws-glue';
+import { DataFormat } from './data-format';
 import { DataType } from './data-type';
 
 import { Json } from '@punchcard/shape-json';
