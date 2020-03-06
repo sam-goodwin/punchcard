@@ -1,7 +1,7 @@
 import { Build } from './build';
 
 /**
- * The AWS Universe is a CDK instance in a `Build` contest.
+ * The AWS Universe encapsualtes the entire AWS CDK in a `Build` context.
  *
  * Users of this class should ALWAYS import CDK types as type-only.
  *
