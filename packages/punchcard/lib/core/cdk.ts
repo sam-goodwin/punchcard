@@ -1,9 +1,11 @@
 import { Build } from './build';
 
 /**
- * The AWS Universe encapsualtes the entire AWS CDK in a `Build` context.
+ * Encapsulate the entire AWS CDK in a `Build` context so that it can be detached from
+ * the runtime bundle.
  *
- * Users of this class should ALWAYS import CDK types as type-only.
+ * Users of this class should ALWAYS import CDK types as type-only or else module load errors
+ * will be thrown at runtime.
  *
  * E.g.
  * ```ts

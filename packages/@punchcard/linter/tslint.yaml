@@ -1,8 +1,5 @@
 extends: "tslint:recommended"
 rules:
-    # detects accidental imports of build-time transient-only modules
-    no-build-transient-imports: true
-
     semicolon: [true, "always", "ignore-interfaces"]
 
     no-shadowed-variable: false
@@ -10,7 +7,6 @@ rules:
     member-ordering: false
     ordered-imports: true
     max-line-length: false
-    no-empty-interface: false
 
     # Due to VSCode syntax highlighting we're unlikely to do this wrong, and it gets annoying
     # when trying to construct literal Fn::Sub() arguments.
@@ -50,4 +46,5 @@ rules:
     # We create Constructs for their side effect all the time
     no-unused-expression: [true, "allow-new"]
 
-    variable-name: false
+    # Without this rule, _blabla would be disallowed, which is necessary to silence unused variable errors.
+    variable-name: [true, "ban-keywords", "check-format", "allow-leading-underscore"]

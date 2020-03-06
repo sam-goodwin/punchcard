@@ -1,0 +1,4 @@
+rulesDirectory:
+  - '@punchcard/linter'
+rules:
+  punchcard-transient-imports: true
