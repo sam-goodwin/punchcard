@@ -148,9 +148,9 @@ export class Table<T extends RecordType, P extends RecordType> implements Resour
     this.compression = compression;
 
     this.s3Prefix = props.s3Prefix || props.tableName + '/';
-    this.resource = scope.chain(scope => props.database.chain(database => {
+    this.resource = CDK.chain(({glue, iam}) => scope.chain(scope => props.database.chain(database => {
       const makeTable = (bucket?: s3.Bucket) => {
-        const table = new CDK.Glue.Table(scope, id, {
+        const table = new glue.Table(scope, id, {
           ...props,
           database,
           bucket,
@@ -164,7 +164,7 @@ export class Table<T extends RecordType, P extends RecordType> implements Resour
 
         (table as any).grant = (grantee: iam.IGrantable, actions: string[]) => {
           // Hack: override grant to also add catalog and database arns as resources
-          return CDK.IAM.Grant.addToPrincipal({
+          return iam.Grant.addToPrincipal({
             grantee,
             resourceArns: [table.tableArn, table.database.databaseArn, table.database.catalogArn],
             actions,
@@ -179,7 +179,7 @@ export class Table<T extends RecordType, P extends RecordType> implements Resour
       } else {
         return Build.of(makeTable());
       }
-    }));
+    })));
 
     this.bucket = new S3.Bucket(this.resource.map(table => table.bucket as any));
   }

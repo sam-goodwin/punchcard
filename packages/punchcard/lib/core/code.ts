@@ -1,12 +1,17 @@
 import type * as lambda from '@aws-cdk/aws-lambda';
 import type * as cdk from '@aws-cdk/core';
+import type * as webpack from 'webpack';
+
+import { ENTRYPOINT_ENV_KEY, GLOBAL_SYMBOL_NAME, WEBPACK_MODE } from '../util/constants';
+import { Build } from './build';
+import { CDK } from './cdk';
 
 import _fs = require('fs');
 const fs = _fs.promises;
 import path = require('path');
 
-import { ENTRYPOINT_ENV_KEY, GLOBAL_SYMBOL_NAME, WEBPACK_MODE } from '../util/constants';
-import { CDK } from './cdk';
+import erasure = require('@punchcard/erasure');
+import { Webpack } from './app';
 
 export namespace Code {
   const symbol = Symbol.for('punchcard:code');
@@ -43,7 +48,7 @@ export namespace Code {
   }
 
   export function mock(): lambda.Code {
-    class MockCode extends CDK.Lambda.Code {
+    class MockCode extends Build.resolve(CDK).lambda.Code {
       public readonly isInline: boolean = true;
 
       public bind(): lambda.CodeConfig {
@@ -55,7 +60,7 @@ export namespace Code {
     return new MockCode();
   }
 
-  export async function initCode(app: cdk.App, externals: string[], plugins: any[]): Promise<lambda.Code> {
+  export async function initCode(app: cdk.App, externals: string[], plugins: Array<Build<webpack.Plugin>>): Promise<lambda.Code> {
     if ((app as any)[symbol] === undefined) {
       if (process.mainModule === undefined) {
         // console.warn('Mocking code, assuming its a unit test. Are you running the node process from another tool like jest?');
@@ -98,7 +103,11 @@ export namespace Code {
           ]
         },
         externals,
-        plugins
+        plugins: plugins
+          .map(Build.resolve)
+          // add an IgnorePlugin for each globally registered pattern
+          .concat(erasure.getPatterns().map(regexp =>
+            new (Build.resolve(Webpack)).IgnorePlugin(regexp)))
       };
       const compiler = webpack(config);
 
@@ -115,7 +124,7 @@ export namespace Code {
             // one individually to the console
             stats.compilation.errors.map((s: any) => console.error(s.message ?? s));
           }
-          resolve(CDK.Lambda.Code.asset(codePath));
+          resolve(Build.resolve(CDK).lambda.Code.asset(codePath));
         });
       });
 

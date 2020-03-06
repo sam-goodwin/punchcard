@@ -45,6 +45,7 @@
   },
   "dependencies": {
     "@punchcard/constructs": "^0.3.0",
+    "@punchcard/erasure": "^0.1.0",
     "@punchcard/shape": "^0.1.0",
     "@punchcard/shape-dynamodb": "^0.1.0",
     "@punchcard/shape-hive": "^0.1.0",

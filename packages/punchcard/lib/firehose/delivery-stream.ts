@@ -19,6 +19,7 @@ import { DataType } from '@punchcard/shape-hive';
 
 import type * as cdk from '@aws-cdk/core';
 import type { DeliveryStream as DeliveryStreamConstruct } from '@punchcard/constructs';
+import { Duration } from '../core/duration';
 
 export type DeliveryStreamProps<T extends ShapeOrRecord> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 
@@ -189,10 +190,10 @@ class Validator<T> {
 
   constructor(scope: Build<cdk.Construct>, id: string, props: ValidatorProps<T>) {
     scope = scope.map(scope => new CDK.Core.Construct(scope, id));
-    const executorService = props.executorService || new ExecutorService(Build.lazy(() => ({
+    const executorService = props.executorService || new ExecutorService({
       memorySize: 256,
-      timeout: CDK.Core.Duration.seconds(60)
-    })));
+      timeout: Duration.seconds(60)
+    });
 
     this.processor = executorService.spawn(scope, 'Processor', {
       request: FirehoseEvent,

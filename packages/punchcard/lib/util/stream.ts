@@ -9,6 +9,7 @@ import { Cons } from './hlist';
 
 import type * as lambda from '@aws-cdk/aws-lambda';
 import type * as cdk from '@aws-cdk/core';
+import { Duration } from '../core/duration';
 
 export type EventType<E extends Stream<any, any, any, any>> = E extends Stream<infer E, any, any, any> ? E : never;
 export type DataType<E extends Stream<any, any, any, any>> = E extends Stream<any, infer I, any, any> ? I : never;
@@ -129,9 +130,9 @@ export abstract class Stream<E extends RecordType, T, D extends any[], C> {
       },
       handle: (value: T, deps: Client<D2>) => Promise<any>): Lambda.Function<E, any, D2 extends undefined ? Dependency.Concat<D> : Dependency.Concat<Cons<D, D2>>> {
     // TODO: let the stream type determine default executor service
-    const executorService = (input.config && input.executorService) || new Lambda.ExecutorService(Build.lazy(() => ({
-      timeout: CDK.Core.Duration.seconds(10)
-    })));
+    const executorService = (input.config && input.executorService) || new Lambda.ExecutorService({
+      timeout: Duration.seconds(10)
+    });
     const l = executorService.spawn(scope, id, {
       depends: input.depends === undefined
         ? Dependency.concat(...this.dependencies)

@@ -29,11 +29,12 @@ export interface TopicProps<T extends ShapeOrRecord = AnyShape> {
    * @default Json
    */
   mapper?: MapperFactory<string>;
+
   /**
-   * Override SNS Topic Props in the Build context - use this to change
-   * configuration of the behavior with the AWS CDK.
+   * Override SNS Topic Props in the Build context - use this to change configuration
+   * of the behavior with the AWS CDK.
    */
-  topicProps?: Build<sns.TopicProps>;
+  topicProps?: Build<sns.TopicProps>
 }
 
 /**
@@ -48,12 +49,13 @@ export class Topic<T extends ShapeOrRecord = AnyShape> implements Resource<sns.T
   public readonly shape: T;
 
   constructor(scope: Build<cdk.Construct>, id: string, props: TopicProps<T> = {}) {
-    this.resource = scope.chain(scope =>
-      (props.topicProps || Build.of({})).map(props => new CDK.SNS.Topic(scope, id, props)));
+    this.resource = CDK.chain(({sns}) => scope.chain(scope =>
+      (props.topicProps || Build.of({})).map(props =>
+        new sns.Topic(scope, id, props))));
 
-    this.shape = (props.shape || any) as T;
+    this.shape = (props?.shape || any) as T;
 
-    this.mapperFactory = props.mapper || Json.stringifyMapper;
+    this.mapperFactory = props?.mapper || Json.stringifyMapper;
     this.mapper = this.mapperFactory(this.shape);
   }
 

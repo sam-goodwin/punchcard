@@ -121,8 +121,10 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
     this.key = props.key;
     const [partitionKeyName, sortKeyName] = getKeyNames<DataType>(props.key);
 
-    this.resource = (buildProps || Build.of({})).chain(extraTableProps => scope.map(scope => {
-      return new CDK.DynamoDB.Table(scope, id, {
+    this.resource = CDK.chain(({dynamodb}) => scope.map(scope => {
+      const extraTableProps = buildProps ? Build.resolve(buildProps) : {};
+
+      return new dynamodb.Table(scope, id, {
         ...extraTableProps,
         partitionKey: {
           name: partitionKeyName,

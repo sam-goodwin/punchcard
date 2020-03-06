@@ -3,6 +3,10 @@
  * just for durations.
  */
 
+import { CDK } from './cdk';
+
+import type * as cdk from '@aws-cdk/core';
+
 /**
  * Represents a length of time.
  *
@@ -12,6 +16,10 @@
  * When the amount is passed as a token, unit conversion is not possible.
  */
 export class Duration {
+  public toCDKDuration(): cdk.Duration {
+    return new (CDK.Core.Duration as any)(this.amount, this.unit);
+  }
+
   /**
    * @param amount the amount of Milliseconds the `Duration` will represent.
    * @returns a new `Duration` representing `amount` ms.

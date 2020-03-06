@@ -1,6 +1,7 @@
 import { CDK } from 'punchcard/lib/core/cdk';
 import { Core, SNS, Lambda, DynamoDB, Glue } from 'punchcard';
 import { integer, string, array, timestamp, Record, } from '@punchcard/shape';
+import { Build } from 'punchcard/lib/core/build';
 
 import uuid = require('uuid');
 
@@ -147,15 +148,18 @@ const stream = queue.messages() // gives us a nice chainable API
     partitionBy: value => value.key,
   });
 
+// CDK types are imported as type-only
+import type * as glue from '@aws-cdk/aws-glue';
+
 /**
  * Persist Kinesis Stream data as a tome-series Glue Table.
  * 
  * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioned by `year`, `month`, `day`, `hour` and `minute`)
  *                                                                      -> Glue Catalog
  */
-const database = stack.map(stack => new CDK.Glue.Database(stack, 'Database', {
+const database: Build<glue.Database> = CDK.chain(({glue}) => stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'my_database'
-}));
+})));
 const table = stream
   .toFirehoseDeliveryStream(stack, 'ToS3').objects()
   .toGlueTable(stack, 'ToGlue', {

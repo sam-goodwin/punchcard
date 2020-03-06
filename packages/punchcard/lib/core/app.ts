@@ -1,171 +1,38 @@
-import type * as cdk from '@aws-cdk/core';
+import erasure = require('@punchcard/erasure');
 
 import { isRuntime } from '../util/constants';
 import { Build } from './build';
 import { CDK } from './cdk';
 import { Code } from './code';
 
-import _fs = require('fs');
-
+import type * as cdk from '@aws-cdk/core';
 import type * as webpack from 'webpack';
 
+/**
+ * Erase webpack and the CDK from the runtime bundle./
+ */
+erasure.erasePattern(/^(webpack|@aws-cdk.*)$/);
+
+/**
+ * Global Webpack Build context. Lazily requires webpack only at Build-time
+ * so that developers can tune the webpack configuration of bundling without
+ */
+export const Webpack: Build<typeof import('webpack')> = Build.lazy(() => require('webpack')) as any;
+
 export class App {
+  /**
+   * Root of the application contained within a Build context.
+   */
   public readonly root: Build<cdk.App>;
   public readonly externals: Set<string> = new Set();
-  public readonly plugins: any[] = [];
+  public readonly plugins: Array<Build<webpack.Plugin>> = [];
 
   constructor() {
-    this.root = Build.lazy(() => new CDK.Core.App({
+    this.root = CDK.map(({core}) => new core.App({
       autoSynth: false
     }));
     if (!isRuntime()) {
-      const webpack = require('webpack') as typeof import('webpack');
-
       this.addExternal('aws-sdk');
-      // this.addExternal('webpack');
-      // this.addExternal("@aws-cdk/alexa-ask");
-      // this.addExternal("@aws-cdk/app-delivery");
-      // this.addExternal("@aws-cdk/assert");
-      // this.addExternal("@aws-cdk/assets");
-      // this.addExternal("@aws-cdk/aws-accessanalyzer");
-      // this.addExternal("@aws-cdk/aws-acmpca");
-      // this.addExternal("@aws-cdk/aws-amazonmq");
-      // this.addExternal("@aws-cdk/aws-amplify");
-      // this.addExternal("@aws-cdk/aws-apigateway");
-      // this.addExternal("@aws-cdk/aws-apigatewayv2");
-      // this.addExternal("@aws-cdk/aws-appconfig");
-      // this.addExternal("@aws-cdk/aws-applicationautoscaling");
-      // this.addExternal("@aws-cdk/aws-appmesh");
-      // this.addExternal("@aws-cdk/aws-appstream");
-      // this.addExternal("@aws-cdk/aws-appsync");
-      // this.addExternal("@aws-cdk/aws-athena");
-      // this.addExternal("@aws-cdk/aws-autoscaling-common");
-      // this.addExternal("@aws-cdk/aws-autoscaling-hooktargets");
-      // this.addExternal("@aws-cdk/aws-autoscaling");
-      // this.addExternal("@aws-cdk/aws-autoscalingplans");
-      // this.addExternal("@aws-cdk/aws-backup");
-      // this.addExternal("@aws-cdk/aws-batch");
-      // this.addExternal("@aws-cdk/aws-budgets");
-      // this.addExternal("@aws-cdk/aws-certificatemanager");
-      // this.addExternal("@aws-cdk/aws-cloud9");
-      // this.addExternal("@aws-cdk/aws-cloudformation");
-      // this.addExternal("@aws-cdk/aws-cloudfront");
-      // this.addExternal("@aws-cdk/aws-cloudtrail");
-      // this.addExternal("@aws-cdk/aws-cloudwatch-actions");
-      // this.addExternal("@aws-cdk/aws-cloudwatch");
-      // this.addExternal("@aws-cdk/aws-codebuild");
-      // this.addExternal("@aws-cdk/aws-codecommit");
-      // this.addExternal("@aws-cdk/aws-codedeploy");
-      // this.addExternal("@aws-cdk/aws-codepipeline-actions");
-      // this.addExternal("@aws-cdk/aws-codepipeline");
-      // this.addExternal("@aws-cdk/aws-codestar");
-      // this.addExternal("@aws-cdk/aws-codestarnotifications");
-      // this.addExternal("@aws-cdk/aws-cognito");
-      // this.addExternal("@aws-cdk/aws-config");
-      // this.addExternal("@aws-cdk/aws-datapipeline");
-      // this.addExternal("@aws-cdk/aws-dax");
-      // this.addExternal("@aws-cdk/aws-directoryservice");
-      // this.addExternal("@aws-cdk/aws-dlm");
-      // this.addExternal("@aws-cdk/aws-dms");
-      // this.addExternal("@aws-cdk/aws-docdb");
-      // this.addExternal("@aws-cdk/aws-dynamodb-global");
-      // this.addExternal("@aws-cdk/aws-dynamodb");
-      // this.addExternal("@aws-cdk/aws-ec2");
-      // this.addExternal("@aws-cdk/aws-ecr-assets");
-      // this.addExternal("@aws-cdk/aws-ecr");
-      // this.addExternal("@aws-cdk/aws-ecs-patterns");
-      // this.addExternal("@aws-cdk/aws-ecs");
-      // this.addExternal("@aws-cdk/aws-efs");
-      // this.addExternal("@aws-cdk/aws-eks-legacy");
-      // this.addExternal("@aws-cdk/aws-eks");
-      // this.addExternal("@aws-cdk/aws-elasticache");
-      // this.addExternal("@aws-cdk/aws-elasticbeanstalk");
-      // this.addExternal("@aws-cdk/aws-elasticloadbalancing");
-      // this.addExternal("@aws-cdk/aws-elasticloadbalancingv2-targets");
-      // this.addExternal("@aws-cdk/aws-elasticloadbalancingv2");
-      // this.addExternal("@aws-cdk/aws-elasticsearch");
-      // this.addExternal("@aws-cdk/aws-emr");
-      // this.addExternal("@aws-cdk/aws-events-targets");
-      // this.addExternal("@aws-cdk/aws-events");
-      // this.addExternal("@aws-cdk/aws-eventschemas");
-      // this.addExternal("@aws-cdk/aws-fms");
-      // this.addExternal("@aws-cdk/aws-fsx");
-      // this.addExternal("@aws-cdk/aws-gamelift");
-      // this.addExternal("@aws-cdk/aws-glue");
-      // this.addExternal("@aws-cdk/aws-greengrass");
-      // this.addExternal("@aws-cdk/aws-guardduty");
-      // this.addExternal("@aws-cdk/aws-iam");
-      // this.addExternal("@aws-cdk/aws-inspector");
-      // this.addExternal("@aws-cdk/aws-iot");
-      // this.addExternal("@aws-cdk/aws-iot1click");
-      // this.addExternal("@aws-cdk/aws-iotanalytics");
-      // this.addExternal("@aws-cdk/aws-iotevents");
-      // this.addExternal("@aws-cdk/aws-iotthingsgraph");
-      // this.addExternal("@aws-cdk/aws-kinesis");
-      // this.addExternal("@aws-cdk/aws-kinesisanalytics");
-      // this.addExternal("@aws-cdk/aws-kinesisfirehose");
-      // this.addExternal("@aws-cdk/aws-kms");
-      // this.addExternal("@aws-cdk/aws-lakeformation");
-      // this.addExternal("@aws-cdk/aws-lambda-destinations");
-      // this.addExternal("@aws-cdk/aws-lambda-event-sources");
-      // this.addExternal("@aws-cdk/aws-lambda-nodejs");
-      // this.addExternal("@aws-cdk/aws-lambda");
-      // this.addExternal("@aws-cdk/aws-logs-destinations");
-      // this.addExternal("@aws-cdk/aws-logs");
-      // this.addExternal("@aws-cdk/aws-managedblockchain");
-      // this.addExternal("@aws-cdk/aws-mediaconvert");
-      // this.addExternal("@aws-cdk/aws-medialive");
-      // this.addExternal("@aws-cdk/aws-mediastore");
-      // this.addExternal("@aws-cdk/aws-msk");
-      // this.addExternal("@aws-cdk/aws-neptune");
-      // this.addExternal("@aws-cdk/aws-opsworks");
-      // this.addExternal("@aws-cdk/aws-opsworkscm");
-      // this.addExternal("@aws-cdk/aws-pinpoint");
-      // this.addExternal("@aws-cdk/aws-pinpointemail");
-      // this.addExternal("@aws-cdk/aws-qldb");
-      // this.addExternal("@aws-cdk/aws-ram");
-      // this.addExternal("@aws-cdk/aws-rds");
-      // this.addExternal("@aws-cdk/aws-redshift");
-      // this.addExternal("@aws-cdk/aws-robomaker");
-      // this.addExternal("@aws-cdk/aws-route53-patterns");
-      // this.addExternal("@aws-cdk/aws-route53-targets");
-      // this.addExternal("@aws-cdk/aws-route53");
-      // this.addExternal("@aws-cdk/aws-route53resolver");
-      // this.addExternal("@aws-cdk/aws-s3-assets");
-      // this.addExternal("@aws-cdk/aws-s3-deployment");
-      // this.addExternal("@aws-cdk/aws-s3-notifications");
-      // this.addExternal("@aws-cdk/aws-s3");
-      // this.addExternal("@aws-cdk/aws-sagemaker");
-      // this.addExternal("@aws-cdk/aws-sam");
-      // this.addExternal("@aws-cdk/aws-sdb");
-      // this.addExternal("@aws-cdk/aws-secretsmanager");
-      // this.addExternal("@aws-cdk/aws-securityhub");
-      // this.addExternal("@aws-cdk/aws-servicecatalog");
-      // this.addExternal("@aws-cdk/aws-servicediscovery");
-      // this.addExternal("@aws-cdk/aws-ses-actions");
-      // this.addExternal("@aws-cdk/aws-ses");
-      // this.addExternal("@aws-cdk/aws-sns-subscriptions");
-      // this.addExternal("@aws-cdk/aws-sns");
-      // this.addExternal("@aws-cdk/aws-sqs");
-      // this.addExternal("@aws-cdk/aws-ssm");
-      // this.addExternal("@aws-cdk/aws-stepfunctions-tasks");
-      // this.addExternal("@aws-cdk/aws-stepfunctions");
-      // this.addExternal("@aws-cdk/aws-transfer");
-      // this.addExternal("@aws-cdk/aws-waf");
-      // this.addExternal("@aws-cdk/aws-wafregional");
-      // this.addExternal("@aws-cdk/aws-wafv2");
-      // this.addExternal("@aws-cdk/aws-workspaces");
-      // this.addExternal("@aws-cdk/cdk-assets-schema");
-      // this.addExternal("@aws-cdk/cfnspec");
-      // this.addExternal("@aws-cdk/cloudformation-diff");
-      // this.addExternal("@aws-cdk/core");
-      // this.addExternal("@aws-cdk/custom-resources");
-      // this.addExternal("@aws-cdk/cx-api");
-      // this.addExternal("@aws-cdk/region-info");
-
-      this.addPlugin(new webpack.IgnorePlugin({
-        resourceRegExp: /^(webpack|@aws-cdk.*|@punchcard\/constructs)$/
-      }));
 
       process.once('beforeExit', () => {
         // resolve the reference to the root - only the root App is resolved at this time.
@@ -184,7 +51,7 @@ export class App {
   }
 
   public stack(id: string): Build<cdk.Stack> {
-    return this.root.map(app => new CDK.Core.Stack(app, id));
+    return CDK.chain(({core}) => this.root.map(app => new core.Stack(app, id)));
   }
 
   public addExternal(external: string): void {
@@ -194,8 +61,145 @@ export class App {
   public removeExternal(external: string): void {
     this.externals.delete(external);
   }
-
-  public addPlugin(plugin: webpack.Plugin): void {
-    this.plugins.push(plugin);
-  }
 }
+
+// webpack
+// @aws-cdk/alexa-ask
+// @aws-cdk/app-delivery
+// @aws-cdk/assert
+// @aws-cdk/assets
+// @aws-cdk/aws-accessanalyzer
+// @aws-cdk/aws-acmpca
+// @aws-cdk/aws-amazonmq
+// @aws-cdk/aws-amplify
+// @aws-cdk/aws-apigateway
+// @aws-cdk/aws-apigatewayv2
+// @aws-cdk/aws-appconfig
+// @aws-cdk/aws-applicationautoscaling
+// @aws-cdk/aws-appmesh
+// @aws-cdk/aws-appstream
+// @aws-cdk/aws-appsync
+// @aws-cdk/aws-athena
+// @aws-cdk/aws-autoscaling-common
+// @aws-cdk/aws-autoscaling-hooktargets
+// @aws-cdk/aws-autoscaling
+// @aws-cdk/aws-autoscalingplans
+// @aws-cdk/aws-backup
+// @aws-cdk/aws-batch
+// @aws-cdk/aws-budgets
+// @aws-cdk/aws-certificatemanager
+// @aws-cdk/aws-cloud9
+// @aws-cdk/aws-cloudformation
+// @aws-cdk/aws-cloudfront
+// @aws-cdk/aws-cloudtrail
+// @aws-cdk/aws-cloudwatch-actions
+// @aws-cdk/aws-cloudwatch
+// @aws-cdk/aws-codebuild
+// @aws-cdk/aws-codecommit
+// @aws-cdk/aws-codedeploy
+// @aws-cdk/aws-codepipeline-actions
+// @aws-cdk/aws-codepipeline
+// @aws-cdk/aws-codestar
+// @aws-cdk/aws-codestarnotifications
+// @aws-cdk/aws-cognito
+// @aws-cdk/aws-config
+// @aws-cdk/aws-datapipeline
+// @aws-cdk/aws-dax
+// @aws-cdk/aws-directoryservice
+// @aws-cdk/aws-dlm
+// @aws-cdk/aws-dms
+// @aws-cdk/aws-docdb
+// @aws-cdk/aws-dynamodb-global
+// @aws-cdk/aws-dynamodb
+// @aws-cdk/aws-ec2
+// @aws-cdk/aws-ecr-assets
+// @aws-cdk/aws-ecr
+// @aws-cdk/aws-ecs-patterns
+// @aws-cdk/aws-ecs
+// @aws-cdk/aws-efs
+// @aws-cdk/aws-eks-legacy
+// @aws-cdk/aws-eks
+// @aws-cdk/aws-elasticache
+// @aws-cdk/aws-elasticbeanstalk
+// @aws-cdk/aws-elasticloadbalancing
+// @aws-cdk/aws-elasticloadbalancingv2-targets
+// @aws-cdk/aws-elasticloadbalancingv2
+// @aws-cdk/aws-elasticsearch
+// @aws-cdk/aws-emr
+// @aws-cdk/aws-events-targets
+// @aws-cdk/aws-events
+// @aws-cdk/aws-eventschemas
+// @aws-cdk/aws-fms
+// @aws-cdk/aws-fsx
+// @aws-cdk/aws-gamelift
+// @aws-cdk/aws-glue
+// @aws-cdk/aws-greengrass
+// @aws-cdk/aws-guardduty
+// @aws-cdk/aws-iam
+// @aws-cdk/aws-inspector
+// @aws-cdk/aws-iot
+// @aws-cdk/aws-iot1click
+// @aws-cdk/aws-iotanalytics
+// @aws-cdk/aws-iotevents
+// @aws-cdk/aws-iotthingsgraph
+// @aws-cdk/aws-kinesis
+// @aws-cdk/aws-kinesisanalytics
+// @aws-cdk/aws-kinesisfirehose
+// @aws-cdk/aws-kms
+// @aws-cdk/aws-lakeformation
+// @aws-cdk/aws-lambda-destinations
+// @aws-cdk/aws-lambda-event-sources
+// @aws-cdk/aws-lambda-nodejs
+// @aws-cdk/aws-lambda
+// @aws-cdk/aws-logs-destinations
+// @aws-cdk/aws-logs
+// @aws-cdk/aws-managedblockchain
+// @aws-cdk/aws-mediaconvert
+// @aws-cdk/aws-medialive
+// @aws-cdk/aws-mediastore
+// @aws-cdk/aws-msk
+// @aws-cdk/aws-neptune
+// @aws-cdk/aws-opsworks
+// @aws-cdk/aws-opsworkscm
+// @aws-cdk/aws-pinpoint
+// @aws-cdk/aws-pinpointemail
+// @aws-cdk/aws-qldb
+// @aws-cdk/aws-ram
+// @aws-cdk/aws-rds
+// @aws-cdk/aws-redshift
+// @aws-cdk/aws-robomaker
+// @aws-cdk/aws-route53-patterns
+// @aws-cdk/aws-route53-targets
+// @aws-cdk/aws-route53
+// @aws-cdk/aws-route53resolver
+// @aws-cdk/aws-s3-assets
+// @aws-cdk/aws-s3-deployment
+// @aws-cdk/aws-s3-notifications
+// @aws-cdk/aws-s3
+// @aws-cdk/aws-sagemaker
+// @aws-cdk/aws-sam
+// @aws-cdk/aws-sdb
+// @aws-cdk/aws-secretsmanager
+// @aws-cdk/aws-securityhub
+// @aws-cdk/aws-servicecatalog
+// @aws-cdk/aws-servicediscovery
+// @aws-cdk/aws-ses-actions
+// @aws-cdk/aws-ses
+// @aws-cdk/aws-sns-subscriptions
+// @aws-cdk/aws-sns
+// @aws-cdk/aws-sqs
+// @aws-cdk/aws-ssm
+// @aws-cdk/aws-stepfunctions-tasks
+// @aws-cdk/aws-stepfunctions
+// @aws-cdk/aws-transfer
+// @aws-cdk/aws-waf
+// @aws-cdk/aws-wafregional
+// @aws-cdk/aws-wafv2
+// @aws-cdk/aws-workspaces
+// @aws-cdk/cdk-assets-schema
+// @aws-cdk/cfnspec
+// @aws-cdk/cloudformation-diff
+// @aws-cdk/core
+// @aws-cdk/custom-resources
+// @aws-cdk/cx-api
+// @aws-cdk/region-info

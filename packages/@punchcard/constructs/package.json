@@ -37,6 +37,7 @@
     "typescript": "^3.7.2"
   },
   "dependencies": {
+    "@punchcard/erasure": "0.1.0",
     "@aws-cdk/aws-iam": "^1.27.0",
     "@aws-cdk/aws-kinesis": "^1.27.0",
     "@aws-cdk/aws-kinesisfirehose": "^1.27.0",

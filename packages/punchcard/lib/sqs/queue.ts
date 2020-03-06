@@ -22,6 +22,7 @@ export interface QueueProps<T extends ShapeOrRecord = AnyShape> {
    * @default AnyShape
    */
   shape?: T;
+
   /**
    * Override serialziation mapper implementation. Messages are stringified
    * with a mapper when received/sent to/from a SQS Queue.
@@ -29,6 +30,7 @@ export interface QueueProps<T extends ShapeOrRecord = AnyShape> {
    * @default Json
    */
   mapper?: MapperFactory<string>;
+
   /**
    * Override SQS Queue Props in the Build context - use this to change
    * configuration of the behavior with the AWS CDK.
@@ -45,10 +47,10 @@ export class Queue<T extends ShapeOrRecord = AnyShape> implements Resource<sqs.Q
   public readonly shape: T;
 
   constructor(scope: Build<cdk.Construct>, id: string, props: QueueProps<T> = {}) {
-    this.resource = scope.chain(scope =>
+    this.resource = CDK.chain(({sqs}) => scope.chain(scope =>
       (props.queueProps || Build.of({})).map(props =>
-        new CDK.SQS.Queue(scope, id, props)
-      ));
+        new sqs.Queue(scope, id, props)
+      )));
 
     this.shape = (props.shape || any) as T;
     this.mapperFactory = props.mapper || Json.stringifyMapper;

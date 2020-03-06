@@ -60,9 +60,9 @@ export class Stream<T extends ShapeOrRecord = AnyShape> implements Resource<kine
   public readonly shape: T;
 
   constructor(scope: Build<cdk.Construct>, id: string, props: StreamProps<T>) {
-    this.resource = scope.chain(scope =>
+    this.resource = CDK.chain(({kinesis}) => scope.chain(scope =>
       (props.streamProps || Build.of({})).map(props =>
-        new CDK.Kinesis.Stream(scope, id, props)));
+        new kinesis.Stream(scope, id, props))));
 
     this.shape = (props.shape || any) as T;
     this.partitionBy = props.partitionBy || (_ => uuid());

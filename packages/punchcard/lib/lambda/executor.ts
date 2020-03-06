@@ -9,19 +9,19 @@ import { schedule, ScheduleProps } from './schedule';
 
 import * as cdk from '@aws-cdk/core';
 
+export interface ExecutorServiceProps extends Omit<FunctionProps<any, any, any>, 'request' | 'response' | 'depends' | 'mapper'> {}
+
 /**
  * Alias for creating a LambdaExecutorService
  * @param props
  */
-export function λ(props?: Build<FunctionOverrideProps>) {
+export function λ(props?: ExecutorServiceProps) {
   return new ExecutorService(props);
 }
 export const L = λ;
 
 export class ExecutorService {
-  constructor(private readonly props: Build<FunctionOverrideProps> = Build.lazy(() => ({
-    memorySize: 128
-  }))) {}
+  constructor(private readonly props: ExecutorServiceProps = {}) {}
 
   public spawn<T extends ShapeOrRecord, U extends ShapeOrRecord, D extends Dependency<any> = any>(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handler: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<Value.Of<U>>): Function<T, U, D> {
     return new Function<T, U, D>(scope, id, this.applyDefaultProps(props), handler);
@@ -33,14 +33,18 @@ export class ExecutorService {
 
   private applyDefaultProps<P extends FunctionProps<any, any, any>>(props: P): P {
     if (props.functionProps) {
-      props.functionProps = props.functionProps.map(p => ({
-        ...this.props,
-        ...p,
-      }));
+      props.functionProps = props.functionProps.chain(props =>
+        (this.props.functionProps || Build.empty).map(p => ({
+          ...p,
+          ...props,
+        })));
     } else {
-      props.functionProps = this.props;
+      props.functionProps = this.props.functionProps;
     }
-    return props;
+    return {
+      ...this.props,
+      ...props
+    };
   }
 
   public apiIntegration<D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: {

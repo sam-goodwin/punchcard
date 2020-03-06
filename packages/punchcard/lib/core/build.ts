@@ -63,6 +63,8 @@ export class Build<A> {
     return BUILD.of(a).map(_ => _());
   }
 
+  public static readonly empty = Build.of({});
+
   public static resolve<B>(a: Build<B>): B {
     return a[get]();
   }

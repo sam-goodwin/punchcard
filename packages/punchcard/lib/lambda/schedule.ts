@@ -23,10 +23,10 @@ export interface ScheduleProps<D extends Dependency<any>> extends FunctionProps<
 export function schedule<D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: ScheduleProps<D>, handler: (event: CloudWatch.Event.Payload, clients: Client<D>, context: any) => Promise<any>) {
   const f = new Function<typeof CloudWatch.Event.Payload, any, D>(scope, id, props, handler);
 
-  f.resource.map(f => new CDK.Events.Rule(f, 'Schedule', {
-      schedule: props.schedule,
-      targets: [new CDK.EventsTargets.LambdaFunction(f)]
-    }));
+  CDK.chain(({events, eventsTargets}) => f.resource.map(f => new events.Rule(f, 'Schedule', {
+    schedule: props.schedule,
+    targets: [new eventsTargets.LambdaFunction(f)]
+  })));
 
   return f;
 }
