@@ -122,8 +122,9 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
         this.resource,
         method.integration.resource,
         this.getRequestValidator,
-        this.bodyRequestValidator)
-      .map(([resource, integration, getRequestValidator, bodyRequestValidator]) => {
+        this.bodyRequestValidator,
+        CDK)
+      .map(([resource, integration, getRequestValidator, bodyRequestValidator, {apigateway, core}]) => {
         const methodResource = resource.addMethod(methodName, integration);
         const cfnMethod = methodResource.node.findChild('Resource') as apigateway.CfnMethod;
 
@@ -163,18 +164,18 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
           cfnMethod.addPropertyOverride('RequestValidatorId', bodyRequestValidator.ref);
         }
         cfnMethod.addPropertyOverride('RequestModels', {
-          'application/json': new CDK.APIGateway.CfnModel(methodResource, 'Request', {
+          'application/json': new apigateway.CfnModel(methodResource, 'Request', {
             restApiId: resource.restApi.restApiId,
             contentType: 'application/json',
             schema: JsonSchema.of(requestShape)
           }).ref
         });
-        const responses = new CDK.Core.Construct(methodResource, 'Response');
+        const responses = new core.Construct(methodResource, 'Response');
         cfnMethod.addPropertyOverride('MethodResponses', Object.keys(method.responses).map(statusCode => {
           return {
             StatusCode: statusCode,
             ResponseModels: {
-              'application/json': new CDK.APIGateway.CfnModel(responses, statusCode, {
+              'application/json': new apigateway.CfnModel(responses, statusCode, {
                 restApiId: resource.restApi.restApiId,
                 contentType: 'application/json',
                 schema: JsonSchema.of((method.responses as {[key: string]: Shape})[statusCode])

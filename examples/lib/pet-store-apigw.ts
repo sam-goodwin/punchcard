@@ -24,9 +24,9 @@ const petStore = new DynamoDB.Table(stack, 'pet-store', {
   }
 });
 
-const executorService = new Lambda.ExecutorService(Build.of({
+const executorService = new Lambda.ExecutorService({
   memorySize: 512
-}));
+});
 
 const endpoint = executorService.apiIntegration(stack, 'MyEndpoint', {
   depends: petStore.readWriteAccess()

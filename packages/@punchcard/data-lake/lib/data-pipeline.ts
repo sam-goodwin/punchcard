@@ -19,7 +19,7 @@ export class DataPipeline<T extends RecordType, TS extends keyof T> {
   public readonly table: Glue.Table<T, Period.PT1M>;
 
   constructor(scope: Build<Construct>, id: string, props: DataPipelineProps<T, TS>) {
-    scope = scope.map(scope => new CDK.Core.Construct(scope, id));
+    scope = CDK.chain(({core}) => scope.map(scope => new core.Construct(scope, id)));
 
     this.stream = new Kinesis.Stream(scope, 'Stream', {
       shape: props.schema.shape,
@@ -28,9 +28,9 @@ export class DataPipeline<T extends RecordType, TS extends keyof T> {
       })
     });
 
-    this.bucket = new S3.Bucket(scope.map(scope => new CDK.S3.Bucket(scope, 'Bucket', {
-      encryption: CDK.S3.BucketEncryption.KMS_MANAGED,
-    })));
+    this.bucket = new S3.Bucket(CDK.chain(({s3}) => scope.map(scope => new s3.Bucket(scope, 'Bucket', {
+      encryption: s3.BucketEncryption.KMS_MANAGED,
+    }))));
 
     this.table = this.stream
       .toFirehoseDeliveryStream(scope, 'ToS3').objects()

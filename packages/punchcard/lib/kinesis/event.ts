@@ -6,7 +6,7 @@ import { array, number, Record, string } from "@punchcard/shape";
  * @see https://docs.aws.amazon.com/lambda/latest/dg/with-kinesis.html
  */
 export interface Event {
-  Records: Array<{
+  Records: {
     kinesis: {
       kinesisSchemaVersion: string;
       partitionKey: string;
@@ -21,7 +21,7 @@ export interface Event {
     invokeIdentityArn: string;
     awsRegion: string;
     eventSourceARN: string;
-  }>;
+  }[];
 }
 
 export namespace Event {

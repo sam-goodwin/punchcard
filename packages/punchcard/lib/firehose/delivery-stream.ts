@@ -72,7 +72,7 @@ export class DeliveryStream<T extends ShapeOrRecord> implements Resource<Deliver
   public readonly mapper: Mapper<Value.Of<T>, Buffer>;
 
   constructor(scope: Build<cdk.Construct>, id: string, props: DeliveryStreamProps<T>) {
-    scope = scope.map(scope => new CDK.Core.Construct(scope, id));
+    scope = CDK.chain(({core}) => scope.map(scope => new core.Construct(scope, id)));
 
     const fromStream = props as DeliveryStreamFromKinesis<T>;
     const fromType = props as DeliveryStreamDirectPut<T>;
@@ -189,7 +189,7 @@ class Validator<T> {
   public readonly processor: Function<typeof FirehoseEvent, typeof FirehoseResponse, Dependency.None>;
 
   constructor(scope: Build<cdk.Construct>, id: string, props: ValidatorProps<T>) {
-    scope = scope.map(scope => new CDK.Core.Construct(scope, id));
+    scope = CDK.chain(({core}) => scope.map(scope => new core.Construct(scope, id)));
     const executorService = props.executorService || new ExecutorService({
       memorySize: 256,
       timeout: Duration.seconds(60)

@@ -83,13 +83,13 @@ export class Client<T extends ShapeOrRecord> implements Sink<Value.Of<T>> {
    * @param records array of records to 'sink' to the stream.
    * @param props configure retry and ordering behavior
    */
-  public async sink(records: Array<Value.Of<T>>, props?: SinkProps): Promise<void> {
+  public async sink(records: Value.Of<T>[], props?: SinkProps): Promise<void> {
     await sink(records, async values => {
       const result = await this.putRecords(values.map(value => ({
         Data: value
       })));
 
-      const redrive: Array<Value.Of<T>> = [];
+      const redrive: Value.Of<T>[] = [];
       if (result.FailedRecordCount) {
         result.Records.forEach((r, i) => {
           if (!r.SequenceNumber) {
@@ -105,7 +105,7 @@ export class Client<T extends ShapeOrRecord> implements Sink<Value.Of<T>> {
 export interface GetRecordsInput extends AWS.Kinesis.GetRecordsInput {}
 export interface GetRecordsOutput<T> extends _GetRecordsOutput<T> {}
 type _GetRecordsOutput<T> = AWS.Kinesis.GetRecordsOutput & {
-  Records: Array<_Record<T>>;
+  Records: _Record<T>[];
 };
 
 export interface Record<T> extends _Record<T> {}

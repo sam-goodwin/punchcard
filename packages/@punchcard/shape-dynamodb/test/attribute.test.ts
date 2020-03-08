@@ -23,11 +23,11 @@ it('should map Shape AST to AttributeValue AST', () => {
         L: AttributeValue.StringValue[];
       },
       complexArray: {
-        L: Array<{
+        L: {
           M: {
             a: AttributeValue.StringValue;
           }
-        }>
+        }[]
       },
 
       stringSet: {

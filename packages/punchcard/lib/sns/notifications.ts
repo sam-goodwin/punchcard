@@ -19,7 +19,7 @@ export class Notifications<T, D extends any[]> extends Stream<typeof Event.Paylo
    * Create a `SnsEventSource` which attaches a Lambda Function to this `Topic`.
    */
   public eventSource() {
-    return this.topic.resource.map(ds => new CDK.LambdaEventSources.SnsEventSource(ds));
+    return CDK.chain(({lambdaEventSources}) => this.topic.resource.map(ds => new lambdaEventSources.SnsEventSource(ds)));
   }
 
   /**

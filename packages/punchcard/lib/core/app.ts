@@ -25,7 +25,7 @@ export class App {
    */
   public readonly root: Build<cdk.App>;
   public readonly externals: Set<string> = new Set();
-  public readonly plugins: Array<Build<webpack.Plugin>> = [];
+  public readonly plugins: Build<webpack.Plugin>[] = [];
 
   constructor() {
     this.root = CDK.map(({core}) => new core.App({

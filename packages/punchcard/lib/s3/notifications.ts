@@ -24,11 +24,11 @@ export class Notifications<T, D extends any[]> extends Stream<typeof Event.Paylo
    * @param props optional tuning properties for the event source.
    */
   public eventSource(props?: events.S3EventSourceProps) {
-    return this.bucket.resource.map(bucket => {
-      return new CDK.LambdaEventSources.S3EventSource(bucket, props || {
-        events: [CDK.S3.EventType.OBJECT_CREATED],
+    return CDK.chain(({lambdaEventSources, s3}) => this.bucket.resource.map(bucket => {
+      return new lambdaEventSources.S3EventSource(bucket, props || {
+        events: [s3.EventType.OBJECT_CREATED],
       });
-    });
+    }));
   }
 
   /**

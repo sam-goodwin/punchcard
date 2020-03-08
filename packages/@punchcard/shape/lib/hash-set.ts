@@ -13,7 +13,7 @@ export class HashSet<T extends Shape> {
 
   public size: number = 0;
 
-  private readonly map = new Map<number, Array<Value.Of<T>>>();
+  private readonly map = new Map<number, Value.Of<T>[]>();
 
   private readonly itemEquals: Equals<T>;
   private readonly itemHashCode: HashCode<T>;

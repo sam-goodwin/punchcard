@@ -5,13 +5,14 @@ import { Lambda } from '../../lib';
 import { Build } from '../../lib/core/build';
 
 import assert = require('@aws-cdk/assert');
-import { Schedule } from '@aws-cdk/aws-events';
+import { Duration } from '../../lib/core/duration';
+import { Schedule } from '../../lib/lambda/schedule';
 
 it('should support default properties', async () => {
-  const executorService = new Lambda.ExecutorService(Build.lazy(() => ({
+  const executorService = new Lambda.ExecutorService({
     memorySize: 512,
-    timeout: core.Duration.seconds(15)
-  })));
+    timeout: Duration.seconds(15)
+  });
 
   const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
@@ -24,15 +25,15 @@ it('should support default properties', async () => {
 });
 
 it('schedule should support default properties', async () => {
-  const executorService = new Lambda.ExecutorService(Build.lazy(() => ({
+  const executorService = new Lambda.ExecutorService({
     memorySize: 512,
-    timeout: core.Duration.seconds(15)
-  })));
+    timeout: Duration.seconds(15)
+  });
 
   const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 
   const f = executorService.schedule(stack, 'f', {
-    schedule: Schedule.rate(core.Duration.minutes(1))
+    schedule: Schedule.rate(Duration.minutes(1))
   }, async () => "");
 
   expect(Build.resolve(f.resource));

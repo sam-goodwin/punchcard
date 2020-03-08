@@ -1,11 +1,6 @@
-import { BillingMode } from '@aws-cdk/aws-dynamodb';
-import cdk = require('@aws-cdk/core');
-import { Duration } from '@aws-cdk/core';
-import { Schedule } from '@aws-cdk/aws-events';
-
 import { Core, DynamoDB, Lambda } from 'punchcard';
-import { Build } from 'punchcard/lib/core/build';
 import { integer, string, Record, Minimum } from '@punchcard/shape';
+import { CDK } from 'punchcard/lib/core/cdk';
 
 export const app = new Core.App();
 const stack = app.stack('scheduled-function-example');
@@ -21,13 +16,13 @@ const table = new DynamoDB.Table(stack, 'my-table', {
   key: {
     partition: 'id'
   }
-}, Build.lazy(() => ({
-  billingMode: BillingMode.PAY_PER_REQUEST
+}, CDK.map(({dynamodb}) => ({
+  billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
 })));
 
 Lambda.schedule(stack, 'Poller', {
   depends: table.readWriteAccess(),
-  schedule: Schedule.rate(Duration.minutes(1)),
+  schedule: Lambda.Schedule.rate(Core.Duration.minutes(1)),
 }, async (_, table) => {
   const item = await table.get({ id: 'state' });
 

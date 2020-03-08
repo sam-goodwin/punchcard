@@ -2,6 +2,7 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 
 import { Meta, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
 import { DDB } from '@punchcard/shape-dynamodb';
+import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 
 export function getKeyNames<A extends RecordType>(key: DDB.KeyOf<A>): [string, string | undefined] {
@@ -15,12 +16,13 @@ export function keyType(shape: Shape): dynamodb.AttributeType {
   if (Meta.get(shape).nullable === true) {
     throw new Error(`dynamodb Key must not be optional`);
   }
+  const dynamodb = Build.resolve(CDK).dynamodb;
   if (ShapeGuards.isStringShape(shape) || ShapeGuards.isTimestampShape(shape)) {
-    return CDK.DynamoDB.AttributeType.STRING;
+    return dynamodb.AttributeType.STRING;
   } else if (ShapeGuards.isBinaryShape(shape)) {
-    return CDK.DynamoDB.AttributeType.STRING;
+    return dynamodb.AttributeType.STRING;
   } else if (ShapeGuards.isNumericShape(shape)) {
-    return CDK.DynamoDB.AttributeType.NUMBER;
+    return dynamodb.AttributeType.NUMBER;
   }
   throw new Error(`shape of kind ${shape.Kind} can not be used as a DynamoDB Key`);
 }

@@ -60,7 +60,7 @@ export namespace Code {
     return new MockCode();
   }
 
-  export async function initCode(app: cdk.App, externals: string[], plugins: Array<Build<webpack.Plugin>>): Promise<lambda.Code> {
+  export async function initCode(app: cdk.App, externals: string[], plugins: Build<webpack.Plugin>[]): Promise<lambda.Code> {
     if ((app as any)[symbol] === undefined) {
       if (process.mainModule === undefined) {
         // console.warn('Mocking code, assuming its a unit test. Are you running the node process from another tool like jest?');

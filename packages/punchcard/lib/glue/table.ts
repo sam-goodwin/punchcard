@@ -275,9 +275,9 @@ export namespace Table {
    */
   export interface GetPartitionsRequest extends Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'> {}
   export type GetPartitionsResponse<P extends RecordType> = {
-    Partitions: Array<{
+    Partitions: ({
       Values: Value.Of<P>;
-    } & Omit<AWS.Glue.Partition, 'Values'>>
+    } & Omit<AWS.Glue.Partition, 'Values'>)[]
   };
 
   export type CreatePartitionRequest<P extends RecordType> = {
@@ -343,7 +343,7 @@ export namespace Table {
      */
     public async sink(records: Iterable<Value.Of<T>>) {
       const partitions: Map<string, {
-        records: Array<Value.Of<T>>;
+        records: Value.Of<T>[];
         partition: Value.Of<P>;
       }> = new Map();
 

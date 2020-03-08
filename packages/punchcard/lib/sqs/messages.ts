@@ -19,7 +19,7 @@ export class Messages<T, D extends any[]> extends Stream<typeof Event.Payload, T
 
   // TODO: this should be passed in at instantiation time!!!
   public eventSource(props?: events.SqsEventSourceProps) {
-    return this.queue.resource.map(queue => new CDK.LambdaEventSources.SqsEventSource(queue, props));
+    return CDK.chain(({lambdaEventSources}) => this.queue.resource.map(queue => new lambdaEventSources.SqsEventSource(queue, props)));
   }
 
   public chain<U, D2 extends any[]>(input: {

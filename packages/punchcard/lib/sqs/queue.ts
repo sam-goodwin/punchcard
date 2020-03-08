@@ -131,7 +131,7 @@ export namespace Queue {
   export interface SendClient<T> extends Omit<Client<T>, 'receiveMessage'> {}
 
   export interface ReceiveMessageRequest extends Omit<AWS.SQS.ReceiveMessageRequest, 'QueueUrl'> {}
-  export type ReceiveMessageResult<T> = Array<{Body: T} & Omit<AWS.SQS.Message, 'Body'>>;
+  export type ReceiveMessageResult<T> = ({Body: T} & Omit<AWS.SQS.Message, 'Body'>)[];
   export interface SendMessageRequest extends Omit<AWS.SQS.SendMessageRequest, 'QueueUrl' | 'MessageBody'> {}
   export interface SendMessageResult extends AWS.SQS.SendMessageResult {}
 

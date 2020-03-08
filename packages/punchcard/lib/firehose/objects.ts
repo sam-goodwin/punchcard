@@ -19,9 +19,9 @@ export class Objects<T, D extends any[]> extends Stream<typeof Event.Payload, T,
   }
 
   public eventSource(): Build<lambda.IEventSource> {
-    return this.s3Stream.resource.map(s3Stream => new CDK.LambdaEventSources.S3EventSource(s3Stream.s3Bucket!, {
-      events: [CDK.S3.EventType.OBJECT_CREATED]
-    }));
+    return CDK.chain(({lambdaEventSources, s3}) => this.s3Stream.resource.map(s3Stream => new lambdaEventSources.S3EventSource(s3Stream.s3Bucket!, {
+      events: [s3.EventType.OBJECT_CREATED]
+    })));
   }
 
   public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): Objects<U, D2> {

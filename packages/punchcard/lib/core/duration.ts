@@ -6,6 +6,7 @@
 import { CDK } from './cdk';
 
 import type * as cdk from '@aws-cdk/core';
+import { Build } from './build';
 
 /**
  * Represents a length of time.
@@ -17,7 +18,7 @@ import type * as cdk from '@aws-cdk/core';
  */
 export class Duration {
   public toCDKDuration(): cdk.Duration {
-    return new (CDK.Core.Duration as any)(this.amount, this.unit);
+    return new (Build.resolve(CDK).core.Duration as any)(this.amount, this.unit);
   }
 
   /**

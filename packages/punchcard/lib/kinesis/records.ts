@@ -22,10 +22,10 @@ export class Records<T, D extends any[]> extends SStream<typeof Event.Payload, T
    * @param props optional tuning properties for the event source.
    */
   public eventSource(props?: eventSources.KinesisEventSourceProps) {
-    return this.stream.resource.map(stream => new CDK.LambdaEventSources.KinesisEventSource(stream, props || {
+    return CDK.chain(({lambda, lambdaEventSources}) => this.stream.resource.map(stream => new lambdaEventSources.KinesisEventSource(stream, props || {
       batchSize: 100,
-      startingPosition: CDK.Lambda.StartingPosition.TRIM_HORIZON
-    }));
+      startingPosition: lambda.StartingPosition.TRIM_HORIZON
+    })));
   }
 
   /**

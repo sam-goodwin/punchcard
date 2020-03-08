@@ -78,7 +78,7 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
 
     const type: any = this.projection;
 
-    this.sourceTable.resource.map(table => {
+    CDK.chain(({dynamodb}) => this.sourceTable.resource.map(table => {
       const partitionKey = {
         name: this.key.partition,
         type: keyType(type.members[this.key.partition])
@@ -107,9 +107,9 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
       const TABLE_MEMBERS = new Set(Object.keys(props.sourceTable.dataType.members));
 
       const projectionType =
-        PROJECTION_MEMBERS.size === TABLE_MEMBERS.size ? CDK.DynamoDB.ProjectionType.ALL :
-        PROJECTION_MEMBERS.size === KEY_MEMBERS.size ? CDK.DynamoDB.ProjectionType.KEYS_ONLY :
-        CDK.DynamoDB.ProjectionType.INCLUDE
+        PROJECTION_MEMBERS.size === TABLE_MEMBERS.size ? dynamodb.ProjectionType.ALL :
+        PROJECTION_MEMBERS.size === KEY_MEMBERS.size ? dynamodb.ProjectionType.KEYS_ONLY :
+        dynamodb.ProjectionType.INCLUDE
         ;
 
       const definition: any = {
@@ -118,7 +118,7 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
         sortKey,
         projectionType,
       };
-      if (projectionType === CDK.DynamoDB.ProjectionType.INCLUDE) {
+      if (projectionType === dynamodb.ProjectionType.INCLUDE) {
         definition.nonKeyAttributes = Array.from(PROJECTION_MEMBERS.values()).filter(p => !KEY_MEMBERS.has(p));
       }
       if (this.indexType === 'global') {
@@ -130,7 +130,7 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
         delete definition.partitionKey;
         table.addLocalSecondaryIndex(definition);
       }
-    });
+    }));
   }
 
   /**

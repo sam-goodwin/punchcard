@@ -80,7 +80,7 @@ export class BaseClient<T extends RecordType, K extends DDB.KeyOf<T>> {
   }
 
   // TODO: Support paging, etc.
-  public async scan(): Promise<Array<Value.Of<T>>> {
+  public async scan(): Promise<Value.Of<T>[]> {
     const request: AWS.DynamoDB.ScanInput = {
       TableName: this.tableName,
     };
@@ -175,7 +175,7 @@ export class TableClient<T extends RecordType, K extends DDB.KeyOf<T>> extends B
   }
 
   // TODO: retry behavior/more options/etc.
-  public async batchGet(keys: Array<DDB.KeyValue<T, K>>): Promise<Array<Value.Of<T>>> {
+  public async batchGet(keys: DDB.KeyValue<T, K>[]): Promise<Value.Of<T>[]> {
     const result = await this.client.batchGetItem({
       RequestItems: {
         [this.tableName]: {
@@ -219,7 +219,7 @@ export class TableClient<T extends RecordType, K extends DDB.KeyOf<T>> extends B
    * @param batch
    * @returns failed PutRequests
    */
-  public async batchPut(batch: Array<Value.Of<T>>): Promise<AWS.DynamoDB.WriteRequest[]> {
+  public async batchPut(batch: Value.Of<T>[]): Promise<AWS.DynamoDB.WriteRequest[]> {
     try {
       const result = await this.client.batchWriteItem({
         RequestItems: {
@@ -288,7 +288,7 @@ export class IndexClient<T extends RecordType, K extends DDB.KeyOf<T>> extends B
 export namespace DDB {
   type _QueryOutput<T extends RecordType, K extends KeyOf<T>> = Compact<
     Omit<AWS.DynamoDB.QueryOutput, 'Items' | 'LastEvaulatedKey'> & {
-      Items?: Array<Value.Of<T>>;
+      Items?: Value.Of<T>[];
       LastEvaluatedKey?: KeyValue<T, K>
     }>;
   export interface QueryOutput<T extends RecordType, K extends KeyOf<T>> extends _QueryOutput<T, K> {}

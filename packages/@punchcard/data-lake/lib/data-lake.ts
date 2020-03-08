@@ -15,7 +15,7 @@ export class DataLake<S extends Schemas> {
   public readonly pipelines: Pipelines<S>;
 
   constructor(scope: Build<Construct>, id: string, props: DataLakeProps<S>) {
-    scope = scope.map(scope => new CDK.Core.Construct(scope, id));
+    scope = CDK.chain(({core}) => scope.map(scope => new core.Construct(scope, id)));
 
     this.database = scope.map(scope => new Database(scope, 'Database', {
       databaseName: props.lakeName

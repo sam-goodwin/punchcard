@@ -25,10 +25,10 @@ export class LambdaIntegration<R extends Dependency<any>> implements Integration
   constructor(private readonly fn: Lambda.Function<any, any, R>, options?: Build<Omit<apigateway.LambdaIntegrationOptions, 'proxy'>>) {
     options = options || Build.of({});
 
-    this.resource = fn.resource.chain(f => options!.map(options => new CDK.APIGateway.LambdaIntegration(f, {
+    this.resource = CDK.chain(({apigateway}) => fn.resource.chain(f => options!.map(options => new apigateway.LambdaIntegration(f, {
       ...options,
       proxy: false
-    })));
+    }))));
   }
 
   public mapResource(resource: Resource) {

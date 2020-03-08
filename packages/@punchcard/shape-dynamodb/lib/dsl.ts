@@ -186,7 +186,7 @@ export namespace DSL {
 
   export class FunctionCall<T extends Shape> extends ExpressionNode<T> {
     public [SubNodeType] = 'function-call';
-    constructor(public readonly name: string, public readonly returnType: T, public readonly parameters: Array<ExpressionNode<any>>) {
+    constructor(public readonly name: string, public readonly returnType: T, public readonly parameters: ExpressionNode<any>[]) {
       super(returnType);
     }
 
@@ -287,11 +287,11 @@ export namespace DSL {
       super(boolShape || bool, expression);
     }
 
-    public and(...conditions: Array<Expression<BoolShape>>): Bool {
+    public and(...conditions: Expression<BoolShape>[]): Bool {
       return new Bool(new Bool.And([this, ...(conditions.map(c => resolveExpression(bool, c)))]));
     }
 
-    public or(...conditions: Array<Expression<BoolShape>>): Bool {
+    public or(...conditions: Expression<BoolShape>[]): Bool {
       return new Bool(new Bool.Or([this, ...(conditions.map(c => resolveExpression(bool, c)))]));
     }
 
@@ -303,7 +303,7 @@ export namespace DSL {
     export abstract class Operands extends ExpressionNode<BoolShape> {
       public abstract readonly operator: string;
 
-      constructor(public readonly operands: Array<ExpressionNode<BoolShape>>) {
+      constructor(public readonly operands: ExpressionNode<BoolShape>[]) {
         super(bool);
       }
 
@@ -341,10 +341,10 @@ export namespace DSL {
       }
     }
   }
-  export function or(...operands: Array<ExpressionNode<BoolShape>>): Bool {
+  export function or(...operands: ExpressionNode<BoolShape>[]): Bool {
     return new Bool(new Bool.Or(operands));
   }
-  export function and(...operands: Array<ExpressionNode<BoolShape>>): Bool {
+  export function and(...operands: ExpressionNode<BoolShape>[]): Bool {
     return new Bool(new Bool.And(operands));
   }
   export function not(operand: ExpressionNode<BoolShape>): Bool {

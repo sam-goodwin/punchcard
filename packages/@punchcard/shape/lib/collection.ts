@@ -19,7 +19,7 @@ export abstract class CollectionShape<T extends Shape> extends Shape {
  * Array of Shapes.
  */
 export class ArrayShape<T extends Shape> extends CollectionShape<T> {
-  public readonly [Value.Tag]: Array<Value.Of<T>>;
+  public readonly [Value.Tag]: Value.Of<T>[];
   public readonly Kind = 'arrayShape';
 }
 export const array = <T extends ShapeOrRecord>(items: T) => new ArrayShape(Shape.of(items)) as ArrayShape<Shape.Of<T>>;

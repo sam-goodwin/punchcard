@@ -106,7 +106,7 @@ export class Build<A> {
 
   public static concat<T extends any[]>(...buildArray: T): Flatten<HList<T>> {
     let result: Build<any[]> | undefined;
-    for (const build of (buildArray as Array<Build<any>>)) {
+    for (const build of (buildArray as Build<any>[])) {
       if (result) {
         result = result.chain(r => build.map((t: T) => [...r, t]));
       } else {
