@@ -171,7 +171,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "DummyDataPointsServiceRoleB15DAC9D",
@@ -287,7 +286,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ForEachDataPointServiceRole11B2F00E",
@@ -631,7 +629,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "LakeDatabasedataPointsToGlueToTableServiceRole67CA1129",
@@ -1177,7 +1174,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "CallerServiceRole8749D4FA",
@@ -1372,7 +1368,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "GetTopNServiceRole4A9A8699",
@@ -1535,7 +1530,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "SubmitScoreServiceRole9FD5C776",
@@ -1649,7 +1643,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ForEachMessageServiceRoleEF81D5ED",
@@ -1756,7 +1749,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "MyFunctionServiceRole3C357FF2",
@@ -1939,7 +1931,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "CallableServiceRole227DEF92",
@@ -2060,7 +2051,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "CallerServiceRole8749D4FA",
@@ -3227,7 +3217,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "PollerServiceRoleE2C79911",
@@ -3538,7 +3527,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "DummyDataServiceRoleF6E3733B",
@@ -3708,7 +3696,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ForEachNotificationServiceRole460EBC3F",
@@ -3936,7 +3923,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "StreamToStreamServiceRole00FC6AF4",
@@ -4209,7 +4195,6 @@ Object {
           },
         },
         "Handler": "index.handler",
-        "MemorySize": 256,
         "Role": Object {
           "Fn::GetAtt": Array [
             "ToGlueToTableServiceRole53B96987",

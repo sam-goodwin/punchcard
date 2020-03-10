@@ -12,7 +12,7 @@ export interface ValidationErrors extends Array<Error> {}
 export type Validator<T> = (value: T, path: string) => ValidationErrors;
 
 export interface ValidationMetadata<T extends Shape> {
-  validator: Array<Validator<Value.Of<T>>>;
+  validator: Validator<Value.Of<T>>[];
 }
 
 export function MakeValidator<T extends Shape>(validator: Validator<Value.Of<T>>): ValidationMetadata<T> {
@@ -33,26 +33,26 @@ export namespace Validator {
       .reduce((a: any[], b: any[]) => a.concat(b), []);
   }
 
-  class Visitor implements ShapeVisitor<Array<Validator<any>>, string> {
-    public nothingShape(shape: NothingShape, context: string): Array<Validator<any>> {
+  class Visitor implements ShapeVisitor<Validator<any>[], string> {
+    public nothingShape(shape: NothingShape, context: string): Validator<any>[] {
       return [];
     }
-    public dynamicShape(shape: DynamicShape<any>): Array<Validator<any>> {
+    public dynamicShape(shape: DynamicShape<any>): Validator<any>[] {
       return [];
     }
-    public arrayShape(shape: ArrayShape<any>): Array<Validator<any>> {
+    public arrayShape(shape: ArrayShape<any>): Validator<any>[] {
       const validateItem = of(shape.Items);
       return [(arr: any[], path: string) => arr.map((item, i) => validateItem(item, `${path}[${i}]`) as any[]).reduce((a: any[], b: any[]) => a.concat(b), [])];
     }
-    public binaryShape(shape: BinaryShape): Array<Validator<any>> {
+    public binaryShape(shape: BinaryShape): Validator<any>[] {
       return [];
     }
-    public boolShape(shape: BoolShape): Array<Validator<any>> {
+    public boolShape(shape: BoolShape): Validator<any>[] {
       return [];
     }
-    public recordShape(shape: RecordShape<any>): Array<Validator<any>> {
+    public recordShape(shape: RecordShape<any>): Validator<any>[] {
       const validators: {
-        [key: string]: Array<Validator<any>>;
+        [key: string]: Validator<any>[];
       } = {};
       for (const member of Object.values(shape.Members)) {
         validators[member.Name] = [of(member.Shape) as any];
@@ -65,27 +65,27 @@ export namespace Validator {
           .reduce((a: any[], b: any[]) => a.concat(b), []);
       }];
     }
-    public mapShape(shape: MapShape<any>): Array<Validator<any>> {
+    public mapShape(shape: MapShape<any>): Validator<any>[] {
       const item = of(shape.Items);
       return [(arr: {[key: string]: any}, path) => Object
         .values(arr)
         .map(key => item(key, `${path}['${key}']`) as any[])
         .reduce((a: any[], b: any[]) => a.concat(b), [])];
     }
-    public numberShape(shape: NumberShape): Array<Validator<any>> {
+    public numberShape(shape: NumberShape): Validator<any>[] {
       return [];
     }
-    public integerShape(shape: IntegerShape, context: string): Array<Validator<any>> {
+    public integerShape(shape: IntegerShape, context: string): Validator<any>[] {
       return [(v: number) => v % 1 === 0 ? [] : [new Error(`integers must be whole numbers, but got: ${v}`)]];
     }
-    public setShape(shape: SetShape<any>): Array<Validator<any>> {
+    public setShape(shape: SetShape<any>): Validator<any>[] {
       const item = of(shape.Items);
       return [(set: Set<any>, path) => Array.from(set).map(i => item(i, `${path}['${path}']`) as any[]).reduce((a: any[], b: any[]) => a.concat(b), [])];
     }
-    public stringShape(shape: StringShape): Array<Validator<any>> {
+    public stringShape(shape: StringShape): Validator<any>[] {
       return [];
     }
-    public timestampShape(shape: TimestampShape): Array<Validator<any>> {
+    public timestampShape(shape: TimestampShape): Validator<any>[] {
       return [];
     }
   }

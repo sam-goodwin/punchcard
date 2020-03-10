@@ -1,5 +1,3 @@
-import core = require('@aws-cdk/core');
-
 import { AnyShape, Shape, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
@@ -9,11 +7,13 @@ import { Cons } from '../util/hlist';
 import { DependencyType, EventType, Stream } from '../util/stream';
 import { Queue, QueueProps } from './queue';
 
+import type * as cdk from '@aws-cdk/core';
+
 /**
  * Add a utility method `toQueue` for `Stream` which uses the `QueueCollector` to produce SQS `Queues`.
  */
 declare module '../util/stream' {
-  interface Stream<E, T, D extends any[], C extends Stream.Config> {
+  interface Stream<E, T, D extends any[], C> {
     /**
      * Collect data to a SQS Queue (as messages).
      *
@@ -23,10 +23,10 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to queue
      */
-    toSQSQueue<DataType extends Shape & { [Value.Tag]: T; }>(scope: Build<core.Construct>, id: string, queueProps: QueueProps<DataType>, runtimeProps?: C): CollectedQueue<DataType, this>;
+    toSQSQueue<DataType extends Shape & { [Value.Tag]: T; }>(scope: Build<cdk.Construct>, id: string, queueProps: QueueProps<DataType>, runtimeProps?: C): CollectedQueue<DataType, this>;
   }
 }
-Stream.prototype.toSQSQueue = function(scope: Build<core.Construct>, id: string, props: QueueProps<any>): any {
+Stream.prototype.toSQSQueue = function(scope: Build<cdk.Construct>, id: string, props: QueueProps<any>): any {
   return this.collect(scope, id, new QueueCollector(props));
 };
 
@@ -38,7 +38,7 @@ Stream.prototype.toSQSQueue = function(scope: Build<core.Construct>, id: string,
 export class QueueCollector<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<CollectedQueue<T, S>, S> {
   constructor(private readonly props: QueueProps<T>) { }
 
-  public collect(scope: Build<core.Construct>, id: string, stream: S): CollectedQueue<T, S> {
+  public collect(scope: Build<cdk.Construct>, id: string, stream: S): CollectedQueue<T, S> {
     return new CollectedQueue(scope, id, {
       ...this.props,
       stream
@@ -63,7 +63,7 @@ export interface CollectedQueueProps<T extends Shape, S extends Stream<any, Valu
 export class CollectedQueue<T extends Shape, S extends Stream<any, any, any, any>> extends Queue<T> {
   public readonly sender: Function<EventType<S>, AnyShape /* TODO: VoidShape? */, Dependency.Concat<Cons<DependencyType<S>, Dependency<Queue.Client<T>>>>>;
 
-  constructor(scope: Build<core.Construct>, id: string, props: CollectedQueueProps<T, S>) {
+  constructor(scope: Build<cdk.Construct>, id: string, props: CollectedQueueProps<T, S>) {
     super(scope, id, props);
     this.sender = props.stream.forBatch(this.resource, 'ToQueue', {
       depends: this.sendAccess(),

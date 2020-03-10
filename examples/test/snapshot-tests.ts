@@ -1,5 +1,6 @@
 import 'jest';
 
+// tslint:disable-next-line: punchcard-transient-imports
 import cdk = require('@aws-cdk/core');
 import fs = require('fs');
 import path = require('path');

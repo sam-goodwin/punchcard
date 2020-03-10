@@ -1,12 +1,8 @@
-import { BillingMode } from '@aws-cdk/aws-dynamodb';
-import cdk = require('@aws-cdk/core');
-import { Duration } from '@aws-cdk/core';
-import { Schedule } from '@aws-cdk/aws-events';
-
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
 import { any, string, integer, Record, Minimum } from '@punchcard/shape';
 import { Build } from 'punchcard/lib/core/build';
+import { CDK } from 'punchcard/lib/core/cdk';
 
 export const app = new Core.App();
 const stack = app.stack('invoke-function-example');
@@ -22,10 +18,11 @@ const table = new DynamoDB.Table(stack, 'my-table', {
   data: TableRecord,
   key: {
     partition: 'id'
-  }
-}, Build.of({
-  billingMode: BillingMode.PAY_PER_REQUEST
-}));
+  },
+  tableProps: CDK.map(({dynamodb}) => ({
+    billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+  }))
+});
 
 class IncrementRequest extends Record({
   id: string
@@ -71,7 +68,7 @@ const incrementer = new Lambda.Function(stack, 'Callable', {
 
 // call the incrementer function from another Lambda Function
 Lambda.schedule(stack, 'Caller', {
-  schedule: Schedule.rate(Duration.minutes(1)),
+  schedule: Lambda.Schedule.rate(Core.Duration.minutes(1)),
   depends: incrementer.invokeAccess(),
 }, async (_, incrementer) => {
   const newCount = await incrementer.invoke(new IncrementRequest({

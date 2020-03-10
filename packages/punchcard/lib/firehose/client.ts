@@ -23,7 +23,7 @@ export class Client<T extends ShapeOrRecord> implements Sink<T> {
     }).promise();
   }
 
-  public putRecordBatch(records: Array<Value.Of<T>>): Promise<AWS.Firehose.PutRecordBatchOutput> {
+  public putRecordBatch(records: Value.Of<T>[]): Promise<AWS.Firehose.PutRecordBatchOutput> {
     return this.client.putRecordBatch({
       DeliveryStreamName: this.deliveryStreamName,
       Records: records.map((record, i) => ({
@@ -32,11 +32,11 @@ export class Client<T extends ShapeOrRecord> implements Sink<T> {
     }).promise();
   }
 
-  public async sink(records: Array<Value.Of<T>>, props?: SinkProps): Promise<void> {
+  public async sink(records: Value.Of<T>[], props?: SinkProps): Promise<void> {
     await sink(records, async values => {
       const res = await this.putRecordBatch(values);
       if (res.FailedPutCount) {
-        const redrive: Array<Value.Of<T>> = [];
+        const redrive: Value.Of<T>[] = [];
         res.RequestResponses.forEach((v, i) => {
           if (v.ErrorCode !== undefined) {
             redrive.push(values[i]);

@@ -169,7 +169,7 @@ export type MakeRecordType<T extends RecordMembers = any> = {
    *
    * @param members array of members to select
    */
-  Pick<M extends Array<keyof T>>(members: M): Pick<T, AssertIsKey<T, ArrayToTuple<M>>>;
+  Pick<M extends (keyof T)[]>(members: M): Pick<T, AssertIsKey<T, ArrayToTuple<M>>>;
 
   /**
    * Constructor takes values for each member.
@@ -205,7 +205,7 @@ export function Record<T extends RecordMembers>(members: T): MakeRecordType<T> {
       return Extend(this, members) as any;
     }
 
-    public static Pick<M extends Array<keyof T>>(members: M): Pick<T, AssertIsKey<T, ArrayToTuple<M>>> {
+    public static Pick<M extends (keyof T)[]>(members: M): Pick<T, AssertIsKey<T, ArrayToTuple<M>>> {
       return Pick(this, members);
     }
 
@@ -284,7 +284,7 @@ export type Extend<T extends RecordMembers, M extends RecordMembers> = MakeRecor
  * @param type to select from
  * @param select array of members to select
  */
-export function Pick<T extends RecordType, P extends Array<keyof T['members']>>(type: T, select: P): Pick<T['members'], AssertIsKey<T['members'], ArrayToTuple<P>>> {
+export function Pick<T extends RecordType, P extends (keyof T['members'])[]>(type: T, select: P): Pick<T['members'], AssertIsKey<T['members'], ArrayToTuple<P>>> {
   const members: any = {};
   for (const key of select) {
     members[key] = type.members[key];

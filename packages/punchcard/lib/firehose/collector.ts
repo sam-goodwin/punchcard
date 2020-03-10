@@ -1,4 +1,4 @@
-import core = require('@aws-cdk/core');
+import type * as core from '@aws-cdk/core';
 
 import { NothingShape, Shape, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
@@ -15,7 +15,7 @@ import { DeliveryStream, DeliveryStreamDirectPut } from './delivery-stream';
  * data to S3 via a Kinesis Firehose Delivery Stream.
  */
 declare module '../util/stream' {
-  interface Stream<E, T, D extends any[], C extends Stream.Config> {
+  interface Stream<E, T, D extends any[], C> {
     /**
      * Collect data to S3 via a Firehose Delivery Stream.
      *

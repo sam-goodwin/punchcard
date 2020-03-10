@@ -1,18 +1,15 @@
-import lambda = require('@aws-cdk/aws-lambda');
-import events = require('@aws-cdk/aws-lambda-event-sources');
-
+import { CDK } from '../core/cdk';
 import { Clients } from '../core/client';
 import { Stream as SStream } from '../util/stream';
 import { Event } from './event';
 import { Stream } from './stream';
 
-export interface Config extends _Config {}
-type _Config = SStream.Config & events.KinesisEventSourceProps;
+import type * as eventSources from '@aws-cdk/aws-lambda-event-sources';
 
 /**
  * A `Stream` of Records from a Kinesis Stream.
  */
-export class Records<T, D extends any[]> extends SStream<typeof Event.Payload, T, D, Config>  {
+export class Records<T, D extends any[]> extends SStream<typeof Event.Payload, T, D, eventSources.KinesisEventSourceProps>  {
   constructor(public readonly stream: Stream<any>, previous: Records<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
@@ -24,11 +21,11 @@ export class Records<T, D extends any[]> extends SStream<typeof Event.Payload, T
    * Create a `KinesisEventSource` which attaches a Lambda Function to this Stream.
    * @param props optional tuning properties for the event source.
    */
-  public eventSource(props?: Config) {
-    return this.stream.resource.map(stream => new events.KinesisEventSource(stream, props || {
+  public eventSource(props?: eventSources.KinesisEventSourceProps) {
+    return CDK.chain(({lambda, lambdaEventSources}) => this.stream.resource.map(stream => new lambdaEventSources.KinesisEventSource(stream, props || {
       batchSize: 100,
       startingPosition: lambda.StartingPosition.TRIM_HORIZON
-    }));
+    })));
   }
 
   /**

@@ -26,6 +26,7 @@ export namespace Global {
     state.idCounter = 0;
     state.entrypoints = {};
   }
+
   export function addEntrypoint(e: Entrypoint): string {
     state.idCounter += 1;
     const id = state.idCounter.toString();

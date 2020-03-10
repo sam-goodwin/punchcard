@@ -1,10 +1,10 @@
-import core = require('@aws-cdk/core');
 import uuid = require('uuid');
 
 import { Core, ApiGateway, DynamoDB, Lambda } from 'punchcard';
 
 import { array, string, Shape, number, Minimum } from '@punchcard/shape';
 import { Record } from '@punchcard/shape';
+import { Build } from 'punchcard/lib/core/build';
 
 export const app = new Core.App();
 const stack = app.stack('pet-store');

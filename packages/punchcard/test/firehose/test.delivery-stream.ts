@@ -68,7 +68,7 @@ describe('run', () => {
       shape: Shape.of(Data)
     });
 
-    const results: Array<{key: string}> = [];
+    const results: {key: string}[] = [];
     await (stream.objects().forEach(stack, 'id', {}, async (v) => {
       results.push(v);
       return Promise.resolve(v);

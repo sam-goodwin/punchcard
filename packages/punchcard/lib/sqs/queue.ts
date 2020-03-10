@@ -1,17 +1,19 @@
-import iam = require('@aws-cdk/aws-iam');
-import sqs = require('@aws-cdk/aws-sqs');
-import core = require('@aws-cdk/core');
 import AWS = require('aws-sdk');
 
 import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
 import { Json } from '@punchcard/shape-json';
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { sink, Sink, SinkProps } from '../util/sink';
 import { Event } from './event';
 import { Messages } from './messages';
+
+import type * as iam from '@aws-cdk/aws-iam';
+import type * as sqs from '@aws-cdk/aws-sqs';
+import type * as cdk from '@aws-cdk/core';
 
 export interface QueueProps<T extends ShapeOrRecord = AnyShape> {
   /**
@@ -20,6 +22,7 @@ export interface QueueProps<T extends ShapeOrRecord = AnyShape> {
    * @default AnyShape
    */
   shape?: T;
+
   /**
    * Override serialziation mapper implementation. Messages are stringified
    * with a mapper when received/sent to/from a SQS Queue.
@@ -27,6 +30,7 @@ export interface QueueProps<T extends ShapeOrRecord = AnyShape> {
    * @default Json
    */
   mapper?: MapperFactory<string>;
+
   /**
    * Override SQS Queue Props in the Build context - use this to change
    * configuration of the behavior with the AWS CDK.
@@ -42,10 +46,11 @@ export class Queue<T extends ShapeOrRecord = AnyShape> implements Resource<sqs.Q
   public readonly resource: Build<sqs.Queue>;
   public readonly shape: T;
 
-  constructor(scope: Build<core.Construct>, id: string, props: QueueProps<T> = {}) {
-    this.resource = scope.chain(scope =>
+  constructor(scope: Build<cdk.Construct>, id: string, props: QueueProps<T> = {}) {
+    this.resource = CDK.chain(({sqs}) => scope.chain(scope =>
       (props.queueProps || Build.of({})).map(props =>
-        new sqs.Queue(scope, id, props)));
+        new sqs.Queue(scope, id, props)
+      )));
 
     this.shape = (props.shape || any) as T;
     this.mapperFactory = props.mapper || Json.stringifyMapper;
@@ -126,7 +131,7 @@ export namespace Queue {
   export interface SendClient<T> extends Omit<Client<T>, 'receiveMessage'> {}
 
   export interface ReceiveMessageRequest extends Omit<AWS.SQS.ReceiveMessageRequest, 'QueueUrl'> {}
-  export type ReceiveMessageResult<T> = Array<{Body: T} & Omit<AWS.SQS.Message, 'Body'>>;
+  export type ReceiveMessageResult<T> = ({Body: T} & Omit<AWS.SQS.Message, 'Body'>)[];
   export interface SendMessageRequest extends Omit<AWS.SQS.SendMessageRequest, 'QueueUrl' | 'MessageBody'> {}
   export interface SendMessageResult extends AWS.SQS.SendMessageResult {}
 

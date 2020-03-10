@@ -1,7 +1,6 @@
 import { Mapper, Shape, TimestampShape, Value } from '@punchcard/shape';
-import moment = require('moment');
 
-import { DataFormat } from '@aws-cdk/aws-glue';
+import { DataFormat } from './data-format';
 import { DataType } from './data-type';
 
 import { Json } from '@punchcard/shape-json';
@@ -13,13 +12,46 @@ import { Json } from '@punchcard/shape-json';
 export class JsonMapperVisitor extends Json.MapperVisitor {
   public static readonly instance = new JsonMapperVisitor();
 
+  private static readonly TIME_FORMAT = /^\d{4}-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})\.(\d{3})$/;
+
   public timestampShape(shape: TimestampShape): Mapper<Date, string> {
     return {
       // TODO: why the f doesn't athena support ISO8601 string lol
-      write: (value: Date) => moment.utc(value).format('YYYY-MM-DD HH:mm:ss.SSS'),
-      read: (value: string) => moment.utc(value).toDate()
+      write: formatHiveDateString,
+      read: (value: string) => {
+        const match = value.match(JsonMapperVisitor.TIME_FORMAT);
+        if (!match) {
+          const ms = Date.parse(value);
+          if (!isNaN(ms)) {
+            return new Date(ms);
+          }
+          throw new Error(`invalid Hive timestamp format, expected ISO8601 or YYYY-MM-DD HH:mm:ss.SSS, got: ${value}`);
+        }
+        const year = parseInt(match[0], 10);
+        const month = parseInt(match[1], 10);
+        const day = parseInt(match[2], 10);
+        const hour = parseInt(match[3], 10);
+        const minute = parseInt(match[4], 10);
+        const second = parseInt(match[5], 10);
+        const ms = parseInt(match[6], 10);
+        return new Date(Date.UTC(year, month, day, hour, minute, second, ms));
+      }
     };
   }
+}
+
+function formatHiveDateString(d: Date) {
+  return `${pad(d.getUTCFullYear(), 4)}-${pad(d.getUTCMonth() + 1, 2)}-${pad(d.getUTCDate(), 2)} ${pad(d.getUTCHours(), 2)}:${pad(d.getUTCMinutes(), 2)}:${pad(d.getUTCSeconds(), 2)}.${pad(d.getUTCMilliseconds(), 3)}`;
+}
+
+function pad(str: string | number, length: number) {
+  if (typeof str === 'number') {
+    str = str.toString(10);
+  }
+  while (str.length < length) {
+    str = '0' + str;
+  }
+  return str;
 }
 
 export class JsonDataType implements DataType {

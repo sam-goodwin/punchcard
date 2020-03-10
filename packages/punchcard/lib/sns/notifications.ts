@@ -1,5 +1,4 @@
-import events = require('@aws-cdk/aws-lambda-event-sources');
-
+import { CDK } from '../core/cdk';
 import { Clients } from '../core/client';
 import { Stream } from '../util/stream';
 import { Event } from './event';
@@ -8,7 +7,7 @@ import { Topic } from './topic';
 /**
  * A `Stream` of Notifications from a SNS Topic.
  */
-export class Notifications<T, D extends any[]> extends Stream<typeof Event.Payload, T, D, Stream.Config>  {
+export class Notifications<T, D extends any[]> extends Stream<typeof Event.Payload, T, D, undefined>  {
   constructor(public readonly topic: Topic<any>, previous: Notifications<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
@@ -20,7 +19,7 @@ export class Notifications<T, D extends any[]> extends Stream<typeof Event.Paylo
    * Create a `SnsEventSource` which attaches a Lambda Function to this `Topic`.
    */
   public eventSource() {
-    return this.topic.resource.map(ds => new events.SnsEventSource(ds));
+    return CDK.chain(({lambdaEventSources}) => this.topic.resource.map(ds => new lambdaEventSources.SnsEventSource(ds)));
   }
 
   /**

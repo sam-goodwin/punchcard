@@ -1,0 +1,44 @@
+{
+	"name": "@punchcard/linter",
+	"description": "TS Lint for detecting mis-use of the Punchcard framework",
+	"version": "0.1.0",
+	"main": "index.js",
+	"types": "index.d.ts",
+	"license": "Apache-2.0",
+	"author": {
+		"name": "Sam Goodwin",
+		"email": "sam.goodwin1989@gmail.com"
+  },
+  "scripts": {
+    "build": "tsc && tslint --project .",
+    "test": "echo no-op",
+    "watch": "tsc -w"
+  },
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/punchcard/punchcard"
+	},
+	"readme": "README.md",
+	"keywords": [
+		"punchcard",
+		"shape",
+		"aws-cdk",
+		"infrastructure-as-code",
+		"serverless",
+		"aws",
+		"cloudformation"
+	],
+	"devDependencies": {
+		"@types/jest": "^24.0.25",
+		"@types/node": "^12.0.0",
+		"@types/sinon": "^7.0.11",
+		"@types/uuid": "^3.4.4",
+		"@types/webpack": "^4.41.0",
+		"jest": "^24.9.0",
+		"sinon": "^8.0.1"
+	},
+	"dependencies": {
+		"tslint": "^6.0.0",
+		"typescript": "^3.8.3"
+	}
+}

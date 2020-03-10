@@ -1,7 +1,9 @@
-import dynamodb = require('@aws-cdk/aws-dynamodb');
+import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 
 import { Meta, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
 import { DDB } from '@punchcard/shape-dynamodb';
+import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 
 export function getKeyNames<A extends RecordType>(key: DDB.KeyOf<A>): [string, string | undefined] {
   const partitionKeyName: string = key.partition as string;
@@ -10,10 +12,11 @@ export function getKeyNames<A extends RecordType>(key: DDB.KeyOf<A>): [string, s
   return [partitionKeyName, sortKeyName];
 }
 
-export function keyType(shape: Shape) {
+export function keyType(shape: Shape): dynamodb.AttributeType {
   if (Meta.get(shape).nullable === true) {
     throw new Error(`dynamodb Key must not be optional`);
   }
+  const dynamodb = Build.resolve(CDK).dynamodb;
   if (ShapeGuards.isStringShape(shape) || ShapeGuards.isTimestampShape(shape)) {
     return dynamodb.AttributeType.STRING;
   } else if (ShapeGuards.isBinaryShape(shape)) {

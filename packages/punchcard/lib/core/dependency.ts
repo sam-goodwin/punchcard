@@ -1,4 +1,4 @@
-import iam = require('@aws-cdk/aws-iam');
+import type * as iam from '@aws-cdk/aws-iam';
 
 import { Namespace } from '../core/assembly';
 import { Cache } from '../core/cache';
@@ -21,7 +21,7 @@ export namespace Dependency {
   };
 
   export function concat<D extends any[]>(...ds: D): Concat<D>;
-  export function concat(...ds: Array<Dependency<any>>): Dependency<any[]> {
+  export function concat(...ds: Dependency<any>[]): Dependency<any[]> {
     return {
       install:  Build
         .concat(...ds.map(_ => _.install))

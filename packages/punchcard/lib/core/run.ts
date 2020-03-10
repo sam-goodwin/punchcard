@@ -67,7 +67,7 @@ export class Run<A> {
 
   public static concat<T extends any[]>(...runArray: T): Flatten<HList<T>> {
     let result: Run<any> | undefined;
-    for (const run of (runArray as Array<Run<any>>)) {
+    for (const run of (runArray as Run<any>[])) {
       if (result) {
         result = result.chain(r => run.map((t: T) => [...r, t]));
       } else {

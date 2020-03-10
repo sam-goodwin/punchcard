@@ -1,17 +1,15 @@
-import events = require('@aws-cdk/aws-lambda-event-sources');
-
+import { CDK } from '../core/cdk';
 import { Clients } from '../core/client';
 import { Stream } from '../util/stream';
 import { Event } from './event';
 import { Queue } from './queue';
 
-export interface Config extends _Config {}
-type _Config = Stream.Config & events.SqsEventSourceProps;
+import type * as events from '@aws-cdk/aws-lambda-event-sources';
 
 /**
  * A `Stream` of Messages from a SQS Queue.
  */
-export class Messages<T, D extends any[]> extends Stream<typeof Event.Payload, T, D, Config>  {
+export class Messages<T, D extends any[]> extends Stream<typeof Event.Payload, T, D, events.SqsEventSourceProps>  {
   constructor(public readonly queue: Queue<any>, previous: Messages<any, any>, input: {
     depends: D;
     handle: (value: AsyncIterableIterator<any>, deps: Clients<D>) => AsyncIterableIterator<T>;
@@ -20,8 +18,8 @@ export class Messages<T, D extends any[]> extends Stream<typeof Event.Payload, T
   }
 
   // TODO: this should be passed in at instantiation time!!!
-  public eventSource(props?: Config) {
-    return this.queue.resource.map(queue => new events.SqsEventSource(queue, props));
+  public eventSource(props?: events.SqsEventSourceProps) {
+    return CDK.chain(({lambdaEventSources}) => this.queue.resource.map(queue => new lambdaEventSources.SqsEventSource(queue, props)));
   }
 
   public chain<U, D2 extends any[]>(input: {

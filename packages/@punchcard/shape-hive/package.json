@@ -37,21 +37,17 @@
     "@types/webpack": "^4.41.0",
     "jest": "^24.9.0",
     "sinon": "^8.0.1",
-    "tslint": "^5.16.0",
-    "typescript": "^3.8.3",
-    "@types/moment": "^2.13.0"
+    "tslint": "^6.0.0",
+    "typescript": "^3.8.3"
   },
   "dependencies": {
     "@punchcard/shape": "^0.1.0",
     "@punchcard/shape-json": "^0.1.0",
-    "@aws-cdk/aws-glue": "^1.22.0",
-    "moment": "^2.24.0",
     "typelevel-ts": "^0.4.0"
   },
   "peerDependencies": {
     "@punchcard/shape": "^0.1.0",
-    "@punchcard/shape-json": "^0.1.0",
-    "@aws-cdk/aws-glue": "^1.22.0"
+    "@punchcard/shape-json": "^0.1.0"
   },
   "jest": {
     "testMatch": [

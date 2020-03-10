@@ -1,5 +1,3 @@
-import cdk = require('@aws-cdk/core');
-import { Schedule } from '@aws-cdk/aws-events';
 import { Core, Lambda, DynamoDB, SQS } from 'punchcard';
 import { string, integer, Record } from '@punchcard/shape';
 import { Dependency } from 'punchcard/lib/core';
@@ -29,14 +27,13 @@ const hashTable = new DynamoDB.Table(stack, 'Table', {
   },
 });
 
-
 const queue = new SQS.Queue(stack, 'queue', {
   shape: Counter
 });
 
 // schedule a Lambda function to increment counts in DynamoDB and send SQS messages with each update.
 Lambda.schedule(stack, 'MyFunction', {
-  schedule: Schedule.rate(cdk.Duration.minutes(1)),
+  schedule: Lambda.Schedule.rate(Core.Duration.minutes(1)),
   depends: Dependency.concat(
     hashTable.readWriteAccess(),
     queue.sendAccess()),

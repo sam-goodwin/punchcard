@@ -1,11 +1,7 @@
-import { BillingMode } from '@aws-cdk/aws-dynamodb';
-import { Duration } from '@aws-cdk/core';
-import { Schedule } from '@aws-cdk/aws-events';
-
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
 import { array, string, integer, Record, any, Shape, Minimum } from '@punchcard/shape';
-import { Build } from 'punchcard/lib/core/build';
+import { CDK } from 'punchcard/lib/core/cdk';
 
 export const app = new Core.App();
 const stack = app.stack('invoke-function');
@@ -31,10 +27,11 @@ const table = new DynamoDB.Table(stack, 'hash-table', {
   data: Item,
   key: {
     partition: 'id'
-  }
-}, Build.of({
-  billingMode: BillingMode.PAY_PER_REQUEST
-}));
+  },
+  tableProps: CDK.map(({dynamodb}) => ({
+    billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+  }))
+});
 
 // 'count' is the sortKey in this case
 const sortedTable = new DynamoDB.Table(stack, 'sorted-table', {
@@ -42,15 +39,16 @@ const sortedTable = new DynamoDB.Table(stack, 'sorted-table', {
   key: {
     partition: 'id',
     sort: 'count' 
-  }
-}, Build.of({
-  billingMode: BillingMode.PAY_PER_REQUEST
-}));
+  },
+  tableProps: CDK.map(({dynamodb}) => ({
+    billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+  }))
+});
 
 // call the incrementer function from another Lambda Function
 Lambda.schedule(stack, 'Caller', {
   depends: Core.Dependency.concat(table.readWriteAccess(), sortedTable.readAccess()),
-  schedule: Schedule.rate(Duration.minutes(1)),
+  schedule: Lambda.Schedule.rate(Core.Duration.minutes(1)),
 }, async (_, [table, sortedTable]) => {
   await table.get({
     id: 'id'

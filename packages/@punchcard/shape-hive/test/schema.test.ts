@@ -1,7 +1,6 @@
 import { array, Description, integer, map, number, Record, set, string } from '@punchcard/shape';
-import { char, double, float, varchar } from '../lib';
+import { char, double, float, glue, varchar } from '../lib';
 
-import glue = require('@aws-cdk/aws-glue');
 import Glue = require('../lib');
 
 // tslint:disable: member-access

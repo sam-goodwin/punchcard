@@ -1,8 +1,8 @@
-import apigateway = require('@aws-cdk/aws-apigateway');
-import cdk = require('@aws-cdk/core');
+import type * as apigateway from '@aws-cdk/aws-apigateway';
 
 import { Mapper, RecordShape, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Resource as RResource } from '../core/resource';
 import { Run } from '../core/run';
@@ -122,8 +122,9 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
         this.resource,
         method.integration.resource,
         this.getRequestValidator,
-        this.bodyRequestValidator)
-      .map(([resource, integration, getRequestValidator, bodyRequestValidator]) => {
+        this.bodyRequestValidator,
+        CDK)
+      .map(([resource, integration, getRequestValidator, bodyRequestValidator, {apigateway, core}]) => {
         const methodResource = resource.addMethod(methodName, integration);
         const cfnMethod = methodResource.node.findChild('Resource') as apigateway.CfnMethod;
 
@@ -169,7 +170,7 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
             schema: JsonSchema.of(requestShape)
           }).ref
         });
-        const responses = new cdk.Construct(methodResource, 'Response');
+        const responses = new core.Construct(methodResource, 'Response');
         cfnMethod.addPropertyOverride('MethodResponses', Object.keys(method.responses).map(statusCode => {
           return {
             StatusCode: statusCode,

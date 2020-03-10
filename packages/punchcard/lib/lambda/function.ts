@@ -1,14 +1,12 @@
 import AWS = require('aws-sdk');
 
-import lambda = require('@aws-cdk/aws-lambda');
-import cdk = require('@aws-cdk/core');
-
 import { Json } from '@punchcard/shape-json';
 
 import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
+import { CDK } from '../core/cdk';
 import { Client } from '../core/client';
 import { Code } from '../core/code';
 import { Dependency } from '../core/dependency';
@@ -18,10 +16,14 @@ import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { ENTRYPOINT_ENV_KEY, IS_RUNTIME_ENV_KEY } from '../util/constants';
 
+import type * as lambda from '@aws-cdk/aws-lambda';
+import type * as cdk from '@aws-cdk/core';
+import { Duration } from '../core/duration';
+
 /**
  * Overridable subset of @aws-cdk/aws-lambda.FunctionProps
  */
-export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'handler'> {}
+export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'functionName' | 'handler' | 'runtime' | 'memorySize'> {}
 
 export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> {
   /**
@@ -51,6 +53,40 @@ export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends Sha
    * Each client will have a chance to grant permissions to the function and environment variables.
    */
   depends?: D;
+
+  /**
+   * A name for the function.
+   *
+   * @default - AWS CloudFormation generates a unique physical ID and uses that
+   * ID for the function's name. For more information, see Name Type.
+   */
+  functionName?: string;
+
+  /**
+   * A description of the function.
+   *
+   * @default - No description.
+   */
+  description?: string;
+
+  /**
+   * The amount of memory, in MB, that is allocated to your Lambda function.
+   * Lambda uses this value to proportionally allocate the amount of CPU
+   * power. For more information, see Resource Model in the AWS Lambda
+   * Developer Guide.
+   *
+   * @default 128
+   */
+  memorySize?: number;
+
+  /**
+   * The function execution time (in seconds) after which Lambda terminates
+   * the function. Because the execution time affects cost, set this value
+   * based on the function's expected execution time.
+   *
+   * @default Duration.seconds(3)
+   */
+  timeout?: Duration;
 
   /**
    * Extra Lambda Function Props.
@@ -102,12 +138,15 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
     this.responseMapper = mapperFactory(props.response || any);
     this.dependencies = props.depends;
 
-    this.resource = scope.chain(scope => (props.functionProps || Build.of({})).map(functionProps => {
-      const lambdaFunction = new lambda.Function(scope, id, {
-        code: Code.tryGetCode(scope) || Code.mock,
+    this.resource = CDK.chain(({lambda}) => scope.chain(scope => (props.functionProps || Build.empty).map(functionProps => {
+      const lambdaFunction: lambda.Function = new lambda.Function(scope, id, {
+        code: Code.tryGetCode(scope) || Code.mock(),
         runtime: lambda.Runtime.NODEJS_10_X,
         handler: 'index.handler',
-        memorySize: 256,
+        functionName: props.functionName,
+        memorySize: props.memorySize,
+        description: props.description,
+        timeout: props.timeout?.toCDKDuration(),
         ...functionProps,
       });
       lambdaFunction.addEnvironment(IS_RUNTIME_ENV_KEY, 'true');
@@ -122,7 +161,7 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
       }
 
       return lambdaFunction;
-    }));
+    })));
 
     this.entrypoint = Run.lazy(async () => {
       const bag: {[name: string]: string} = {};
@@ -169,9 +208,6 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
         ) as any;
       })
     };
-  }
-  request(request: any): Mapper<unknown, string> {
-    throw new Error("Method not implemented.");
   }
 }
 

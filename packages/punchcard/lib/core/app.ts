@@ -1,26 +1,38 @@
-import cdk = require('@aws-cdk/core');
+import erasure = require('@punchcard/erasure');
 
 import { isRuntime } from '../util/constants';
 import { Build } from './build';
+import { CDK } from './cdk';
 import { Code } from './code';
 
+import type * as cdk from '@aws-cdk/core';
+import type * as webpack from 'webpack';
+
+/**
+ * Erase webpack and the CDK from the runtime bundle./
+ */
+erasure.erasePattern(/^(webpack|@aws-cdk.*)$/);
+
+/**
+ * Global Webpack Build context. Lazily requires webpack only at Build-time
+ * so that developers can tune the webpack configuration of bundling without
+ */
+export const Webpack: Build<typeof import('webpack')> = Build.lazy(() => require('webpack')) as any;
+
 export class App {
+  /**
+   * Root of the application contained within a Build context.
+   */
   public readonly root: Build<cdk.App>;
   public readonly externals: Set<string> = new Set();
-  public readonly plugins: any[] = [];
+  public readonly plugins: Build<webpack.Plugin>[] = [];
 
   constructor() {
-    this.root = Build.lazy(() => new cdk.App({
+    this.root = CDK.map(({core}) => new core.App({
       autoSynth: false
     }));
     if (!isRuntime()) {
-      const webpack: any = require('webpack');
-
       this.addExternal('aws-sdk');
-      this.addExternal('webpack');
-      this.addPlugin(new webpack.IgnorePlugin({
-        resourceRegExp: /^webpack$/ // don't generate imports for webpack
-      }));
 
       process.once('beforeExit', () => {
         // resolve the reference to the root - only the root App is resolved at this time.
@@ -39,7 +51,7 @@ export class App {
   }
 
   public stack(id: string): Build<cdk.Stack> {
-    return this.root.map(app => new cdk.Stack(app, id));
+    return CDK.chain(({core}) => this.root.map(app => new core.Stack(app, id)));
   }
 
   public addExternal(external: string): void {
@@ -48,9 +60,5 @@ export class App {
 
   public removeExternal(external: string): void {
     this.externals.delete(external);
-  }
-
-  public addPlugin(plugin: any): void {
-    this.plugins.push(plugin);
   }
 }

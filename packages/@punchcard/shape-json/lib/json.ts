@@ -43,10 +43,10 @@ declare module '@punchcard/shape/lib/primitive' {
 
 declare module '@punchcard/shape/lib/collection' {
   export interface ArrayShape<T extends Shape> {
-    [Tag]: Array<Json.Of<T>>;
+    [Tag]: Json.Of<T>[];
   }
   export interface SetShape<T extends Shape> {
-    [Tag]: Array<Json.Of<T>>
+    [Tag]: Json.Of<T>[]
   }
   export interface MapShape<T extends Shape> {
     [Tag]: {

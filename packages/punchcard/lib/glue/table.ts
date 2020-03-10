@@ -3,20 +3,21 @@ import AWS = require('aws-sdk');
 import crypto = require('crypto');
 import path = require('path');
 
-import glue = require('@aws-cdk/aws-glue');
-import iam = require('@aws-cdk/aws-iam');
-import s3 = require('@aws-cdk/aws-s3');
-import cdk = require('@aws-cdk/core');
-
 import { integer, Mapper, Record, RecordType, Shape, ShapeGuards, Value } from '@punchcard/shape';
 import { Columns, DataType, PartitionKeys, schema } from '@punchcard/shape-hive';
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import * as S3 from '../s3';
 import { Compression } from '../util/compression';
 import { Sink } from '../util/sink';
+
+import type * as glue from '@aws-cdk/aws-glue';
+import type * as iam from '@aws-cdk/aws-iam';
+import type * as s3 from '@aws-cdk/aws-s3';
+import type * as cdk from '@aws-cdk/core';
 
 /**
  * Augmentation of `glue.TableProps`, using a `Shape` to define the
@@ -147,7 +148,7 @@ export class Table<T extends RecordType, P extends RecordType> implements Resour
     this.compression = compression;
 
     this.s3Prefix = props.s3Prefix || props.tableName + '/';
-    this.resource = scope.chain(scope => props.database.chain(database => {
+    this.resource = CDK.chain(({glue, iam}) => scope.chain(scope => props.database.chain(database => {
       const makeTable = (bucket?: s3.Bucket) => {
         const table = new glue.Table(scope, id, {
           ...props,
@@ -178,7 +179,7 @@ export class Table<T extends RecordType, P extends RecordType> implements Resour
       } else {
         return Build.of(makeTable());
       }
-    }));
+    })));
 
     this.bucket = new S3.Bucket(this.resource.map(table => table.bucket as any));
   }
@@ -274,9 +275,9 @@ export namespace Table {
    */
   export interface GetPartitionsRequest extends Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'> {}
   export type GetPartitionsResponse<P extends RecordType> = {
-    Partitions: Array<{
+    Partitions: ({
       Values: Value.Of<P>;
-    } & Omit<AWS.Glue.Partition, 'Values'>>
+    } & Omit<AWS.Glue.Partition, 'Values'>)[]
   };
 
   export type CreatePartitionRequest<P extends RecordType> = {
@@ -342,7 +343,7 @@ export namespace Table {
      */
     public async sink(records: Iterable<Value.Of<T>>) {
       const partitions: Map<string, {
-        records: Array<Value.Of<T>>;
+        records: Value.Of<T>[];
         partition: Value.Of<P>;
       }> = new Map();
 

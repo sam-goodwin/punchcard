@@ -1,14 +1,15 @@
-import lambda = require('@aws-cdk/aws-lambda');
-import core = require('@aws-cdk/core');
 import { RecordType, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Client, Clients } from '../core/client';
 import { Dependency } from '../core/dependency';
 import * as Lambda from '../lambda';
 import { Collector } from './collector';
 import { Cons } from './hlist';
 
-import json = require('@punchcard/shape-json');
+import type * as lambda from '@aws-cdk/aws-lambda';
+import type * as cdk from '@aws-cdk/core';
+import { Duration } from '../core/duration';
 
 export type EventType<E extends Stream<any, any, any, any>> = E extends Stream<infer E, any, any, any> ? E : never;
 export type DataType<E extends Stream<any, any, any, any>> = E extends Stream<any, infer I, any, any> ? I : never;
@@ -20,9 +21,9 @@ export type DependencyType<E extends Stream<any, any, any, any>> = E extends Str
  * @typeparam E type of event that triggers the computation, i.e. SQSEvent to a Lambda Function
  * @typeparam T type of data yielded from this source (after transformation)
  * @typeparam D runtime dependencies
- * @typeparam R runtime configuration
+ * @typeparam C runtime configuration
  */
-export abstract class Stream<E extends RecordType, T, D extends any[], C extends Stream.Config> {
+export abstract class Stream<E extends RecordType, T, D extends any[], C> {
   constructor(
       protected readonly previous: Stream<E, any, any, C>,
       protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,
@@ -121,12 +122,16 @@ export abstract class Stream<E extends RecordType, T, D extends any[], C extends
    * @param props optional props for configuring the function consuming from SQS
    */
   public forEach<D2 extends Dependency<any> | undefined>(
-      scope: Build<core.Construct>, id: string,
-      input: { depends?: D2; config?: C; },
+      scope: Build<cdk.Construct>, id: string,
+      input: {
+        depends?: D2;
+        config?: Build<C>;
+        executorService?: Lambda.ExecutorService;
+      },
       handle: (value: T, deps: Client<D2>) => Promise<any>): Lambda.Function<E, any, D2 extends undefined ? Dependency.Concat<D> : Dependency.Concat<Cons<D, D2>>> {
     // TODO: let the stream type determine default executor service
-    const executorService = (input.config && input.config.executorService) || new Lambda.ExecutorService({
-      timeout: core.Duration.seconds(10)
+    const executorService = (input.config && input.executorService) || new Lambda.ExecutorService({
+      timeout: Duration.seconds(10)
     });
     const l = executorService.spawn(scope, id, {
       depends: input.depends === undefined
@@ -143,7 +148,10 @@ export abstract class Stream<E extends RecordType, T, D extends any[], C extends
         }
       }
     });
-    l.resource.chain(l => this.eventSource(input.config).map(es => l.addEventSource(es)));
+    l.resource.chain(l =>
+      ((input.config || Build.of(undefined)) as Build<C | undefined>).chain(config =>
+        this.eventSource(config).map(es =>
+          l.addEventSource(es))));
     return l as any;
   }
 
@@ -156,10 +164,11 @@ export abstract class Stream<E extends RecordType, T, D extends any[], C extends
    * @param props optional props for configuring the function consuming from SQS
    */
   public forBatch<D2 extends Dependency<any> | undefined>(
-    scope: Build<core.Construct>, id: string,
+    scope: Build<cdk.Construct>, id: string,
     input: {
       depends?: D2;
-      config?: C;
+      config?: Build<C>;
+      executorService?: Lambda.ExecutorService;
     },
     handle: (value: T[], deps: Client<D2>) => Promise<any>): Lambda.Function<E, any, D2 extends undefined ? Dependency.Concat<D> : Dependency.Concat<Cons<D, D2>>> {
     return this.batched().forEach(scope, id, input, handle);
@@ -197,19 +206,7 @@ export abstract class Stream<E extends RecordType, T, D extends any[], C extends
    * @param id of construct under which forwarding resources will be created
    * @param collector destination collector
    */
-  public collect<T>(scope: Build<core.Construct>, id: string, collector: Collector<T, this>): T {
+  public collect<T>(scope: Build<cdk.Construct>, id: string, collector: Collector<T, this>): T {
     return collector.collect(scope, id, this);
-  }
-}
-
-export namespace Stream {
-  /**
-   * Props to configure a `Stream's` evaluation runtime properties.
-   */
-  export interface Config {
-    /**
-     * The executor service of a `Stream` can always be customized.
-     */
-    executorService?: Lambda.ExecutorService;
   }
 }

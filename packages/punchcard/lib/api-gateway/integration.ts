@@ -1,6 +1,7 @@
-import api = require('@aws-cdk/aws-apigateway');
+import type * as apigateway from '@aws-cdk/aws-apigateway';
 
 import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
 import { Resource as RResource } from '../core/resource';
 import * as Lambda from '../lambda';
@@ -9,25 +10,25 @@ import { Resource } from './resource';
 
 type ResourceMappings = {[key: string]: Resource};
 
-export interface Integration<_R extends Dependency<any>> extends RResource<api.LambdaIntegration> {
+export interface Integration<_R extends Dependency<any>> extends RResource<apigateway.LambdaIntegration> {
   mapResource(resource: Resource): void;
   findResource(resourceId: string): Resource;
 }
 
 const resourceIdPrefix = 'resource_id_';
 export class LambdaIntegration<R extends Dependency<any>> implements Integration<R> {
-  public readonly resource: Build<api.LambdaIntegration>;
+  public readonly resource: Build<apigateway.LambdaIntegration>;
 
   private readonly resourceMappings: {[key: string]: Resource} = {};
   private index: ResourceMappings;
 
-  constructor(private readonly fn: Lambda.Function<any, any, R>, options?: Build<Omit<api.LambdaIntegrationOptions, 'proxy'>>) {
+  constructor(private readonly fn: Lambda.Function<any, any, R>, options?: Build<Omit<apigateway.LambdaIntegrationOptions, 'proxy'>>) {
     options = options || Build.of({});
 
-    this.resource = fn.resource.chain(f => options!.map(options => new api.LambdaIntegration(f, {
+    this.resource = CDK.chain(({apigateway}) => fn.resource.chain(f => options!.map(options => new apigateway.LambdaIntegration(f, {
       ...options,
       proxy: false
-    })));
+    }))));
   }
 
   public mapResource(resource: Resource) {

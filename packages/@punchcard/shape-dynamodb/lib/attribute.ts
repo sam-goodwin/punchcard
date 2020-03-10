@@ -39,7 +39,7 @@ export namespace AttributeValue {
     BOOL: boolean;
   }
   export interface List<T extends Shape> {
-    L: Array<Of<T>>;
+    L: Of<T>[];
   }
   export interface Map<T extends Shape> {
     M: {
