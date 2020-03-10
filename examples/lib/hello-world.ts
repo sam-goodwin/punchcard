@@ -1,4 +1,3 @@
-import cdk = require('@aws-cdk/core');
 import { Core, Lambda, DynamoDB, SQS } from 'punchcard';
 import { string, integer, Record } from '@punchcard/shape';
 import { Dependency } from 'punchcard/lib/core';
