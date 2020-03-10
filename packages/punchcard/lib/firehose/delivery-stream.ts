@@ -71,8 +71,8 @@ export class DeliveryStream<T extends ShapeOrRecord> implements Resource<Deliver
   public readonly dataType: DataType;
   public readonly mapper: Mapper<Value.Of<T>, Buffer>;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: DeliveryStreamProps<T>) {
-    scope = CDK.chain(({core}) => scope.map(scope => new core.Construct(scope, id)));
+  constructor(_scope: Build<cdk.Construct>, id: string, props: DeliveryStreamProps<T>) {
+    const scope = CDK.chain(({core}) => _scope.map(scope => new core.Construct(scope, id)));
 
     const fromStream = props as DeliveryStreamFromKinesis<T>;
     const fromType = props as DeliveryStreamDirectPut<T>;
@@ -188,8 +188,8 @@ interface ValidatorProps<S> {
 class Validator<T> {
   public readonly processor: Function<typeof FirehoseEvent, typeof FirehoseResponse, Dependency.None>;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: ValidatorProps<T>) {
-    scope = CDK.chain(({core}) => scope.map(scope => new core.Construct(scope, id)));
+  constructor(_scope: Build<cdk.Construct>, id: string, props: ValidatorProps<T>) {
+    const scope = CDK.chain(({core}) => _scope.map(scope => new core.Construct(scope, id)));
     const executorService = props.executorService || new ExecutorService({
       memorySize: 256,
       timeout: Duration.seconds(60)

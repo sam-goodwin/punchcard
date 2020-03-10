@@ -15,8 +15,8 @@ declare module 'fp-ts/lib/HKT' {
 export const BUILD: Monad1<URI> = {
   URI,
   ap: (fab, fa) => BUILD.chain(fab, ab => fa.map(ab)),
-  chain: (fa, f) => new Build(() => f(fa[get]())[get](), fa),
-  map: (fa, f) => BUILD.chain(fa, a => new Build(() => f(a), fa)), //  new AWS(() => f(fa[next]()), fa),
+  chain: (fa, f) => new Build(() => Build.resolve(f(Build.resolve(fa)))),
+  map: (fa, f) => new Build(() => f(Build.resolve(fa))),
   of: (a) => new Build(() => a),
 };
 
@@ -60,7 +60,7 @@ export class Build<A> {
   }
 
   public static lazy<A>(a: IO<A>): Build<A> {
-    return BUILD.of(a).map(_ => _());
+    return new Build(a);
   }
 
   public static readonly empty = Build.of({});
@@ -71,13 +71,14 @@ export class Build<A> {
 
   public readonly [get]: IO<A>;
 
-  constructor(_get: IO<A>, public readonly parent?: Build<any>) {
+  constructor(public readonly io: IO<A>) {
     // add this Build instance to the global state
     add(this);
 
     // memoize
     let isMemoized = false;
     let value: A | undefined;
+    let i = 0;
     this[get] = () => {
       if (process.env.is_runtime === 'true') {
         const err = 'attempted to resolve a Build value at runtime';
@@ -85,7 +86,11 @@ export class Build<A> {
         throw new Error(err);
       }
       if (!isMemoized) {
-        value = _get();
+        i += 1;
+        if (i > 1) {
+          throw new Error('broke');
+        }
+        value = io();
         isMemoized = true;
       }
       return value!;

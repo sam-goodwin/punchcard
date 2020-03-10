@@ -18,8 +18,8 @@ export class DataPipeline<T extends RecordType, TS extends keyof T> {
   public readonly stream: Kinesis.Stream<T>;
   public readonly table: Glue.Table<T, Period.PT1M>;
 
-  constructor(scope: Build<Construct>, id: string, props: DataPipelineProps<T, TS>) {
-    scope = CDK.chain(({core}) => scope.map(scope => new core.Construct(scope, id)));
+  constructor(_scope: Build<Construct>, id: string, props: DataPipelineProps<T, TS>) {
+    const scope = CDK.chain(({core}) => _scope.map(scope => new core.Construct(scope, id)));
 
     this.stream = new Kinesis.Stream(scope, 'Stream', {
       shape: props.schema.shape,

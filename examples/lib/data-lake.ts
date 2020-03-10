@@ -1,5 +1,3 @@
-import { Duration } from '@aws-cdk/core';
-import { Schedule } from '@aws-cdk/aws-events';
 import { Core, Lambda } from 'punchcard';
 
 import * as Analytics from '@punchcard/data-lake';
@@ -53,7 +51,7 @@ lake.pipelines.dataPoints.stream
 // send some dumy data to the dataPoints schema
 Lambda.schedule(stack, 'DummyDataPoints', {
   depends: lake.pipelines.dataPoints.stream.writeAccess(),
-  schedule: Schedule.rate(Duration.minutes(1)),
+  schedule: Lambda.Schedule.rate(Core.Duration.minutes(1)),
 }, async (_, stream) => {
   await stream.putRecord(new DataPoint({
     key: 'key',

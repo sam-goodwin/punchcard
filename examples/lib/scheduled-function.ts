@@ -15,10 +15,11 @@ const table = new DynamoDB.Table(stack, 'my-table', {
   data: CounterRecord, 
   key: {
     partition: 'id'
-  }
-}, CDK.map(({dynamodb}) => ({
-  billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
-})));
+  },
+  tableProps: CDK.map(({dynamodb}) => ({
+    billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+  }))
+});
 
 Lambda.schedule(stack, 'Poller', {
   depends: table.readWriteAccess(),

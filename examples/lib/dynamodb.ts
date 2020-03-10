@@ -27,10 +27,11 @@ const table = new DynamoDB.Table(stack, 'hash-table', {
   data: Item,
   key: {
     partition: 'id'
-  }
-}, CDK.map(({dynamodb}) => ({
-  billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
-})));
+  },
+  tableProps: CDK.map(({dynamodb}) => ({
+    billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+  }))
+});
 
 // 'count' is the sortKey in this case
 const sortedTable = new DynamoDB.Table(stack, 'sorted-table', {
@@ -38,10 +39,11 @@ const sortedTable = new DynamoDB.Table(stack, 'sorted-table', {
   key: {
     partition: 'id',
     sort: 'count' 
-  }
-}, CDK.map(({dynamodb}) => ({
-  billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
-})));
+  },
+  tableProps: CDK.map(({dynamodb}) => ({
+    billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+  }))
+});
 
 // call the incrementer function from another Lambda Function
 Lambda.schedule(stack, 'Caller', {

@@ -34,6 +34,20 @@ export interface TableProps<DataType extends RecordType, Key extends DDB.KeyOf<D
    * Partition and (optional) Sort Key of the Table.
    */
   key: Key;
+
+  /**
+   * Override the table infrastructure props.
+   *
+   * Example:
+   * ```ts
+   * new DynamoDB.Table(scope, 'Table', {
+   *   tableProps: CDK.map(({dynamodb}) => ({
+   *     billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+   *   }))
+   * });
+   * ```
+   */
+  tableProps?: Build<TableOverrideProps>
 }
 
 /**
@@ -114,7 +128,7 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
    */
   public readonly key: Key;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<DataType, Key>, buildProps?: Build<TableOverrideProps>) {
+  constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<DataType, Key>) {
     this.dataType = props.data;
     this.dataShape = Shape.of(props.data) as any;
 
@@ -122,7 +136,7 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
     const [partitionKeyName, sortKeyName] = getKeyNames<DataType>(props.key);
 
     this.resource = CDK.chain(({dynamodb}) => scope.map(scope => {
-      const extraTableProps = buildProps ? Build.resolve(buildProps) : {};
+      const extraTableProps = props.tableProps ? Build.resolve(props.tableProps) : {};
 
       return new dynamodb.Table(scope, id, {
         ...extraTableProps,

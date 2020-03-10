@@ -45,6 +45,9 @@ const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
   key: {
     partition: 'key'
   },
+  tableProps: CDK.map(({dynamodb}) => ({
+    billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+  }))
 });
 
 /**
@@ -146,6 +149,11 @@ const stream = queue.messages() // gives us a nice chainable API
 
     // partition values across shards by the 'key' field
     partitionBy: value => value.key,
+
+    // enable encryption
+    streamProps: CDK.map(({kinesis}) => ({
+      encryption: kinesis.StreamEncryption.KMS
+    }))
   });
 
 // CDK types are imported as type-only
@@ -157,9 +165,11 @@ import type * as glue from '@aws-cdk/aws-glue';
  * Kinesis Stream -> Firehose Delivery Stream -> S3 (staging) -> Lambda -> S3 (partitioned by `year`, `month`, `day`, `hour` and `minute`)
  *                                                                      -> Glue Catalog
  */
-const database: Build<glue.Database> = CDK.chain(({glue}) => stack.map(stack => new glue.Database(stack, 'Database', {
-  databaseName: 'my_database'
-})));
+const database: Build<glue.Database> = CDK.chain(({glue}) => stack.map(stack =>
+  new glue.Database(stack, 'Database', {
+    databaseName: 'my_database'
+  })));
+
 const table = stream
   .toFirehoseDeliveryStream(stack, 'ToS3').objects()
   .toGlueTable(stack, 'ToGlue', {

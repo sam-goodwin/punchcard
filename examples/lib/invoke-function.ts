@@ -18,10 +18,11 @@ const table = new DynamoDB.Table(stack, 'my-table', {
   data: TableRecord,
   key: {
     partition: 'id'
-  }
-}, CDK.map(({dynamodb}) => ({
-  billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
-})));
+  },
+  tableProps: CDK.map(({dynamodb}) => ({
+    billingMode: dynamodb.BillingMode.PAY_PER_REQUEST
+  }))
+});
 
 class IncrementRequest extends Record({
   id: string

@@ -41,19 +41,19 @@ export interface CDK extends CloudDevelopmentKit {}
 export class CloudDevelopmentKit {
   private constructor() {}
 
-  public get apigateway(): typeof import('@aws-cdk/aws-apigateway') { return require('@aws-cdk/aws-apigateway'); }
-  public get core(): typeof import('@aws-cdk/core') { return require('@aws-cdk/core'); }
-  public get dynamodb(): typeof import('@aws-cdk/aws-dynamodb') { return require('@aws-cdk/aws-dynamodb'); }
-  public get events(): typeof import('@aws-cdk/aws-events') { return require('@aws-cdk/aws-events'); }
-  public get eventsTargets(): typeof import('@aws-cdk/aws-events-targets') { return require('@aws-cdk/aws-events-targets'); }
-  public get glue(): typeof import('@aws-cdk/aws-glue') { return require('@aws-cdk/aws-glue'); }
-  public get iam(): typeof import('@aws-cdk/aws-iam') { return require('@aws-cdk/aws-iam'); }
-  public get kinesis(): typeof import('@aws-cdk/aws-kinesis') { return require('@aws-cdk/aws-kinesis'); }
-  public get kms(): typeof import('@aws-cdk/aws-kms') { return require('@aws-cdk/aws-kms'); }
-  public get lambda(): typeof import('@aws-cdk/aws-lambda') { return require('@aws-cdk/aws-lambda'); }
-  public get lambdaEventSources(): typeof import('@aws-cdk/aws-lambda-event-sources') { return require('@aws-cdk/aws-lambda-event-sources'); }
-  public get logs(): typeof import('@aws-cdk/aws-logs') { return require('@aws-cdk/aws-logs'); }
-  public get s3(): typeof import('@aws-cdk/aws-s3') { return require('@aws-cdk/aws-s3'); }
-  public get sns(): typeof import('@aws-cdk/aws-sns') { return require('@aws-cdk/aws-sns'); }
-  public get sqs(): typeof import('@aws-cdk/aws-sqs') { return require('@aws-cdk/aws-sqs'); }
+  public readonly apigateway: typeof import('@aws-cdk/aws-apigateway') = require('@aws-cdk/aws-apigateway');
+  public readonly core: typeof import('@aws-cdk/core') = require('@aws-cdk/core');
+  public readonly dynamodb: typeof import('@aws-cdk/aws-dynamodb') = require('@aws-cdk/aws-dynamodb');
+  public readonly events: typeof import('@aws-cdk/aws-events') = require('@aws-cdk/aws-events');
+  public readonly eventsTargets: typeof import('@aws-cdk/aws-events-targets') = require('@aws-cdk/aws-events-targets');
+  public readonly glue: typeof import('@aws-cdk/aws-glue') = require('@aws-cdk/aws-glue');
+  public readonly iam: typeof import('@aws-cdk/aws-iam') = require('@aws-cdk/aws-iam');
+  public readonly kinesis: typeof import('@aws-cdk/aws-kinesis') = require('@aws-cdk/aws-kinesis');
+  public readonly kms: typeof import('@aws-cdk/aws-kms') = require('@aws-cdk/aws-kms');
+  public readonly lambda: typeof import('@aws-cdk/aws-lambda') = require('@aws-cdk/aws-lambda');
+  public readonly lambdaEventSources: typeof import('@aws-cdk/aws-lambda-event-sources') = require('@aws-cdk/aws-lambda-event-sources');
+  public readonly logs: typeof import('@aws-cdk/aws-logs') = require('@aws-cdk/aws-logs');
+  public readonly s3: typeof import('@aws-cdk/aws-s3') = require('@aws-cdk/aws-s3');
+  public readonly sns: typeof import('@aws-cdk/aws-sns') = require('@aws-cdk/aws-sns');
+  public readonly sqs: typeof import('@aws-cdk/aws-sqs') = require('@aws-cdk/aws-sqs');
 }
