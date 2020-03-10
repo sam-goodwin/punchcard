@@ -1,8 +1,5 @@
 extends: "tslint:recommended"
 rules:
-    # detects accidental imports of build-time transient-only modules
-    no-build-transient-imports: true
-
     semicolon: [true, "always", "ignore-interfaces"]
 
     no-shadowed-variable: false

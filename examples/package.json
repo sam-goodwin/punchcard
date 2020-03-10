@@ -32,6 +32,7 @@
     "@types/uuid": "^3.4.4",
     "@punchcard/data-lake": "^0.12.0",
     "punchcard": "^0.12.0",
+    "@punchcard/constructs": "^0.3.0",
     "@punchcard/shape": "^0.1.0",
     "@punchcard/shape-hive": "^0.1.0",
     "@punchcard/shape-json": "^0.1.0",
