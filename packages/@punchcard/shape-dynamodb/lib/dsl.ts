@@ -1,4 +1,4 @@
-import { Member, RecordShape, RecordType, ShapeOrRecord, Value, Visitor } from '@punchcard/shape';
+import { Member, RecordShape, RecordType, ShapeOrRecord, Value, ShapeVisitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
@@ -33,7 +33,7 @@ export namespace DSL {
     return result;
   }
 
-  export const DslVisitor: Visitor<Node, ExpressionNode<any>> = {
+  export const DslVisitor: ShapeVisitor<Node, ExpressionNode<any>> = {
     nothingShape: (shape: NothingShape, expression: ExpressionNode<any>): Object<NothingShape> => {
       return new Object(shape, expression);
     },

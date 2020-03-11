@@ -41,6 +41,7 @@ export interface CDK extends CloudDevelopmentKit {}
 export class CloudDevelopmentKit {
   private constructor() {}
 
+  public readonly appsync: typeof import('@aws-cdk/aws-appsync') = require('@aws-cdk/aws-appsync');
   public readonly apigateway: typeof import('@aws-cdk/aws-apigateway') = require('@aws-cdk/aws-apigateway');
   public readonly core: typeof import('@aws-cdk/core') = require('@aws-cdk/core');
   public readonly dynamodb: typeof import('@aws-cdk/aws-dynamodb') = require('@aws-cdk/aws-dynamodb');

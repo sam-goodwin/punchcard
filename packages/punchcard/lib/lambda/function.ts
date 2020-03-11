@@ -25,7 +25,7 @@ import { Duration } from '../core/duration';
  */
 export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'functionName' | 'handler' | 'runtime' | 'memorySize'> {}
 
-export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> {
+export interface HandlerProps<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> {
   /**
    * Type of the request
    *
@@ -53,7 +53,10 @@ export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends Sha
    * Each client will have a chance to grant permissions to the function and environment variables.
    */
   depends?: D;
+}
 
+export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined>
+    extends HandlerProps<T, U, D> {
   /**
    * A name for the function.
    *

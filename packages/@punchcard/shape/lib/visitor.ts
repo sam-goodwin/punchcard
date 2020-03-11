@@ -2,7 +2,7 @@ import { ArrayShape, MapShape, SetShape } from './collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape } from './record';
 
-export interface Visitor<T = unknown, C = undefined> {
+export interface ShapeVisitor<T = unknown, C = undefined> {
   arrayShape(shape: ArrayShape<any>, context: C): T;
   binaryShape(shape: BinaryShape, context: C): T;
   boolShape(shape: BoolShape, context: C): T;
@@ -17,6 +17,6 @@ export interface Visitor<T = unknown, C = undefined> {
   timestampShape(shape: TimestampShape, context: C): T;
 }
 export namespace Visitor {
-  export type YieldType<V extends Visitor> = V extends Visitor<infer T, any>  ? T : never;
-  export type ContextType<V extends Visitor> = V extends Visitor<any, infer C>  ? C : null;
+  export type YieldType<V extends ShapeVisitor> = V extends ShapeVisitor<infer T, any>  ? T : never;
+  export type ContextType<V extends ShapeVisitor> = V extends ShapeVisitor<any, infer C>  ? C : null;
 }

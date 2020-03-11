@@ -1,4 +1,4 @@
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, Meta, NumberShape, RecordShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
+import { BinaryShape, BoolShape, DynamicShape, IntegerShape, Meta, NumberShape, RecordShape, StringShape, TimestampShape, ShapeVisitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { JsonSchema } from './json-schema';
@@ -8,7 +8,7 @@ import { AnySchema, BinarySchema, BoolSchema, IntegerSchema, NothingSchema, Numb
 /**
  * Transforms a Shape into its corresponding JSON Schema representation.
  */
-export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
+export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema> {
   public dynamicShape(shape: DynamicShape<any>, context: undefined): AnySchema {
     return {
       type: {}
