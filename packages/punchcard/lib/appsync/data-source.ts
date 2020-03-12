@@ -1,16 +1,20 @@
-import { ShapeOrRecord } from '@punchcard/shape';
-import { Dependency } from '../core';
 import { Function } from '../lambda';
 import { GraphQL } from './types';
 
 interface DataSource<T, U> {
-  invoke(request: T): U;
+  invoke(request: T): GraphQL<U>;
 }
 
-export class FunctionDataSource<T extends ShapeOrRecord, U extends ShapeOrRecord, D extends Dependency | undefined> implements DataSource<GraphQL.Of<T>, GraphQL.Of<U>> {
-  constructor(fn: Function<T, U, D>) {}
+export class FunctionDataSource<T extends GraphQL.Type, U extends GraphQL.Type> implements DataSource<T, U> {
+  constructor(public readonly fn: Function<GraphQL.ShapeOf<T>, GraphQL.ShapeOf<U>, any>) {
+    // no-op
+  }
 
-  public invoke(request: GraphQL.Of<T>): GraphQL.Of<U> {
+  public invoke(request: T): GraphQL<U> {
+    throw new Error("Method not implemented.");
+  }
+
+  public batchInvoke(request: GraphQL.List<T>): GraphQL<GraphQL.List<U>> {
     throw new Error("Method not implemented.");
   }
 }
@@ -28,7 +32,7 @@ export interface InvokeLambda {
 }
 
 export class LambdaHandler {
-  
+  //
 }
 
 /*

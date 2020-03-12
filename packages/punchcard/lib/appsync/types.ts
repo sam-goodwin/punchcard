@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, MakeRecordType, MapShape, NothingShape, NumberShape, RecordMembers, RecordShape, RecordType, SetShape, ShapeOrRecord, string, StringShape, TimestampShape, Trait, Shape } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, MakeRecordType, MapShape, NothingShape, NumberShape, RecordMembers, RecordShape, RecordType, SetShape, ShapeOrRecord, string, StringShape, StructShape, TimestampShape, Trait } from '@punchcard/shape';
 
 import { ShapeVisitor } from '@punchcard/shape';
 
@@ -13,8 +13,6 @@ const IDTrait: {
 };
 
 export const ID = string.apply(IDTrait);
-
-
 
 export type GraphQL<T> = Generator<any, T, any>;
 
@@ -31,11 +29,16 @@ export namespace GraphQL {
     T extends NumberShape ? Integer :
     T extends ArrayShape<infer I> ? List<Of<I>> :
     T extends MapShape<infer I> ? Map<Of<I>> :
+    T extends StructShape<infer M> ? Record<{
+      [m in keyof M]: Of<M[m]>;
+    }> & {
+      [m in keyof M]: Of<M[m]>;
+    } :
     T extends RecordType<any, infer M> ? Record<{
       [m in keyof M]: Of<M[m]>;
     }> & {
       [m in keyof M]: Of<M[m]>;
-    }:
+    } :
     T extends RecordShape<infer M> ? Record<{
       [m in keyof M]: Of<M[m]>;
     }> & {
@@ -49,6 +52,7 @@ export namespace GraphQL {
   export class Type<T extends ShapeOrRecord = any> {
     constructor(public readonly shape: T, public readonly expression: GraphQL.Expression) {}
   }
+  export class Nothing extends Type<NothingShape> {}
   export class Any extends Type<DynamicShape<any>> {}
   export class Bool extends Type<BoolShape> {}
   export class Integer extends Type<IntegerShape> {}
@@ -80,8 +84,10 @@ export namespace GraphQL {
     readonly Record: MakeRecordType<M>;
   }
 
+  type AssertIsType<T> = T extends GraphQL.Type ? T : never;
+
   export interface InstanceInterface {
-    [field: string]: (root: this, ...args: GraphQL.Type[]) => GraphQL<GraphQL.Type> | GraphQL<GraphQL.Type[]>;
+    // [field: string]: (root: GraphQL.List<AssertIsType<this>>, ...args: GraphQL.Type[]) => GraphQL<GraphQL.Type> | GraphQL<GraphQL.List<any>>;
     // [field: string]: <T extends GraphQL.RecordClass>(impl: (root: this) => GraphQL<T[]>) => GraphQL<T[]>;
     // field<T extends GraphQL.RecordClass>(returns: (type?: any) => T, impl: (root: this) => GraphQL<InstanceType<T>>): T;
     // field<T extends GraphQL.RecordClass>(returns: (type?: any) => [T], impl: (root: this) => GraphQL<InstanceType<T>[]>): T;
@@ -136,6 +142,9 @@ export namespace GraphQL {
       throw new Error("Method not implemented.");
     }
     public stringShape(shape: StringShape, expr: Expression): Type<any> {
+      throw new Error("Method not implemented.");
+    }
+    public structShape(shape: StructShape, expr: Expression): Type<any> {
       throw new Error("Method not implemented.");
     }
     public timestampShape(shape: TimestampShape, expr: Expression): Type<any> {

@@ -42,17 +42,19 @@ export function Mutation<T extends GraphQL.RecordClass>(target: (of?: any) => T)
   // };
 }
 
-export function FieldResolver<Target extends GraphQL.RecordClass, T extends GraphQL.RecordClass>(returns: (type?: any) => [T]): (
-  target: Target,
-  propertyKey: string,
-  descriptior: TypedPropertyDescriptor<(root: InstanceType<Target>) => GraphQL<InstanceType<T>[]>>
-) => TypedPropertyDescriptor<(root: GraphQL.RecordClass) => GraphQL<InstanceType<T>[]>>;
 
-// export function FieldResolver<On extends GraphQL.RecordClass, T extends GraphQL.RecordClass>(on: (type?: any) => On, returns: (type?: any) => T): (
-//   target: object,
-//   propertyKey: string,
-//   descriptior: TypedPropertyDescriptor<(root: InstanceType<On>) => GraphQL<InstanceType<T>>>
-// ) => TypedPropertyDescriptor<(root: InstanceType<On>) => GraphQL<InstanceType<T>>>;
+
+export function FieldResolver<T extends GraphQL.RecordClass>(returns: (type?: undefined) => [T]): <On extends GraphQL.Type>(
+  target: On,
+  propertyKey: string,
+  descriptior: TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => GraphQL<GraphQL.List<InstanceType<T>>>>
+) => TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => GraphQL<GraphQL.List<InstanceType<T>>>>;
+
+export function FieldResolver<T extends GraphQL.RecordClass>(returns: (type?: undefined) => T): <On extends GraphQL.Type>(
+  target: On,
+  propertyKey: string,
+  descriptior: TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => GraphQL<InstanceType<T>>>
+) => TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => GraphQL<InstanceType<T>>>;
 
 export function FieldResolver(...args: any[]): any {
 

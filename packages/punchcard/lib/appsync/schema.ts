@@ -1,8 +1,3 @@
-import { getResolverPointer } from "./decorators";
-
-
-
-
 
 export function buildSchema(resolvers: (new () => any)[]) {
   for (const resolver of resolvers) {
