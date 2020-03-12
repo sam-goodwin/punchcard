@@ -15,8 +15,6 @@ class Nested extends Record({
     .apply(Optional)
 }) {}
 
-Nested.toJson()
-
 class MyType extends Record({
   /**
    * Field documentation.

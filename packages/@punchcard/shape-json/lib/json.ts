@@ -1,85 +1,48 @@
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
-import { RecordShape, RecordType, ShapeOrRecord } from '@punchcard/shape/lib/record';
+import { HashSet } from '@punchcard/shape/lib/hash-set';
+import { Mapper, ValidatingMapper } from '@punchcard/shape/lib/mapper';
+import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from '@punchcard/shape/lib/primitive';
+import { RecordShape, RecordType, RecordMembers } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
+import { Value } from '@punchcard/shape/lib/value';
+import { ShapeVisitor } from '@punchcard/shape/lib/visitor';
 
-import { RequiredKeys } from 'typelevel-ts';
-import { Value } from '@punchcard/shape';
+import { isOptional } from '@punchcard/shape/lib/traits';
 
 export type Tag = typeof Tag;
 export const Tag = Symbol.for('@punchcard/shape-json.Json.Tag');
 
 export namespace Json {
-  export type Of<T extends RecordType | Shape> =  Shape.Of<T> extends { [Tag]: infer J } ? J : never;
+  export type Of<T extends Shape> =
+    // use the instance type if this type can be constructed (for class A extends Record({}) {})
+    // support overriding the type of a value
+    T extends AnyShape ? any :
+    T extends BinaryShape ? string :
+    T extends BoolShape ? boolean :
+    T extends NothingShape ? undefined | null :
+    T extends NumericShape ? number :
+    T extends StringShape ? string :
+    T extends TimestampShape ? Date :
+    T extends UnknownShape ? unknown :
+
+    T extends RecordType<infer M> ? {
+      [m in keyof RecordMembers.Natural<M>]: Of<M[m]>;
+    } :
+
+    T extends ArrayShape<infer I> ? Of<I>[] :
+    T extends MapShape<infer V> ? { [key: string]: Of<V>; } :
+    T extends SetShape<infer I> ? Of<I>[] :
+
+    T extends { [Tag]: infer V } ? V :
+    never
+    ;
 }
 
-declare module '@punchcard/shape/lib/shape' {
-  export interface Shape {
-    [Tag]: unknown;
-  }
-}
-declare module '@punchcard/shape/lib/primitive' {
-  export interface DynamicShape<T extends unknown | any> {
-    [Tag]: T;
-  }
-  export interface BinaryShape {
-    [Tag]: string;
-  }
-  export interface BoolShape {
-    [Tag]: boolean;
-  }
-  export interface NumberShape {
-    [Tag]: number;
-  }
-  export interface NothingShape {
-    [Tag]: null;
-  }
-  export interface StringShape {
-    [Tag]: string;
-  }
-  export interface TimestampShape {
-    [Tag]: string;
-  }
-}
+// declare module '@punchcard/shape/lib/dsl' {
+//   class DSL {
 
-declare module '@punchcard/shape/lib/collection' {
-  export interface ArrayShape<T extends Shape> {
-    [Tag]: Json.Of<T>[];
-  }
-  export interface SetShape<T extends Shape> {
-    [Tag]: Json.Of<T>[]
-  }
-  export interface MapShape<T extends Shape> {
-    [Tag]: {
-      [key: string]: Json.Of<T>;
-    };
-  }
-}
-
-declare module '@punchcard/shape/lib/dsl' {
-  class DSL {
-    
-  }
-}
-declare module '@punchcard/shape/lib/record' {
-  export interface RecordShape<M extends RecordMembers> {
-    [Tag]: {
-      /**
-       * Write each member and their documentation to the structure.
-       * Write them all as '?' for now.
-       */
-      [m in keyof M]+?: Json.Of<M[m]>;
-    } & {
-      /**
-       * Remove '?' from required properties.
-       */
-      [m in RequiredKeys<M>]-?: Json.Of<M[m]>;
-    };
-
-    toJson(instance: Value.Of<this>): Json.Of<this>;
-  }
-}
-
+//   }
+// }
 
 export namespace Json {
   export interface MapperOptions {
@@ -87,11 +50,10 @@ export namespace Json {
     validate?: boolean;
   }
 
-  export function mapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json.Of<T>> {
-    const shape = Shape.of(type) as any;
+  export function mapper<T extends Shape>(shape: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json.Of<T>> {
     let mapper = (shape as any).visit(options.visitor || new MapperVisitor());
     if (options.validate === true) {
-      mapper = ValidatingMapper.of(type, mapper);
+      mapper = ValidatingMapper.of(shape, mapper);
     }
 
     if (isOptional(shape)) {
@@ -121,7 +83,7 @@ export namespace Json {
     };
   }
 
-  export function stringifyMapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, string> {
+  export function stringifyMapper<T extends Shape>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, string> {
     const m = mapper(type, options);
     return {
       read: (s: string) => m.read(JSON.parse(s)) as any,
@@ -129,7 +91,7 @@ export namespace Json {
     };
   }
 
-  export function bufferMapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Buffer> {
+  export function bufferMapper<T extends Shape>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Buffer> {
     const m = mapper(type, options);
     return {
       read: (s: Buffer) => m.read(JSON.parse(s.toString('utf8'))) as any,
@@ -189,7 +151,7 @@ export namespace Json {
     public recordShape(shape: RecordShape<any>): Mapper<any, any> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
-          [name]: mapper((member as any).Shape, {
+          [name]: mapper((member as any), {
             visitor: this
           })
         }))
@@ -281,7 +243,7 @@ export namespace Json {
             shape.Items.Kind === 'stringShape'  ||
             shape.Items.Kind === 'numberShape'  ||
             shape.Items.Kind === 'integerShape' ||
-            shape.Items.Kind === 'boolShape' ? new Set() : new HashSet(shape.Items);
+            shape.Items.Kind === 'boolShape' ? new Set() : HashSet.of(shape.Items);
           arr.forEach(i => set.add(item.read(i)));
           return set;
         }

@@ -8,6 +8,23 @@ import { Compact, RowLacks } from 'typelevel-ts';
 export interface RecordMembers {
   [member: string]: Shape;
 }
+export namespace RecordMembers {
+  /**
+   * Computes a natural representation of the members by applying `+?` to `optional` fields.
+   */
+  export type Natural<T extends RecordMembers> = {
+    /**
+     * Write each member and their documentation to the structure.
+     * Write them all as '?' for now.
+     */
+    [M in keyof T]+?: T[M];
+  } & {
+    /**
+     * Remove '?' from required properties.
+     */
+    [M in RequiredKeys<T>]-?: T[M];
+  };
+}
 
 /**
  * RecordShapes are used to model complex types of named members.
@@ -48,6 +65,7 @@ export namespace RecordShape {
   export const Members = Symbol.for('@punchcard/shape.ClassShape.Members');
 }
 
+
 /**
  * Maps RecordMembers to a structure that represents it at runtime.
  *
@@ -67,17 +85,8 @@ export namespace RecordShape {
  * }).a; // <- same here
  * ```
  */
-export type RecordValues<T extends RecordMembers> = {
-  /**
-   * Write each member and their documentation to the structure.
-   * Write them all as '?' for now.
-   */
-  [M in keyof T]+?: Value.Of<T[M]>;
-} & {
-  /**
-   * Remove '?' from required properties.
-   */
-  [M in RequiredKeys<T>]-?: Value.Of<T[M]>;
+export type RecordValues<M extends RecordMembers> = {
+  [m in keyof RecordMembers.Natural<M>]: Value.Of<M[m]>;
 };
 
 export interface RecordType<T extends RecordMembers = any> extends RecordShape<T> {

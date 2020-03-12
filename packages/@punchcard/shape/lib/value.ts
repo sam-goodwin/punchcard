@@ -1,6 +1,6 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { HashSet } from './hash-set';
-import { BinaryShape, BoolShape, NumericShape, StringShape, TimestampShape } from './primitive';
+import { AnyShape, BinaryShape, BoolShape, NothingShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
 
 export namespace Value {
   export type Tag = typeof Tag;
@@ -10,16 +10,20 @@ export namespace Value {
     // use the instance type if this type can be constructed (for class A extends Record({}) {})
     T extends (new (...args: any[]) => infer I) ? I :
     // support overriding the type of a value
-    T extends StringShape ? string :
-    T extends NumericShape ? number :
-    T extends BoolShape ? boolean :
+    T extends AnyShape ? any :
     T extends BinaryShape ? Buffer :
+    T extends BoolShape ? boolean :
+    T extends NothingShape ? undefined | null | void :
+    T extends NumericShape ? number :
+    T extends StringShape ? string :
     T extends TimestampShape ? Date :
+    T extends UnknownShape ? unknown :
+
     T extends ArrayShape<infer I> ? Of<I>[] :
     T extends MapShape<infer V> ? { [key: string]: Of<V>; } :
-    T extends SetShape<infer I> ? I extends StringShape | NumericShape | BoolShape ?
-      Set<Of<I>> :
-      HashSet<Of<I>> :
+    T extends SetShape<infer I> ? I extends StringShape | NumericShape | BoolShape ? Set<Of<I>> : HashSet<Of<I>> :
+
+    // adhoc mapping
     T extends { [Value.Tag]: infer V } ? V :
     never
     ;
