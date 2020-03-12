@@ -2,7 +2,7 @@ import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection'
 import { HashSet } from '@punchcard/shape/lib/hash-set';
 import { Mapper, ValidatingMapper } from '@punchcard/shape/lib/mapper';
 import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from '@punchcard/shape/lib/primitive';
-import { RecordShape, RecordType, RecordMembers } from '@punchcard/shape/lib/record';
+import { RecordMembers, RecordShape, RecordType } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Value } from '@punchcard/shape/lib/value';
 import { ShapeVisitor } from '@punchcard/shape/lib/visitor';
@@ -13,7 +13,10 @@ export type Tag = typeof Tag;
 export const Tag = Symbol.for('@punchcard/shape-json.Json.Tag');
 
 export namespace Json {
-  export type Of<T extends Shape> =
+  export type Of<T> =
+    T extends RecordShape<infer M> ? {
+      [m in keyof RecordMembers.Natural<M>]: Of<RecordMembers.Natural<M>[m]>;
+    } :
     // use the instance type if this type can be constructed (for class A extends Record({}) {})
     // support overriding the type of a value
     T extends AnyShape ? any :
@@ -25,10 +28,6 @@ export namespace Json {
     T extends TimestampShape ? Date :
     T extends UnknownShape ? unknown :
 
-    T extends RecordType<infer M> ? {
-      [m in keyof RecordMembers.Natural<M>]: Of<M[m]>;
-    } :
-
     T extends ArrayShape<infer I> ? Of<I>[] :
     T extends MapShape<infer V> ? { [key: string]: Of<V>; } :
     T extends SetShape<infer I> ? Of<I>[] :
@@ -38,11 +37,14 @@ export namespace Json {
     ;
 }
 
-// declare module '@punchcard/shape/lib/dsl' {
-//   class DSL {
-
-//   }
-// }
+declare module '@punchcard/shape/lib/record' {
+  interface RecordType<M> {
+    // fromJson(value: Json.Of<this>): string;
+    Json: new(value: {
+      [m in keyof Value.Of<this>]: Value.Of<this>[m];
+    }) => Json.Of<this>;
+  }
+}
 
 export namespace Json {
   export interface MapperOptions {
@@ -50,10 +52,10 @@ export namespace Json {
     validate?: boolean;
   }
 
-  export function mapper<T extends Shape>(shape: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json.Of<T>> {
+  export function mapper<T>(shape: T & Shape, options: MapperOptions = {}): Mapper<Value.Of<T>, Json.Of<T>> {
     let mapper = (shape as any).visit(options.visitor || new MapperVisitor());
     if (options.validate === true) {
-      mapper = ValidatingMapper.of(shape, mapper);
+      mapper = ValidatingMapper.of(shape as any, mapper);
     }
 
     if (isOptional(shape)) {

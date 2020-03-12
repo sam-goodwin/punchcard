@@ -2,7 +2,7 @@ import { Record } from './record';
 import { Shape } from './shape';
 
 export class DSL<T extends Shape> {
-  constructor(shape: T) {
+  constructor(public readonly shape: T) {
     // proxy that lazily applies DSL generators to a type
     return new Proxy(this, {
       get: (target: DSL<T>, propertyKey: string | symbol | number, receiver: any) => {

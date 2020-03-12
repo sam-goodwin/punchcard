@@ -12,17 +12,17 @@ export namespace RecordMembers {
   /**
    * Computes a natural representation of the members by applying `+?` to `optional` fields.
    */
-  export type Natural<T extends RecordMembers> = {
+  export type Natural<M extends RecordMembers> = {
     /**
      * Write each member and their documentation to the structure.
      * Write them all as '?' for now.
      */
-    [M in keyof T]+?: T[M];
+    [m in keyof M]+?: M[m];
   } & {
     /**
      * Remove '?' from required properties.
      */
-    [M in RequiredKeys<T>]-?: T[M];
+    [m in RequiredKeys<M>]-?: M[m];
   };
 }
 
@@ -60,11 +60,6 @@ export class RecordShape<M extends RecordMembers> extends Shape {
     return Object.values(this.Metadata);
   }
 }
-export namespace RecordShape {
-  export type Members = typeof Members;
-  export const Members = Symbol.for('@punchcard/shape.ClassShape.Members');
-}
-
 
 /**
  * Maps RecordMembers to a structure that represents it at runtime.
@@ -86,18 +81,27 @@ export namespace RecordShape {
  * ```
  */
 export type RecordValues<M extends RecordMembers> = {
-  [m in keyof RecordMembers.Natural<M>]: Value.Of<M[m]>;
+  /**
+   * Write each member and their documentation to the structure.
+   * Write them all as '?' for now.
+   */
+  [m in keyof M]+?: Value.Of<M[m]>;
+} & {
+  /**
+   * Remove '?' from required properties.
+   */
+  [m in RequiredKeys<M>]-?: Value.Of<M[m]>;
 };
 
-export interface RecordType<T extends RecordMembers = any> extends RecordShape<T> {
+export interface RecordType<M extends RecordMembers = any> extends RecordShape<M> {
   /**
    * Constructor takes values for each member.
    */
   new (values: {
     // compact RecordValue<T> by enumerating its keys
     // produces a cleaner interface instead of `{a: string} & {}`
-    [m in keyof RecordValues<T>]: RecordValues<T>[m];
-  }): RecordValues<T>;
+    [m in keyof RecordValues<M>]: RecordValues<M>[m];
+  }): RecordValues<M>;
 
   /**
    * Extend this Record with new members to create a new `RecordType`.
@@ -116,7 +120,7 @@ export interface RecordType<T extends RecordMembers = any> extends RecordShape<T
    *
    * @param members new Record members
    */
-  Extend<M extends RecordMembers>(members: RowLacks<M, keyof T>): Extend<T, M>;
+  Extend<M2 extends RecordMembers>(members: RowLacks<M2, keyof M>): Extend<M, M2>;
 
   /**
    * Pick members from a `Record` to create a new `RecordType`.
@@ -135,7 +139,7 @@ export interface RecordType<T extends RecordMembers = any> extends RecordShape<T
    *
    * @param members array of members to select
    */
-  Pick<M extends (keyof T)[]>(members: M): Pick<T, AssertIsKey<T, ArrayToTuple<M>>>;
+  Pick<M2 extends (keyof M)[]>(members: M2): Pick<M, AssertIsKey<M, ArrayToTuple<M2>>>;
 }
 
 /**
