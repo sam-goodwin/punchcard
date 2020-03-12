@@ -87,10 +87,7 @@ export namespace GraphQL {
   type AssertIsType<T> = T extends GraphQL.Type ? T : never;
 
   export interface InstanceInterface {
-    // [field: string]: (root: GraphQL.List<AssertIsType<this>>, ...args: GraphQL.Type[]) => GraphQL<GraphQL.Type> | GraphQL<GraphQL.List<any>>;
-    // [field: string]: <T extends GraphQL.RecordClass>(impl: (root: this) => GraphQL<T[]>) => GraphQL<T[]>;
-    // field<T extends GraphQL.RecordClass>(returns: (type?: any) => T, impl: (root: this) => GraphQL<InstanceType<T>>): T;
-    // field<T extends GraphQL.RecordClass>(returns: (type?: any) => [T], impl: (root: this) => GraphQL<InstanceType<T>[]>): T;
+    // todo
   }
 
   export function NewType<M extends RecordMembers>(members: M): StaticInterface<M> & (new(values: {

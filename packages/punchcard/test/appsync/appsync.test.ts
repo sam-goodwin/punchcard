@@ -8,23 +8,6 @@ import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
 import { Function } from '../../lib/lambda';
 
-function R(): <T>(
-  target: T,
-  propertyKey: string,
-  descriptor: TypedPropertyDescriptor<(a: T) => void>
-) => void {
-  return null as any;
-}
-
-class A {
-  isA: true;
-
-  @R()
-  public a(_a: A): void {
-
-  }
-}
-
 class Post extends GraphQL.NewType({
   /**
    * ID

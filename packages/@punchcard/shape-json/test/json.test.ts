@@ -8,9 +8,14 @@ import { Json } from '../lib';
 // tslint:disable: member-access
 
 class Nested extends Record({
+  /**
+   * A docs.
+   */
   a: string
     .apply(Optional)
 }) {}
+
+Nested.toJson()
 
 class MyType extends Record({
   /**

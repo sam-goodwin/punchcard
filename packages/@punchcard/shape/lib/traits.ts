@@ -1,5 +1,4 @@
 import { Apply, Decorated, Trait } from './metadata';
-import { RecordType } from './record';
 import { Shape } from './shape';
 
 /**
@@ -26,10 +25,8 @@ export function isOptional(a: any) {
  *
  * @param shapeOrRecord a Shape or a Record to transform as optional
  */
-export function optional<T extends Shape>(shape: T): Apply<T, IsOptional>;
-export function optional<T extends RecordType>(type: T): Apply<Shape.Of<T>, IsOptional>;
-export function optional(shapeOrRecord: any): any {
-  return Shape.of(shapeOrRecord).apply(Optional);
+export function optional<T extends Shape>(shape: T): Apply<T, IsOptional> {
+  return shape.apply(Optional);
 }
 
 export function Description<D extends string>(description: D): Trait<any, { description: D }> {

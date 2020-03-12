@@ -1,27 +1,26 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
-import { RecordShape, ShapeOrRecord } from './record';
+import { RecordShape } from './record';
 import { Shape } from './shape';
 import { Value } from './value';
-import { Visitor as ShapeVisitor } from './visitor';
+import { ShapeVisitor } from './visitor';
 
 /**
  * Computes whether two Values of a Shape are equal.
  */
-export type Equals<T extends Shape> = (a: Value.Of<T>, b: Value.Of<T>) => boolean;
+export type Equals<T> = (a: T, b: T) => boolean;
 
 export namespace Equals {
   const cache = new WeakMap();
 
-  export function of<T extends ShapeOrRecord>(type: T, noCache: boolean = false): Equals<Shape.Of<T>> {
-    const shape = Shape.of(type);
+  export function of<T extends Shape>(shape: T, noCache: boolean = false): Equals<Value.Of<T>> {
     if (noCache) {
       return make();
     }
-    if (!cache.has(type)) {
-      cache.set(type, make());
+    if (!cache.has(shape)) {
+      cache.set(shape, make());
     }
-    return cache.get(type);
+    return cache.get(shape);
 
     function make() {
       return (shape as any).visit(visitor );
@@ -113,7 +112,7 @@ export namespace Equals {
     public recordShape(shape: RecordShape<any>): Equals<RecordShape<any>> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
-          [name]: of(member.Shape)
+          [name]: of((member as any).Shape)
         }))
         .reduce((a, b) => ({...a, ...b}));
 

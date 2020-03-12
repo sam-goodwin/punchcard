@@ -38,9 +38,9 @@ class MyType extends Record({
   }
 }
 
+
 // some compile-time checks
-const s = Shape.of(Nested);
-const v: Value.Of<typeof s> = new Nested({a: 'a', b: 'b'});
+const v: Value.Of<typeof Nested> = new Nested({a: 'a', b: 'b'});
 const vv: Value.Of<typeof Nested> = v;
 
 // tslint:disable: no-unused-expression

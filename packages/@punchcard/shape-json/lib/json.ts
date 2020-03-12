@@ -1,9 +1,10 @@
-import { isOptional, RecordType, RequiredKeys } from '@punchcard/shape';
-import { HashSet, Mapper, ValidatingMapper, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
-import { RecordShape, ShapeOrRecord } from '@punchcard/shape/lib/record';
+import { RecordShape, RecordType, ShapeOrRecord } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
+
+import { RequiredKeys } from 'typelevel-ts';
+import { Value } from '@punchcard/shape';
 
 export type Tag = typeof Tag;
 export const Tag = Symbol.for('@punchcard/shape-json.Json.Tag');
@@ -55,8 +56,13 @@ declare module '@punchcard/shape/lib/collection' {
   }
 }
 
+declare module '@punchcard/shape/lib/dsl' {
+  class DSL {
+    
+  }
+}
 declare module '@punchcard/shape/lib/record' {
-  export interface RecordShape<M extends RecordMembers, I extends any> {
+  export interface RecordShape<M extends RecordMembers> {
     [Tag]: {
       /**
        * Write each member and their documentation to the structure.
@@ -69,8 +75,11 @@ declare module '@punchcard/shape/lib/record' {
        */
       [m in RequiredKeys<M>]-?: Json.Of<M[m]>;
     };
+
+    toJson(instance: Value.Of<this>): Json.Of<this>;
   }
 }
+
 
 export namespace Json {
   export interface MapperOptions {
@@ -177,10 +186,10 @@ export namespace Json {
         write: (b: boolean) => b
       };
     }
-    public recordShape(shape: RecordShape<any, any>): Mapper<any, any> {
+    public recordShape(shape: RecordShape<any>): Mapper<any, any> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
-          [name]: mapper(member.Shape, {
+          [name]: mapper((member as any).Shape, {
             visitor: this
           })
         }))
@@ -196,7 +205,7 @@ export namespace Json {
           for (const [name, codec] of Object.entries(fields)) {
             res[name] = codec.read(value[name]);
           }
-          return new shape.Type(res);
+          return new (shape as any)(res);
         },
         write: (value: any) => {
           const res: any = {};

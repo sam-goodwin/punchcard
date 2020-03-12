@@ -1,5 +1,4 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
-import { Member } from './member';
 import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
 import { RecordShape } from './record';
 import { Shape } from './shape';
@@ -51,6 +50,7 @@ export namespace ShapeGuards {
       throw new Error(`${a} is not of type: RecordShape`);
     }
   };
+
   export const isMapShape = (a: any): a is MapShape<any> => a.Kind === 'mapShape';
   export const assertMapShape = (a: any): asserts a is MapShape<any> => {
     if (!isMapShape(a)) {
@@ -110,13 +110,6 @@ export namespace ShapeGuards {
   export type IsShape<T> = T extends Shape ? T : never;
   export type IsStringShape<T> = T extends StringShape ? T : never;
   export type IsTimestampShape<T> = T extends TimestampShape ? T : never;
-
-  export const isMember = (a: any): a is Member => Member.isInstance(a);
-  export const assertMember = (a: any): asserts a is Member => {
-    if (!(Member.isInstance(a)))  {
-      throw new Error(`${a} is not of type Member`);
-    }
-  };
 }
 
 export namespace MetadataGuards {

@@ -5,7 +5,6 @@ export * from './hash-code';
 export * from './hash-set';
 export * from './kind';
 export * from './mapper';
-export * from './member';
 export * from './metadata';
 export * from './primitive';
 export * from './record';

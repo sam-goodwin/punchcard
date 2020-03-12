@@ -5,7 +5,7 @@ import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, Numbe
 import { RecordShape, RecordType } from './record';
 import { Shape } from './shape';
 import { Value } from './value';
-import { Visitor as ShapeVisitor } from './visitor';
+import { ShapeVisitor } from './visitor';
 
 export interface ValidationErrors extends Array<Error> {}
 
@@ -22,8 +22,7 @@ export function MakeValidator<T extends Shape>(validator: Validator<Value.Of<T>>
 }
 
 export namespace Validator {
-  export function of<T extends RecordType | Shape>(type: T): Validator<Value.Of<T>> {
-    const shape = Shape.of(type);
+  export function of<T extends RecordType | Shape>(shape: T): Validator<Value.Of<T>> {
     const decoratedValidators =  (Meta.get(shape, ['validator']) || {}).validator || [];
 
     const validators = decoratedValidators.concat((shape as any).visit(visitor, '$'));
@@ -55,7 +54,7 @@ export namespace Validator {
         [key: string]: Validator<any>[];
       } = {};
       for (const member of Object.values(shape.Members)) {
-        validators[member.Name] = [of(member.Shape) as any];
+        validators[(member as any).Name] = [of((member as any).Shape) as any];
       }
       return [(obj, path) => {
         return Object.entries(validators)

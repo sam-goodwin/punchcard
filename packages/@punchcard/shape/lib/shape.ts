@@ -1,5 +1,4 @@
 import { Apply, Meta, Trait } from './metadata';
-import { RecordShape, RecordType, ShapeOrRecord } from './record';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
 
@@ -23,12 +22,4 @@ export abstract class Shape {
   public apply<T extends Trait<this, any>>(trait: T): Apply<this, Trait.GetData<T>> {
     return Meta.apply(this, trait[Trait.Data]);
   }
-}
-
-export namespace Shape {
-  export type Of<T extends ShapeOrRecord> =
-    T extends RecordType<infer I, infer M> ? RecordShape<M extends {} ? M : never, I> :
-    T extends Shape ? T :
-    never
-    ;
 }
