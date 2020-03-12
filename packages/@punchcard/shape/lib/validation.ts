@@ -2,7 +2,7 @@ import { ArrayShape, MapShape, SetShape } from './collection';
 import { Meta } from './metadata';
 import { Trait } from './metadata';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
-import { RecordShape, RecordType } from './record';
+import { RecordShape } from './record';
 import { Shape } from './shape';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
@@ -22,10 +22,11 @@ export function MakeValidator<T extends Shape>(validator: Validator<Value.Of<T>>
 }
 
 export namespace Validator {
-  export function of<T extends RecordType | Shape>(shape: T): Validator<Value.Of<T>> {
+  export function of<T extends Shape>(shape: T): Validator<Value.Of<T>> {
     const decoratedValidators =  (Meta.get(shape, ['validator']) || {}).validator || [];
+    // console.log(shape);
 
-    const validators = decoratedValidators.concat((shape as any).visit(visitor, '$'));
+    const validators = decoratedValidators.concat(shape.visit(visitor, '$'));
 
     return (a: any, path) => validators
       .map((v: Validator<any>) => v(a, path))
@@ -53,8 +54,8 @@ export namespace Validator {
       const validators: {
         [key: string]: Validator<any>[];
       } = {};
-      for (const member of Object.values(shape.Members)) {
-        validators[(member as any).Name] = [of((member as any).Shape) as any];
+      for (const [name, member] of Object.entries(shape.Members)) {
+        validators[name] = [of(member as any)];
       }
       return [(obj, path) => {
         return Object.entries(validators)

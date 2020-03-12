@@ -118,7 +118,7 @@ export namespace HashCode {
     public recordShape(shape: RecordShape<any>): HashCode<any> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
-          [name]: of((member as any).Shape)
+          [name]: of((member as any))
         }))
         .reduce((a, b, {}) => ({...a, ...b}));
 

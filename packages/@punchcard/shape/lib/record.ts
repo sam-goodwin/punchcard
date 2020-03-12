@@ -143,11 +143,6 @@ export interface RecordType<T extends RecordMembers = any> extends RecordShape<T
  */
 export function Record<T extends RecordMembers = any>(members: T): RecordType<T> {
   class NewType {
-    /**
-     * This Record type's members and their shape.
-     */
-    public static readonly members = members;
-
     public static Extend<M extends RecordMembers>(members: RowLacks<M, keyof T>): Extend<T, M> {
       return Extend(this as any, members) as any;
     }
@@ -155,11 +150,6 @@ export function Record<T extends RecordMembers = any>(members: T): RecordType<T>
     public static Pick<M extends (keyof T)[]>(members: M): Pick<T, AssertIsKey<T, ArrayToTuple<M>>> {
       return Pick(this as any, members);
     }
-
-    /**
-     * This instance's members - useful for reflection.
-     */
-    public readonly [RecordShape.Members]: T = members;
 
     constructor(values: {
       [K in keyof T]: Value.Of<T[K]>;
@@ -170,7 +160,12 @@ export function Record<T extends RecordMembers = any>(members: T): RecordType<T>
     }
   }
 
-  return Object.assign(NewType, new RecordShape<T>(members, {})) as any;
+  const shape = new RecordShape<T>(members, {});
+  Object.assign(NewType, shape);
+  (NewType as any).visit = shape.visit.bind(NewType);
+  (NewType as any).apply = shape.apply.bind(NewType);
+  (NewType as any).getMetadata = shape.getMetadata.bind(NewType);
+  return NewType as any;
 }
 
 /**

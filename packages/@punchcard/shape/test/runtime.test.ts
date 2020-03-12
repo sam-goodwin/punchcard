@@ -1,6 +1,6 @@
 import 'jest';
 
-import { any, array, bool, Equals, HashCode, HashSet, map, number, optional, Record, set, Shape, string, Value} from '../lib';
+import { any, array, bool, Equals, HashCode, HashSet, map, number, optional, Record, set, string, Value} from '../lib';
 
 // tslint:disable: member-access
 class Nested extends Record({
