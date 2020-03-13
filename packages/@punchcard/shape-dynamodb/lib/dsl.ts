@@ -1,4 +1,4 @@
-import { Member, RecordShape, RecordType, ShapeOrRecord, Value, ShapeVisitor } from '@punchcard/shape';
+import { RecordShape, RecordType, ShapeVisitor, Value } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
@@ -7,11 +7,6 @@ import { Mapper } from './mapper';
 import { Writer } from './writer';
 
 // tslint:disable: ban-types
-declare module '@punchcard/shape/lib/shape' {
-  export interface Shape {
-    [DSL.Tag]: DSL.Node;
-  }
-}
 
 // we have a thing named Object inside Query, so stash this here.
 const Objekt = Object;
@@ -20,15 +15,27 @@ export namespace DSL {
   export type Tag = typeof Tag;
   export const Tag = Symbol.for('@punchcard/shape-dynamodb.Query.Tag');
 
-  export type Of<T extends ShapeOrRecord> = Shape.Of<T> extends { [Tag]: infer Q } ? Q : never;
+  export type Of<T extends Shape> =
+    T extends BinaryShape ? DSL.Binary :
+    T extends BoolShape ? DSL.Bool :
+    T extends IntegerShape ? DSL.Number :
+    T extends StringShape ? DSL.String :
+    T extends TimestampShape ? DSL.String :
 
-  export type Root<T extends RecordType> = Struct<Shape.Of<T>>['fields'];
+    T extends RecordShape<any> ? DSL.Struct<T> :
+    T extends MapShape<infer V> ? DSL.Map<V> :
+    T extends SetShape<infer I> ? DSL.Set<I> :
+    T extends ArrayShape<infer I> ? DSL.List<I> :
+    T extends { [Tag]: infer Q } ? Q :
+    DSL.Object<T>
+    ;
 
-  export function of<T extends RecordType>(type: T): Root<T> {
-    const shape = Shape.of(type);
+  export type Root<T extends RecordType> = Struct<T>['fields'];
+
+  export function of<T extends RecordType>(shape: T): Root<T> {
     const result: any = {};
     for (const [name, member] of Objekt.entries(shape.Members)) {
-      result[name] = member.Shape.visit(DslVisitor, new RootProperty(member.Shape, name));
+      result[name] = (member as Shape).visit(DslVisitor, new RootProperty(member as Shape, name));
     }
     return result;
   }
@@ -519,6 +526,8 @@ export namespace DSL {
       super(type, expression);
     }
 
+    [index: number]: Of<T>;
+
     public get length() {
       return this.size;
     }
@@ -609,8 +618,7 @@ export namespace DSL {
       super(type, expression);
       this.fields = {} as any;
       for (const [name, prop] of Objekt.entries(type.Members)) {
-        Member.assertInstance(prop);
-        (this.fields as any)[name] = prop.Shape.visit(DslVisitor, new Struct.Field(this, prop.Shape, name));
+        (this.fields as any)[name] = (prop as Shape).visit(DslVisitor, new Struct.Field(this, prop as Shape, name));
       }
     }
   }

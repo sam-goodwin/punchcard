@@ -1,6 +1,6 @@
 import 'jest';
 
-import { any, binary, nothing, number, Optional, optional, Record, Shape, string } from '@punchcard/shape';
+import { any, binary, nothing, number, Optional, optional, Record, string } from '@punchcard/shape';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema, NumberSchema } from '../lib';
@@ -42,8 +42,6 @@ class MyType extends Record({
 
   nothing,
 }) {}
-
-const type = Shape.of(MyType);
 
 // "stamp" an interface representing the JSON schema of MyType - sick code generation!
 interface MyTypeJsonSchema extends JsonSchema.Of<typeof MyType> {}

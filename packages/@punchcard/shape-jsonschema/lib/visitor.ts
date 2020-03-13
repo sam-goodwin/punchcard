@@ -1,4 +1,4 @@
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, Meta, NumberShape, RecordShape, StringShape, TimestampShape, ShapeVisitor } from '@punchcard/shape';
+import { BinaryShape, BoolShape, DynamicShape, IntegerShape, Meta, NumberShape, RecordShape, Shape, ShapeVisitor, StringShape, TimestampShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { JsonSchema } from './json-schema';
@@ -8,7 +8,7 @@ import { AnySchema, BinarySchema, BoolSchema, IntegerSchema, NothingSchema, Numb
 /**
  * Transforms a Shape into its corresponding JSON Schema representation.
  */
-export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema> {
+export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema, undefined> {
   public dynamicShape(shape: DynamicShape<any>, context: undefined): AnySchema {
     return {
       type: {}
@@ -86,9 +86,9 @@ export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema> {
   }
 
   public recordShape(shape: RecordShape<any>): ObjectSchema<any> {
-    const required = Object.values(shape.Members)
-      .map((value) => {
-        return (value.Metadata as any).nullable === true ? [] : [value.Name];
+    const required = (Object.entries(shape.Members) as [string, Shape][])
+      .map(([name, member]) => {
+        return (Meta.get(member) as any).nullable === true ? [] : [name];
       })
       .reduce((a, b) => a.concat(b), []);
 

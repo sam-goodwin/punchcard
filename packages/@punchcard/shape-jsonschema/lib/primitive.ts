@@ -1,6 +1,3 @@
-import { Meta } from '@punchcard/shape/lib/metadata';
-import { JsonSchema } from './json-schema';
-
 export interface AnySchema {
   type: {};
 }
@@ -53,28 +50,4 @@ export interface TimestampSchema {
 
 export interface NothingSchema {
   type: 'null'
-}
-
-declare module '@punchcard/shape/lib/primitive' {
-  interface DynamicShape<T extends any | unknown> {
-    [JsonSchema.Tag]: AnySchema;
-  }
-  interface BinaryShape {
-    [JsonSchema.Tag]: BinarySchema<Meta.GetData<this>>;
-  }
-  interface BoolShape {
-    [JsonSchema.Tag]: BoolSchema;
-  }
-  interface StringShape {
-    [JsonSchema.Tag]: StringSchema<Meta.GetData<this>>;
-  }
-  interface NothingShape {
-    [JsonSchema.Tag]: NothingSchema;
-  }
-  interface NumberShape {
-    [JsonSchema.Tag]: NumberSchema<Meta.GetData<this>>;
-  }
-  interface TimestampShape {
-    [JsonSchema.Tag]: TimestampSchema;
-  }
 }

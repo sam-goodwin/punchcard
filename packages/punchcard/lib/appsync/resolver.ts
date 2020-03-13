@@ -1,4 +1,4 @@
-import { ShapeOrRecord } from '@punchcard/shape';
+import { Shape } from '@punchcard/shape';
 import { Function } from '../lambda/function';
 import { GraphQL } from './types';
 
@@ -24,6 +24,6 @@ export namespace Resolver {
   export type GetType<T extends Resolver> = T extends Resolver<infer C> ? InstanceType<C> : never;
 }
 
-export function invoke<T extends ShapeOrRecord, U extends ShapeOrRecord>(fn: Function<T, U, any>, input: GraphQL.Of<T>): GraphQL<GraphQL.Of<U>> {
+export function invoke<T extends Shape, U extends Shape>(fn: Function<T, U, any>, input: GraphQL.TypeOf<T>): GraphQL<GraphQL.TypeOf<U>> {
   return null as any;
 }

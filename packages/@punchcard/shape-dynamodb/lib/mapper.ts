@@ -4,12 +4,11 @@ import { isOptional } from '@punchcard/shape';
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
 import { ValidatingMapper } from '@punchcard/shape/lib/mapper';
-import { ShapeOrRecord } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Value } from '@punchcard/shape/lib/value';
 import { AttributeValue } from './attribute';
 
-export interface Mapper<T extends ShapeOrRecord> {
+export interface Mapper<T extends Shape> {
   read(value: AttributeValue.Of<T>): Value.Of<T>;
   write(value: Value.Of<T>): AttributeValue.Of<T>;
 }
@@ -20,13 +19,11 @@ export namespace Mapper {
     cache: WeakMap<any, any>;
   }
 
-  export function of<T extends ShapeOrRecord>(type: T, options: Options = { validate: true, cache: new WeakMap() }): Mapper<T> {
-    const shape = Shape.of(type);
-
+  export function of<T extends Shape>(shape: T, options: Options = { validate: true, cache: new WeakMap() }): Mapper<T> {
     if (!options.cache.has(shape)) {
       let m = resolve();
       if (options.validate) {
-        m = ValidatingMapper.of(type, m);
+        m = ValidatingMapper.of(shape, m);
       }
       options.cache.set(shape, m);
     }
@@ -69,8 +66,8 @@ export namespace Mapper {
     function resolveShape() {
 
       if (ShapeGuards.isRecordShape(shape)) {
-        const mappers: {[key: string]: Mapper<any>; } = Object.values(shape.Members)
-          .map(m => ({ [m.Name]: Mapper.of(m.Shape, options) }))
+        const mappers: {[key: string]: Mapper<any>; } = Object.entries(shape.Members)
+          .map(([name, m]) => ({ [name]: Mapper.of(m as Shape, options) }))
           .reduce((a, b) => ({...a, ...b}), {});
 
         function traverse(f: (mapper: Mapper<any>, value: any) => any): (value: any) => any {
@@ -91,7 +88,7 @@ export namespace Mapper {
         return {
           read: (value: any) => {
             assertHasKey('M', value);
-            return new shape.Type(reader(value.M));
+            return new (shape as any)(reader(value.M));
           },
           write: (value: any) => {
             return { M: writer(value) };
@@ -132,7 +129,7 @@ export namespace Mapper {
             read: (value: any) => {
               assertHasKey(key, value);
               if (ShapeGuards.isBinaryShape(shape.Items)) {
-                const s = new HashSet(shape.Items);
+                const s = HashSet.of(shape.Items);
                 value[key].forEach((v: any) => s.add(v));
                 return s;
               }

@@ -1,31 +1,19 @@
-import { Shape } from '@punchcard/shape/lib/shape';
+import { Shape } from '@punchcard/shape';
 import { JsonSchema } from './json-schema';
 
-export interface ArraySchema<I extends JsonSchema = any> {
+export interface ArraySchema<I extends Shape = any> {
   type: 'array';
-  items: I;
+  items: JsonSchema.Of<I>;
   uniqueItems?: false;
 }
-export interface SetSchema<I extends JsonSchema = any> {
+export interface SetSchema<I extends Shape = any> {
   type: 'array';
-  items: I;
+  items: JsonSchema.Of<I>;
   uniqueItems: true;
 }
-export interface MapSchema<T extends JsonSchema = any> {
+export interface MapSchema<T extends Shape = any> {
   type: 'object';
   properties: {};
   allowAdditionalProperties: true;
-  additionalProperties: T;
-}
-
-declare module '@punchcard/shape/lib/collection' {
-  interface ArrayShape<T extends Shape> {
-    [JsonSchema.Tag]: ArraySchema<T[JsonSchema.Tag]>;
-  }
-  interface SetShape<T extends Shape> {
-    [JsonSchema.Tag]: SetSchema<T[JsonSchema.Tag]>;
-  }
-  interface MapShape<T extends Shape> {
-    [JsonSchema.Tag]: MapSchema<T[JsonSchema.Tag]>;
-  }
+  additionalProperties: JsonSchema.Of<T>;
 }

@@ -1,14 +1,30 @@
 import 'jest';
 
-import { string } from '@punchcard/shape';
+import { Record, string, RecordType } from '@punchcard/shape';
 import { FunctionDataSource } from '../../lib/appsync/data-source';
-import { Arg, FieldResolver, Mutation, Query } from '../../lib/appsync/decorators';
-import { GraphQL, ID } from '../../lib/appsync/types';
-import { $util } from '../../lib/appsync/util';
+import { Arg, Mutation, Query } from '../../lib/appsync/decorators';
+import { GraphQL, GraphQLModel, ID } from '../../lib/appsync/types';
 import { App } from '../../lib/core';
 import { Function } from '../../lib/lambda';
 
-class Post extends GraphQL.NewType({
+class A {
+
+}
+
+namespace A {
+  export class B {
+    a: string;
+  }
+}
+
+
+const aa = a(A);
+
+export interface HasModel extends RecordType {
+  Model: new(...args: any[]) => any;
+}
+
+class Post extends Record({
   /**
    * ID
    */
@@ -21,30 +37,35 @@ class Post extends GraphQL.NewType({
    * Content of the Post
    */
   content: string
-}) {
-  @FieldResolver(returns => Post)
-  public *relatedPosts(root: Post, @Arg('id') id: GraphQL.String, list: GraphQL.List<GraphQL.String>): GraphQL<Post> {
-    const i1 = $util.dynamodb.toDynamoDB(list);
-    const i2 = $util.dynamodb.toDynamoDBJson(list);
-    const i3 = $util.dynamodb.toString(id);
-    const i4 = $util.dynamodb.toStringSet(list);
+}) {}
 
-    const i5 = yield* $util.autoId();
-
-    // return [yield* addPost.invoke(root)];
-    return null as any;
+namespace Post {
+  export class GraphQL2 {}
+  export class GraphQL extends GraphQLModel(Post) {
+    public static relatedPosts(root: Post.GraphQL) {
+      // todo
+    }
   }
 }
 
-class AddPostInput extends GraphQL.NewType({
+function doThing<T extends GraphQLModel>(type: T): InstanceType<T['GraphQL']> {
+  return null as any;
+}
+
+const pm = doThing(Post);
+
+class AddPostInput extends Record({
+  /**
+   * Content.
+   */
   content: string,
   title: string
 }) {}
 
 class MyApi {
-  @Query(returns => [Post])
-  public *posts(@Arg('title') title: GraphQL.String): GraphQL<Post[]> {
-    return [new Post(null as any)];
+  @Query(returns => [Post.Model])
+  public *posts(@Arg('title') title: GraphQL.String) {
+    return [new PostType()];
   }
 
   @Mutation(of => Post)
@@ -57,14 +78,15 @@ const app = new App();
 const stack = app.stack('stack');
 
 const addPostFn = new Function(stack, 'fn', {
-  request: AddPostInput.Record,
-  response: Post.Record
+  request: AddPostInput,
+  response: Post
 }, async (request) => {
-  return new Post.Record({
+  return new Post({
     id: 'id',
     ...request
   });
 });
 
 const addPost = new FunctionDataSource(addPostFn);
+// addPost.invoke(new AddPostInput(null as any));
 

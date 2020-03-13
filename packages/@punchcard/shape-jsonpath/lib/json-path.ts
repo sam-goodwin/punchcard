@@ -1,7 +1,7 @@
-import { Member, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { ShapeVisitor, Value } from '@punchcard/shape';
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
-import { RecordShape, RecordType, ShapeOrRecord } from '@punchcard/shape/lib/record';
+import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { RecordShape, RecordType } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Writer } from './writer';
 
@@ -13,15 +13,28 @@ export namespace JsonPath {
   export type Tag = typeof Tag;
   export const Tag = Symbol.for('@punchcard/shape-jsonpath.JsonPath.Tag');
 
-  export type Of<T extends ShapeOrRecord> = Shape.Of<T> extends { [Tag]: infer Q } ? Q : never;
+  export type Of<T extends Shape> =
+    T extends BinaryShape ? JsonPath.Binary :
+    T extends BoolShape ? JsonPath.Bool :
+    T extends NumericShape ? JsonPath.Number :
+    T extends StringShape ? JsonPath.String :
 
-  export type Root<T extends RecordType> = Struct<Shape.Of<T>>[Fields];
+    T extends ArrayShape<infer I> ? JsonPath.Array<I> :
+    T extends MapShape<infer V> ? JsonPath.Map<V> :
+    T extends RecordShape<any> ? JsonPath.Struct<T> :
+    T extends SetShape<infer V> ? JsonPath.Array<V> :
 
-  export function of<T extends RecordType>(type: T): Root<T> {
-    const shape = Shape.of(type);
+    T extends { [Tag]: infer Q } ? Q :
+
+    JsonPath.Object<T>
+    ;
+
+  export type Root<T extends RecordType> = Struct<T>[Fields];
+
+  export function of<T extends RecordType>(shape: T): Root<T> {
     const result: any = {};
-    for (const [name, member] of Objekt.entries(shape.Members)) {
-      result[name] = member.Shape.visit(visitor as any, new Id(member.Shape, `$['${name}']`));
+    for (const [name, member] of Objekt.entries(shape.Members) as [string, Shape][]) {
+      result[name] = member.visit(visitor as any, new Id(member, `$['${name}']`));
     }
     return result;
   }
@@ -357,7 +370,7 @@ export namespace JsonPath {
 
   export const Fields = Symbol.for('@punchcard/shape-jsonpath.JsonPath.Fields');
   export type Fields = typeof Fields;
-  export class Struct<T extends RecordShape<any, any>> extends Object<T> {
+  export class Struct<T extends RecordShape<any>> extends Object<T> {
     public readonly [Fields]: {
       [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]['Shape']>;
     };
@@ -365,9 +378,8 @@ export namespace JsonPath {
     constructor(type: T, expression: ExpressionNode<T>) {
       super(type, expression);
       this[Fields] = {} as any;
-      for (const [name, prop] of Objekt.entries(type.Members)) {
-        Member.assertInstance(prop);
-        (this[Fields] as any)[name] = prop.Shape.visit(visitor as any, new Struct.Field(this, prop.Shape, name));
+      for (const [name, prop] of Objekt.entries(type.Members) as [string, Shape][]) {
+        (this[Fields] as any)[name] = prop.visit(visitor as any, new Struct.Field(this, prop, name));
       }
     }
   }
@@ -414,7 +426,7 @@ class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
   public boolShape(shape: BoolShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Bool {
     return new JsonPath.Bool(expression, shape);
   }
-  public recordShape(shape: RecordShape<any, any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Struct<RecordShape<any, any>> {
+  public recordShape(shape: RecordShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Struct<RecordShape<any>> {
     return new Proxy(new JsonPath.Struct(shape, expression), {
       get: (target, prop) => {
         if (typeof prop === 'string') {
@@ -455,47 +467,3 @@ class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
 }
 
 const visitor = new Visitor();
-
-declare module '@punchcard/shape/lib/shape' {
-  export interface Shape {
-    [JsonPath.Tag]: unknown;
-  }
-}
-declare module '@punchcard/shape/lib/primitive' {
-  export interface BoolShape {
-    [JsonPath.Tag]: JsonPath.Bool;
-  }
-  export interface NumberShape {
-    [JsonPath.Tag]: JsonPath.Number;
-  }
-  export interface StringShape {
-    [JsonPath.Tag]: JsonPath.String;
-  }
-  export interface TimestampShape {
-    [JsonPath.Tag]: JsonPath.String;
-  }
-}
-
-declare module '@punchcard/shape/lib/collection' {
-  export interface ArrayShape<T extends Shape> {
-    [JsonPath.Tag]: JsonPath.Array<T> & {
-      [key: number]: JsonPath.Of<T>;
-    };
-  }
-  export interface SetShape<T extends Shape> {
-    [JsonPath.Tag]: JsonPath.Array<T>;
-  }
-  export interface MapShape<T extends Shape> {
-    [JsonPath.Tag]: JsonPath.Map<T> & {
-      [key: string]: JsonPath.Of<T>;
-    };
-  }
-}
-
-declare module '@punchcard/shape/lib/record' {
-  export interface RecordShape<M extends RecordMembers, I = any> {
-    [JsonPath.Tag]: JsonPath.Struct<this> & {
-      [fieldName in keyof this['Members']]: JsonPath.Of<this['Members'][fieldName]['Shape']>;
-    };
-  }
-}

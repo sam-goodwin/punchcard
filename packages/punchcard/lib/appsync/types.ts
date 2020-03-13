@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, MakeRecordType, MapShape, NothingShape, NumberShape, RecordMembers, RecordShape, RecordType, SetShape, ShapeOrRecord, string, StringShape, StructShape, TimestampShape, Trait } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, MapShape, NothingShape, NumberShape, RecordMembers, RecordShape, RecordType, SetShape, Shape, string, StringShape, TimestampShape, Trait } from '@punchcard/shape';
 
 import { ShapeVisitor } from '@punchcard/shape';
 
@@ -14,42 +14,46 @@ const IDTrait: {
 
 export const ID = string.apply(IDTrait);
 
-export type GraphQL<T> = Generator<any, T, any>;
+export type GraphQL<T extends RecordShape<any>> = {
+  [m in keyof T['Members']]: GraphQL.TypeOf<T['Members'][m]>;
+};
 
+export interface Model<T extends RecordType> {
+  Record: T;
+}
+
+export interface GraphQLModel {
+  GraphQL: (new(values: { [key: string]: GraphQL.Type; }) => any) & {
+    isGraphQL: true;
+  };
+}
+export function GraphQLModel<T extends RecordType>(type: T): T & GraphQLModel {
+  return null as any;
+}
 export namespace GraphQL {
-  export function of<T extends ShapeOrRecord>(type: T): Of<T> {
+  export function of<T extends Shape>(type: T): TypeOf<T> {
     throw new Error('todo');
   }
 
   // tslint:disable: ban-types
   // cool - we can use recursion now
-  export type Of<T extends ShapeOrRecord> =
+  export type TypeOf<T extends Shape> =
     T extends StringShape ? String :
     T extends IntegerShape ? Integer :
     T extends NumberShape ? Integer :
-    T extends ArrayShape<infer I> ? List<Of<I>> :
-    T extends MapShape<infer I> ? Map<Of<I>> :
-    T extends StructShape<infer M> ? Record<{
-      [m in keyof M]: Of<M[m]>;
-    }> & {
-      [m in keyof M]: Of<M[m]>;
-    } :
-    T extends RecordType<any, infer M> ? Record<{
-      [m in keyof M]: Of<M[m]>;
-    }> & {
-      [m in keyof M]: Of<M[m]>;
-    } :
+    T extends ArrayShape<infer I> ? List<TypeOf<I>> :
+    T extends MapShape<infer I> ? Map<TypeOf<I>> :
     T extends RecordShape<infer M> ? Record<{
-      [m in keyof M]: Of<M[m]>;
+      [m in keyof M]: TypeOf<M[m]>;
     }> & {
-      [m in keyof M]: Of<M[m]>;
+      [m in keyof M]: TypeOf<M[m]>;
     } :
     Type<T>
     ;
 
   export type ShapeOf<T extends Type> = T extends Type<infer I> ? I : never;
 
-  export class Type<T extends ShapeOrRecord = any> {
+  export class Type<T extends Shape = any> {
     constructor(public readonly shape: T, public readonly expression: GraphQL.Expression) {}
   }
   export class Nothing extends Type<NothingShape> {}
@@ -75,27 +79,26 @@ export namespace GraphQL {
   export type RecordClass<T extends Record = any> = (new(members: Record.GetMembers<T>) => T);
 
 }
+
 export namespace GraphQL {
   export interface StaticInterface<M extends RecordMembers> {
     readonly members: M;
     /**
      * Value of this type at runtime in a Lambda Function or Container.
      */
-    readonly Record: MakeRecordType<M>;
+    readonly Record: RecordType<M>;
   }
-
-  type AssertIsType<T> = T extends GraphQL.Type ? T : never;
 
   export interface InstanceInterface {
     // todo
   }
 
   export function NewType<M extends RecordMembers>(members: M): StaticInterface<M> & (new(values: {
-    [m in keyof M]: Of<M[m]>;
+    [m in keyof M]: TypeOf<M[m]>;
   }) => Record<{
-    readonly [m in keyof M]: Of<M[m]>;
+    readonly [m in keyof M]: TypeOf<M[m]>;
   }> & {
-    readonly [m in keyof M]: Of<M[m]>;
+    readonly [m in keyof M]: TypeOf<M[m]>;
   } & InstanceInterface) {
     return null as any;
   }
@@ -139,9 +142,6 @@ export namespace GraphQL {
       throw new Error("Method not implemented.");
     }
     public stringShape(shape: StringShape, expr: Expression): Type<any> {
-      throw new Error("Method not implemented.");
-    }
-    public structShape(shape: StructShape, expr: Expression): Type<any> {
       throw new Error("Method not implemented.");
     }
     public timestampShape(shape: TimestampShape, expr: Expression): Type<any> {

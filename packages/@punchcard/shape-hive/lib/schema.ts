@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, MapShape, Member, Meta, NothingShape, NumberShape, RecordShape, RecordType, SetShape, Shape, StringShape, TimestampShape, Trait, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, RecordShape, RecordType, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Trait } from '@punchcard/shape';
 
 import { KeysOfType } from 'typelevel-ts';
 
@@ -15,16 +15,16 @@ export const Partition: {
   }
 };
 
-type GetComment<M extends Member> =
-  M extends Member<any, any, { description: infer D }> ?
+type GetComment<T extends Shape> =
+  T extends Decorated<any, { description: infer D }> ?
     D extends string ?
       D :
       undefined :
     undefined
   ;
 
-function getComment<M extends Member>(member: M): GetComment<M> {
-  return member.Metadata.description;
+function getComment<T extends Shape>(member: T): GetComment<T> {
+  return (member as any)[Decorated.Data].description;
 }
 
 type Column<K extends keyof T['Members'], T extends RecordShape<any>> = {
@@ -33,26 +33,25 @@ type Column<K extends keyof T['Members'], T extends RecordShape<any>> = {
   comment: GetComment<T['Members'][K]>;
 };
 
-export type PartitionKeys<T extends RecordType> = KeysOfType<T[RecordShape.Members], Decorated<any, { isPartition: true; }>>;
+export type PartitionKeys<T extends RecordType> = KeysOfType<T['Members'], Decorated<any, { isPartition: true; }>>;
 
 export type Columns<T extends RecordType> = {
-  readonly [K in keyof T[RecordShape.Members]]: Column<K, Shape.Of<T>>;
+  readonly [K in keyof T['Members']]: Column<K, T>;
 };
 
-export function schema<T extends RecordType>(type: T): Columns<T> {
-  const shape = Shape.of(type);
+export function schema<T extends RecordType>(shape: T): Columns<T> {
   const columns: { [name: string]: Column<any, any>; } = {};
-  for (const member of Object.values(shape.Members)) {
-    const type = member.Shape.visit(SchemaVisitor.instance);
+  for (const [name, member] of Object.entries(shape.Members) as [string, Shape][]) {
+    const type = (member as Shape).visit(SchemaVisitor.instance, null);
     const col = {
-      name: member.Name,
+      name,
       type,
       comment: getComment(member)
     };
     if (!col.comment) {
       delete col.comment;
     }
-    columns[member.Name] = col;
+    columns[name] = col as Column<any, any>;
   }
   return columns as any;
 }
@@ -76,10 +75,10 @@ export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
     return glue.Schema.BOOLEAN;
   }
   public recordShape(shape: RecordShape<any>): glue.Type {
-    return glue.Schema.struct(Object.values(shape.Members)
-      .map(member => ({
-        name: member.Name,
-        type: member.Shape.visit(this, null)
+    return glue.Schema.struct(Object.entries(shape.Members)
+      .map(([name, member]) => ({
+        name,
+        type: (member as Shape).visit(this, null)
       })));
   }
   public mapShape(shape: MapShape<any>): glue.Type {

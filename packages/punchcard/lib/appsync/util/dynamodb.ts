@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, MapShape, NumericShape, RecordShape, RecordType, ShapeOrRecord, StringShape, StructShape, TimestampShape, SetShape } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, MapShape, NumericShape, RecordShape, RecordType, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
 import { GraphQL } from '../types';
 
 export class $DynamoDBUtil {
@@ -10,7 +10,7 @@ export class $DynamoDBUtil {
    *
    * @param object value to convert to its DynamoDB encoding
    */
-  public toDynamoDB<T extends GraphQL.Type>(object: T): GraphQL.Of<ToDynamoDBJson<GraphQL.ShapeOf<T>>> {
+  public toDynamoDB<T extends GraphQL.Type>(object: T): GraphQL.TypeOf<ToDynamoDBJson<GraphQL.ShapeOf<T>>> {
     throw new Error('todo');
   }
 
@@ -24,19 +24,19 @@ export class $DynamoDBUtil {
     throw new Error('todo');
   }
 
-  public toBoolean(bool: GraphQL.Bool): GraphQL.Of<ToDynamoDBJson<BoolShape>> {
+  public toBoolean(bool: GraphQL.Bool): GraphQL.TypeOf<ToDynamoDBJson<BoolShape>> {
     throw new Error('todo');
   }
 
-  public toNumber<N extends GraphQL.Integer | GraphQL.Number>(number: N): GraphQL.Of<ToDynamoDBJson<GraphQL.ShapeOf<N>>> {
+  public toNumber<N extends GraphQL.Integer | GraphQL.Number>(number: N): GraphQL.TypeOf<ToDynamoDBJson<GraphQL.ShapeOf<N>>> {
     throw new Error('todo');
   }
 
-  public toString(value: GraphQL.String): GraphQL.Of<ToDynamoDBJson<StringShape>> {
+  public toString(value: GraphQL.String): GraphQL.TypeOf<ToDynamoDBJson<StringShape>> {
     throw new Error('todo');
   }
 
-  public toStringSet(value: GraphQL.List<GraphQL.String>): GraphQL.Of<StructShape<{
+  public toStringSet(value: GraphQL.List<GraphQL.String>): GraphQL.TypeOf<RecordType<{
     SS: ArrayShape<StringShape>
   }>> {
     throw new Error('todo');
@@ -50,36 +50,33 @@ export class $DynamoDBUtil {
  *
  * @see https://docs.aws.amazon.com/appsync/latest/devguide/resolver-util-reference.html
  */
-export type ToDynamoDBJson<T extends ShapeOrRecord> =
-  T extends NumericShape ? StructShape<{ S: StringShape }> :
-  T extends StringShape ? StructShape<{ S: StringShape }> :
-  T extends TimestampShape ? StructShape<{ S: TimestampShape }> :
-  T extends BoolShape ? StructShape<{ BOOL: BoolShape; }> :
-  T extends BinaryShape ? StructShape<{ B: StringShape; }> :
-  /**
-   * 
-   */
-  T extends SetShape<infer I> ? StructShape<{
+export type ToDynamoDBJson<T extends Shape> =
+  T extends NumericShape ? RecordType<{ S: StringShape }> :
+  T extends StringShape ? RecordType<{ S: StringShape }> :
+  T extends TimestampShape ? RecordType<{ S: TimestampShape }> :
+  T extends BoolShape ? RecordType<{ BOOL: BoolShape; }> :
+  T extends BinaryShape ? RecordType<{ B: StringShape; }> :
+  T extends SetShape<infer I> ? RecordType<{
     L: ArrayShape<ToDynamoDBJson<I>>;
   }> :
-  T extends ArrayShape<infer I> ? StructShape<{
+  T extends ArrayShape<infer I> ? RecordType<{
     L: ArrayShape<ToDynamoDBJson<I>>;
   }> :
-  T extends MapShape<infer V> ? StructShape<{
+  T extends MapShape<infer V> ? RecordType<{
     M: MapShape<ToDynamoDBJson<V>>;
   }> :
-  T extends StructShape<infer M> ? StructShape<{
-    M: StructShape<{
+  T extends RecordType<infer M> ? RecordType<{
+    M: RecordType<{
       [m in keyof M]: ToDynamoDBJson<M[m]>;
     }>
   }> :
-  T extends RecordShape<infer M> ? StructShape<{
-    M: StructShape<{
+  T extends RecordShape<infer M> ? RecordType<{
+    M: RecordType<{
       [m in keyof M]: ToDynamoDBJson<M[m]>;
     }>
   }> :
-  T extends RecordType<any, infer M> ? StructShape<{
-    M: StructShape<{
+  T extends RecordType<infer M> ? RecordType<{
+    M: RecordType<{
       [m in keyof M]: ToDynamoDBJson<M[m]>;
     }>
   }> :

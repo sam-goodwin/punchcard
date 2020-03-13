@@ -1,11 +1,5 @@
-import { RequiredKeys, Shape } from '@punchcard/shape';
-import { RecordMembers, ShapeOrRecord } from '@punchcard/shape/lib/record';
-
-declare module '@punchcard/shape/lib/shape' {
-  export interface Shape {
-    [AttributeValue.Tag]: AttributeValue.Type;
-  }
-}
+import { ArrayShape, BinaryShape, BoolShape, DynamicShape, MapShape, NothingShape, NumericShape, RequiredKeys, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
+import { RecordMembers, RecordShape} from '@punchcard/shape/lib/record';
 
 // tslint:disable: ban-types
 
@@ -27,7 +21,25 @@ export namespace AttributeValue {
     | AttributeValue.Struct<any>
     ;
 
-  export type Of<T extends ShapeOrRecord> = Shape.Of<T> extends { [Tag]: infer T2 } ? T2 : never;
+  export type Of<T extends Shape> =
+    T extends StringShape | TimestampShape ? StringValue :
+    T extends NumericShape ? NumberValue :
+    T extends BoolShape ? Bool :
+    T extends BinaryShape ? Binary :
+    T extends NothingShape ? NothingValue :
+    T extends DynamicShape<any> ? AttributeValue.Type :
+    T extends ArrayShape<infer I> ? List<I> :
+    T extends MapShape<infer V> ? Map<V> :
+    T extends SetShape<infer I> ?
+      I extends BinaryShape ? AttributeValue.BinarySet :
+      I extends StringShape ? AttributeValue.StringSet :
+      I extends NumericShape ? AttributeValue.NumberSet :
+      never
+      :
+    T extends RecordShape<infer M> ? Struct<M> :
+    T extends { [Tag]: infer T2 } ? T2 :
+    never
+    ;
 
   export interface Binary {
     B: Buffer;

@@ -60,6 +60,9 @@ export class RecordShape<M extends RecordMembers> extends Shape {
     return Object.values(this.Metadata);
   }
 }
+export namespace RecordShape {
+  export type GetMembers<T extends RecordShape<any>> = T extends RecordShape<infer M> ? M : never;
+}
 
 /**
  * Maps RecordMembers to a structure that represents it at runtime.

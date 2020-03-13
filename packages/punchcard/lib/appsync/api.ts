@@ -6,7 +6,7 @@ import { CDK } from '../core/cdk';
 import { Resource } from '../core/resource';
 
 export interface GraphQLApiProps {
-  
+  //
 }
 
 export class GraphQLApi implements Resource<appsync.GraphQLApi> {
@@ -14,7 +14,8 @@ export class GraphQLApi implements Resource<appsync.GraphQLApi> {
 
   constructor(scope: Build<cdk.Construct>, id: string) {
     this.resource = CDK.chain(({appsync}) => scope.map(scope => {
-      new appsync.GraphQLApi(scope, id, {})
-    });
+      return new appsync.GraphQLApi(scope, id, {
+      } as any);
+    }));
   }
 }

@@ -37,15 +37,6 @@ export namespace Json {
     ;
 }
 
-declare module '@punchcard/shape/lib/record' {
-  interface RecordType<M> {
-    // fromJson(value: Json.Of<this>): string;
-    Json: new(value: {
-      [m in keyof Value.Of<this>]: Value.Of<this>[m];
-    }) => Json.Of<this>;
-  }
-}
-
 export namespace Json {
   export interface MapperOptions {
     visitor?: MapperVisitor;
