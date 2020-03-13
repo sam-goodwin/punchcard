@@ -1,28 +1,11 @@
 import 'jest';
 
-import { Record, string, RecordType } from '@punchcard/shape';
+import { Record, string } from '@punchcard/shape';
 import { FunctionDataSource } from '../../lib/appsync/data-source';
 import { Arg, Mutation, Query } from '../../lib/appsync/decorators';
-import { GraphQL, GraphQLModel, ID } from '../../lib/appsync/types';
+import { GraphQL, GraphQLModel, ID, Model } from '../../lib/appsync/types';
 import { App } from '../../lib/core';
 import { Function } from '../../lib/lambda';
-
-class A {
-
-}
-
-namespace A {
-  export class B {
-    a: string;
-  }
-}
-
-
-const aa = a(A);
-
-export interface HasModel extends RecordType {
-  Model: new(...args: any[]) => any;
-}
 
 class Post extends Record({
   /**
@@ -40,7 +23,6 @@ class Post extends Record({
 }) {}
 
 namespace Post {
-  export class GraphQL2 {}
   export class GraphQL extends GraphQLModel(Post) {
     public static relatedPosts(root: Post.GraphQL) {
       // todo
@@ -48,10 +30,9 @@ namespace Post {
   }
 }
 
-function doThing<T extends GraphQLModel>(type: T): InstanceType<T['GraphQL']> {
+function doThing<T extends Model>(type: T): InstanceType<T['GraphQL']> {
   return null as any;
 }
-
 const pm = doThing(Post);
 
 class AddPostInput extends Record({
@@ -63,9 +44,9 @@ class AddPostInput extends Record({
 }) {}
 
 class MyApi {
-  @Query(returns => [Post.Model])
+  @Query(returns => [Post.GraphQL])
   public *posts(@Arg('title') title: GraphQL.String) {
-    return [new PostType()];
+    return [new Post.GraphQL(null as any)];
   }
 
   @Mutation(of => Post)

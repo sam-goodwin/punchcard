@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, RecordShape, RecordType, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Trait } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Trait } from '@punchcard/shape';
 
 import { KeysOfType } from 'typelevel-ts';
 
@@ -33,13 +33,13 @@ type Column<K extends keyof T['Members'], T extends RecordShape<any>> = {
   comment: GetComment<T['Members'][K]>;
 };
 
-export type PartitionKeys<T extends RecordType> = KeysOfType<T['Members'], Decorated<any, { isPartition: true; }>>;
+export type PartitionKeys<T extends RecordShape<any>> = KeysOfType<T['Members'], Decorated<any, { isPartition: true; }>>;
 
-export type Columns<T extends RecordType> = {
+export type Columns<T extends RecordShape<any>> = {
   readonly [K in keyof T['Members']]: Column<K, T>;
 };
 
-export function schema<T extends RecordType>(shape: T): Columns<T> {
+export function schema<T extends RecordShape<any>>(shape: T): Columns<T> {
   const columns: { [name: string]: Column<any, any>; } = {};
   for (const [name, member] of Object.entries(shape.Members) as [string, Shape][]) {
     const type = (member as Shape).visit(SchemaVisitor.instance, null);

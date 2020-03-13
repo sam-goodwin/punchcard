@@ -18,7 +18,8 @@ export namespace DSL {
   export type Of<T extends Shape> =
     T extends BinaryShape ? DSL.Binary :
     T extends BoolShape ? DSL.Bool :
-    T extends IntegerShape ? DSL.Number :
+    T extends DynamicShape<any> ? DSL.Dynamic<T> :
+    T extends NumericShape ? DSL.Number :
     T extends StringShape ? DSL.String :
     T extends TimestampShape ? DSL.String :
 
@@ -30,9 +31,9 @@ export namespace DSL {
     DSL.Object<T>
     ;
 
-  export type Root<T extends RecordType> = Struct<T>['fields'];
+  export type Root<T extends RecordShape<any>> = Struct<T>['fields'];
 
-  export function of<T extends RecordType>(shape: T): Root<T> {
+  export function of<T extends RecordShape<any>>(shape: T): Root<T> {
     const result: any = {};
     for (const [name, member] of Objekt.entries(shape.Members)) {
       result[name] = (member as Shape).visit(DslVisitor, new RootProperty(member as Shape, name));
@@ -611,7 +612,7 @@ export namespace DSL {
 
   export class Struct<T extends RecordShape<any>> extends Object<T> {
     public readonly fields: {
-      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]['Shape']>;
+      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
     };
 
     constructor(type: T, expression: ExpressionNode<T>) {

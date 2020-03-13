@@ -46,7 +46,7 @@ export namespace RecordMembers {
  * @typeparam M record members (key-value pairs of shapes)
  * @typeparam I instance type of this Record (the value type)
  */
-export class RecordShape<M extends RecordMembers> extends Shape {
+export class RecordShape<M extends RecordMembers = any> extends Shape {
   public readonly Kind: 'recordShape' = 'recordShape';
 
   constructor(

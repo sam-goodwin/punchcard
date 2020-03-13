@@ -50,7 +50,7 @@ test(`$['complexArray'][?(@['a']=='value')]`, () => {
 });
 
 test(`$['map']['item']`, () => {
-  const jp = _.map.item;
+  const jp = _.map.get('item');
   expect(JsonPath.compile(jp)).toEqual(`$['map']['item']`);
 });
 

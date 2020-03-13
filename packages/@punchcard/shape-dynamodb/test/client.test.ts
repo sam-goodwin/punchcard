@@ -96,7 +96,7 @@ test('put-if', async () => {
     },
     dynamic: 'dynamic-value'
   }), {
-    if: _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.a.equals('value'))
+    if: _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.get('a').equals('value'))
   });
 
   expect(putItem.args[0][0]).toEqual({

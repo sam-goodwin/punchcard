@@ -1,7 +1,7 @@
 import { ShapeVisitor, Value } from '@punchcard/shape';
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
-import { RecordShape, RecordType } from '@punchcard/shape/lib/record';
+import { RecordShape } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Writer } from './writer';
 
@@ -16,12 +16,15 @@ export namespace JsonPath {
   export type Of<T extends Shape> =
     T extends BinaryShape ? JsonPath.Binary :
     T extends BoolShape ? JsonPath.Bool :
+    T extends DynamicShape<any> ? JsonPath.Dynamic<T> :
     T extends NumericShape ? JsonPath.Number :
     T extends StringShape ? JsonPath.String :
 
     T extends ArrayShape<infer I> ? JsonPath.Array<I> :
     T extends MapShape<infer V> ? JsonPath.Map<V> :
-    T extends RecordShape<any> ? JsonPath.Struct<T> :
+    T extends RecordShape<any> ? JsonPath.Struct<T> & {
+      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
+    } :
     T extends SetShape<infer V> ? JsonPath.Array<V> :
 
     T extends { [Tag]: infer Q } ? Q :
@@ -29,9 +32,9 @@ export namespace JsonPath {
     JsonPath.Object<T>
     ;
 
-  export type Root<T extends RecordType> = Struct<T>[Fields];
+  export type Root<T extends RecordShape> = Struct<T>[Fields];
 
-  export function of<T extends RecordType>(shape: T): Root<T> {
+  export function of<T extends RecordShape>(shape: T): Root<T> {
     const result: any = {};
     for (const [name, member] of Objekt.entries(shape.Members) as [string, Shape][]) {
       result[name] = member.visit(visitor as any, new Id(member, `$['${name}']`));
@@ -370,9 +373,10 @@ export namespace JsonPath {
 
   export const Fields = Symbol.for('@punchcard/shape-jsonpath.JsonPath.Fields');
   export type Fields = typeof Fields;
+
   export class Struct<T extends RecordShape<any>> extends Object<T> {
     public readonly [Fields]: {
-      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]['Shape']>;
+      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
     };
 
     constructor(type: T, expression: ExpressionNode<T>) {

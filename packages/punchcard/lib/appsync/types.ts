@@ -14,20 +14,29 @@ const IDTrait: {
 
 export const ID = string.apply(IDTrait);
 
-export type GraphQL<T extends RecordShape<any>> = {
-  [m in keyof T['Members']]: GraphQL.TypeOf<T['Members'][m]>;
-};
+// export type GraphQL<T extends RecordShape<any>> = {
+//   [m in keyof T['Members']]: GraphQL.TypeOf<T['Members'][m]>;
+// };
 
-export interface Model<T extends RecordType> {
-  Record: T;
-}
-
-export interface GraphQLModel {
-  GraphQL: (new(values: { [key: string]: GraphQL.Type; }) => any) & {
+export interface Model<T extends RecordShape = any> {
+  GraphQL: (new(values: any) => any) & {
     isGraphQL: true;
   };
 }
-export function GraphQLModel<T extends RecordType>(type: T): T & GraphQLModel {
+
+export type GraphQLModel<T extends { Members: {
+  [m: string]: Shape;
+}}> = (new(values: {
+  [m in keyof T['Members']]: GraphQL.TypeOf<T['Members'][m]>;
+}) => {
+  [m in keyof T['Members']]: GraphQL.TypeOf<T['Members'][m]>;
+}) & {
+  isGraphQL: true;
+};
+
+export function GraphQLModel<T>(type: T): T extends { Members: {
+  [m: string]: Shape;
+}} ? GraphQLModel<T> : never {
   return null as any;
 }
 export namespace GraphQL {
@@ -86,7 +95,7 @@ export namespace GraphQL {
     /**
      * Value of this type at runtime in a Lambda Function or Container.
      */
-    readonly Record: RecordType<M>;
+    readonly Record: RecordShape<M>;
   }
 
   export interface InstanceInterface {
@@ -120,7 +129,7 @@ export namespace GraphQL {
     public boolShape(shape: BoolShape, expr: Expression): Type<any> {
       return new Bool(shape, expr);
     }
-    public recordShape(shape: RecordShape<any, any>, expr: Expression): Type<any> {
+    public recordShape(shape: RecordShape<any>, expr: Expression): Type<any> {
       return new Record(shape, expr);
     }
     public dynamicShape(shape: DynamicShape<any>, expr: Expression): Type<any> {
