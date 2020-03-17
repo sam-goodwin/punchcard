@@ -1,8 +1,14 @@
 import AWS = require('aws-sdk');
 
+import type * as lambda from '@aws-cdk/aws-lambda';
+import type * as cdk from '@aws-cdk/core';
+
 import { Json } from '@punchcard/shape-json';
 
-import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
+import { any, AnyShape, Mapper, MapperFactory, Shape, Value } from '@punchcard/shape';
+import { invokeLambda } from '../appsync/resolver/lambda';
+import { ResolverStatementF } from '../appsync/resolver/resolver';
+import { GraphQL } from '../appsync/types';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -10,22 +16,19 @@ import { CDK } from '../core/cdk';
 import { Client } from '../core/client';
 import { Code } from '../core/code';
 import { Dependency } from '../core/dependency';
+import { Duration } from '../core/duration';
 import { Entrypoint, entrypoint } from '../core/entrypoint';
 import { Global } from '../core/global';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { ENTRYPOINT_ENV_KEY, IS_RUNTIME_ENV_KEY } from '../util/constants';
 
-import type * as lambda from '@aws-cdk/aws-lambda';
-import type * as cdk from '@aws-cdk/core';
-import { Duration } from '../core/duration';
-
 /**
  * Overridable subset of @aws-cdk/aws-lambda.FunctionProps
  */
 export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'functionName' | 'handler' | 'runtime' | 'memorySize'> {}
 
-export interface HandlerProps<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> {
+export interface HandlerProps<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined> {
   /**
    * Type of the request
    *
@@ -55,7 +58,7 @@ export interface HandlerProps<T extends ShapeOrRecord = AnyShape, U extends Shap
   depends?: D;
 }
 
-export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined>
+export interface FunctionProps<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined>
     extends HandlerProps<T, U, D> {
   /**
    * A name for the function.
@@ -104,7 +107,7 @@ export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends Sha
  * @typeparam U return type
  * @typeparam D runtime dependencies
  */
-export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> implements Entrypoint, Resource<lambda.Function> {
+export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined> implements Entrypoint, Resource<lambda.Function> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
@@ -191,6 +194,10 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
         }
       });
     });
+  }
+
+  public invoke(value: GraphQL.Repr<T>): ResolverStatementF<GraphQL.TypeOf<U>> {
+    return invokeLambda(this, value);
   }
 
   /**

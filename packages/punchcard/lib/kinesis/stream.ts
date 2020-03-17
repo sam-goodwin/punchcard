@@ -1,7 +1,7 @@
 import AWS = require('aws-sdk');
 import uuid = require('uuid');
 
-import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
+import { any, AnyShape, Mapper, MapperFactory, Shape, Value } from '@punchcard/shape';
 import { DataType } from '@punchcard/shape-hive';
 import { Json } from '@punchcard/shape-json';
 import { Build } from '../core/build';
@@ -19,7 +19,7 @@ import type * as iam from '@aws-cdk/aws-iam';
 import type * as kinesis from '@aws-cdk/aws-kinesis';
 import type * as cdk from '@aws-cdk/core';
 
-export interface StreamProps<T extends ShapeOrRecord = AnyShape> {
+export interface StreamProps<T extends Shape = AnyShape> {
   /**
    * Shape of data in the Stream.
    *
@@ -52,7 +52,7 @@ export interface StreamProps<T extends ShapeOrRecord = AnyShape> {
 /**
  * A Kinesis stream.
  */
-export class Stream<T extends ShapeOrRecord = AnyShape> implements Resource<kinesis.Stream> {
+export class Stream<T extends Shape = AnyShape> implements Resource<kinesis.Stream> {
   public readonly mapper: Mapper<Value.Of<T>, Buffer>;
   public readonly mapperFactory: MapperFactory<Buffer>;
   public readonly partitionBy: (record: Value.Of<T>) => string;
@@ -146,7 +146,7 @@ export class Stream<T extends ShapeOrRecord = AnyShape> implements Resource<kine
 }
 
 export namespace Stream {
-  export interface ReadOnly<S extends ShapeOrRecord> extends Omit<Client<S>, 'putRecord' | 'putRecords' | 'sink'> {}
-  export interface WriteOnly<S extends ShapeOrRecord> extends Omit<Client<S>, 'getRecords'> {}
-  export interface ReadWrite<S extends ShapeOrRecord> extends Client<S> {}
+  export interface ReadOnly<S extends Shape> extends Omit<Client<S>, 'putRecord' | 'putRecords' | 'sink'> {}
+  export interface WriteOnly<S extends Shape> extends Omit<Client<S>, 'getRecords'> {}
+  export interface ReadWrite<S extends Shape> extends Client<S> {}
 }

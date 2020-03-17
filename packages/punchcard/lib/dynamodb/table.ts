@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { RecordType, Shape } from '@punchcard/shape';
+import { RecordShape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
@@ -25,7 +25,7 @@ export interface TableOverrideProps extends Omit<dynamodb.TableProps, 'partition
  * @typeparam DataType type of data in the Table.
  * @typeparam Key partition and optional sort keys of the Table (members of DataType)
  */
-export interface TableProps<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> {
+export interface TableProps<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> {
   /**
    * Type of data in the Table.
    */
@@ -107,21 +107,16 @@ export interface TableProps<DataType extends RecordType, Key extends DDB.KeyOf<D
  * @typeparam DataType type of data in the Table.
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
-export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> implements Resource<dynamodb.Table> {
+export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> implements Resource<dynamodb.Table> {
   /**
    * The DynamoDB Table Construct.
    */
   public readonly resource: Build<dynamodb.Table>;
 
   /**
-   * RecordType of data in the table.
+   * RecordShape of data in the table.
    */
   public readonly dataType: DataType;
-
-  /**
-   * Shape of data in the table.
-   */
-  public readonly dataShape: Shape.Of<DataType>;
 
   /**
    * The table's key (hash key, or hash+sort key pair).
@@ -130,7 +125,6 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
 
   constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<DataType, Key>) {
     this.dataType = props.data;
-    this.dataShape = Shape.of(props.data) as any;
 
     this.key = props.key;
     const [partitionKeyName, sortKeyName] = getKeyNames<DataType>(props.key);
@@ -142,11 +136,11 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
         ...extraTableProps,
         partitionKey: {
           name: partitionKeyName,
-          type: keyType((this.dataShape.Members as any)[partitionKeyName].Shape)
+          type: keyType((this.dataType.Members as any)[partitionKeyName].Shape)
         },
         sortKey: sortKeyName ? {
           name: sortKeyName,
-          type: keyType((this.dataShape.Members as any)[sortKeyName].Shape)
+          type: keyType((this.dataType.Members as any)[sortKeyName].Shape)
         } : undefined
       });
     }));
@@ -174,7 +168,7 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
    * ```
    * @param projection type of projected data (subset of the Table's properties)
    */
-  public projectTo<Projection extends RecordType>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
+  public projectTo<Projection extends RecordShape>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
     return new Projected(this, projection) as any;
   }
 
@@ -250,19 +244,19 @@ export namespace Table {
    *
    * Unavailable methods: `put`, `putBatch`, `delete`, `update`.
    */
-  export interface ReadOnly<A extends RecordType, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
+  export interface ReadOnly<A extends RecordShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
 
   /**
    * A DynamoDB Table with write-only permissions.
    *
    * Unavailable methods: `batchGet`, `get`, `scan`, `query`
    */
-  export interface WriteOnly<A extends RecordType, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
+  export interface WriteOnly<A extends RecordShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
 
   /**
    * A DynamODB Table with read and write permissions.
    */
-  export interface ReadWrite<A extends RecordType, K extends DDB.KeyOf<A>> extends TableClient<A, K> {}
+  export interface ReadWrite<A extends RecordShape, K extends DDB.KeyOf<A>> extends TableClient<A, K> {}
 }
 
 export namespace Table {
@@ -270,7 +264,7 @@ export namespace Table {
   export type Key<T extends Table<any, any>> = T extends Table<any, infer K> ? K : never;
 }
 
-type AssertValidProjection<T extends RecordType, P extends RecordType> = T['members'] extends P['members'] ? P : never;
+type AssertValidProjection<T extends RecordShape, P extends RecordShape> = T['Members'] extends P['Members'] ? P : never;
 
 /**
  * Represents a Projection of some DynamoDB Table.
@@ -280,7 +274,7 @@ type AssertValidProjection<T extends RecordType, P extends RecordType> = T['memb
  * @typeparam SourceTable the projected table
  * @typeparam Projection the type of projected data
  */
-export class Projected<SourceTable extends Table<any, any>, Projection extends RecordType> {
+export class Projected<SourceTable extends Table<any, any>, Projection extends RecordShape> {
   constructor(public readonly sourceTable: SourceTable, public readonly projection: Projection) {}
 
   public globalIndex<IndexKey extends DDB.KeyOf<Projection>>(

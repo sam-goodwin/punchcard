@@ -1,11 +1,11 @@
 import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 
-import { Meta, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
+import { Meta, RecordShape, Shape, ShapeGuards } from '@punchcard/shape';
 import { DDB } from '@punchcard/shape-dynamodb';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 
-export function getKeyNames<A extends RecordType>(key: DDB.KeyOf<A>): [string, string | undefined] {
+export function getKeyNames<A extends RecordShape>(key: DDB.KeyOf<A>): [string, string | undefined] {
   const partitionKeyName: string = key.partition as string;
   const sortKeyName: string | undefined = key.sort as string;
 

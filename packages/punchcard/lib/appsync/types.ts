@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, MapShape, NothingShape, NumberShape, RecordMembers, RecordShape, RecordType, SetShape, Shape, string, StringShape, TimestampShape, Trait } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, MapShape, NothingShape, NumberShape, RecordMembers, RecordShape, RecordType, SetShape, Shape, string, StringShape, TimestampShape, Trait, Value } from '@punchcard/shape';
 
 import { ShapeVisitor } from '@punchcard/shape';
 
@@ -14,45 +14,34 @@ const IDTrait: {
 
 export const ID = string.apply(IDTrait);
 
-// export type GraphQL<T extends RecordShape<any>> = {
-//   [m in keyof T['Members']]: GraphQL.TypeOf<T['Members'][m]>;
-// };
-
-export interface Model<T extends RecordShape = any> {
-  GraphQL: (new(values: any) => any) & {
-    isGraphQL: true;
-  };
-}
-
-export type GraphQLModel<T extends { Members: {
-  [m: string]: Shape;
-}}> = (new(values: {
-  [m in keyof T['Members']]: GraphQL.TypeOf<T['Members'][m]>;
-}) => {
-  [m in keyof T['Members']]: GraphQL.TypeOf<T['Members'][m]>;
-}) & {
-  isGraphQL: true;
-};
-
-export function GraphQLModel<T>(type: T): T extends { Members: {
-  [m: string]: Shape;
-}} ? GraphQLModel<T> : never {
-  return null as any;
-}
 export namespace GraphQL {
   export function of<T extends Shape>(type: T): TypeOf<T> {
     throw new Error('todo');
   }
 
+  export type Repr<T extends Shape> = (
+    T extends ArrayShape<infer I> ? TypeOf<T> | Repr<I>[] :
+    T extends MapShape<infer I> ? TypeOf<T> | {
+      [key: string]: Repr<I>;
+    } :
+    T extends RecordShape<infer M> ? TypeOf<T> | {
+      [m in keyof M]: Repr<M[m]>;
+    } :
+    TypeOf<T>
+  );
+
   // tslint:disable: ban-types
   // cool - we can use recursion now
   export type TypeOf<T extends Shape> =
-    T extends StringShape ? String :
+    T extends BoolShape ? Bool :
+    T extends DynamicShape<any> ? Any :
     T extends IntegerShape ? Integer :
     T extends NumberShape ? Integer :
+    T extends StringShape ? String :
+
     T extends ArrayShape<infer I> ? List<TypeOf<I>> :
     T extends MapShape<infer I> ? Map<TypeOf<I>> :
-    T extends RecordShape<infer M> ? Record<{
+    T extends RecordShape<infer M> ? GraphQL.Record<{
       [m in keyof M]: TypeOf<M[m]>;
     }> & {
       [m in keyof M]: TypeOf<M[m]>;
@@ -62,8 +51,12 @@ export namespace GraphQL {
 
   export type ShapeOf<T extends Type> = T extends Type<infer I> ? I : never;
 
+
+  // export const Shape = Symbol.for('GraphQL.Shape');
+  const type = Symbol.for('GraphQL.Type');
+  const expression = Symbol.for('GraphQL.Expression');
   export class Type<T extends Shape = any> {
-    constructor(public readonly shape: T, public readonly expression: GraphQL.Expression) {}
+    constructor(shape: T, expression: GraphQL.Expression) {}
   }
   export class Nothing extends Type<NothingShape> {}
   export class Any extends Type<DynamicShape<any>> {}
@@ -86,7 +79,12 @@ export namespace GraphQL {
     export type GetMembers<R extends Record> = R extends Record<infer M> ? M : any;
   }
   export type RecordClass<T extends Record = any> = (new(members: Record.GetMembers<T>) => T);
+}
 
+export namespace GraphQL {
+  export declare function string(s: string): GraphQL.String;
+  export declare function number(n: number): GraphQL.Number;
+  export declare function isNull(value: GraphQL.Type): GraphQL.Bool;
 }
 
 export namespace GraphQL {
@@ -113,8 +111,11 @@ export namespace GraphQL {
   }
 }
 export namespace GraphQL {
-  export class Expression {
-
+  export interface Expression {
+    /**
+     * Write the Expression to VTL.
+     */
+    toVTL(): string;
   }
 }
 
