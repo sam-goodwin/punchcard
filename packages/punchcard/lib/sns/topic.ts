@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
+import { any, AnyShape, Mapper, MapperFactory, Shape, Value } from '@punchcard/shape';
 import { Json } from '@punchcard/shape-json';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
@@ -15,7 +15,7 @@ import { Notifications } from './notifications';
 import type * as sns from '@aws-cdk/aws-sns';
 import type * as cdk from '@aws-cdk/core';
 
-export interface TopicProps<T extends ShapeOrRecord = AnyShape> {
+export interface TopicProps<T extends Shape.Like = AnyShape> {
   /**
    * Shape of data in the topic.
    *
@@ -42,8 +42,7 @@ export interface TopicProps<T extends ShapeOrRecord = AnyShape> {
  *
  * @typeparam T type of notifications sent and emitted from the `Topic`.
  */
-export class Topic<T extends ShapeOrRecord = AnyShape> implements Resource<sns.Topic> {
-  public readonly mapper: Mapper<Value.Of<T>, string>;
+export class Topic<T extends Shape = AnyShape> implements Resource<sns.Topic> {
   public readonly mapperFactory: MapperFactory<string>;
   public readonly resource: Build<sns.Topic>;
   public readonly shape: T;
@@ -56,7 +55,6 @@ export class Topic<T extends ShapeOrRecord = AnyShape> implements Resource<sns.T
     this.shape = (props?.shape || any) as T;
 
     this.mapperFactory = props?.mapper || Json.stringifyMapper;
-    this.mapper = this.mapperFactory(this.shape);
   }
 
   /**

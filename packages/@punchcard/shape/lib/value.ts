@@ -1,8 +1,6 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { HashSet } from './hash-set';
-import { Pointer } from './pointer';
 import { AnyShape, BinaryShape, BoolShape, NothingShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
-import { Shape } from './shape';
 
 export namespace Value {
   export type Tag = typeof Tag;

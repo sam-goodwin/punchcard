@@ -2,8 +2,9 @@ import type * as appsync from '@aws-cdk/aws-appsync';
 import type * as cdk from '@aws-cdk/core';
 
 import {  RecordMembers, RecordShape, Shape } from '@punchcard/shape';
-import { Resolved, Resolver } from './resolver/resolver';
+import { Resolved, Resolver, $api } from './resolver/resolver';
 import { GraphQL } from './types';
+import { Construct } from '../core/construct';
 
 // export interface GraphQLApiProps {
 //   //
@@ -20,27 +21,10 @@ import { GraphQL } from './types';
 //   }
 // }
 
+import Lambda = require('../lambda');
 
-export interface Query {}
-export interface Queries {
-  [queryName: string]: Resolved<Shape>;
-}
-
-export interface Mutation {}
-export interface Mutations {
-  [mutationName: string]: Resolved<Shape>;
-}
-
-export interface ApiProps<Q extends Queries, M extends Mutation | undefined = undefined> {
-  query: Q;
-  mutation?: M;
-}
-
-export class Api<Q extends Queries, M extends Mutations | undefined> {
-  public readonly query: Q;
-  public readonly mutation: M;
-  constructor(props: ApiProps<Q, M>) {
-    this.query = props.query;
-    this.mutation = props.mutation!;
-  }
+export class Api extends Construct {
+  public readonly api = this.scope.map(scope => {
+    
+  })
 }

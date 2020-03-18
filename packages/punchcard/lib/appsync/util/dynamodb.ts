@@ -67,17 +67,17 @@ export type ToDynamoDBJson<T extends Shape> =
   }> :
   T extends RecordType<infer M> ? RecordType<{
     M: RecordType<{
-      [m in keyof M]: ToDynamoDBJson<M[m]>;
+      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<M[m]>>;
     }>
   }> :
   T extends RecordShape<infer M> ? RecordType<{
     M: RecordType<{
-      [m in keyof M]: ToDynamoDBJson<M[m]>;
+      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<M[m]>>;
     }>
   }> :
   T extends RecordType<infer M> ? RecordType<{
     M: RecordType<{
-      [m in keyof M]: ToDynamoDBJson<M[m]>;
+      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<M[m]>>;
     }>
   }> :
   never

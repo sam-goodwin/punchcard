@@ -2,9 +2,9 @@ import type * as iam from '@aws-cdk/aws-iam';
 
 import { liftF } from 'fp-ts-contrib/lib/Free';
 
-import { RecordShape } from '@punchcard/shape';
+import { RecordShape, Shape } from '@punchcard/shape';
 import { DDB } from '@punchcard/shape-dynamodb';
-import { Statement, StatementF } from '../appsync/resolver';
+import { Statement, StatementF } from '../appsync/resolver/statement';
 import { GraphQL } from '../appsync/types';
 import { Build } from '../core/build';
 import { Table } from './table';
@@ -13,11 +13,11 @@ export type KeyGraphQLRepr<DataType extends RecordShape, K extends DDB.KeyOf<Dat
   [k in Extract<K[keyof K], string>]: GraphQL.TypeOf<DataType['Members'][k]>;
 };
 
-export const getDynamoDBItem = <DataType extends RecordShape, K extends DDB.KeyOf<DataType>>(
-  table: Table<DataType, K>,
-  input: KeyGraphQLRepr<DataType, K>,
+export const getDynamoDBItem = <DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>>(
+  table: Table<DataType, Key>,
+  input: KeyGraphQLRepr<Shape.Resolve<DataType>, Key>,
   role?: Build<iam.Role>
-): StatementF<GraphQL.TypeOf<DataType>> => liftF(new DynamoDBGetItem<GraphQL.TypeOf<DataType>>(table as any, input, role));
+): StatementF<GraphQL.TypeOf<Shape.Resolve<DataType>>> => liftF(new DynamoDBGetItem<GraphQL.TypeOf<Shape.Resolve<DataType>>>(table as any, input, role));
 
 export function isDynamoDBGetItem(a: any): a is DynamoDBGetItem<any> {
   return a._tag === 'InvokeLambda';

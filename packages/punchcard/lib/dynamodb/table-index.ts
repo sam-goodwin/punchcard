@@ -150,8 +150,8 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Shape
       }),
       bootstrap: Run.of(async (ns, cache) => {
         return new IndexClient({
-          data: Shape.resolve(Pointer.resolve(this.projection)),
-          key: this.key,
+          data: Shape.resolve(Pointer.resolve(this.projection)) as any,
+          key: this.key as any,
           tableName: ns.get('tableName'),
           indexName: ns.get('indexName'),
           client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())

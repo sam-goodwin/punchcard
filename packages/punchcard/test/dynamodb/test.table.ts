@@ -11,7 +11,6 @@ import { bigint, double, float, smallint, tinyint } from '@punchcard/shape-hive'
 import { Core, DynamoDB } from '../../lib';
 import { Build } from '../../lib/core/build';
 import { Run } from '../../lib/core/run';
-import { Index } from '../../lib/dynamodb/table-index';
 
 class Struct extends Record({
   key: string
@@ -58,7 +57,7 @@ function keyTypeTests(makeTable: (type: Shape) => void) {
     expect(() =>  makeTable(map(string))).toThrow();
   });
   it('should not accept class', () => {
-    expect(() =>  makeTable(Shape.of(Struct))).toThrow();
+    expect(() =>  makeTable(Struct)).toThrow();
   });
 }
 

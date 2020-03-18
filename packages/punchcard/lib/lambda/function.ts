@@ -201,7 +201,7 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
   }
 
   public invoke(value: GraphQL.Repr<Shape.Resolve<T>>): StatementF<GraphQL.TypeOf<Shape.Resolve<U>>> {
-    return invokeLambda(this, value);
+    return invokeLambda(this as any, value);
   }
 
   /**

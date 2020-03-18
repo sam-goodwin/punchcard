@@ -65,7 +65,7 @@ describe('run', () => {
 
     const stream = new Firehose.DeliveryStream(stack, 'Queue', {
       compression: Util.Compression.None,
-      shape: Shape.of(Data)
+      shape: Data
     });
 
     const results: {key: string}[] = [];
@@ -90,7 +90,7 @@ describe('run', () => {
 
     const stream = new Firehose.DeliveryStream(stack, 'Queue', {
       compression: Util.Compression.None,
-      shape: Shape.of(Data)
+      shape: Data
     });
 
     expect((stream.objects().forEach(stack, 'id', {}, async (v) => {

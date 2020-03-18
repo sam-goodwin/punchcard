@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { Mapper, Shape, ShapeOrRecord, Value } from '@punchcard/shape';
+import { Mapper, Shape, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
@@ -21,9 +21,9 @@ import type * as cdk from '@aws-cdk/core';
 import type { DeliveryStream as DeliveryStreamConstruct } from '@punchcard/constructs';
 import { Duration } from '../core/duration';
 
-export type DeliveryStreamProps<T extends ShapeOrRecord> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
+export type DeliveryStreamProps<T extends Shape> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 
-interface BaseDeliveryStreamProps<T extends ShapeOrRecord> {
+interface BaseDeliveryStreamProps<T extends Shape> {
   /**
    * Compression of objects.
    */
@@ -42,14 +42,14 @@ interface BaseDeliveryStreamProps<T extends ShapeOrRecord> {
   validate?: (record: Value.Of<T>) => ValidationResult;
 }
 
-export interface DeliveryStreamDirectPut<T extends ShapeOrRecord> extends BaseDeliveryStreamProps<T> {
+export interface DeliveryStreamDirectPut<T extends Shape> extends BaseDeliveryStreamProps<T> {
   /**
    * Type of data in the stream.
    */
   shape: T;
 }
 
-export interface DeliveryStreamFromKinesis<T extends ShapeOrRecord> extends BaseDeliveryStreamProps<T> {
+export interface DeliveryStreamFromKinesis<T extends Shape> extends BaseDeliveryStreamProps<T> {
   /**
    * Kinesis stream to persist in S3.
    */
@@ -61,7 +61,7 @@ export interface DeliveryStreamFromKinesis<T extends ShapeOrRecord> extends Base
  *
  * It may or may not be consuming from a Kinesis Stream.
  */
-export class DeliveryStream<T extends ShapeOrRecord> implements Resource<DeliveryStreamConstruct> {
+export class DeliveryStream<T extends Shape> implements Resource<DeliveryStreamConstruct> {
   public readonly bucket: S3.Bucket;
   public readonly processor: Validator<Value.Of<T>>;
   public readonly resource: Build<DeliveryStreamConstruct>;
@@ -83,7 +83,7 @@ export class DeliveryStream<T extends ShapeOrRecord> implements Resource<Deliver
     } else {
       this.shape = fromType.shape;
     }
-    this.mapper = this.dataType.mapper(Shape.of(this.shape));
+    this.mapper = this.dataType.mapper(this.shape);
     this.compression = props.compression;
 
     this.processor = new Validator(scope, 'Validator', {

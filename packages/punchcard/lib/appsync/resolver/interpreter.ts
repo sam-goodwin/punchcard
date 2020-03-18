@@ -4,35 +4,36 @@ import { foldFree, Free } from 'fp-ts-contrib/lib/Free';
 import { Identity } from 'fp-ts/lib/Identity';
 import { identity } from 'fp-ts/lib/Identity';
 import { Build } from '../../core/build';
+import { GraphQL } from '../types';
 import { isDirective } from './directive';
 import { isInvokeLambda } from './lambda';
-import { Statement } from './resolver';
+import { isStash, Statement } from './statement';
 
-const app = new cdk.App();
-const stack = new cdk.Stack(app, 'id');
-const api = new appsync.CfnGraphQLApi(stack, '', {
-  name: 'MyApi',
-  authenticationType: 'AMAZON_COGNITO_USER_POOLS',
-});
-new appsync.CfnGraphQLSchema(stack, '', {
-  apiId: api.attrApiId,
-  definition: 'TODO: synthesize'
-});
+// const app = new cdk.App();
+// const stack = new cdk.Stack(app, 'id');
+// const api = new appsync.CfnGraphQLApi(stack, '', {
+//   name: 'MyApi',
+//   authenticationType: 'AMAZON_COGNITO_USER_POOLS',
+// });
+// new appsync.CfnGraphQLSchema(stack, '', {
+//   apiId: api.attrApiId,
+//   definition: 'TODO: synthesize'
+// });
 
-new appsync.CfnDataSource(null, null, {
+// new appsync.CfnDataSource(null, null, {
 
-});
+// });
 
-new appsync.CfnResolver(stack, '', {
-  pipelineConfig: {
-    functions: [
-      fnConfig.ref
-    ]
-  },
-  apiId: api.ref,
-  fieldName: 'fieldName',
-  typeName: 'typeName'
-});
+// new appsync.CfnResolver(stack, '', {
+//   pipelineConfig: {
+//     functions: [
+//       fnConfig.ref
+//     ]
+//   },
+//   apiId: api.ref,
+//   fieldName: 'fieldName',
+//   typeName: 'typeName'
+// });
 
 class ResolverInterpreter {
   public readonly resolvers: appsync.CfnFunctionConfiguration[] = [];
@@ -41,8 +42,7 @@ class ResolverInterpreter {
   private readonly api: appsync.GraphQLApi;
 
   private preparingRequest: boolean = true;
-  private requestMappingTemplate: string[] = [];
-  private responseMappingTemplate: string[] = [];
+  private mappingTemplate: string[] = [];
 
   private ids = (function*() {
     let i = 0;
@@ -57,64 +57,71 @@ class ResolverInterpreter {
     fieldName: string;
     typeName: string;
   }) {
-    new appsync.GraphQLApi(null, null, {
-      schemaDefinition
-    })
+    // new appsync.GraphQLApi(null, null, {
+    //   schemaDefinition
+    // });
 
-    new appsync.Resolver(this.api, this.ids.next().value, {
-      api: this.api,
-      fieldName: props.fieldName,
-      typeName: props.typeName,
-      pipelineConfig: {
-        functions: [
-          'todo'
-        ]
-      },
+    // new appsync.Resolver(this.api, this.ids.next().value, {
+    //   api: this.api,
+    //   fieldName: props.fieldName,
+    //   typeName: props.typeName,
+    //   pipelineConfig: {
+    //     functions: [
+    //       'todo'
+    //     ]
+    //   },
 
-      // dataSource: 
-    })
+    //   // dataSource:
+    // });
   }
 
-  public interpret(program: Free<'Resolver', any>): appsync.Resolver {
-    foldFree(identity)(this._interpret, program);
-  }
+  // public interpret(program: Free<'Resolver', any>): appsync.Resolver {
+  //   foldFree(identity)(this._interpret, program);
+  // }
 
-  private readonly _interpret = <A>(p: Statement<A>): Identity<A> => {
-    if (isInvokeLambda(p)) {
-      const fn = Build.resolve(p.fn.resource);
+  public readonly interpret = <A extends GraphQL.Type>(statement: Statement<A>): Identity<A> => {
+    const id = () => this.ids.next().value;
 
-      const name = this.ids.next().value;
+    if (isInvokeLambda(statement)) {
+      const fn = Build.resolve(statement.fn.resource);
 
-      if (!this.dataSources.has(fn)) {
-        this.dataSources.set(fn, new appsync.LambdaDataSource(this.api, this.ids.next().value, {
-          api: this.api,
-          lambdaFunction: fn,
-          name: fn.functionName,
-          serviceRole: p.role ? Build.resolve(p.role) : undefined
-        }));
-      }
+      const name = id();
+
+      // if (!this.dataSources.has(fn)) {
+      //   this.dataSources.set(fn, new appsync.LambdaDataSource(this.api, id(), {
+      //     api: this.api,
+      //     lambdaFunction: fn,
+      //     name: fn.functionName,
+      //     serviceRole: statement.role ? Build.resolve(statement.role) : undefined
+      //   }));
+      // }
       const dataSource = this.dataSources.get(fn)!;
 
-      const resolver = dataSource.createResolver({
-        fieldName: '',
-        typeName: '',
-        pipelineConfig: {
-          functions: [
-            'todo'
-          ]
-        },
-        requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(``),
-        responseMappingTemplate: appsync.MappingTemplate.fromString(
-          `$util.qr($ctx.stash.put("${name}", $util.$ctx.result))`),
-      });
+      this.mappingTemplate.push(appsync.MappingTemplate.lambdaRequest(statement.input).renderTemplate());
+
+      const requestMappingTemplate = appsync.MappingTemplate.fromString(this.mappingTemplate.join('\n'));
+      // const resolver = dataSource.createResolver({
+      //   fieldName: '',
+      //   typeName: '',
+      //   pipelineConfig: {
+      //     functions: [
+      //       'todo'
+      //     ]
+      //   },
+      //   requestMappingTemplate,
+      //   responseMappingTemplate: appsync.MappingTemplate.lambdaResult(),
+      // });
+      this.mappingTemplate = [];
 
       this.resolvers.push();
-    } else if (isDirective(p)) {
-      this.requestMappingTemplate.push(p.directive);
+    } else if (isStash(statement)) {
+      const name = statement.id || id();
+      this.mappingTemplate.push(`$util.qr($ctx.stash.put("${name}", ${statement.value[GraphQL.expr].toVTL()}))`);
+      return GraphQL.clone(statement.value, new GraphQL.ReferenceExpression(`$ctx.stash.${name}`));
     }
 
     return null as any;
-  };
+  }
 }
 const pipelineEval = (api: appsync.CfnGraphQLApi) => {
 };

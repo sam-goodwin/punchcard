@@ -2,19 +2,18 @@ import AWS = require('aws-sdk');
 
 import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
-import type * as cdk from '@aws-cdk/core';
 
-import { Pointer, RecordShape, Shape, ShapeGuards } from '@punchcard/shape';
+import { Pointer, RecordShape, Shape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { StatementF } from '../appsync/resolver/resolver';
+import { StatementF } from '../appsync/resolver/statement';
 import { GraphQL } from '../appsync/types';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
-import { Scope } from '../core/construct';
+import { Construct, Scope } from '../core/construct';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
-import { KeyGraphQLRepr } from './resolver';
+import { KeyGraphQLRepr, getDynamoDBItem } from './resolver';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
@@ -23,22 +22,7 @@ import { getKeyNames, keyType } from './util';
  */
 export interface TableOverrideProps extends Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'> {}
 
-/**
- * TableProps for creating a new DynamoDB Table.
- *
- * @typeparam DataType type of data in the Table.
- * @typeparam Key partition and optional sort keys of the Table (members of DataType)
- */
-export interface TableProps<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>> {
-  /**
-   * Type of data in the Table.
-   */
-  data: Pointer<DataType>;
-  /**
-   * Partition and (optional) Sort Key of the Table.
-   */
-  key: Key;
-
+export interface BaseTableProps {
   /**
    * Override the table infrastructure props.
    *
@@ -52,6 +36,23 @@ export interface TableProps<DataType extends Shape.Like<RecordShape>, Key extend
    * ```
    */
   tableProps?: Build<TableOverrideProps>
+}
+
+/**
+ * TableProps for creating a new DynamoDB Table.
+ *
+ * @typeparam DataType type of data in the Table.
+ * @typeparam Key partition and optional sort keys of the Table (members of DataType)
+ */
+export interface TableProps<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>> extends BaseTableProps {
+  /**
+   * Type of data in the Table.
+   */
+  data: Pointer<DataType>;
+  /**
+   * Partition and (optional) Sort Key of the Table.
+   */
+  key: Key;
 }
 
 /**
@@ -111,7 +112,8 @@ export interface TableProps<DataType extends Shape.Like<RecordShape>, Key extend
  * @typeparam DataType type of data in the Table.
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
-export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>> implements Resource<dynamodb.Table> {
+export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>>
+    extends Construct implements Resource<dynamodb.Table> {
   /**
    * The DynamoDB Table Construct.
    */
@@ -128,6 +130,8 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
   public readonly key: Key;
 
   constructor(scope: Scope, id: string, props: TableProps<DataType, Key>) {
+    super(scope, id);
+
     this.dataType = props.data;
 
     this.key = props.key;
@@ -152,8 +156,8 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
     }));
   }
 
-  public get(key: KeyGraphQLRepr<Shape.Resolve<DataType>, Key>): StatementF<GraphQL.Type<Shape.Resolve<DataType>>> {
-    return null as any;
+  public get(key: KeyGraphQLRepr<Shape.Resolve<DataType>, Key>): StatementF<GraphQL.TypeOf<Shape.Resolve<DataType>>> {
+    return getDynamoDBItem(this, key);
   }
 
   /**
@@ -249,6 +253,18 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
 }
 
 export namespace Table {
+  export function NewType<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>>(
+    input: { data: Pointer<DataType>, key: Key }):
+      Construct.Class<Table<DataType, Key>, BaseTableProps> {
+        return class extends Table<DataType, Key> {
+          constructor(scope: Scope, id: string, props: BaseTableProps) {
+            super(scope, id, {
+              ...props,
+              ...input
+            });
+          }
+        } as any;
+      }
   /**
    * A DynamoDB Table with read-only permissions.
    *

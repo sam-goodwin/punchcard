@@ -65,7 +65,7 @@ export const Mutation: PropertyDecorator = () => {};
 
 // export function FieldResolver(...args: any[]): any {
 
-}
+// }
 
 // // export function FieldResolver2<
 // //   T extends GraphQL.RecordClass,

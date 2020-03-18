@@ -1,21 +1,7 @@
 import { GraphQL } from "./types";
 
-
-export function $case(): Case<any> {
-
-}
-
-export class Case<T extends GraphQL.Type> {
-  public when(condition: GraphQL.Bool, then: () => T): Case<T> {
-
-  }
-  public otherwise(then: () => T): T {
-
-  }
-}
-
 export function $if<T extends GraphQL.Type>(condition: GraphQL.Bool, then: () => T): If<T> {
-
+  return new If(undefined, condition, then);
 }
 
 export const $elseIf = $if;
@@ -32,15 +18,20 @@ export class If<T extends GraphQL.Type> {
   }
 
   public $else(then: () => T): T {
-    return new Else(this, then);
+    const t = this.then();
+    return GraphQL.clone(t, new Else(this, then));
   }
 }
 
-export class Else<T extends GraphQL.Type> {
+export class Else<T extends GraphQL.Type> extends GraphQL.Expression {
   constructor(
     public readonly parent: If<T>,
     public readonly then: () => T
-  ) {}
-}
+  ) {
+    super();
+  }
 
-export function $else<T extends GraphQL.Type>(then: () => T): Else<T> {}
+  public toVTL(): string {
+    throw new Error('todo');
+  }
+}

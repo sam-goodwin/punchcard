@@ -27,8 +27,12 @@ export abstract class Shape {
   }
 }
 export namespace Shape {
-  export type Like<T extends Shape = any> = T | { Shape: T; };
-  export type Resolve<T extends Shape.Like> = T extends { Shape: infer S } ? S extends never ? T : S : T;
+  export type Like<T extends Shape = Shape> = T | { Shape: T; };
+  export type Resolve<T extends Shape.Like> =
+    T extends { Shape: infer S } ?
+      S extends never ? T : S :
+    T extends Shape ? T : never
+    ;
   export function resolve<T extends Shape.Like>(t: T): Resolve<T> {
     if (ShapeGuards.isShape(t)) {
       return t as Resolve<T>;

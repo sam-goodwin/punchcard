@@ -21,15 +21,15 @@ export interface Method<R extends Dependency<any>, T extends RecordType, U exten
 
 export type MappingType<T> =
   T extends Shape ? TypedMapping<T> :
-  T extends RecordType<infer M, infer I> ? {
+  T extends RecordType<infer M> ? {
     [K in keyof M]: MappingType<M[K]> ;
   } :
   never;
 
 export type RequestMappings<S extends RecordType, M extends MethodName> = M extends 'GET' ?
   // 'GET' methods require mappings for all properties since there is no body
-  { [K in keyof S[RecordShape.Members]]-?: MappingType<S[RecordShape.Members][K]>; } :
-  { [K in keyof S[RecordShape.Members]]+?: MappingType<S[RecordShape.Members][K]>; };
+  { [K in keyof S['Members']]-?: MappingType<S['Members'][K]>; } :
+  { [K in keyof S['Members']]+?: MappingType<S['Members'][K]>; };
 
 export type Responses =  {
   [StatusCode.Ok]: Shape;

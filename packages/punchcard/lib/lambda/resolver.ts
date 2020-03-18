@@ -1,6 +1,6 @@
 import { Shape } from '@punchcard/shape';
 import { liftF } from 'fp-ts-contrib/lib/Free';
-import { Statement, StatementF } from '../appsync/resolver';
+import { Statement, StatementF } from '../appsync/resolver/statement';
 import { GraphQL } from '../appsync/types';
 import { Build } from '../core/build';
 

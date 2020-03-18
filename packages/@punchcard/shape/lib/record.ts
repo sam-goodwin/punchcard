@@ -6,7 +6,7 @@ import { Value } from './value';
 import { Compact, RowLacks } from 'typelevel-ts';
 
 export interface RecordMembers {
-  [member: string]: Shape.Like;
+  [member: string]: Shape.Like<Shape>;
 }
 export namespace RecordMembers {
   /**

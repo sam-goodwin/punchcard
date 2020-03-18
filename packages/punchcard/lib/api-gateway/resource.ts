@@ -132,7 +132,7 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
         cfnMethod.addPropertyOverride('Integration', {
           PassthroughBehavior: 'NEVER',
           RequestTemplates: {
-            'application/json': velocityTemplate(Shape.of(requestShape), {
+            'application/json': velocityTemplate(requestShape, {
               ...method.request.mappings as object,
               __resourceId: $context.resourceId,
               __httpMethod: $context.httpMethod
@@ -227,7 +227,7 @@ function velocityTemplate<S extends Shape>(
   }
   return template;
 
-  function walk(shape: RecordShape<any, any>, name: string, mapping: TypedMapping<any> | object, depth: number) {
+  function walk(shape: RecordShape, name: string, mapping: TypedMapping<any> | object, depth: number) {
     template += '  '.repeat(depth);
 
     if (mapping) {
