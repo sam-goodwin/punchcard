@@ -1,20 +1,20 @@
 import { NothingShape } from '@punchcard/shape';
 import { directive } from '../resolver/directive';
-import { ResolverStatementF } from '../resolver/resolver';
+import { StatementF } from '../resolver/resolver';
 import { GraphQL } from '../types';
 import { $DynamoDBUtil as DynamoDBUtil } from './dynamodb';
 import { $ListUtil as ListUtil } from './list';
 
 export class Util {
-  public validate(condition: GraphQL.Bool, message: GraphQL.String, errorType?: GraphQL.String): ResolverStatementF<NothingShape> {
+  public validate(condition: GraphQL.Bool, message: GraphQL.String, errorType?: GraphQL.String): StatementF<NothingShape> {
     return null as any;
   }
 
-  public autoId(): ResolverStatementF<GraphQL.String> {
+  public autoId(): StatementF<GraphQL.String> {
     return directive('$util.autoId()');
   }
 
-  public matches(regex: RegExp | string): ResolverStatementF<GraphQL.Bool> {
+  public matches(regex: RegExp | string): StatementF<GraphQL.Bool> {
     throw new Error('todo');
   }
 

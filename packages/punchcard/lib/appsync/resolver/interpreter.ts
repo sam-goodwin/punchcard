@@ -6,7 +6,7 @@ import { identity } from 'fp-ts/lib/Identity';
 import { Build } from '../../core/build';
 import { isDirective } from './directive';
 import { isInvokeLambda } from './lambda';
-import { ResolverStatement } from './resolver';
+import { Statement } from './resolver';
 
 const app = new cdk.App();
 const stack = new cdk.Stack(app, 'id');
@@ -75,11 +75,11 @@ class ResolverInterpreter {
     })
   }
 
-  public interpret(program: Free<'Resolver', any>): appsync.CfnResolver {
+  public interpret(program: Free<'Resolver', any>): appsync.Resolver {
     foldFree(identity)(this._interpret, program);
   }
 
-  private readonly _interpret = <A>(p: ResolverStatement<A>): Identity<A> => {
+  private readonly _interpret = <A>(p: Statement<A>): Identity<A> => {
     if (isInvokeLambda(p)) {
       const fn = Build.resolve(p.fn.resource);
 
@@ -89,17 +89,21 @@ class ResolverInterpreter {
         this.dataSources.set(fn, new appsync.LambdaDataSource(this.api, this.ids.next().value, {
           api: this.api,
           lambdaFunction: fn,
-          name: fn.functionName
+          name: fn.functionName,
+          serviceRole: p.role ? Build.resolve(p.role) : undefined
         }));
       }
       const dataSource = this.dataSources.get(fn)!;
 
-      const resolver = new appsync.CfnFunctionConfiguration(stack, 'id', {
-        dataSourceName: dataSource.name,
-        apiId: api.attrApiId,
-        functionVersion: '2018-05-29',
-        name,
-        requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(),
+      const resolver = dataSource.createResolver({
+        fieldName: '',
+        typeName: '',
+        pipelineConfig: {
+          functions: [
+            'todo'
+          ]
+        },
+        requestMappingTemplate: appsync.MappingTemplate.lambdaRequest(``),
         responseMappingTemplate: appsync.MappingTemplate.fromString(
           `$util.qr($ctx.stash.put("${name}", $util.$ctx.result))`),
       });

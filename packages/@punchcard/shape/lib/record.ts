@@ -6,7 +6,7 @@ import { Value } from './value';
 import { Compact, RowLacks } from 'typelevel-ts';
 
 export interface RecordMembers {
-  [member: string]: Shape;
+  [member: string]: Shape.Like;
 }
 export namespace RecordMembers {
   /**
@@ -17,12 +17,12 @@ export namespace RecordMembers {
      * Write each member and their documentation to the structure.
      * Write them all as '?' for now.
      */
-    [m in keyof M]+?: M[m];
+    [m in keyof M]+?: Shape.Resolve<M[m]>;
   } & {
     /**
      * Remove '?' from required properties.
      */
-    [m in RequiredKeys<M>]-?: M[m];
+    [m in RequiredKeys<M>]-?: Shape.Resolve<M[m]>;
   };
 }
 
@@ -88,12 +88,12 @@ export type RecordValues<M extends RecordMembers> = {
    * Write each member and their documentation to the structure.
    * Write them all as '?' for now.
    */
-  [m in keyof M]+?: Value.Of<M[m]>;
+  [m in keyof M]+?: Value.Of<Shape.Resolve<M[m]>>;
 } & {
   /**
    * Remove '?' from required properties.
    */
-  [m in RequiredKeys<M>]-?: Value.Of<M[m]>;
+  [m in RequiredKeys<M>]-?: Value.Of<Shape.Resolve<M[m]>>;
 };
 
 export interface RecordType<M extends RecordMembers = any> extends RecordShape<M> {
@@ -104,7 +104,9 @@ export interface RecordType<M extends RecordMembers = any> extends RecordShape<M
     // compact RecordValue<T> by enumerating its keys
     // produces a cleaner interface instead of `{a: string} & {}`
     [m in keyof RecordValues<M>]: RecordValues<M>[m];
-  }): RecordValues<M>;
+  }): {
+    [m in keyof RecordValues<M>]: RecordValues<M>[m];
+  };
 
   /**
    * Extend this Record with new members to create a new `RecordType`.
@@ -168,7 +170,7 @@ export function Record<T extends RecordMembers = any>(members: T): RecordType<T>
     }
 
     constructor(values: {
-      [K in keyof T]: Value.Of<T[K]>;
+      [K in keyof T]: Value.Of<Shape.Resolve<T[K]>>;
     }) {
       for (const [name, value] of Object.entries(values)) {
         (this as any)[name] = value;

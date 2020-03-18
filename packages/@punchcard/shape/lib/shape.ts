@@ -1,4 +1,5 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
+import { ShapeGuards } from './guards';
 import { Apply, Meta, Trait } from './metadata';
 import { BinaryShape, BoolShape, IntegerShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { Value } from './value';
@@ -26,6 +27,16 @@ export abstract class Shape {
   }
 }
 export namespace Shape {
+  export type Like<T extends Shape = any> = T | { Shape: T; };
+  export type Resolve<T extends Shape.Like> = T extends { Shape: infer S } ? S extends never ? T : S : T;
+  export function resolve<T extends Shape.Like>(t: T): Resolve<T> {
+    if (ShapeGuards.isShape(t)) {
+      return t as Resolve<T>;
+    } else {
+      return (t as any).Shape as Resolve<T>;
+    }
+  }
+
   export type Infer<T> =
     T extends boolean ? BoolShape :
     T extends Buffer ? BinaryShape :

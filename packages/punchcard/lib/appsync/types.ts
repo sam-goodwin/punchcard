@@ -1,6 +1,6 @@
 import { ArrayShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, MapShape, NothingShape, NumberShape, RecordMembers, RecordShape, RecordType, SetShape, Shape, string, StringShape, TimestampShape, Trait, Value } from '@punchcard/shape';
 
-import { ShapeVisitor } from '@punchcard/shape';
+import { Record as MakeRecord, ShapeVisitor } from '@punchcard/shape';
 
 const IDTrait: {
   [Trait.Data]: {
@@ -14,7 +14,19 @@ const IDTrait: {
 
 export const ID = string.apply(IDTrait);
 
+export function GraphQLResolver<M extends RecordMembers>(members: M): {
+  Record: RecordType<M>;
+  Shape: RecordType<M>;
+} & (new() => {}) {
+  const record = MakeRecord(members);
+  return class NewType {
+    public static readonly Record = record;
+    public static readonly Shape = record;
+  };
+}
+
 export namespace GraphQL {
+
   export function of<T extends Shape>(type: T): TypeOf<T> {
     throw new Error('todo');
   }
@@ -25,7 +37,7 @@ export namespace GraphQL {
       [key: string]: Repr<I>;
     } :
     T extends RecordShape<infer M> ? TypeOf<T> | {
-      [m in keyof M]: Repr<M[m]>;
+      [m in keyof M]: Repr<Shape.Resolve<M[m]>>;
     } :
     TypeOf<T>
   );
@@ -42,9 +54,9 @@ export namespace GraphQL {
     T extends ArrayShape<infer I> ? List<TypeOf<I>> :
     T extends MapShape<infer I> ? Map<TypeOf<I>> :
     T extends RecordShape<infer M> ? GraphQL.Record<{
-      [m in keyof M]: TypeOf<M[m]>;
+      [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
     }> & {
-      [m in keyof M]: TypeOf<M[m]>;
+      [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
     } :
     Type<T>
     ;
@@ -53,10 +65,13 @@ export namespace GraphQL {
 
 
   // export const Shape = Symbol.for('GraphQL.Shape');
-  const type = Symbol.for('GraphQL.Type');
+  export const type = Symbol.for('GraphQL.Type');
   const expression = Symbol.for('GraphQL.Expression');
   export class Type<T extends Shape = any> {
-    constructor(shape: T, expression: GraphQL.Expression) {}
+    public readonly [type]: T;
+    constructor(shape: T, expression: GraphQL.Expression) {
+      this[type] = shape;
+    }
   }
   export class Nothing extends Type<NothingShape> {}
   export class Any extends Type<DynamicShape<any>> {}
@@ -101,11 +116,11 @@ export namespace GraphQL {
   }
 
   export function NewType<M extends RecordMembers>(members: M): StaticInterface<M> & (new(values: {
-    [m in keyof M]: TypeOf<M[m]>;
+    [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
   }) => Record<{
-    readonly [m in keyof M]: TypeOf<M[m]>;
+    readonly [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
   }> & {
-    readonly [m in keyof M]: TypeOf<M[m]>;
+    readonly [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
   } & InstanceInterface) {
     return null as any;
   }

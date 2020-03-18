@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { AssertIsKey, RecordShape, Value } from '@punchcard/shape';
+import { AssertIsKey, Pointer, RecordShape, Shape, Value } from '@punchcard/shape';
 import { Compact } from 'typelevel-ts';
 import { DSL } from './dsl';
 import { Condition } from './filter';
@@ -9,7 +9,13 @@ import { Update } from './update';
 import { Writer } from './writer';
 
 export interface BaseClientProps<T extends RecordShape<any>, K extends DDB.KeyOf<T>> {
+  /**
+   * Record typr of the table's properties.
+   */
   data: T;
+  /**
+   * Key of the Table.
+   */
   key: K;
   /**
    * DynamoDB Table Name.
@@ -42,7 +48,7 @@ export class BaseClient<T extends RecordShape<any>, K extends DDB.KeyOf<T>> {
 
   protected readonly dsl: DSL.Root<T>;
 
-  public readonly type: T;
+  public readonly type: Pointer<T>;
   public readonly key: K;
 
   constructor(config: BaseClientProps<T, K>)  {

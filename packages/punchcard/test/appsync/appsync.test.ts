@@ -1,18 +1,91 @@
 import 'jest';
 
-import { optional, Record, RecordShape, RecordType, string, array } from '@punchcard/shape';
-import { $else, $elseIf, $if } from '../../lib/appsync/if';
-import { FieldResolver, fieldResolver, Resolved, Resolver } from '../../lib/appsync/resolver/resolver';
-import { GraphQL, ID } from '../../lib/appsync/types';
+import { array, optional, Record, string } from '@punchcard/shape';
+import { Mutation, Query } from '../../lib/appsync/decorators';
+import { $if } from '../../lib/appsync/if';
+import { $function } from '../../lib/appsync/resolver/resolver';
+import { GraphQL, GraphQLResolver, ID } from '../../lib/appsync/types';
 import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
+import { Construct } from '../../lib/core/construct';
+import DynamoDB = require('../../lib/dynamodb');
 import { Function } from '../../lib/lambda';
 
-import { Api, resolver } from '../../lib/appsync/api';
+const app = new App();
+const stack = app.stack('stack');
 
-import DynamoDB = require('../../lib/dynamodb');
+export class PostStore extends DynamoDB.Table<typeof Post, {partition: 'id'}> {}
 
-class Post extends Record({
+class PostApi extends Construct {
+  public readonly table: PostStore;
+
+  constructor() {
+    super(null as any);
+    this.table = new PostStore(this, 'pet-store', {
+      data: Post,
+      key: {
+        partition: 'id'
+      }
+    });
+  }
+
+  /**
+   * AppSync Function for getting a post with Lambda.
+   */
+  @Query
+  public getPost = $function({id: ID}, optional(Post))
+    .return(({id}) => this.getPostFn.invoke(id));
+
+  private readonly getPostFn = new Function(this, 'getPostFn', {
+    request: string,
+    response: Post,
+    depends: this.table.readAccess()
+  }, async (id, posts) => {
+    const p = await posts.get({
+      id
+    });
+    if (p === undefined) {
+      throw new Error('not found');
+    }
+    return p;
+  });
+
+  @Mutation
+  public addPost = $function({title: optional(string), content: string}, Post)
+    .$('id', () => $util.autoId())
+    .return(({id, title, content}) => this.addPostFn.invoke({
+      id,
+      title: $if(GraphQL.isNull(title), () =>
+        title
+      ).$else(() =>
+        GraphQL.string('generated title')
+      ),
+      content
+    }));
+
+  private readonly addPostFn = new Function(this, 'addPostFn', {
+    request: AddPostRequest,
+    response: Post,
+    depends: this.table.readWriteAccess()
+  }, async (request, posts) => {
+    const post = new Post.Record({
+      ...request,
+      id: request.id || 'random',
+    });
+
+    await posts.put(post);
+
+    return post;
+  });
+}
+
+class AddPostRequest extends Record({
+  id: optional(string),
+  title: string,
+  content: string
+}) {}
+
+class Post extends GraphQLResolver({
   /**
    * ID
    */
@@ -26,77 +99,37 @@ class Post extends Record({
    */
   content: string
 }) {
-  public static relatedPosts = fieldResolver(Post, array(Post))
-    .map('id', () => $util.autoId())
-    .return(({root, id}) =>  addPostFn.invoke({
-      id,
-      title: root.title,
-      content: root.content,
-    }));
+  constructor(public readonly table: PostStore) {
+    super();
+  }
+
+  /**
+   * Related Posts can be resolved from Lambda.
+   */
+  public readonly relatedPosts = $function({self: Post}, array(Post))
+    .$('item', ({self}) => this.table.get({
+      id: self.id
+    }))
+    .return(({self}) => this.getRelatedPosts.invoke(self.id));
+
+  /**
+   * Lambda Function for getting related posts.
+   */
+  private readonly getRelatedPosts = new Function(stack, 'getRelatedPosts', {
+    request: string,
+    response: array(Post),
+    depends: this.table.readAccess()
+  }, async (id, posts) => {
+    // todo: perform a query
+    const p = await posts.get({
+      id
+    });
+    if (p === undefined) {
+      throw new Error('not found');
+    }
+    return [p];
+  });
 }
-
-const myApi = new Api({
-  query: {
-    getPost: resolver({id: ID}, Post)
-      .map('post', ({id}) => getPostFn.invoke(id))
-      .return(_ => _.post)
-  },
-  mutation: {
-    addPost: resolver({title: optional(string), content: string}, Post)
-      .map('id', () => $util.autoId())
-      .return(({id, title, content}) => addPostFn.invoke({
-        id,
-        title: $if(GraphQL.isNull(title), () =>
-          title
-        ).$else(() =>
-          GraphQL.string('generated title')
-        ),
-        content
-      }))
-  }
-});
-
-const app = new App();
-const stack = app.stack('stack');
-
-const posts = new DynamoDB.Table(stack, 'posts', {
-  data: Post,
-  key: {
-    partition: 'id'
-  }
-});
-
-export class AddPostRequest extends Record({
-  id: optional(string),
-  title: string,
-  content: string
-}) {}
-
-const addPostFn = new Function(stack, 'fn', {
-  request: AddPostRequest,
-  response: Post,
-  depends: posts.readWriteAccess()
-}, async (request, posts) => {
-  const post = new Post({
-    ...request,
-    id: request.id || 'random',
-  });
-
-  await posts.put(post);
-
-  return post;
-});
-
-const getPostFn = new Function(stack, 'fn', {
-  request: string,
-  response: Post,
-  depends: posts.readAccess()
-}, async (id, posts) => {
-  const p = await posts.get({
-    id
-  });
-  if (p === undefined) {
-    throw new Error('not found');
-  }
-  return p;
-});
+namespace Post {
+  export type Record = typeof Post.Record;
+}

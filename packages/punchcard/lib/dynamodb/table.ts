@@ -1,18 +1,22 @@
 import AWS = require('aws-sdk');
 
-import { RecordShape } from '@punchcard/shape';
-import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { Build } from '../core/build';
-import { CDK } from '../core/cdk';
-import { Dependency } from '../core/dependency';
-import { Resource } from '../core/resource';
-import { Run } from '../core/run';
-import { Index } from './table-index';
-import { getKeyNames, keyType } from './util';
-
 import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
+
+import { Pointer, RecordShape, Shape, ShapeGuards } from '@punchcard/shape';
+import { DDB, TableClient } from '@punchcard/shape-dynamodb';
+import { StatementF } from '../appsync/resolver/resolver';
+import { GraphQL } from '../appsync/types';
+import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
+import { Scope } from '../core/construct';
+import { Dependency } from '../core/dependency';
+import { Resource } from '../core/resource';
+import { Run } from '../core/run';
+import { KeyGraphQLRepr } from './resolver';
+import { Index } from './table-index';
+import { getKeyNames, keyType } from './util';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
@@ -25,11 +29,11 @@ export interface TableOverrideProps extends Omit<dynamodb.TableProps, 'partition
  * @typeparam DataType type of data in the Table.
  * @typeparam Key partition and optional sort keys of the Table (members of DataType)
  */
-export interface TableProps<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> {
+export interface TableProps<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>> {
   /**
    * Type of data in the Table.
    */
-  data: DataType;
+  data: Pointer<DataType>;
   /**
    * Partition and (optional) Sort Key of the Table.
    */
@@ -107,7 +111,7 @@ export interface TableProps<DataType extends RecordShape, Key extends DDB.KeyOf<
  * @typeparam DataType type of data in the Table.
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
-export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> implements Resource<dynamodb.Table> {
+export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>> implements Resource<dynamodb.Table> {
   /**
    * The DynamoDB Table Construct.
    */
@@ -116,34 +120,40 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
   /**
    * RecordShape of data in the table.
    */
-  public readonly dataType: DataType;
+  public readonly dataType: Pointer<DataType>;
 
   /**
    * The table's key (hash key, or hash+sort key pair).
    */
   public readonly key: Key;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<DataType, Key>) {
+  constructor(scope: Scope, id: string, props: TableProps<DataType, Key>) {
     this.dataType = props.data;
 
     this.key = props.key;
-    const [partitionKeyName, sortKeyName] = getKeyNames<DataType>(props.key);
+    const [partitionKeyName, sortKeyName] = getKeyNames<Shape.Resolve<DataType>>(props.key);
 
-    this.resource = CDK.chain(({dynamodb}) => scope.map(scope => {
+    this.resource = CDK.chain(({dynamodb}) => Scope.resolve(scope).map(scope => {
       const extraTableProps = props.tableProps ? Build.resolve(props.tableProps) : {};
+
+      const dataType = Shape.resolve(Pointer.resolve(this.dataType));
 
       return new dynamodb.Table(scope, id, {
         ...extraTableProps,
         partitionKey: {
           name: partitionKeyName,
-          type: keyType((this.dataType.Members as any)[partitionKeyName].Shape)
+          type: keyType((dataType.Members as any)[partitionKeyName].Shape)
         },
         sortKey: sortKeyName ? {
           name: sortKeyName,
-          type: keyType((this.dataType.Members as any)[sortKeyName].Shape)
+          type: keyType((dataType.Members as any)[sortKeyName].Shape)
         } : undefined
       });
     }));
+  }
+
+  public get(key: KeyGraphQLRepr<Shape.Resolve<DataType>, Key>): StatementF<GraphQL.Type<Shape.Resolve<DataType>>> {
+    return null as any;
   }
 
   /**
@@ -168,7 +178,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
    * ```
    * @param projection type of projected data (subset of the Table's properties)
    */
-  public projectTo<Projection extends RecordShape>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
+  public projectTo<Projection extends RecordShape>(projection: AssertValidProjection<Shape.Resolve<DataType>, Projection>): Projected<this, Projection> {
     return new Projected(this, projection) as any;
   }
 
@@ -179,7 +189,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
    *
    * @param props Global Index props such as name and key information.
    */
-  public globalIndex<IndexKey extends DDB.KeyOf<DataType>>(
+  public globalIndex<IndexKey extends DDB.KeyOf<Shape.Resolve<DataType>>>(
       props: Index.GlobalProps<DataType, IndexKey>):
         Index.Of<this, DataType, IndexKey> {
     return new Index({
@@ -221,7 +231,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     return this.dependency((t, g) => t.grantFullAccess(g));
   }
 
-  private dependency(grant: (table: dynamodb.Table, grantable: iam.IGrantable) => void): Dependency<TableClient<DataType, Key>> {
+  private dependency(grant: (table: dynamodb.Table, grantable: iam.IGrantable) => void): Dependency<TableClient<Shape.Resolve<DataType>, Key>> {
     return {
       install: this.resource.map(table => (ns, grantable) => {
         ns.set('tableName', table.tableName);
@@ -229,8 +239,8 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       }),
       bootstrap: Run.of(async (ns, cache) =>
         new TableClient({
-          data: this.dataType,
-          key: this.key,
+          data: Pointer.resolve(this.dataType) as any,
+          key: this.key as any,
           tableName: ns.get('tableName'),
           client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())
         }))
@@ -244,23 +254,23 @@ export namespace Table {
    *
    * Unavailable methods: `put`, `putBatch`, `delete`, `update`.
    */
-  export interface ReadOnly<A extends RecordShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
+  export interface ReadOnly<A extends Shape.Like<RecordShape>, K extends DDB.KeyOf<Shape.Resolve<A>>> extends Omit<TableClient<Shape.Resolve<A>, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
 
   /**
    * A DynamoDB Table with write-only permissions.
    *
    * Unavailable methods: `batchGet`, `get`, `scan`, `query`
    */
-  export interface WriteOnly<A extends RecordShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
+  export interface WriteOnly<A extends Shape.Like<RecordShape>, K extends DDB.KeyOf<Shape.Resolve<A>>> extends Omit<TableClient<Shape.Resolve<A>, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
 
   /**
    * A DynamODB Table with read and write permissions.
    */
-  export interface ReadWrite<A extends RecordShape, K extends DDB.KeyOf<A>> extends TableClient<A, K> {}
+  export interface ReadWrite<A extends Shape.Like<RecordShape>, K extends DDB.KeyOf<Shape.Resolve<A>>> extends TableClient<Shape.Resolve<A>, K> {}
 }
 
 export namespace Table {
-  export type Data<T extends Table<any, any>> = T extends Table<infer D, any> ? D : never;
+  export type Data<T extends Table<any, any>> = T extends Table<infer D, any> ? Shape.Resolve<D> : never;
   export type Key<T extends Table<any, any>> = T extends Table<any, infer K> ? K : never;
 }
 
@@ -274,10 +284,10 @@ type AssertValidProjection<T extends RecordShape, P extends RecordShape> = T['Me
  * @typeparam SourceTable the projected table
  * @typeparam Projection the type of projected data
  */
-export class Projected<SourceTable extends Table<any, any>, Projection extends RecordShape> {
+export class Projected<SourceTable extends Table<any, any>, Projection extends Shape.Like<RecordShape>> {
   constructor(public readonly sourceTable: SourceTable, public readonly projection: Projection) {}
 
-  public globalIndex<IndexKey extends DDB.KeyOf<Projection>>(
+  public globalIndex<IndexKey extends DDB.KeyOf<Shape.Resolve<Projection>>>(
       props: Index.GlobalProps<Projection, IndexKey>):
         Index.Of<SourceTable, Projection, IndexKey> {
     return new Index({

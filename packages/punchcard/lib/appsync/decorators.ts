@@ -1,7 +1,11 @@
 // import { GraphQL } from './types';
 
-import { GraphQL } from "./types";
 import { Resolved } from "./resolver/resolver";
+import { GraphQL } from "./types";
+
+export const Query: PropertyDecorator = () => {};
+
+export const Mutation: PropertyDecorator = () => {};
 
 // const arg = Symbol.for('punchcard/lib/appsync.Arg');
 // const fieldResolver = Symbol.for('punchcard/lib/appsync.FieldResolver');
@@ -47,19 +51,19 @@ import { Resolved } from "./resolver/resolver";
 
 
 
-export function FieldResolver<T extends GraphQL.RecordClass>(returns: (type?: undefined) => [T]): <On extends GraphQL.Type>(
-  target: On,
-  propertyKey: string,
-  descriptior: TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => Resolved<GraphQL.List<InstanceType<T>>>>
-) => TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => Resolved<GraphQL.List<InstanceType<T>>>>;
+// export function FieldResolver<T extends GraphQL.RecordClass>(returns: (type?: undefined) => [T]): <On extends GraphQL.Type>(
+//   target: On,
+//   propertyKey: string,
+//   descriptior: TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => Resolved<GraphQL.List<InstanceType<T>>>>
+// ) => TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => Resolved<GraphQL.List<InstanceType<T>>>>;
 
-export function FieldResolver<T extends GraphQL.RecordClass>(returns: (type?: undefined) => T): <On extends GraphQL.Type>(
-  target: On,
-  propertyKey: string,
-  descriptior: TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => Resolved<InstanceType<T>>>
-) => TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => Resolved<InstanceType<T>>>;
+// export function FieldResolver<T extends GraphQL.RecordClass>(returns: (type?: undefined) => T): <On extends GraphQL.Type>(
+//   target: On,
+//   propertyKey: string,
+//   descriptior: TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => Resolved<InstanceType<T>>>
+// ) => TypedPropertyDescriptor<(root: On, ...args: GraphQL.Type[]) => Resolved<InstanceType<T>>>;
 
-export function FieldResolver(...args: any[]): any {
+// export function FieldResolver(...args: any[]): any {
 
 }
 

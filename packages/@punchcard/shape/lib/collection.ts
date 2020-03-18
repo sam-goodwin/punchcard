@@ -17,7 +17,7 @@ export abstract class CollectionShape<T extends Shape> extends Shape {
 export class ArrayShape<T extends Shape> extends CollectionShape<T> {
   public readonly Kind = 'arrayShape';
 }
-export const array = <T extends Shape>(items: T) => new ArrayShape(items) as ArrayShape<T>;
+export const array = <T extends Shape.Like>(items: T) => new ArrayShape(Shape.resolve(items)) as ArrayShape<Shape.Resolve<T>>;
 
 /**
  * Set of unique itemss.
@@ -25,7 +25,7 @@ export const array = <T extends Shape>(items: T) => new ArrayShape(items) as Arr
 export class SetShape<T extends Shape> extends CollectionShape<T> {
   public readonly Kind = 'setShape';
 }
-export const set = <T extends Shape>(items: T) => new SetShape(items) as any as SetShape<T>;
+export const set = <T extends Shape.Like>(items: T) => new SetShape(Shape.resolve(items)) as any as SetShape<Shape.Resolve<T>>;
 
 /**
  * Map of `string` keys to some shape, `T`.
@@ -33,4 +33,4 @@ export const set = <T extends Shape>(items: T) => new SetShape(items) as any as 
 export class MapShape<T extends Shape> extends CollectionShape<T> {
   public readonly Kind = 'mapShape';
 }
-export const map = <T extends Shape>(items: T) => new MapShape(items) as MapShape<T>;
+export const map = <T extends Shape.Like>(items: T) => new MapShape(Shape.resolve(items)) as MapShape<Shape.Resolve<T>>;

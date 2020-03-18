@@ -7,6 +7,7 @@ export * from './hash-set';
 export * from './kind';
 export * from './mapper';
 export * from './metadata';
+export * from './pointer';
 export * from './primitive';
 export * from './record';
 export * from './shape';

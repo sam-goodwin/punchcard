@@ -1,10 +1,7 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 import type * as cdk from '@aws-cdk/core';
 
-import { RecordMembers, Shape } from '@punchcard/shape';
-import { Build } from '../core/build';
-import { CDK } from '../core/cdk';
-import { Resource } from '../core/resource';
+import {  RecordMembers, RecordShape, Shape } from '@punchcard/shape';
 import { Resolved, Resolver } from './resolver/resolver';
 import { GraphQL } from './types';
 
@@ -32,12 +29,6 @@ export interface Queries {
 export interface Mutation {}
 export interface Mutations {
   [mutationName: string]: Resolved<Shape>;
-}
-
-export function resolver<Args extends RecordMembers, Ret extends Shape>(args: Args, returns: Ret | ((returns?: undefined) => Ret)): Resolver<{
-  [a in keyof Args]: GraphQL.TypeOf<Args[a]>;
-}, Ret> {
-  throw new Error();
 }
 
 export interface ApiProps<Q extends Queries, M extends Mutation | undefined = undefined> {

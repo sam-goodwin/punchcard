@@ -5,9 +5,8 @@ import type * as cdk from '@aws-cdk/core';
 
 import { Json } from '@punchcard/shape-json';
 
-import { any, AnyShape, Mapper, MapperFactory, Shape, Value } from '@punchcard/shape';
-import { invokeLambda } from '../appsync/resolver/lambda';
-import { ResolverStatementF } from '../appsync/resolver/resolver';
+import { any, AnyShape, Mapper, MapperFactory, Pointer, Shape, Value } from '@punchcard/shape';
+import { StatementF } from '../appsync/resolver/statement';
 import { GraphQL } from '../appsync/types';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
@@ -15,6 +14,7 @@ import { Cache } from '../core/cache';
 import { CDK } from '../core/cdk';
 import { Client } from '../core/client';
 import { Code } from '../core/code';
+import { Scope } from '../core/construct';
 import { Dependency } from '../core/dependency';
 import { Duration } from '../core/duration';
 import { Entrypoint, entrypoint } from '../core/entrypoint';
@@ -22,26 +22,27 @@ import { Global } from '../core/global';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { ENTRYPOINT_ENV_KEY, IS_RUNTIME_ENV_KEY } from '../util/constants';
+import { invokeLambda } from './resolver';
 
 /**
  * Overridable subset of @aws-cdk/aws-lambda.FunctionProps
  */
 export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'functionName' | 'handler' | 'runtime' | 'memorySize'> {}
 
-export interface HandlerProps<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined> {
+export interface HandlerProps<T extends Shape.Like = AnyShape, U extends Shape.Like = AnyShape, D extends Dependency<any> | undefined = undefined> {
   /**
    * Type of the request
    *
    * @default any
    */
-  request?: T;
+  request?: Pointer<T>;
 
   /**
    * Type of the response
    *
    * @default any
    */
-  response?: U;
+  response?: Pointer<U>;
 
   /**
    * Factory for a `Mapper` to serialize shapes to/from a `string`.
@@ -58,7 +59,7 @@ export interface HandlerProps<T extends Shape = AnyShape, U extends Shape = AnyS
   depends?: D;
 }
 
-export interface FunctionProps<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined>
+export interface FunctionProps<T extends Shape.Like = AnyShape, U extends Shape.Like = AnyShape, D extends Dependency<any> | undefined = undefined>
     extends HandlerProps<T, U, D> {
   /**
    * A name for the function.
@@ -107,7 +108,7 @@ export interface FunctionProps<T extends Shape = AnyShape, U extends Shape = Any
  * @typeparam U return type
  * @typeparam D runtime dependencies
  */
-export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined> implements Entrypoint, Resource<lambda.Function> {
+export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = AnyShape, D extends Dependency<any> | undefined = undefined> implements Entrypoint, Resource<lambda.Function> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
@@ -127,24 +128,25 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
    * @param event the parsed request
    * @param clients initialized clients to dependency resources
    */
-  public readonly handle: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<Value.Of<U>>;
+  public readonly handle: (event: Value.Of<Shape.Resolve<T>>, clients: Client<D>, context: any) => Promise<Value.Of<Shape.Resolve<U>>>;
+
+  public readonly request: Pointer<T>;
+  public readonly response: Pointer<U>;
 
   private readonly dependencies?: D;
+  private readonly mapperFactory: MapperFactory<Json.Of<T>>;
 
-  private readonly requestMapper: Mapper<Value.Of<T>, Json.Of<T>>;
-  private readonly responseMapper: Mapper<Value.Of<U>, Json.Of<T>>;
-
-  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<Value.Of<U>>) {
+  constructor(scope: Scope, id: string, props: FunctionProps<T, U, D>, handle: (event: Value.Of<Shape.Resolve<T>>, run: Client<D>, context: any) => Promise<Value.Of<Shape.Resolve<U>>>) {
     this.handle = handle;
     const entrypointId = Global.addEntrypoint(this);
 
     // default to JSON serialization
-    const mapperFactory = (props.mapper || Json.mapper) as MapperFactory<Json.Of<T>>;
-    this.requestMapper = mapperFactory(props.request || any);
-    this.responseMapper = mapperFactory(props.response || any);
+    this.mapperFactory = (props.mapper || Json.mapper) as MapperFactory<Json.Of<T>>;
+    // this.requestMapper = mapperFactory(props.request || any);
+    // this.responseMapper = mapperFactory(props.response || any);
     this.dependencies = props.depends;
 
-    this.resource = CDK.chain(({lambda}) => scope.chain(scope => (props.functionProps || Build.empty).map(functionProps => {
+    this.resource = CDK.chain(({lambda}) => Scope.resolve(scope).chain(scope => (props.functionProps || Build.empty).map(functionProps => {
       const lambdaFunction: lambda.Function = new lambda.Function(scope, id, {
         code: Code.tryGetCode(scope) || Code.mock(),
         runtime: lambda.Runtime.NODEJS_10_X,
@@ -170,6 +172,8 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
     })));
 
     this.entrypoint = Run.lazy(async () => {
+      const requestMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(props.request)) || any);
+      const responseMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(props.response)) || any);
       const bag: {[name: string]: string} = {};
       for (const [env, value] of Object.entries(process.env)) {
         if (env.startsWith('punchcard') && value !== undefined) {
@@ -184,10 +188,10 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
         client = await (Run.resolve(this.dependencies!.bootstrap))(runtimeProperties, cache);
       }
       return (async (event: any, context: any) => {
-        const parsed = this.requestMapper.read(event);
+        const parsed = requestMapper.read(event);
         try {
           const result = await this.handle(parsed as any, client, context);
-          return this.responseMapper.write(result as any);
+          return responseMapper.write(result as any);
         } catch (err) {
           console.error(err);
           throw err;
@@ -196,25 +200,27 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
     });
   }
 
-  public invoke(value: GraphQL.Repr<T>): ResolverStatementF<GraphQL.TypeOf<U>> {
+  public invoke(value: GraphQL.Repr<Shape.Resolve<T>>): StatementF<GraphQL.TypeOf<Shape.Resolve<U>>> {
     return invokeLambda(this, value);
   }
 
   /**
    * Depend on invoking this Function.
    */
-  public invokeAccess(): Dependency<Function.Client<Value.Of<T>, Value.Of<U>>> {
+  public invokeAccess(): Dependency<Function.Client<Value.Of<Shape.Resolve<T>>, Value.Of<Shape.Resolve<U>>>> {
     return {
       install: this.resource.map(fn => (ns, g) => {
         fn.grantInvoke(g);
         ns.set('functionArn', fn.functionArn);
       }),
       bootstrap: Run.of(async (ns, cache) => {
+        const requestMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(this.request)) || any);
+        const responseMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(this.response)) || any);
         return new Function.Client(
           cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
           ns.get('functionArn'),
-          Json.asString(this.requestMapper),
-          Json.asString(this.requestMapper)
+          Json.asString(requestMapper),
+          Json.asString(responseMapper)
         ) as any;
       })
     };
