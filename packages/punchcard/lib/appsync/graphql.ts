@@ -151,10 +151,6 @@ export namespace GraphQL {
    */
   export const $util = new Util();
 
-  export function compile(t: GraphQL.Type, ctx: Frame): void {
-    t[GraphQL.expr].visit(ctx);
-  }
-
   /**
    * Type of an ExpressionTemplate factory.
    *
@@ -180,12 +176,12 @@ export namespace GraphQL {
    */
   export function template<T extends Shape>(type: Shape): ExpressionTemplate<T> {
     return (template, ...args) => {
-      return GraphQL.of(type, new GraphQL.Expression(ctx => {
+      return GraphQL.of(type, new GraphQL.Expression(frame => {
         // return null as any;
         template.forEach((str, i) => {
-          ctx.print(str);
+          frame.print(str);
           if (i < args.length) {
-            GraphQL.compile(args[i], ctx);
+            frame.interpret(args[i]);
           }
         });
       })) as GraphQL.TypeOf<T>;
@@ -283,18 +279,19 @@ export namespace GraphQL {
    * Volatile expressions can not be indexed - they must be stored as a variable before being referenced.
    */
   export class VolatileExpression<T extends Shape = Shape> extends Expression {
-    private name?: string;
-
     constructor(public readonly type: T, text: string | ((ctx: Frame) => void)) {
       super(text);
     }
 
-    public visit(ctx: Frame): void {
-      if (!this.name) {
-        const vars = ctx.variables;
+    public visit(frame: Frame): void {
+      let name = frame.lookup(this);
 
-        this.name = vars.getNewId();
-        vars.print(`#set($${this.name} = `);
+      if (!name) {
+        name = frame.register(this);
+        const vars = frame.variables;
+
+        name = vars.getNewId();
+        vars.print(`#set($${name} = `);
         vars.print(`"`);
         if (ShapeGuards.isStringShape(this.type)) {
           // strings are enclosed in '' to escape their content.
@@ -304,9 +301,9 @@ export namespace GraphQL {
         if (ShapeGuards.isStringShape(this.type)) {
           vars.print(`'`);
         }
-        vars.print(`")`);
+        vars.printLine(`")`);
       }
-      ctx.print(`$${this.name}`);
+      frame.print(`$${name}`);
     }
   }
 }

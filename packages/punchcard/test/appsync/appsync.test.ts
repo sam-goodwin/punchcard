@@ -1,11 +1,11 @@
 import 'jest';
 
 import { array, optional, Record, string } from '@punchcard/shape';
-import { Api } from '../../lib/appsync/api';
 import { Mutation, Query } from '../../lib/appsync/decorators';
-import { $if } from '../../lib/appsync/if';
+import { $if } from '../../lib/appsync/expression';
+import { GraphQL, GraphQLResolver, ID } from '../../lib/appsync/graphql';
 import { $api} from '../../lib/appsync/intepreter/resolver';
-import { GraphQL, GraphQLResolver, ID } from '../../lib/appsync/types';
+import { Api } from '../../lib/appsync/resolver';
 import { App } from '../../lib/core';
 import { Scope } from '../../lib/core/construct';
 import DynamoDB = require('../../lib/dynamodb');

@@ -2,7 +2,7 @@ import appsync = require('@aws-cdk/aws-appsync');
 import cdk = require('@aws-cdk/core');
 import { identity } from 'fp-ts/lib/Identity';
 import { Build } from '../../core/build';
-import { GraphQL } from '../types';
+import { GraphQL } from '../graphql';
 import { Statement, Statements } from './statement';
 
 import { Resolved } from './resolver';
@@ -31,9 +31,9 @@ class StashInterpreter implements Interpreter<Statements.Stash> {
   public interpret<Stmt extends Statements.Stash>(statement: Stmt, frame: Frame): GraphQL.Type {
     const name = statement.id || frame.getNewId();
 
-    frame.declare(`$util.qr($ctx.stash.put("${name}",`);
-    statement.value[GraphQL.expr].visit(frame);
-    frame.declare(`))`);
+    frame.variables.print(`$util.qr($ctx.stash.put("${name}",`);
+    statement.value[GraphQL.expr].visit(frame.variables);
+    frame.variables.print(`))`);
 
     return GraphQL.clone(statement.value, new GraphQL.Expression(() => `$ctx.stash.${name}`));
   }

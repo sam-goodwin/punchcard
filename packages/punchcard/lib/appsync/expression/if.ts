@@ -1,4 +1,4 @@
-import { GraphQL } from "../types";
+import { GraphQL } from '../graphql';
 
 export function $if<T extends GraphQL.Type>(condition: GraphQL.Bool, then: () => T): If<T> {
   return new If(undefined, condition, then);
@@ -19,16 +19,31 @@ export class If<T extends GraphQL.Type> {
 
   public $else(then: () => T): T {
     const t = this.then();
-    return GraphQL.clone(t, new GraphQL.Expression(ctx => {
-      ctx.print('#if(');
-      this.chain().forEach((c, i) => {
-        GraphQL.render(c.condition, ctx);
-        ctx.print(')');
-        ctx.print('#elseif(');
+    return GraphQL.clone(t, new GraphQL.Expression(frame => {
+      frame.print('#if(');
+      const chain = this.chain();
+      chain.forEach((c, i) => {
+        frame.interpret(c.condition);
+        frame.print(')');
+        frame.indent();
+        frame.printLine();
+        // interpret the block
+        frame.interpret(c.then());
+        frame.unindent();
+        frame.printLine();
+        if (i < chain.length - 1) {
+          frame.print('#elseif(');
+        }
       });
-      ctx.print('#{else}');
-      GraphQL.render(t, ctx);
-      ctx.print('#end');
+      frame.print('#{else}');
+      frame.indent();
+      frame.printLine();
+
+      frame.interpret(then());
+
+      frame.unindent();
+      frame.printLine();
+      frame.print('#end');
     }));
   }
 

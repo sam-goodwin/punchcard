@@ -1,43 +1,107 @@
+import { GraphQL } from '../graphql';
+
+
 export class Frame {
   private readonly ids: Generator<string>;
 
-  private readonly tokens: (string | Frame)[] = [new Frame()];
+  private readonly tokens: (string | Frame)[] = [];
 
   private readonly children: Frame[];
 
-  constructor(private readonly parent?: Frame) {
+  private readonly lexicalScope: WeakMap<any, string> = new WeakMap();
+
+  constructor(private readonly parent?: Frame, private readonly _variables?: Frame) {
     if (parent) {
       parent.children.push(this);
       this.ids = parent.ids;
+      this.lexicalScope = parent.lexicalScope;
     } else {
       this.ids = infinite();
+      this.lexicalScope = new WeakMap();
+    }
+    this.tokens.push();
+  }
+
+  public lookup(a: any): string | undefined {
+    if (this.lexicalScope.has(a)) {
+      return this.lexicalScope.get(a);
+    } else if (this.parent) {
+      return this.parent.lookup(a);
+    }
+    return undefined;
+  }
+
+  public register(a: any): string {
+    this.lexicalScope.set(a, this.getNewId());
+    return this.lookup(a)!;
+  }
+
+  private _indent: number = 0;
+  public indent(): void {
+    this._indent += 1;
+  }
+
+  public unindent(): void {
+    this._indent -= 1;
+    if (this._indent < 0) {
+      throw new Error('indent underflow');
     }
   }
 
+  public get variables(): Frame {
+    return this._variables || this;
+  }
+
+  public interpret(type: GraphQL.Type) {
+    type[GraphQL.expr].visit(this);
+  }
+
   public render(): string {
-    return this.tokens.map(t => {
+    const variables = this._variables ? this._variables.render() : '';
+
+    const print = (this.tokens).map(t => {
       if (typeof t === 'string') {
         return t;
       } else {
         return t.render();
       }
     }).join('');
+
+    return variables + print;
   }
 
-  public get variables(): Frame {
-    return this.tokens[0] as Frame;
-  }
+  // public get variables(): Frame {
+  //   return this.tokens[0] as Frame;
+  // }
 
   public getNewId(): string {
     return this.ids.next().value;
   }
 
-  public print(text: string): void {
-    this.tokens.push(text);
+  public openBlock(text?: string): void {
+    this.indent();
+    this.print(text);
   }
-  public printLine(text: string): void {
+
+  public closeBlock(text?: string): void {
+    this.unindent();
+    this.printLine();
+    this.print(text);
+  }
+
+  public print(text?: string): void {
+    if (text !== undefined) {
+      this.tokens.push(text);
+    }
+  }
+  public printLine(text?: string): void {
     this.print(text);
     this.print('\n');
+
+    // auto indent
+    for (let i = 0; i < this._indent; i++) {
+      this.print('  ');
+    }
   }
 
   public block(f: (frame: Frame) => void): void {

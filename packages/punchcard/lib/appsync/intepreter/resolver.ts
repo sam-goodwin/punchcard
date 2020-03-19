@@ -1,7 +1,7 @@
 import { RecordMembers, Shape } from '@punchcard/shape';
 import { Do, Do2C } from 'fp-ts-contrib/lib/Do';
 import { free } from 'fp-ts-contrib/lib/Free';
-import { GraphQL } from '../types';
+import { GraphQL } from '../graphql';
 import { Statement, StatementF, Statements } from './statement';
 
 // see: https://github.com/gcanti/fp-ts-contrib/blob/master/test/Free.ts

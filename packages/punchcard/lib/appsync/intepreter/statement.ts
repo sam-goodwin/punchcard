@@ -1,4 +1,4 @@
-import { GraphQL } from '../types';
+import { GraphQL } from '../graphql';
 
 import { Free, liftF } from 'fp-ts-contrib/lib/Free';
 
