@@ -4,16 +4,15 @@ import { array, optional, Record, string } from '@punchcard/shape';
 import { Api } from '../../lib/appsync/api';
 import { Mutation, Query } from '../../lib/appsync/decorators';
 import { $if } from '../../lib/appsync/if';
-import { $api} from '../../lib/appsync/resolver/resolver';
+import { $api} from '../../lib/appsync/intepreter/resolver';
 import { GraphQL, GraphQLResolver, ID } from '../../lib/appsync/types';
-import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
-import { Construct, Scope } from '../../lib/core/construct';
+import { Scope } from '../../lib/core/construct';
 import DynamoDB = require('../../lib/dynamodb');
 import { Function } from '../../lib/lambda';
 
 export class PostStore extends DynamoDB.Table.NewType({
-  data: () => Post.Record,
+  data: type => Post.Record,
   key: {
     partition: 'id'
   }
@@ -36,7 +35,7 @@ class PostApi extends Api {
    */
   @Query
   public getPost = $api({id: ID}, optional(this.Post))
-    .bindL('post', ({id}) => this.getPostFn.invoke(id))
+    .resolve('post', ({id}) => this.getPostFn.invoke(id))
     .return('post');
 
   private readonly getPostFn = new Function(this, 'getPostFn', {
@@ -55,15 +54,16 @@ class PostApi extends Api {
 
   @Mutation
   public addPost = $api({title: optional(string), content: string}, this.Post)
-    .let('id', () => $util.autoId())
+    .let('id', () => GraphQL.$util.autoId())
+    .let('a', ({id}) => GraphQL.string`#if(${id.size()} > 0)hello#{else}goodbye#end`)
     .let('idUpper', ({id}) => id.toUpperCase())
     .validate(({content}) => content.isNotEmpty(), 'content must not be empty')
-    .run(() => this.table.get({
+    .resolve('item', () => this.table.get({
       id: GraphQL.string('test')
     }))
-    .call('newPost', ({id, title, content}) => this.addPostFn.invoke({
+    .resolve('newPost', ({id, title, content}) => this.addPostFn.invoke({
       id,
-      title: $if(GraphQL.isNull(title), () =>
+      title: $if(GraphQL.$util.isNull(title), () =>
         title
       ).$else(() =>
         GraphQL.string('generated title')
@@ -138,10 +138,10 @@ class Post extends GraphQLResolver({
    */
   // public relatedPosts: Resolved<ArrayShape<Post.Record>> = this.$field(array(this))
   public relatedPosts = this.$field(array(this))
-    .bindL('item', () => this.table.get({
+    .resolve('item', () => this.table.get({
       id: this.$.id
     }))
-    .bindL('relatedPosts', ({item}) =>
+    .resolve('relatedPosts', ({item}) =>
       this.getRelatedPosts.invoke(item.title)
     )
     .return('relatedPosts');

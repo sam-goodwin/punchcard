@@ -4,7 +4,7 @@ import { liftF } from 'fp-ts-contrib/lib/Free';
 
 import { RecordShape, Shape } from '@punchcard/shape';
 import { DDB } from '@punchcard/shape-dynamodb';
-import { Statement, StatementF } from '../appsync/resolver/statement';
+import { Statement, StatementF } from '../appsync/intepreter/statement';
 import { GraphQL } from '../appsync/types';
 import { Build } from '../core/build';
 import { Table } from './table';

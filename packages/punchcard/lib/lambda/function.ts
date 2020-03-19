@@ -6,7 +6,7 @@ import type * as cdk from '@aws-cdk/core';
 import { Json } from '@punchcard/shape-json';
 
 import { any, AnyShape, Mapper, MapperFactory, Pointer, Shape, Value } from '@punchcard/shape';
-import { StatementF } from '../appsync/resolver/statement';
+import { StatementF } from '../appsync/intepreter/statement';
 import { GraphQL } from '../appsync/types';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';

@@ -2,8 +2,7 @@ import { RecordMembers, Shape } from '@punchcard/shape';
 import { Do, Do2C } from 'fp-ts-contrib/lib/Do';
 import { free } from 'fp-ts-contrib/lib/Free';
 import { GraphQL } from '../types';
-import { $util } from '../util';
-import { $stash, Statement, StatementF } from './statement';
+import { Statement, StatementF, Statements } from './statement';
 
 // see: https://github.com/gcanti/fp-ts-contrib/blob/master/test/Free.ts
 
@@ -33,7 +32,7 @@ export class Resolver<L extends ResolverScope, Ret extends Shape> {
   }, Ret> {
     return new Resolver(this._do.bindL(id, f));
   }
-  public call = this.bindL;
+  public resolve = this.bindL;
 
   public stash<ID extends string, B extends GraphQL.Type>(
     id: Exclude<ID, keyof L>,
@@ -41,12 +40,12 @@ export class Resolver<L extends ResolverScope, Ret extends Shape> {
   ): Resolver<L & {
     [id in ID]: B;
   }, Ret> {
-    return this.bindL(id, scope => $stash(f(scope), id));
+    return this.bindL(id, scope => Statements.stash(f(scope), id));
   }
   public let = this.stash;
 
   public validate(f: (scope: L) => GraphQL.Bool, message: string) {
-    return this.doL(scope => $util.validate(f(scope), message));
+    return this.doL(scope => GraphQL.$util.validate(f(scope), message));
   }
 
   public return(f: (scope: L) => GraphQL.Repr<Ret>): Resolved<Ret>;
@@ -71,7 +70,7 @@ export function $api<Args extends RecordMembers, Ret extends Shape.Like>(args: A
 }, Shape.Resolve<Ret>> {
   let f: any = Do(free);
   Object.entries(args).forEach(([name, type]) => {
-    f = f.letL(name, () => GraphQL.of(Shape.resolve(type), new GraphQL.ReferenceExpression(`$context.arguments.${name}`)));
+    f = f.letL(name, () => GraphQL.of(Shape.resolve(type), new GraphQL.Expression(`$context.arguments.${name}`)));
   });
   return new Resolver(f);
 }

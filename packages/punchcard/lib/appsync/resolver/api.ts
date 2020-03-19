@@ -2,9 +2,9 @@ import type * as appsync from '@aws-cdk/aws-appsync';
 import type * as cdk from '@aws-cdk/core';
 
 import {  RecordMembers, RecordShape, Shape } from '@punchcard/shape';
-import { Resolved, Resolver, $api } from './resolver/resolver';
-import { GraphQL } from './types';
-import { Construct } from '../core/construct';
+import { Resolved, Resolver, $api } from '../intepreter/resolver';
+import { GraphQL } from '../types';
+import { Construct } from '../../core/construct';
 
 // export interface GraphQLApiProps {
 //   //
@@ -21,7 +21,7 @@ import { Construct } from '../core/construct';
 //   }
 // }
 
-import Lambda = require('../lambda');
+import Lambda = require('../../lambda');
 
 export class Api extends Construct {
   public readonly api = this.scope.map(scope => {

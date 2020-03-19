@@ -1,6 +1,6 @@
 import { Shape } from '@punchcard/shape';
-import { Function } from '../lambda';
-import { GraphQL } from './types';
+import { Function } from '../../lambda';
+import { GraphQL } from '../types';
 
 // interface DataSource<T, U> {
 //   invoke(request: T): GraphQL<U>;

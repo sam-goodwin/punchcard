@@ -1,6 +1,5 @@
-import { NothingShape, string } from '@punchcard/shape';
-import { directive } from '../resolver/directive';
-import { StatementF } from '../resolver/statement';
+import { bool, string } from '@punchcard/shape';
+import { StatementF } from '../intepreter/statement';
 import { GraphQL } from '../types';
 import { $DynamoDBUtil as DynamoDBUtil } from './dynamodb';
 import { $ListUtil as ListUtil } from './list';
@@ -11,18 +10,21 @@ export class Util {
   }
 
   public autoId(): GraphQL.String {
-    return new GraphQL.String(string, new GraphQL.ReferenceExpression('$util.autoId()'));
+    return new GraphQL.String(string, new GraphQL.Expression('$util.autoId()'));
   }
 
   public matches(regex: RegExp | string): StatementF<GraphQL.Bool> {
     throw new Error('todo');
   }
 
+  public isNull(value: GraphQL.Type): GraphQL.Bool {
+    return new GraphQL.Bool(bool, new GraphQL.Expression((ctx) => {
+      ctx.print(`$util.isNull(`);
+      GraphQL.render(value, ctx);
+      ctx.print(')');
+    }));
+  }
+
   public readonly dynamodb = new DynamoDBUtil();
   public readonly list = new ListUtil();
 }
-
-/**
- * https://docs.aws.amazon.com/appsync/latest/devguide/resolver-util-reference.html
- */
-export const $util = new Util();

@@ -1,8 +1,10 @@
-import { ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, MapShape, NothingShape, NumberShape, RecordMembers, RecordShape, RecordType, SetShape, Shape, string, StringShape, TimestampShape, Trait } from '@punchcard/shape';
-import { Construct } from '../core/construct';
-
+import { ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, integer, IntegerShape, MapShape, NothingShape, NumberShape, RecordMembers, RecordShape, RecordType, SetShape, Shape, ShapeGuards, StringShape, TimestampShape, Trait } from '@punchcard/shape';
+import { integer as integerShape, number as numberShape, string as stringShape } from '@punchcard/shape';
 import { Record as MakeRecord, ShapeVisitor } from '@punchcard/shape';
-import { $api, Resolver } from './resolver/resolver';
+import { Construct } from '../core/construct';
+import { Frame } from './intepreter/frame';
+import { $api, Resolver } from './intepreter/resolver';
+import { Util } from './util';
 
 // tslint:disable: no-construct
 
@@ -16,7 +18,7 @@ const IDTrait: {
   }
 };
 
-export const ID = string.apply(IDTrait);
+export const ID = stringShape.apply(IDTrait);
 
 export function GraphQLResolver<M extends RecordMembers>(members: M): {
   Record: RecordType<M>;
@@ -34,7 +36,7 @@ export function GraphQLResolver<M extends RecordMembers>(members: M): {
     /**
      * A reference to `$context.source` as "this".
      */
-    public readonly $this = GraphQL.of(record, new GraphQL.ReferenceExpression('$context.source'));
+    public readonly $this = GraphQL.of(record, new GraphQL.Expression('$context.source'));
     public readonly $ = this.$this;
 
     public $field<T extends Shape.Like>(type: T): Resolver<{}, Shape.Resolve<T>> {
@@ -87,7 +89,7 @@ export namespace GraphQL {
   // export const Shape = Symbol.for('GraphQL.Shape');
   export const type = Symbol.for('GraphQL.Type');
   export const expr = Symbol.for('GraphQL.Expression');
-  export class Type<T extends Shape = any> {
+  export class Type<T extends Shape = Shape> {
     public readonly [type]: T;
     public readonly [expr]: GraphQL.Expression;
     constructor(_type: T, _expr: GraphQL.Expression) {
@@ -116,6 +118,10 @@ export namespace GraphQL {
     public isEmpty(): Bool {
       return new Bool(bool, this[expr].dot('isEmpty()'));
     }
+
+    public size(): Integer {
+      return new Integer(integer, this[expr].dot('size()'));
+    }
   }
   export class Timestamp extends Type<TimestampShape> {}
   export class Binary extends Type<BinaryShape> {}
@@ -140,9 +146,71 @@ export namespace GraphQL {
 }
 
 export namespace GraphQL {
-  export declare function string(s: string): GraphQL.String;
-  export declare function number(n: number): GraphQL.Number;
-  export declare function isNull(value: GraphQL.Type): GraphQL.Bool;
+  /**
+   * https://docs.aws.amazon.com/appsync/latest/devguide/resolver-util-reference.html
+   */
+  export const $util = new Util();
+
+  export function compile(t: GraphQL.Type, ctx: Frame): void {
+    t[GraphQL.expr].visit(ctx);
+  }
+
+  /**
+   * Type of an ExpressionTemplate factory.
+   *
+   * ```ts
+   * GraphQL.string`${mustBeAGraphQLType}`;
+   * ```
+   */
+  export type ExpressionTemplate<T extends Shape> = <Args extends (GraphQL.Type)[]>(template: TemplateStringsArray,...args: Args) => GraphQL.TypeOf<T>;
+
+  export const $ = template;
+
+  /**
+   * Evaluate a string template as a shape.
+   *
+   * ```ts
+   * const str = GraphQL.template(string)`hello`;
+   *
+   * // short-hand
+   * const str = GraphQL.$(string)`hello`;
+   * ```
+   *
+   * @param type
+   */
+  export function template<T extends Shape>(type: Shape): ExpressionTemplate<T> {
+    return (template, ...args) => {
+      return GraphQL.of(type, new GraphQL.Expression(ctx => {
+        // return null as any;
+        template.forEach((str, i) => {
+          ctx.print(str);
+          if (i < args.length) {
+            GraphQL.compile(args[i], ctx);
+          }
+        });
+      })) as GraphQL.TypeOf<T>;
+    };
+  }
+
+  export function string<Args extends (GraphQL.Type)[]>(template: TemplateStringsArray,...args: Args): GraphQL.String;
+  export function string(s: string): GraphQL.String;
+  export function string(...args: any[]): GraphQL.String {
+    if (typeof args[0] === 'string') {
+      return new GraphQL.String(stringShape, new GraphQL.VolatileExpression(stringShape, args[0]));
+    } else {
+      return ($(stringShape) as any)(...args);
+    }
+  }
+
+  export function number<Args extends (GraphQL.Type)[]>(template: TemplateStringsArray,...args: Args): GraphQL.Number;
+  export function number(n: number): GraphQL.Number;
+  export function number(...args: any[]): GraphQL.Number {
+    if (typeof args[0] === 'number') {
+      return new GraphQL.Number(numberShape, new GraphQL.VolatileExpression(integerShape, args[0].toString(10)));
+    } else {
+      return ($(stringShape) as any)(...args);
+    }
+  }
 }
 
 export namespace GraphQL {
@@ -169,30 +237,77 @@ export namespace GraphQL {
   }
 }
 export namespace GraphQL {
-  export abstract class Expression {
-    public dot(text: string): Expression {
-      return new ReferenceExpression(`${this.toVTL()}.${text}`);
-    }
+  export class Expression {
+    private readonly text: (ctx: Frame) => void;
 
-    public prepend(text: string): Expression {
-      return new ReferenceExpression(`${text}${this.toVTL()}`);
-    }
-
-    public surround(left: string, right: string = ''): Expression {
-      return new ReferenceExpression(`${left}${this.toVTL()}${right}`);
+    constructor(text: string | ((ctx: Frame) => void)) {
+      if (typeof text === 'string') {
+        this.text = (ctx) => ctx.print(text);
+      } else {
+        this.text = text;
+      }
     }
 
     /**
      * Write the Expression to VTL.
      */
-    public abstract toVTL(): string;
+    public visit(ctx: Frame): void {
+      this.text(ctx);
+    }
+
+    public dot(text: string): Expression {
+      return new Expression((ctx) => {
+        this.visit(ctx);
+        ctx.print('.');
+        ctx.print(text);
+      });
+    }
+
+    public prepend(text: string): Expression {
+      return new Expression((ctx) => {
+        ctx.print(text);
+        this.visit(ctx);
+      });
+    }
+
+    public surround(left: string, right: string = ''): Expression {
+      return new Expression((ctx) => {
+        ctx.print(left);
+        this.visit(ctx);
+        ctx.print(right);
+      });
+    }
   }
 
-  export class ReferenceExpression extends Expression {
-    constructor(public readonly reference: string) {
-      super();
+  /**
+   * Volatile expressions can not be indexed - they must be stored as a variable before being referenced.
+   */
+  export class VolatileExpression<T extends Shape = Shape> extends Expression {
+    private name?: string;
+
+    constructor(public readonly type: T, text: string | ((ctx: Frame) => void)) {
+      super(text);
     }
-    public toVTL = () => this.reference;
+
+    public visit(ctx: Frame): void {
+      if (!this.name) {
+        const vars = ctx.variables;
+
+        this.name = vars.getNewId();
+        vars.print(`#set($${this.name} = `);
+        vars.print(`"`);
+        if (ShapeGuards.isStringShape(this.type)) {
+          // strings are enclosed in '' to escape their content.
+          vars.print(`'`);
+        }
+        super.visit(vars);
+        if (ShapeGuards.isStringShape(this.type)) {
+          vars.print(`'`);
+        }
+        vars.print(`")`);
+      }
+      ctx.print(`$${this.name}`);
+    }
   }
 }
 

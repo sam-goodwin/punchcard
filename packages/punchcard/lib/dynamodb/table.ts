@@ -5,7 +5,7 @@ import type * as iam from '@aws-cdk/aws-iam';
 
 import { Pointer, RecordShape, Shape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { StatementF } from '../appsync/resolver/statement';
+import { StatementF } from '../appsync/intepreter/statement';
 import { GraphQL } from '../appsync/types';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
@@ -13,7 +13,7 @@ import { Construct, Scope } from '../core/construct';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
-import { KeyGraphQLRepr, getDynamoDBItem } from './resolver';
+import { getDynamoDBItem, KeyGraphQLRepr } from './resolver';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
