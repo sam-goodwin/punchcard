@@ -3,11 +3,8 @@ import { GraphQL } from '../graphql';
 
 export class Frame {
   private readonly ids: Generator<string>;
-
   private readonly tokens: (string | Frame)[] = [];
-
   private readonly children: Frame[];
-
   private readonly lexicalScope: WeakMap<any, string> = new WeakMap();
 
   constructor(private readonly parent?: Frame, private readonly _variables?: Frame) {
@@ -70,23 +67,8 @@ export class Frame {
     return variables + print;
   }
 
-  // public get variables(): Frame {
-  //   return this.tokens[0] as Frame;
-  // }
-
   public getNewId(): string {
     return this.ids.next().value;
-  }
-
-  public openBlock(text?: string): void {
-    this.indent();
-    this.print(text);
-  }
-
-  public closeBlock(text?: string): void {
-    this.unindent();
-    this.printLine();
-    this.print(text);
   }
 
   public print(text?: string): void {
@@ -107,16 +89,6 @@ export class Frame {
   public block(f: (frame: Frame) => void): void {
     f(new Frame(this));
   }
-
-  // public addDataSource(instance: any, dataSource: () => appsync.BaseDataSource): string {
-  //   if (!this.dataSources.has(instance)) {
-  //     this.dataSources.set(instance, {
-  //       id: this.getNewId(),
-  //       dataSource: dataSource()
-  //     });
-  //   }
-  //   return this.dataSources.get(instance)!.id;
-  // }
 }
 
 function* infinite() {

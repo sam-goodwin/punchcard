@@ -1,6 +1,6 @@
 import 'jest';
 
-import { array, optional, Record, string } from '@punchcard/shape';
+import { array, optional, Record, string, Value } from '@punchcard/shape';
 import { Mutation, Query } from '../../lib/appsync/decorators';
 import { $if } from '../../lib/appsync/expression';
 import { GraphQL, GraphQLResolver, ID } from '../../lib/appsync/graphql';
@@ -115,6 +115,23 @@ namespace PostApi {
   export type AddPostRequest = PostApi['AddPostRequest'];
 }
 
+
+// class User extends GraphQLResolver({
+// }) {
+//   constructor(public readonly post: Post) {
+//   }
+
+//   public posts = this.$field(this.post);
+// }
+
+/*
+type Post {
+  id: ID!
+  title: string!
+  content: string!
+  relatedPosts: [Post]
+}
+*/
 class Post extends GraphQLResolver({
   /**
    * ID

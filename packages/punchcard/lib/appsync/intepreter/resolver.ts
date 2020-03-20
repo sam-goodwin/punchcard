@@ -2,7 +2,7 @@ import { RecordMembers, Shape } from '@punchcard/shape';
 import { Do, Do2C } from 'fp-ts-contrib/lib/Do';
 import { free } from 'fp-ts-contrib/lib/Free';
 import { GraphQL } from '../graphql';
-import { Statement, StatementF, Statements } from './statement';
+import { set, Statement, StatementF } from './statement';
 
 // see: https://github.com/gcanti/fp-ts-contrib/blob/master/test/Free.ts
 
@@ -34,15 +34,14 @@ export class Resolver<L extends ResolverScope, Ret extends Shape> {
   }
   public resolve = this.bindL;
 
-  public stash<ID extends string, B extends GraphQL.Type>(
+  public let<ID extends string, B extends GraphQL.Type>(
     id: Exclude<ID, keyof L>,
     f: (scope: L) => B
   ): Resolver<L & {
     [id in ID]: B;
   }, Ret> {
-    return this.bindL(id, scope => Statements.stash(f(scope), id));
+    return this.bindL(id, scope => set(f(scope), id));
   }
-  public let = this.stash;
 
   public validate(f: (scope: L) => GraphQL.Bool, message: string) {
     return this.doL(scope => GraphQL.$util.validate(f(scope), message));

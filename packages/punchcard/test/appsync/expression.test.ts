@@ -44,7 +44,6 @@ $if(id.isEmpty(), () =>
   $var2
 #end`);
 
-
 expect(render(
 $if(GraphQL.$util.autoId().isEmpty(), () =>
   $if(GraphQL.$util.autoId().isEmpty(), () =>

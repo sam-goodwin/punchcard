@@ -5,15 +5,15 @@ import type * as iam from '@aws-cdk/aws-iam';
 
 import { Pointer, RecordShape, Shape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { StatementF } from '../appsync/intepreter/statement';
-import { GraphQL } from '../appsync/types';
+import { GraphQL } from '../appsync/graphql';
+import { StatementF, Statements, call } from '../appsync/intepreter/statement';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
-import { getDynamoDBItem, KeyGraphQLRepr } from './resolver';
+import { getDynamoDBItem } from './resolver';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
@@ -157,7 +157,7 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
   }
 
   public get(key: KeyGraphQLRepr<Shape.Resolve<DataType>, Key>): StatementF<GraphQL.TypeOf<Shape.Resolve<DataType>>> {
-    return getDynamoDBItem(this, key);
+    return call(this, );
   }
 
   /**
@@ -251,6 +251,11 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
     };
   }
 }
+
+export type KeyGraphQLRepr<DataType extends RecordShape, K extends DDB.KeyOf<DataType>> = {
+  [k in Extract<K[keyof K], string>]: GraphQL.TypeOf<DataType['Members'][k]>;
+};
+
 
 export namespace Table {
   export function NewType<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>>(

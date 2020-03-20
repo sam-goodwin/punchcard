@@ -1,5 +1,6 @@
 import { GraphQL } from '../graphql';
 
+import { Shape } from '@punchcard/shape/lib/shape';
 import { Free, liftF } from 'fp-ts-contrib/lib/Free';
 
 declare module 'fp-ts/lib/HKT' {
@@ -15,9 +16,9 @@ declare module 'fp-ts/lib/HKT' {
  *
  * @see https://docs.aws.amazon.com/appsync/latest/devguide/pipeline-resolvers.html
  */
-export type Statement<A = GraphQL.Type> =
+export type Statement<A = any> =
   | Statements.Call<A>
-  | Statements.Stash<A>
+  | Statements.Set<A>
   ;
 
 export namespace Statement {
@@ -30,33 +31,61 @@ export namespace Statement {
  */
 export type StatementF<A extends GraphQL.Type = GraphQL.Type> = Free<Statement.URI, A>;
 
-export namespace Statements {
-  export function isCall(a: any): a is Call<GraphQL.Type> {
-    return a._tag === 'call';
-  }
+export type DataSource<T extends Shape> = any;
 
+export function call<T extends Shape, U extends GraphQL.Type>(dataSource: DataSource<T>, request: GraphQL.Repr<T>, response: U): StatementF<U> {
+  return liftF(new Statements.Call(dataSource, request, response));
+}
+
+export function set<T extends GraphQL.Type>(value: T, id?: string): StatementF<T> {
+  return liftF(new Statements.Set(value, id));
+}
+
+export namespace Statements {
+  /**
+   * Call a data source with a request and receive a response.
+   */
   export class Call<T = GraphQL.Type> {
     _URI: Statement.URI;
     _tag: 'call';
     _A: T;
+    constructor(
+      public readonly dataSource: DataSource<Shape>,
+      public readonly request: GraphQL.Type,
+      public readonly response: T) {}
   }
 
-  export function isStash(a: any): a is Stash<GraphQL.Type> {
-    return a._tag === 'stash';
-  }
-
-  export function stash<T extends GraphQL.Type>(value: T, id?: string): StatementF<T> {
-    return liftF(new Stash(value, id));
+  /**
+   * Print to the output of the current VTL template.
+   */
+  export class Print<T = GraphQL.Type> {
+    _URI: Statement.URI;
+    _tag: 'print';
+    _A: T;
+    constructor(
+      public readonly value: T) {}
   }
 
   /**
    * Stash a value for use later.
    */
-  export class Stash<T = GraphQL.Type> {
+  export class Set<T = GraphQL.Type> {
     _URI: Statement.URI;
-    _tag: 'stash';
+    _tag: 'set';
     _A: T;
 
-    constructor(public readonly value: T, public readonly id?: string) {}
+    constructor(
+      public readonly value: T,
+      public readonly id?: string) {}
+  }
+}
+
+export namespace StatementGuards {
+  export function isCall(a: any): a is Statements.Call<GraphQL.Type> {
+    return a._tag === 'call';
+  }
+
+  export function isSet(a: any): a is Statements.Set<GraphQL.Type> {
+    return a._tag === 'stash';
   }
 }
