@@ -46,13 +46,11 @@ jspm_packages
 
 # output
 lib
-dist
-prod
-build
+**/lib
 esm
-pkg
-types
+**/esm
 cjs
+**/cjs
 
 # OS
 $RECYCLE.BIN

@@ -3,9 +3,9 @@ import sinon = require('sinon');
 
 import core = require('@aws-cdk/core');
 import { integer, string, StringShape } from '@punchcard/shape';
-import { Core, SQS, Util } from '../../lib';
-import { Build } from '../../lib/core/build';
-import { Run } from '../../lib/core/run';
+import { Core, SQS, Util } from '../../src';
+import { Build } from '../../src/core/build';
+import { Run } from '../../src/core/run';
 
 Util.setRuntime();
 

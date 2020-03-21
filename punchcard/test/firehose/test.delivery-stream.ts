@@ -3,11 +3,11 @@ import 'jest';
 import core = require('@aws-cdk/core');
 import sinon = require('sinon');
 
-import { Firehose, Util } from '../../lib';
-import { Build } from '../../lib/core/build';
+import { Firehose, Util } from '../../src';
+import { Build } from '../../src/core/build';
 
 import { Record, Shape, string } from '@punchcard/shape';
-import { Event } from '../../lib/s3';
+import { Event } from '../../src/s3';
 
 Util.setRuntime();
 

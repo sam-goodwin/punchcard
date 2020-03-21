@@ -1,6 +1,5 @@
-import type { Database } from '@aws-cdk/aws-glue';
-import type { Construct } from '@aws-cdk/core';
-
+import { Database } from '@aws-cdk/aws-glue';
+import { Construct } from '@aws-cdk/core';
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import { RecordType, Value } from '@punchcard/shape';
 import { Glue, Kinesis, S3 } from 'punchcard';
@@ -11,6 +10,7 @@ import { Schema } from './schema';
 
 export interface DataPipelineProps<C extends RecordType, TS extends keyof C> {
   database: Build<Database>;
+  // @ts-ignore
   schema: Schema<C, TS>;
 }
 export class DataPipeline<T extends RecordType, TS extends keyof T> {
@@ -40,6 +40,7 @@ export class DataPipeline<T extends RecordType, TS extends keyof T> {
         tableName: props.schema.schemaName,
         columns: props.schema.shape,
         partition: {
+          // @ts-ignore
           keys: Period.PT1M.schema,
           get(record: Value.Of<T>): PT1M {
             const ts = props.schema.timestamp(record);

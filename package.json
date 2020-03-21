@@ -1,11 +1,31 @@
 {
   "name": "root",
   "private": true,
-  "packages": [
-    "aws-shapes",
+  "workspaces": [
+    "aws-shapes/*",
+    "examples",
+    "linters/*",
     "punchcard",
     "shapes"
   ],
   "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "@aws-cdk/assert": "^1.30.0",
+    "@types/jest": "^25.1.4",
+    "@types/node": "^13.9.2",
+    "@types/reflect-metadata": "^0.1.0",
+    "@types/sinon": "^7.5.2",
+    "@types/uuid": "^7.0.2",
+    "@types/webpack": "^4.41.8",
+    "jest": "^25.1.0",
+    "sinon": "^9.0.1",
+    "ts-jest": "^25.2.1",
+    "ts-node": "^8.7.0",
+    "typelevel-ts": "^0.4.0",
+    "typescript": "^3.8.3"
+  },
+  "scripts": {
+    "clean": "find . -name 'node_modules' -type d -prune -exec rm -rf '{}' +",
+    "build": "tsc -b"
+  }
 }

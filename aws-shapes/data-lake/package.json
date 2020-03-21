@@ -4,12 +4,6 @@
   "version": "0.12.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "scripts": {
-    "build": "tsc && tslint --project .",
-    "test": "echo no-op",
-    "watch": "tsc -w",
-    "cdk": "cdk"
-  },
   "license": "Apache-2.0",
   "author": {
     "name": "Sam Goodwin",
@@ -17,9 +11,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sam-goodwin/punchcard"
+    "url": "https://github.com/sam-goodwin/punchcard",
+    "directory": "aws-shapes/data-lake"
   },
-  "readme": "README.md",
   "keywords": [
     "punchcard",
     "data-lake",
@@ -29,13 +23,13 @@
     "aws",
     "cloudformation"
   ],
-  "devDependencies": {
-    "@types/node": "^12.0.0",
-    "@babel/core": "^7.4.5",
-    "@babel/preset-env": "^7.4.5",
-    "babel-core": "^7.0.0-bridge.0",
-    "tslint": "^6.0.0",
-    "typescript": "^3.8.3"
+  "peerDependencies": {
+    "@aws-cdk/aws-glue": "^1.27.0",
+    "@aws-cdk/aws-kinesis": "^1.27.0",
+    "@aws-cdk/core": "^1.27.0",
+    "@punchcard/shape-hive": "^0.1.0",
+    "@punchcard/shape": "^0.1.0",
+    "punchcard": "^0.12.0"
   },
   "dependencies": {
     "@aws-cdk/aws-glue": "^1.27.0",
@@ -45,17 +39,12 @@
     "@punchcard/shape": "^0.1.0",
     "punchcard": "^0.12.0"
   },
-  "peerDependencies": {
-    "@aws-cdk/aws-glue": "^1.27.0",
-    "@aws-cdk/aws-kinesis": "^1.27.0",
-    "@aws-cdk/core": "^1.27.0",
-    "@punchcard/shape-hive": "^0.1.0",
-    "@punchcard/shape": "^0.1.0",
-    "punchcard": "^0.12.0"
-  },
-  "jest": {
-    "testMatch": [
-      "**/test/**/*.js"
-    ]
+  "devDependencies": {
+    "@types/node": "^12.0.0",
+    "@babel/core": "^7.4.5",
+    "@babel/preset-env": "^7.4.5",
+    "babel-core": "^7.0.0-bridge.0",
+    "tslint": "^6.0.0",
+    "typescript": "^3.8.3"
   }
 }

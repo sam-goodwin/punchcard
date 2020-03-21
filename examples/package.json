@@ -2,13 +2,15 @@
   "name": "examples",
   "private": true,
   "version": "0.12.0",
-  "main": "lib/index.js",
-  "types": "lib/index.ts",
-  "scripts": {
-    "build": "tsc && tslint --project .",
-    "watch": "tsc -w",
-    "cdk": "cdk",
-    "test": "jest"
+  "license": "Apache-2.0",
+  "author": {
+    "name": "Sam Goodwin",
+    "email": "sam.goodwin1989@gmail.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/punchcard/punchcard",
+    "directory": "examples"
   },
   "dependencies": {
     "@aws-cdk/aws-apigateway": "^1.27.0",
@@ -52,10 +54,5 @@
     "webpack": "^4.42.0",
     "webpack-bundle-analyzer": "^3.6.0",
     "@punchcard/linter": "0.1.0"
-  },
-  "jest": {
-    "testMatch": [
-      "**/test/**/*.js"
-    ]
   }
 }

@@ -2,13 +2,8 @@
   "name": "@punchcard/erasure",
   "description": "Hook for marking dependencies for erasure",
   "version": "0.1.0",
-  "main": "index.js",
-  "types": "index.d.ts",
-  "scripts": {
-    "build": "tsc && tslint --project .",
-    "test": "echo no-op",
-    "watch": "tsc -w"
-  },
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "license": "Apache-2.0",
   "author": {
     "name": "Sam Goodwin",
@@ -16,9 +11,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/punchcard/punchcard"
+    "url": "https://github.com/punchcard/punchcard",
+    "directory": "aws-shapes/erasure"
   },
-  "readme": "README.md",
   "keywords": [
     "punchcard",
     "shape",

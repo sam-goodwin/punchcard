@@ -1,12 +1,12 @@
 import core = require('@aws-cdk/core');
 import 'jest';
 
-import { Lambda } from '../../lib';
-import { Build } from '../../lib/core/build';
+import { Lambda } from '../../src';
+import { Build } from '../../src/core/build';
 
 import assert = require('@aws-cdk/assert');
-import { Duration } from '../../lib/core/duration';
-import { Schedule } from '../../lib/lambda/schedule';
+import { Duration } from '../../src/core/duration';
+import { Schedule } from '../../src/lambda/schedule';
 
 it('should support default properties', async () => {
   const executorService = new Lambda.ExecutorService({

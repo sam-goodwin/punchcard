@@ -4,12 +4,6 @@
   "version": "0.1.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "scripts": {
-    "build": "tsc && tslint --project .",
-    "test": "jest",
-    "watch": "tsc -w",
-    "cdk": "cdk"
-  },
   "license": "Apache-2.0",
   "author": {
     "name": "Sam Goodwin",
@@ -17,9 +11,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/punchcard/punchcard"
+    "url": "https://github.com/punchcard/punchcard",
+    "directory": "aws-shapes/shape-jsonpath"
   },
-  "readme": "README.md",
   "keywords": [
     "punchcard",
     "shape",
@@ -29,6 +23,14 @@
     "aws",
     "cloudformation"
   ],
+  "peerDependencies": {
+    "@punchcard/shape": "^0.1.0",
+    "@punchcard/shape-json": "^0.1.0"
+  },
+  "dependencies": {
+    "@punchcard/shape": "^0.1.0",
+    "@punchcard/shape-json": "^0.1.0"
+  },
   "devDependencies": {
     "@types/jest": "^24.0.25",
     "@types/node": "^12.0.0",
@@ -39,18 +41,5 @@
     "sinon": "^8.0.1",
     "tslint": "^6.0.0",
     "typescript": "^3.8.3"
-  },
-  "dependencies": {
-    "@punchcard/shape": "^0.1.0",
-    "@punchcard/shape-json": "^0.1.0"
-  },
-  "peerDependencies": {
-    "@punchcard/shape": "^0.1.0",
-    "@punchcard/shape-json": "^0.1.0"
-  },
-  "jest": {
-    "testMatch": [
-      "**/test/**/*.js"
-    ]
   }
 }

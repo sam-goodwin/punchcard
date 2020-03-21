@@ -1,8 +1,8 @@
 import 'jest';
 
-import { $if } from '../../lib/appsync';
-import { GraphQL } from '../../lib/appsync/graphql';
-import { Frame } from '../../lib/appsync/intepreter/frame';
+import { $if } from '../../src/appsync';
+import { GraphQL } from '../../src/appsync/graphql';
+import { Frame } from '../../src/appsync/intepreter/frame';
 
 const sam = GraphQL.string('Sam');
 const age = GraphQL.number`31`;

@@ -8,9 +8,9 @@ import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
 import { array, binary, integer, map, number, Optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
 import { bigint, double, float, smallint, tinyint } from '@punchcard/shape-hive';
-import { Core, DynamoDB } from '../../lib';
-import { Build } from '../../lib/core/build';
-import { Run } from '../../lib/core/run';
+import { Core, DynamoDB } from '../../src';
+import { Build } from '../../src/core/build';
+import { Run } from '../../src/core/run';
 
 class Struct extends Record({
   key: string

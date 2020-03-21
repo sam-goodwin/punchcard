@@ -3,8 +3,8 @@ import 'jest';
 import sinon = require('sinon');
 
 import { string } from '@punchcard/shape';
-import { Kinesis } from '../../lib';
-import { Build } from '../../lib/core/build';
+import { Kinesis } from '../../src';
+import { Build } from '../../src/core/build';
 
 // tslint:disable-next-line: variable-name
 

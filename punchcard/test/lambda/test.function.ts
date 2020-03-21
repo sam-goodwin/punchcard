@@ -2,9 +2,9 @@ import core = require('@aws-cdk/core');
 import 'jest';
 import sinon = require('sinon');
 
-import { Core, Lambda, Util } from '../../lib';
-import { Build } from '../../lib/core/build';
-import { Run } from '../../lib/core/run';
+import { Core, Lambda, Util } from '../../src';
+import { Build } from '../../src/core/build';
+import { Run } from '../../src/core/run';
 
 // stop web-pack from running
 // TODO: gross as fuck - every user will have to do this

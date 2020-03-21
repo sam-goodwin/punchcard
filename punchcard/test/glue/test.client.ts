@@ -6,8 +6,8 @@ import { Record, timestamp } from '@punchcard/shape';
 import glue = require('@aws-cdk/aws-glue');
 import core = require('@aws-cdk/core');
 
-import { Glue, S3 } from '../../lib';
-import { Build } from '../../lib/core/build';
+import { Glue, S3 } from '../../src';
+import { Build } from '../../src/core/build';
 
 const stack = Build.of(new core.Stack(new core.App( { autoSynth: false } ), 'stack'));
 const database = stack.map(stack => new glue.Database(stack, 'Database', {

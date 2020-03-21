@@ -1,0 +1,42 @@
+{
+  "compileOnSave": true,
+  "files": [],
+  "references": [
+    {
+      "path": "./aws-shapes/constructs/tsconfig.json"
+    },
+    {
+      "path": "./aws-shapes/data-lake/tsconfig.json"
+    },
+    {
+      "path": "./aws-shapes/erasure/tsconfig.json"
+    },
+    {
+      "path": "./linters/tslint-plugin/tsconfig.json"
+    },
+    {
+      "path": "./aws-shapes/shape-dynamodb/tsconfig.json"
+    },
+    {
+      "path": "./aws-shapes/shape-hive/tsconfig.json"
+    },
+    {
+      "path": "./aws-shapes/shape-json/tsconfig.json"
+    },
+    {
+      "path": "./aws-shapes/shape-jsonpath/tsconfig.json"
+    },
+    {
+      "path": "./aws-shapes/shape-jsonschema/tsconfig.json"
+    },
+    {
+      "path": "./examples/tsconfig.json"
+    },
+    {
+      "path": "./punchcard/tsconfig.json"
+    },
+    {
+      "path": "./shapes/tsconfig.json"
+    }
+  ]
+}

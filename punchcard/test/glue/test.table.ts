@@ -4,8 +4,8 @@ import core = require('@aws-cdk/core');
 import 'jest';
 
 import { array, binary, bool, integer, map, Record, Shape, string, timestamp } from '@punchcard/shape';
-import { Glue, } from '../../lib';
-import { Build } from '../../lib/core/build';
+import { Glue, } from '../../src';
+import { Build } from '../../src/core/build';
 // tslint:disable-next-line: ordered-imports
 import { bigint, tinyint, smallint, char, varchar, float, double, DataType } from '@punchcard/shape-hive';
 

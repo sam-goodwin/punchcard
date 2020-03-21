@@ -51,7 +51,7 @@ export abstract class BaseDeliveryStream extends core.Resource implements logs.I
       resources: [this.deliveryStreamArn]
     }));
   }
-  public bind(scope: core.Construct, sourceLogGroup: logs.ILogGroup): logs.LogSubscriptionDestinationConfig {
+  public bind(_scope: core.Construct, sourceLogGroup: logs.ILogGroup): logs.LogSubscriptionDestinationConfig {
     // Following example from https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/SubscriptionFilters.html#DestinationKinesisExample
     if (!this.cloudWatchLogsRole) {
       // Create a role to be assumed by CWL that can write to this stream and pass itself.

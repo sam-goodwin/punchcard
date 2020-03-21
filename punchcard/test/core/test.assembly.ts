@@ -1,6 +1,6 @@
 import 'jest';
 import sinon = require('sinon');
-import { Core } from '../../lib';
+import { Core } from '../../src';
 
 const scope: any = {
   node: {

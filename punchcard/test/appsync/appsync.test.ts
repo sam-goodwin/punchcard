@@ -1,15 +1,15 @@
 import 'jest';
 
 import { array, optional, Record, string, Value } from '@punchcard/shape';
-import { Mutation, Query } from '../../lib/appsync/decorators';
-import { $if } from '../../lib/appsync/expression';
-import { GraphQL, GraphQLResolver, ID } from '../../lib/appsync/graphql';
-import { $api} from '../../lib/appsync/intepreter/resolver';
-import { Api } from '../../lib/appsync/resolver';
-import { App } from '../../lib/core';
-import { Scope } from '../../lib/core/construct';
-import DynamoDB = require('../../lib/dynamodb');
-import { Function } from '../../lib/lambda';
+import { Mutation, Query } from '../../src/appsync/decorators';
+import { $if } from '../../src/appsync/expression';
+import { GraphQL, GraphQLResolver, ID } from '../../src/appsync/graphql';
+import { $api} from '../../src/appsync/intepreter/resolver';
+import { Api } from '../../src/appsync/resolver';
+import { App } from '../../src/core';
+import { Scope } from '../../src/core/construct';
+import DynamoDB = require('../../src/dynamodb');
+import { Function } from '../../src/lambda';
 
 export class PostStore extends DynamoDB.Table.NewType({
   data: type => Post.Record,

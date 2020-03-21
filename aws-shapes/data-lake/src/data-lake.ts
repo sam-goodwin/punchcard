@@ -1,4 +1,4 @@
-import type { Construct } from '@aws-cdk/core';
+import { Construct } from '@aws-cdk/core';
 
 import { Database } from '@aws-cdk/aws-glue';
 import { Build } from 'punchcard/lib/core/build';
@@ -30,6 +30,7 @@ export class DataLake<S extends Schemas> {
   }
 }
 
+// @ts-ignore
 type InferPipeline<T> = T extends Schema<infer S, infer T> ? DataPipeline<S, T> : never;
 type Pipelines<S extends Schemas> = {
   [schemaName in keyof S]: InferPipeline<S[schemaName]>;

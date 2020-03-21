@@ -4,12 +4,6 @@
   "version": "0.3.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
-  "scripts": {
-    "build": "tsc && tslint --project .",
-    "test": "echo TODO",
-    "watch": "tsc -w",
-    "cdk": "cdk"
-  },
   "license": "Apache-2.0",
   "author": {
     "name": "Sam Goodwin",
@@ -17,9 +11,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/sam-goodwin/punchcard"
+    "url": "https://github.com/sam-goodwin/punchcard",
+    "directory": "aws-shapes/constructs"
   },
-  "readme": "README.md",
   "keywords": [
     "punchcard",
     "aws-cdk",
@@ -28,13 +22,15 @@
     "aws",
     "cloudformation"
   ],
-  "devDependencies": {
-    "@aws-cdk/assert": "^1.27.0",
-    "@types/node": "^12.0.0",
-    "@types/webpack": "^4.41.0",
-    "sinon": "^8.0.1",
-    "tslint": "^6.0.0",
-    "typescript": "^3.7.2"
+  "peerDependencies": {
+    "@aws-cdk/aws-iam": "^1.27.0",
+    "@aws-cdk/aws-kinesis": "^1.27.0",
+    "@aws-cdk/aws-kinesisfirehose": "^1.27.0",
+    "@aws-cdk/aws-kms": "^1.27.0",
+    "@aws-cdk/aws-lambda": "^1.27.0",
+    "@aws-cdk/aws-logs": "^1.27.0",
+    "@aws-cdk/aws-s3": "^1.27.0",
+    "@aws-cdk/core": "^1.27.0"
   },
   "dependencies": {
     "@punchcard/erasure": "0.1.0",
@@ -47,15 +43,13 @@
     "@aws-cdk/aws-s3": "^1.27.0",
     "@aws-cdk/core": "^1.27.0"
   },
-  "peerDependencies": {
-    "@aws-cdk/aws-iam": "^1.27.0",
-    "@aws-cdk/aws-kinesis": "^1.27.0",
-    "@aws-cdk/aws-kinesisfirehose": "^1.27.0",
-    "@aws-cdk/aws-kms": "^1.27.0",
-    "@aws-cdk/aws-lambda": "^1.27.0",
-    "@aws-cdk/aws-logs": "^1.27.0",
-    "@aws-cdk/aws-s3": "^1.27.0",
-    "@aws-cdk/core": "^1.27.0"
+  "devDependencies": {
+    "@aws-cdk/assert": "^1.27.0",
+    "@types/node": "^12.0.0",
+    "@types/webpack": "^4.41.0",
+    "sinon": "^8.0.1",
+    "tslint": "^6.0.0",
+    "typescript": "^3.7.2"
   },
   "punchcard": {
     "isTransient": true

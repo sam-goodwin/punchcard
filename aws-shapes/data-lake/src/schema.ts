@@ -1,6 +1,9 @@
 import { RecordShape, RecordType, TimestampShape, Value } from '@punchcard/shape';
 
+// @ts-ignore
 type IsTimestamp<T extends RecordType, TS extends keyof T[RecordShape.Members]> = T[RecordShape.Members][TS] extends TimestampShape ? TS : never;
+
+// @ts-ignore
 export class Schema<T extends RecordType, TS extends keyof T[RecordShape.Members]> {
   public readonly schemaName: string;
   public readonly shape: T;
@@ -22,5 +25,6 @@ export class Schema<T extends RecordType, TS extends keyof T[RecordShape.Members
 }
 
 export type Schemas = {
+  // @ts-ignore
   [schemaName: string]: Schema<any, any>;
 };
