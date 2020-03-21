@@ -1,28 +1,36 @@
-import 'jest';
+import * as cdk from "@aws-cdk/core";
+import {Build} from "punchcard/lib/core/build";
+import {app as dataLakeApp} from "../src/data-lake";
+import {app as dynamoDBApp} from "../src/dynamodb";
+import {app as gameScoreServiceApp} from "../src/game-score-service";
+import {app as helloWorldApp} from "../src/hello-world";
+import {app as invokeFunctionApp} from "../src/invoke-function";
+import {app as petStoreAPIGatewayApp} from "../src/pet-store-apigw";
+import {app as scheduledFunctionApp} from "../src/scheduled-function";
+import {app as streamProcessing} from "../src/stream-processing";
 
-// tslint:disable-next-line: punchcard-transient-imports
-import cdk = require('@aws-cdk/core');
-import fs = require('fs');
-import path = require('path');
-import { Build } from 'punchcard/lib/core/build';
-import { Global } from 'punchcard/lib/core';
-
-const apps = fs.readdirSync(path.join(__dirname, '../lib/'))
-  .filter(f => f.endsWith('.ts'))
-  .map(f => path.basename(f, '.ts'));
+const apps = [
+  {app: dataLakeApp, name: "data lake"},
+  {app: dynamoDBApp, name: "data lake"},
+  {app: gameScoreServiceApp, name: "data lake"},
+  {app: helloWorldApp, name: "data lake"},
+  {app: invokeFunctionApp, name: "data lake"},
+  {app: petStoreAPIGatewayApp, name: "data lake"},
+  {app: scheduledFunctionApp, name: "data lake"},
+  {app: streamProcessing, name: "data lake"},
+];
 
 for (const app of apps) {
-  describe(app, () => {
-    Global.clear();
-    const a = require(`../lib/${app}`).app.root as Build<cdk.App>;
-    Build.walkAll();
-    for (const stack of Build.resolve(a).node.children) {
+  // eslint-disable-next-line jest/valid-title
+  describe(app.name, () => {
+    for (const stack of Build.resolve(app.app.root).node.children) {
       if (cdk.Stack.isStack(stack)) {
         it(`stack ${app} should match snapshot`, () => {
-          expect((stack as any)._toCloudFormation()).toMatchSnapshot();
+          expect.assertions(1);
+          // todo: find better soluton than casting to any
+          expect((stack as any)._toCloudFormation()).toMatchInlineSnapshot();
         });
       }
     }
   });
 }
-

@@ -1,6 +1,14 @@
-import { integer, MapShape, Shape, ShapeGuards, string, StringShape, timestamp } from '@punchcard/shape';
+import {
+  MapShape,
+  Shape,
+  ShapeGuards,
+  StringShape,
+  integer,
+  string,
+  timestamp,
+} from "@punchcard/shape";
 
-export const isMapping = Symbol.for('stdlib.isMapping');
+export const isMapping = Symbol.for("stdlib.isMapping");
 
 export class Mapping {
   public readonly [isMapping]: true = true;
@@ -12,31 +20,44 @@ export class Mapping {
 }
 export class TypedMapping<T extends Shape> extends Mapping {
   constructor(public readonly type: T, path: string) {
-    super(ShapeGuards.isStringShape(type) || ShapeGuards.isTimestampShape(type) || ShapeGuards.isBinaryShape(type)
-      ? `"${path}"` // add quote around string types
-      : path);
+    super(
+      ShapeGuards.isStringShape(type) ||
+        ShapeGuards.isTimestampShape(type) ||
+        ShapeGuards.isBinaryShape(type)
+        ? `"${path}"` // add quote around string types
+        : path,
+    );
   }
 }
 export type StringMapping = TypedMapping<StringShape>;
-function stringMapping(name: string) {
+function stringMapping(name: string): TypedMapping<StringShape> {
   return new TypedMapping(string, name);
 }
 
-export function dynamicVariable(fn: (name: string) => StringMapping): {[key: string]: Mapping} {
-  return new Proxy({}, {
-    get: (_target, name) => {
-      return fn(name.toString());
-    }
-  });
+export function dynamicVariable(
+  fn: (name: string) => StringMapping,
+): {[key: string]: Mapping} {
+  return new Proxy(
+    {},
+    {
+      // implicitly returns `any`
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+      get: (_target, name) => {
+        return fn(name.toString());
+      },
+    },
+  );
 }
 
 export class Input {
-  public readonly body = stringMapping('$input.body');
+  public readonly body = stringMapping("$input.body");
 
-  private readonly _params = stringMapping('$input.params()');
+  private readonly _params = stringMapping("$input.params()");
   public params(): TypedMapping<MapShape<StringShape>>;
   public params(name: string): TypedMapping<StringShape>;
   public params<T extends Shape>(name: string, type: T): TypedMapping<T>;
+  // todo: eliminate usage of `any`
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   public params(name?: any, type?: any) {
     if (name !== undefined) {
       return new TypedMapping(type || string, `$input.params('${name}')`);
@@ -48,18 +69,27 @@ export class Input {
 export const $input = new Input();
 
 export const $context = {
-  apiId: stringMapping('$context.apiId'),
-  authorizer: new Proxy({}, {
-    get: (_target, name) => {
-      if (name === 'principalId') {
-        return stringMapping('$context.authorizer.principalId');
-      } else if (name === 'claims') {
-        return dynamicVariable(name => stringMapping(`$context.claims.${name}`));
-      } else {
-        return dynamicVariable(name => stringMapping(`$context.authorizer.${name}`));
-      }
-    }
-  }) as {
+  apiId: stringMapping("$context.apiId"),
+  authorizer: new Proxy(
+    {},
+    {
+      // todo: fix same issue, implicitly returns any
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+      get: (_target, name) => {
+        if (name === "principalId") {
+          return stringMapping("$context.authorizer.principalId");
+        } else if (name === "claims") {
+          return dynamicVariable((name) =>
+            stringMapping(`$context.claims.${name}`),
+          );
+        } else {
+          return dynamicVariable((name) =>
+            stringMapping(`$context.authorizer.${name}`),
+          );
+        }
+      },
+    },
+  ) as {
     claims: {
       [key: string]: Mapping;
     };
@@ -68,72 +98,92 @@ export const $context = {
     [key: string]: Mapping;
   },
 
-  httpMethod: stringMapping('$context.httpMethod'),
   error: {
-    message: stringMapping('$context.error.message'),
-    messageString: stringMapping('$context.error.messageString'),
+    message: stringMapping("$context.error.message"),
+    messageString: stringMapping("$context.error.messageString"),
   },
-  extendedRequestId: stringMapping('$context.extendedRequestId'),
+  extendedRequestId: stringMapping("$context.extendedRequestId"),
+  httpMethod: stringMapping("$context.httpMethod"),
   identity: {
-    accountId: stringMapping('$context.identity.accountId'),
-    apiKey: stringMapping('$context.identity.apiKey'),
-    apiKeyId: stringMapping('$context.identity.apiKeyId'),
-    caller: stringMapping('$context.identity.caller'),
-    cognitoAuthenticationProvider: stringMapping('$context.identity.cognitoAuthenticationProvider'),
-    cognitoAuthenticationType: stringMapping('$context.identity.cognitoAuthenticationType'),
-    cognitoIdentityId: stringMapping('$context.identity.cognitoIdentityId'),
-    cognitoIdentityPoolId: stringMapping('$context.identity.cognitoIdentityPoolId'),
-    sourceIp: stringMapping('$context.identity.sourceIp'),
-    user: stringMapping('$context.identity.user'),
-    userAgent: stringMapping('$context.identity.userAgent'),
-    userArn: stringMapping('$context.identity.userArn')
+    accountId: stringMapping("$context.identity.accountId"),
+    apiKey: stringMapping("$context.identity.apiKey"),
+    apiKeyId: stringMapping("$context.identity.apiKeyId"),
+    caller: stringMapping("$context.identity.caller"),
+    cognitoAuthenticationProvider: stringMapping(
+      "$context.identity.cognitoAuthenticationProvider",
+    ),
+    cognitoAuthenticationType: stringMapping(
+      "$context.identity.cognitoAuthenticationType",
+    ),
+    cognitoIdentityId: stringMapping("$context.identity.cognitoIdentityId"),
+    cognitoIdentityPoolId: stringMapping(
+      "$context.identity.cognitoIdentityPoolId",
+    ),
+    sourceIp: stringMapping("$context.identity.sourceIp"),
+    user: stringMapping("$context.identity.user"),
+    userAgent: stringMapping("$context.identity.userAgent"),
+    userArn: stringMapping("$context.identity.userArn"),
   },
-  integrationLatency: new TypedMapping(integer, '$context.integrationLatency'),
-  path: stringMapping('$context.path'),
-  protocol: stringMapping('$context.protocol'),
+  integrationLatency: new TypedMapping(integer, "$context.integrationLatency"),
+  path: stringMapping("$context.path"),
+  protocol: stringMapping("$context.protocol"),
   requestOverride: {
-    header: dynamicVariable(name => stringMapping(`$context.requestOverride.header.${name}`)),
-    path: dynamicVariable(name => stringMapping(`$context.requestOverride.path.${name}`)),
-    querystring: dynamicVariable(name => stringMapping(`$context.requestOverride.querystring.${name}`)),
+    header: dynamicVariable((name) =>
+      stringMapping(`$context.requestOverride.header.${name}`),
+    ),
+    path: dynamicVariable((name) =>
+      stringMapping(`$context.requestOverride.path.${name}`),
+    ),
+    querystring: dynamicVariable((name) =>
+      stringMapping(`$context.requestOverride.querystring.${name}`),
+    ),
   },
+  requestTime: new TypedMapping(timestamp, "$context.requestTime"),
+  requestTimeEpoch: new TypedMapping(integer, "$context.requestTimeEpoch"),
+  resourceId: stringMapping("$context.resourceId"),
+  responseLatency: new TypedMapping(integer, "$context.responseLatency"),
+  responseLength: new TypedMapping(integer, "$context.responseLength"),
   responseOverride: {
-    header: dynamicVariable(name => stringMapping(`$context.responseOverride.header.${name}`)),
-    path: dynamicVariable(name => stringMapping(`$context.responseOverride.path.${name}`)),
-    querystring: dynamicVariable(name => stringMapping(`$context.responseOverride.querystring.${name}`)),
-    status: new TypedMapping(integer, '$context.responseOverride.status')
+    header: dynamicVariable((name) =>
+      stringMapping(`$context.responseOverride.header.${name}`),
+    ),
+    path: dynamicVariable((name) =>
+      stringMapping(`$context.responseOverride.path.${name}`),
+    ),
+    querystring: dynamicVariable((name) =>
+      stringMapping(`$context.responseOverride.querystring.${name}`),
+    ),
+    status: new TypedMapping(integer, "$context.responseOverride.status"),
   },
-  requestTime: new TypedMapping(timestamp, '$context.requestTime'),
-  requestTimeEpoch: new TypedMapping(integer, '$context.requestTimeEpoch'),
-  resourceId: stringMapping('$context.resourceId'),
-  responseLength: new TypedMapping(integer, '$context.responseLength'),
-  responseLatency: new TypedMapping(integer, '$context.responseLatency'),
-  status: new TypedMapping(integer, '$context.status'),
-  stage: stringMapping('$context.stage'),
-  wafResponseCode: stringMapping('$context.wafResponseCode'),
-  webaclArn: stringMapping('$context.webaclArn'),
+  stage: stringMapping("$context.stage"),
+  status: new TypedMapping(integer, "$context.status"),
+  wafResponseCode: stringMapping("$context.wafResponseCode"),
+  webaclArn: stringMapping("$context.webaclArn"),
 };
 
-export const $stageVariables = dynamicVariable(name => stringMapping(`$stageVariables.${name}`));
+export const $stageVariables = dynamicVariable((name) =>
+  stringMapping(`$stageVariables.${name}`),
+);
 
 export const $util = {
-  escapeJavaScript: (mapping: StringMapping): StringMapping => {
-    return stringMapping(`$util.escapeJavaScript(${mapping.path})`);
+  base64Decode(mapping: StringMapping): StringMapping {
+    return stringMapping(`$util.base64Decode(${mapping.path})`);
   },
 
-  parseJson<T extends Shape>(mapping: StringMapping, type: T): TypedMapping<T> {
-    return new TypedMapping(type, `$util.escapeJavaScript(${mapping.path})`);
+  base64Encode(mapping: StringMapping): StringMapping {
+    return stringMapping(`$util.base64Encode(${mapping.path})`);
   },
 
   // TODO: data types?
   // urlEncode:
   // urlDecode:
 
-  base64Encode(mapping: StringMapping): StringMapping {
-    return stringMapping(`$util.base64Encode(${mapping.path})`);
+  escapeJavaScript: (mapping: StringMapping): StringMapping => {
+    return stringMapping(`$util.escapeJavaScript(${mapping.path})`);
   },
 
   // Should this return a Buffer?
-  base64Decode(mapping: StringMapping): StringMapping {
-    return stringMapping(`$util.base64Decode(${mapping.path})`);
+  parseJson<T extends Shape>(mapping: StringMapping, type: T): TypedMapping<T> {
+    return new TypedMapping(type, `$util.escapeJavaScript(${mapping.path})`);
   },
 };

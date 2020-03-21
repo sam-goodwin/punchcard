@@ -38,5 +38,11 @@
     "typeRoots": ["node_modules/@types"],
     "useDefineForClassFields": true
   },
-  "exclude": ["node_modules"]
+  "exclude": [
+    "aws-shapes/*/node_modules",
+    "examples/node_modules",
+    "linters/*/node_modules",
+    "node_modules",
+    "shapes/node_modules"
+  ]
 }

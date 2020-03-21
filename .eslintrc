@@ -1,0 +1,85 @@
+{
+  "env": {
+    "browser": false,
+    "jest": true,
+    "node": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:jest/all",
+    "plugin:security/recommended",
+    "plugin:promise/recommended",
+    "plugin:unicorn/recommended",
+    "plugin:@typescript-eslint/recommended-requiring-type-checking",
+    "prettier",
+    "prettier/@typescript-eslint",
+    "plugin:prettier/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "createDefaultProgram": true,
+    "ecmaVersion": 2020,
+    "project": "tsconfig.dev.json",
+    "sourceType": "module"
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "prettier",
+    "security",
+    "promise",
+    "unicorn",
+    "no-null",
+    "sort-keys-fix",
+    "sort-destructure-keys",
+    "sort-class-members",
+    "typescript-sort-keys",
+    "jest",
+    "tsdoc"
+  ],
+  "root": true,
+  "rules": {
+    "@typescript-eslint/ban-ts-ignore": "off",
+    "@typescript-eslint/explicit-function-return-type": "error",
+    "@typescript-eslint/no-explicit-any": "off",
+    "@typescript-eslint/no-for-in-array": "off",
+    "@typescript-eslint/no-unused-vars": "off",
+    "@typescript-eslint/no-use-before-define": "off",
+    "@typescript-eslint/unbound-method": 0,
+    "arrow-parens": ["error", "always"],
+    "import/order": "off",
+    "no-null/no-null": "error",
+    "security/detect-non-literal-fs-filename": "off",
+    "sort-class-members/sort-class-members": [
+      "error",
+      {
+        "accessorPairPositioning": "getThenSet",
+        "order": [
+          "[static-properties]",
+          "[static-methods]",
+          "[properties]",
+          "[conventional-private-properties]",
+          "constructor",
+          "[methods]",
+          "[conventional-private-methods]"
+        ]
+      }
+    ],
+    "sort-destructure-keys/sort-destructure-keys": "error",
+    "sort-imports": [
+      "error",
+      {
+        "ignoreCase": false,
+        "ignoreDeclarationSort": false,
+        "ignoreMemberSort": false,
+        "memberSyntaxSortOrder": ["none", "all", "multiple", "single"]
+      }
+    ],
+    "sort-keys-fix/sort-keys-fix": "error",
+    "tsdoc/syntax": "error",
+    "typescript-sort-keys/interface": "error",
+    "typescript-sort-keys/string-enum": "error",
+    "unicorn/prevent-abbreviations": "off"
+  }
+}

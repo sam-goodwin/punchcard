@@ -1,5 +1,15 @@
-import { Core, Lambda, DynamoDB } from 'punchcard';
-import { string, integer, Record, Minimum, optional, array, boolean, nothing, Maximum } from '@punchcard/shape';
+import {Core, DynamoDB, Lambda} from "punchcard";
+import {
+  Maximum,
+  Minimum,
+  Record,
+  array,
+  boolean,
+  integer,
+  nothing,
+  optional,
+  string,
+} from "@punchcard/shape";
 
 /**
  * Create a new Punchcard Application.
@@ -9,7 +19,7 @@ export const app = new Core.App();
 /**
  * Create a CloudFormation stack with the AWS CDK.
  */
-const stack = app.stack('game-score-service');
+const stack = app.stack("game-score-service");
 
 /**
  * Record of data to maintain a user's statistics for a game.
@@ -18,45 +28,43 @@ class UserGameScore extends Record({
   /**
    * User ID
    */
-  userId: string,
+  gameTitle: string,
   /**
    * Title of the game played.
    */
-  gameTitle: string,
+  losses: integer.apply(Minimum(0)),
   /**
    * Top score achieved on this game.
    * Minimum: 0
    */
-  topScore: integer
-    .apply(Minimum(0)),
+  topScore: integer.apply(Minimum(0)),
   /**
    * Number of times the player won the game.
    */
-  wins: integer
-    .apply(Minimum(0)),
+  userId: string,
   /**
    * Numer of times the player lost the game.
    */
-  losses: integer
-    .apply(Minimum(0)),
+  version: integer,
   /**
    * Version of the DynamoDB record - use for optimistic locking.
    */
-  version: integer
+  wins: integer.apply(Minimum(0)),
 }) {}
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 namespace UserGameScore {
-  export class Key extends UserGameScore.Pick(['userId', 'gameTitle']) {}
+  export class Key extends UserGameScore.Pick(["userId", "gameTitle"]) {}
 }
 /**
- * DynamoDB Table storing the User-Game statistics. 
+ * DynamoDB Table storing the User-Game statistics.
  */
-const UserScores = new DynamoDB.Table(stack, 'ScoreStore', {
+const UserScores = new DynamoDB.Table(stack, "ScoreStore", {
   data: UserGameScore,
   key: {
-    partition: 'userId',
-    sort: 'gameTitle'
-  }
+    partition: "userId",
+    sort: "gameTitle",
+  },
 });
 
 /**
@@ -66,129 +74,140 @@ class SubmitScoreRequest extends Record({
   /**
    * User ID
    */
-  userId: string,
+  gameTitle: string,
   /**
    * Title of the game played.
    */
-  gameTitle: string,
+  score: integer.apply(Minimum(0)),
   /**
    * Did the player win or lose?
    */
-  victory: boolean,
+  userId: string,
   /**
    * Game score achieved.
    * Minimum: 0
    */
-  score: integer
-    .apply(Minimum(0)),
-}) { }
+  victory: boolean,
+}) {}
 
 /**
  * Lambda Function to submit a game score for a user.
  */
 // @ts-ignore
-const submitScore = new Lambda.Function(stack, 'SubmitScore', {
-  /**
-   * Accepts a `SubmitScoreRequest`.
-   */
-  request: SubmitScoreRequest,
-  /**
-   * Returns `nothing` (equiv. to `void`).
-   */
-  response: nothing,
-  /**
-   * Needs read and write access to update user game scores.
-   */
-  depends: UserScores.readWriteAccess()
-}, async (request, highScores) => {
-  const key = new UserGameScore.Key({
-    userId: request.userId,
-    gameTitle: request.gameTitle
-  });
-  await update();
+const submitScore = new Lambda.Function(
+  stack,
+  "SubmitScore",
+  {
+    /**
+     * Accepts a `SubmitScoreRequest`.
+     */
+    depends: UserScores.readWriteAccess(),
+    /**
+     * Returns `nothing` (equiv. to `void`).
+     */
+    request: SubmitScoreRequest,
+    /**
+     * Needs read and write access to update user game scores.
+     */
+    response: nothing,
+  },
+  async (request, highScores) => {
+    const key = new UserGameScore.Key({
+      gameTitle: request.gameTitle,
+      userId: request.userId,
+    });
+    await update();
 
-  async function update() {
-    const gameScore = await highScores.get(key);
-    console.log('got game score', gameScore);
-    if (gameScore) {
-      try {
-        /**
-         * If the record already exists, then use an efficient update expression to 
-         * safely, and atomically update the game score in DynamoDB.
-         */
-        await highScores.update(key, {
+    async function update(): Promise<void> {
+      const gameScore = await highScores.get(key);
+      console.log("got game score", gameScore);
+      if (gameScore) {
+        try {
           /**
-           * Ensure that there was no concurrent modification
+           * If the record already exists, then use an efficient update expression to
+           * safely, and atomically update the game score in DynamoDB.
            */
-          if: _ => _.version.equals(gameScore.version),
-          /**
-           * increment, wins, losses and record the top score
-           */
-          actions: _ => [
-            _.losses.increment(request.victory ? 0 : 1),
-            _.wins.increment(request.victory ? 1 : 0),
-            _.topScore.set(request.score > gameScore.topScore ? request.score : gameScore.topScore),
-            _.version.increment()
-          ]
-        });
-      } catch (err) {
-        console.error(err);
-        if (err.code === 'ConditionCheckFailedException') {
-          /**
-           * Record was concurrently modified - start again.
-           */
-          await update();
-        } else {
-          throw err;
+          await highScores.update(key, {
+            /**
+             * Ensure that there was no concurrent modification
+             */
+            actions: (_) => [
+              _.losses.increment(request.victory ? 0 : 1),
+              _.wins.increment(request.victory ? 1 : 0),
+              _.topScore.set(
+                request.score > gameScore.topScore
+                  ? request.score
+                  : gameScore.topScore,
+              ),
+              _.version.increment(),
+            ],
+            /**
+             * increment, wins, losses and record the top score
+             */
+            if: (_) => _.version.equals(gameScore.version),
+          });
+        } catch (error) {
+          console.error(error);
+          if (error.code === "ConditionCheckFailedException") {
+            /**
+             * Record was concurrently modified - start again.
+             */
+            await update();
+          } else {
+            throw error;
+          }
         }
-      }
-    } else {
-      try {
-        /**
-         * No record exists, so put the initial value.
-         */
-        await highScores.put(new UserGameScore({
-          gameTitle: request.gameTitle,
-          losses: request.victory ? 0 : 1,
-          wins: request.victory ? 1 : 0,
-          topScore: request.score,
-          userId: request.userId,
-          version: 1
-        }), {
+      } else {
+        try {
           /**
-           * Don't overwrite if a score was submitted in-between our get request.
+           * No record exists, so put the initial value.
            */
-          if: _ => _.userId.notExists()
-        });
-      } catch (err) {
-        if (err.code === 'ConditionCheckFailedException') {
-          /**
-           * A record was put before we could submit our request, start again.
-           */
-          await update();
-        } else {
-          throw err;
+          await highScores.put(
+            new UserGameScore({
+              gameTitle: request.gameTitle,
+              losses: request.victory ? 0 : 1,
+              topScore: request.score,
+              userId: request.userId,
+              version: 1,
+              wins: request.victory ? 1 : 0,
+            }),
+            {
+              /**
+               * Don't overwrite if a score was submitted in-between our get request.
+               */
+              if: (_) => _.userId.notExists(),
+            },
+          );
+        } catch (error) {
+          if (error.code === "ConditionCheckFailedException") {
+            /**
+             * A record was put before we could submit our request, start again.
+             */
+            await update();
+          } else {
+            throw error;
+          }
         }
       }
     }
-  };
-});
+  },
+);
 
 /**
  * Global Secondary Index to lookup a game title's high scores.
  */
 const HighScores = UserScores.globalIndex({
-  indexName: 'high-scores',
+  indexName: "high-scores",
   key: {
-    partition: 'gameTitle',
-    sort: 'topScore'
-  }
+    partition: "gameTitle",
+    sort: "topScore",
+  },
 });
 
 /**
  * Helper class for creating and passing around keys of the High Score Index.
  */
-class HighScoresKey extends UserGameScore.Pick(['gameTitle', 'topScore']) {}
+class HighScoresKey extends UserGameScore.Pick(["gameTitle", "topScore"]) {}
 
 /**
  * A request for a game's high scores.
@@ -200,58 +219,71 @@ class GetHighScoresRequest extends Record({
   gameTitle: string,
   /**
    * Max number of results to return.
-   * 
+   *
    * Minimum: 0
    * Maximum: 1000
-   * 
-   * @default 100
+   *
+   * @defaultValue 100
    */
   maxResults: optional(integer)
     .apply(Minimum(0))
-    .apply(Maximum(1000))
+    .apply(Maximum(1000)),
 }) {}
 
 /**
  * Lambda Function to get High Scores for a given game.
  */
 // @ts-ignore
-const getHighScores = new Lambda.Function(stack, 'GetTopN', {
-  /**
-   * Accepts a `GetHighScoresRequest`.
-   */
-  request: GetHighScoresRequest,
-  /**
-   * Returns an array of `UserGameScore` objects.
-   */
-  response: array(UserGameScore),
-  /**
-   * We need reac access to the HighScores index to lookup results.
-   */
-  depends: HighScores.readAccess(),
-}, async (request, highScores) => {
-  const maxResults = request.maxResults === undefined ? 100 : request.maxResults;
-  
-  return await query([]);
-  
-  async function query(scores: UserGameScore[], LastEvaluatedKey?: HighScoresKey): Promise<UserGameScore[]> {
-    const numberToFetch = Math.min(maxResults - scores.length, 100);
-    const nextScores = await highScores.query({
-      // @ts-ignore
-      gameTitle: request.gameTitle,
-      // @ts-ignore
-      topScore: _ => _.greaterThan(0)
-    }, {
-      Limit: numberToFetch,
-      ExclusiveStartKey: LastEvaluatedKey,
-      ScanIndexForward: false
-    });
+const getHighScores = new Lambda.Function(
+  stack,
+  "GetTopN",
+  {
+    /**
+     * Accepts a `GetHighScoresRequest`.
+     */
+    depends: HighScores.readAccess(),
+    /**
+     * Returns an array of `UserGameScore` objects.
+     */
+    request: GetHighScoresRequest,
+    /**
+     * We need reac access to the HighScores index to lookup results.
+     */
+    response: array(UserGameScore),
+  },
+  async (request, highScores) => {
+    const maxResults =
+      request.maxResults === undefined ? 100 : request.maxResults;
 
-    scores = scores.concat(nextScores.Items!);
+    return await query([]);
 
-    if (!nextScores.LastEvaluatedKey || scores.length >= maxResults) {
-      return scores;
+    async function query(
+      scores: UserGameScore[],
+      LastEvaluatedKey?: HighScoresKey,
+    ): Promise<UserGameScore[]> {
+      const numberToFetch = Math.min(maxResults - scores.length, 100);
+      const nextScores = await highScores.query(
+        {
+          // @ts-ignore
+          gameTitle: request.gameTitle,
+          // @ts-ignore
+          topScore: (_) => _.greaterThan(0),
+        },
+        {
+          ExclusiveStartKey: LastEvaluatedKey,
+          Limit: numberToFetch,
+          ScanIndexForward: false,
+        },
+      );
+
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      scores = scores.concat(nextScores.Items!);
+
+      if (!nextScores.LastEvaluatedKey || scores.length >= maxResults) {
+        return scores;
+      }
+
+      return await query(scores, nextScores.LastEvaluatedKey);
     }
-
-    return await query(scores, nextScores.LastEvaluatedKey);
-  }
-});
+  },
+);

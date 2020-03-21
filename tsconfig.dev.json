@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": ["aws-shapes", "examples", "linters", "punchcard", "shapes"]
+}

@@ -1,45 +1,58 @@
-import type * as apigateway from '@aws-cdk/aws-apigateway';
-
-import { Mapper, RecordShape, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
-import { Build } from '../core/build';
-import { CDK } from '../core/cdk';
-import { Dependency } from '../core/dependency';
-import { Resource as RResource } from '../core/resource';
-import { Run } from '../core/run';
-import { Tree } from '../util/tree';
-import { Method, MethodName, Response, Responses } from './method';
-import { StatusCode } from './request-response';
-import { $context, isMapping, Mapping, TypedMapping } from './variable';
-
-import { Json } from '@punchcard/shape-json';
-import { JsonSchema } from '@punchcard/shape-jsonschema';
+import * as apigateway from "@aws-cdk/aws-apigateway";
+import {$context, Mapping, TypedMapping, isMapping} from "./variable";
+import {
+  Mapper,
+  RecordShape,
+  RecordType,
+  Shape,
+  ShapeGuards,
+} from "@punchcard/shape";
+import {Method, MethodName, Response, Responses} from "./method";
+import {Build} from "../core/build";
+import {CDK} from "../core/cdk";
+import {Dependency} from "../core/dependency";
+import {Json} from "@punchcard/shape-json";
+import {JsonSchema} from "@punchcard/shape-jsonschema";
+import {Resource as RResource} from "../core/resource";
+import {Run} from "../core/run";
+import {StatusCode} from "./request-response";
+import {Tree} from "../util/tree";
 
 type ResponseMappers = {
   [status in StatusCode]: Mapper<any, any>;
 };
 interface Handler<T> {
-  requestMapper: Mapper<T, any>;
   handler: Run<(request: T, context: any) => Promise<Response<any, any>>>;
+  requestMapper: Mapper<T, any>;
   responseMappers: ResponseMappers;
 }
-type MethodHandlers = { [method: string]: Handler<any>; };
+type MethodHandlers = {[method: string]: Handler<any>};
 
-export class Resource extends Tree<Resource> implements RResource<apigateway.Resource> {
+export class Resource extends Tree<Resource>
+  implements RResource<apigateway.Resource> {
   public readonly resource: Build<apigateway.Resource>;
 
   protected readonly restApiId: Build<string>;
   protected readonly getRequestValidator: Build<apigateway.CfnRequestValidator>;
-  protected readonly bodyRequestValidator: Build<apigateway.CfnRequestValidator>;
+  protected readonly bodyRequestValidator: Build<
+    apigateway.CfnRequestValidator
+  >;
 
   private readonly methods: MethodHandlers;
 
-  constructor(parent: Resource, pathPart: string, options: apigateway.ResourceOptions) {
+  constructor(
+    parent: Resource,
+    pathPart: string,
+    options: apigateway.ResourceOptions,
+  ) {
     super(parent, pathPart);
     this.methods = {};
 
     if (parent) {
       this.restApiId = parent.restApiId;
-      this.resource = parent.resource.map(r => r.addResource(pathPart, options));
+      this.resource = parent.resource.map((r) =>
+        r.addResource(pathPart, options),
+      );
       this.getRequestValidator = parent.getRequestValidator;
       this.bodyRequestValidator = parent.bodyRequestValidator;
     }
@@ -47,6 +60,7 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
 
   public async handle(event: any, context: any): Promise<any> {
     const upperHttpMethod = event.__httpMethod.toUpperCase();
+    // eslint-disable-next-line security/detect-object-injection
     const handler = this.methods[upperHttpMethod];
     if (handler) {
       const request = handler.requestMapper.read(event);
@@ -55,9 +69,9 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
       try {
         result = await Run.resolve(handler.handler)(request, context);
         responseMapper = (handler.responseMappers as any)[result.statusCode];
-      } catch (err) {
-        console.error('api gateway handler threw error', err.message);
-        throw err;
+      } catch (error) {
+        console.error("api gateway handler threw error", error.message);
+        throw error;
       }
       if (responseMapper === undefined) {
         throw new Error(`unexpected status code: ${result.statusCode}`);
@@ -67,190 +81,293 @@ export class Resource extends Tree<Resource> implements RResource<apigateway.Res
         if (result.statusCode === StatusCode.Ok) {
           return payload;
         } else {
-          throw new Error(JSON.stringify({
-            statusCode: result.statusCode,
-            body: payload
-          }));
+          throw new Error(
+            JSON.stringify({
+              body: payload,
+              statusCode: result.statusCode,
+            }),
+          );
         }
-      } catch (err) {
-        console.error('failed to serialize payload', err);
-        throw err;
+      } catch (error) {
+        console.error("failed to serialize payload", error);
+        throw error;
       }
     } else {
       throw new Error(`No handler for http method: ${event.httpMethod}`);
     }
   }
 
-  public setDeleteMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'DELETE'>) {
-    this.addMethod('DELETE', method);
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  public setDeleteMethod<
+    R extends Dependency<any>,
+    T extends RecordType,
+    U extends Responses
+  >(method: Method<R, T, U, "DELETE">) {
+    this.addMethod("DELETE", method);
   }
 
-  public setGetMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'GET'>) {
-    this.addMethod('GET', method);
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  public setGetMethod<
+    R extends Dependency<any>,
+    T extends RecordType,
+    U extends Responses
+  >(method: Method<R, T, U, "GET">) {
+    this.addMethod("GET", method);
   }
 
-  public setHeadMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'HEAD'>) {
-    this.addMethod('HEAD', method);
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  public setHeadMethod<
+    R extends Dependency<any>,
+    T extends RecordType,
+    U extends Responses
+  >(method: Method<R, T, U, "HEAD">) {
+    this.addMethod("HEAD", method);
   }
 
-  public setOptionsMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'OPTIONS'>) {
-    this.addMethod('OPTIONS', method);
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  public setOptionsMethod<
+    R extends Dependency<any>,
+    T extends RecordType,
+    U extends Responses
+  >(method: Method<R, T, U, "OPTIONS">) {
+    this.addMethod("OPTIONS", method);
   }
 
-  public setPatchMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'PATCH'>) {
-    this.addMethod('PATCH', method);
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  public setPatchMethod<
+    R extends Dependency<any>,
+    T extends RecordType,
+    U extends Responses
+  >(method: Method<R, T, U, "PATCH">) {
+    this.addMethod("PATCH", method);
   }
 
-  public setPostMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'POST'>) {
-    this.addMethod('POST', method);
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  public setPostMethod<
+    R extends Dependency<any>,
+    T extends RecordType,
+    U extends Responses
+  >(method: Method<R, T, U, "POST">) {
+    this.addMethod("POST", method);
   }
 
-  public setPutMethod<R extends Dependency<any>, T extends RecordType, U extends Responses>(method: Method<R, T, U, 'PUT'>) {
-    this.addMethod('PUT', method);
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+  public setPutMethod<
+    R extends Dependency<any>,
+    T extends RecordType,
+    U extends Responses
+  >(method: Method<R, T, U, "PUT">) {
+    this.addMethod("PUT", method);
   }
 
-  public addResource(pathPart: string, options: apigateway.ResourceOptions = {}): Resource {
+  public addResource(
+    pathPart: string,
+    options: apigateway.ResourceOptions = {},
+  ): Resource {
     return new Resource(this, pathPart, options);
   }
 
-  private addMethod<R extends Dependency<any>, T extends RecordType, U extends Responses, M extends MethodName>(methodName: M, method: Method<R, T, U, M>) {
+  private addMethod<
+    R extends Dependency<any>,
+    T extends RecordType,
+    U extends Responses,
+    M extends MethodName
+  >(methodName: M, method: Method<R, T, U, M>): void {
     // eww, mutability
     this.makeHandler(methodName, method as any);
 
-    Build
-      .concat(
-        this.resource,
-        method.integration.resource,
-        this.getRequestValidator,
-        this.bodyRequestValidator,
-        CDK)
-      .map(([resource, integration, getRequestValidator, bodyRequestValidator, {apigateway, core}]) => {
+    Build.concat(
+      this.resource,
+      method.integration.resource,
+      this.getRequestValidator,
+      this.bodyRequestValidator,
+      CDK,
+    ).map(
+      ([
+        resource,
+        integration,
+        getRequestValidator,
+        bodyRequestValidator,
+        {apigateway, core},
+      ]) => {
         const methodResource = resource.addMethod(methodName, integration);
-        const cfnMethod = methodResource.node.findChild('Resource') as apigateway.CfnMethod;
+        const cfnMethod = methodResource.node.findChild(
+          "Resource",
+        ) as apigateway.CfnMethod;
 
         const requestShape = method.request.shape;
-        cfnMethod.addPropertyOverride('Integration', {
-          PassthroughBehavior: 'NEVER',
+        cfnMethod.addPropertyOverride("Integration", {
+          IntegrationResponses: Object.keys(method.responses).map(
+            (statusCode) => {
+              if (statusCode.toString() === StatusCode.Ok.toString()) {
+                return {
+                  SelectionPattern: "",
+                  StatusCode: statusCode,
+                };
+              } else {
+                return {
+                  ResponseTemplates: {
+                    "application/json": velocityTemplate(
+                      // eslint-disable-next-line security/detect-object-injection
+                      (method.responses as any)[statusCode],
+                      {},
+                      "$util.parseJson($input.path('$.errorMessage')).body",
+                    ),
+                  },
+                  SelectionPattern: `\\{"statusCode":${statusCode}.*`,
+                  StatusCode: statusCode,
+                };
+              }
+            },
+          ),
+          PassthroughBehavior: "NEVER",
           RequestTemplates: {
-            'application/json': velocityTemplate(requestShape, {
-              ...method.request.mappings as object,
+            "application/json": velocityTemplate(requestShape, {
+              ...(method.request.mappings as object),
+              __httpMethod: $context.httpMethod,
               __resourceId: $context.resourceId,
-              __httpMethod: $context.httpMethod
-            })
+            }),
           },
-          IntegrationResponses: Object.keys(method.responses).map(statusCode => {
-            if (statusCode.toString() === StatusCode.Ok.toString()) {
-              return {
-                StatusCode: statusCode,
-                SelectionPattern: ''
-              };
-            } else {
-              return {
-                StatusCode: statusCode,
-                SelectionPattern: `\\{"statusCode":${statusCode}.*`,
-                ResponseTemplates: {
-                  'application/json': velocityTemplate(
-                    (method.responses as any)[statusCode] as any, {},
-                    "$util.parseJson($input.path('$.errorMessage')).body")
-                }
-              };
-            }
-          })
         });
 
-        if (methodName === 'GET') {
-          cfnMethod.addPropertyOverride('RequestValidatorId', getRequestValidator.ref);
+        if (methodName === "GET") {
+          cfnMethod.addPropertyOverride(
+            "RequestValidatorId",
+            getRequestValidator.ref,
+          );
         } else {
-          cfnMethod.addPropertyOverride('RequestValidatorId', bodyRequestValidator.ref);
+          cfnMethod.addPropertyOverride(
+            "RequestValidatorId",
+            bodyRequestValidator.ref,
+          );
         }
-        cfnMethod.addPropertyOverride('RequestModels', {
-          'application/json': new apigateway.CfnModel(methodResource, 'Request', {
-            restApiId: resource.restApi.restApiId,
-            contentType: 'application/json',
-            schema: JsonSchema.of(requestShape)
-          }).ref
-        });
-        const responses = new core.Construct(methodResource, 'Response');
-        cfnMethod.addPropertyOverride('MethodResponses', Object.keys(method.responses).map(statusCode => {
-          return {
-            StatusCode: statusCode,
-            ResponseModels: {
-              'application/json': new apigateway.CfnModel(responses, statusCode, {
-                restApiId: resource.restApi.restApiId,
-                contentType: 'application/json',
-                schema: JsonSchema.of((method.responses as {[key: string]: Shape})[statusCode])
-              }).ref
+        cfnMethod.addPropertyOverride("RequestModels", {
+          "application/json": new apigateway.CfnModel(
+            methodResource,
+            "Request",
+            {
+              contentType: "application/json",
+              restApiId: resource.restApi.restApiId,
+              schema: JsonSchema.of(requestShape),
             },
-            // TODO: responseParameters
-          };
-        }));
-      });
+          ).ref,
+        });
+        const responses = new core.Construct(methodResource, "Response");
+        cfnMethod.addPropertyOverride(
+          "MethodResponses",
+          Object.keys(method.responses).map((statusCode) => {
+            return {
+              ResponseModels: {
+                "application/json": new apigateway.CfnModel(
+                  responses,
+                  statusCode,
+                  {
+                    contentType: "application/json",
+                    restApiId: resource.restApi.restApiId,
+                    schema: JsonSchema.of(
+                      // eslint-disable-next-line security/detect-object-injection
+                      (method.responses as {[key: string]: Shape})[statusCode],
+                    ),
+                  },
+                ).ref,
+              },
+              StatusCode: statusCode,
+              // TODO: responseParameters
+            };
+          }),
+        );
+      },
+    );
   }
 
-  private makeHandler(httpMethod: string, method: Method<any, any, any, any>): void {
+  private makeHandler(
+    httpMethod: string,
+    method: Method<any, any, any, any>,
+  ): void {
     method.integration.mapResource(this);
     const responseMappers: ResponseMappers = {} as ResponseMappers;
-    Object.keys(method.responses).forEach(statusCode => {
+    Object.keys(method.responses).forEach((statusCode) => {
       // TODO: can we return raw here?
-      (responseMappers as any)[statusCode] = Json.mapper(method.responses[statusCode]);
+      // eslint-disable-next-line security/detect-object-injection
+      (responseMappers as any)[statusCode] = Json.mapper(
+        // eslint-disable-next-line security/detect-object-injection
+        method.responses[statusCode],
+      );
     });
     this.methods[httpMethod.toUpperCase()] = {
       handler: Run.of(method.handle as any),
       requestMapper: Json.mapper(method.request.shape) as any,
-      responseMappers
+      responseMappers,
     };
   }
 }
 
 function velocityTemplate<S extends Shape>(
-    shape: S,
-    mappings?: any,
-    root: string = "$input.path('$')"): string {
-
+  shape: S,
+  mappings?: any,
+  root = "$input.path('$')",
+): string {
   let template = `#set($inputRoot = ${root})\n`;
 
   if (ShapeGuards.isRecordShape(shape)) {
-    template += '{\n';
+    template += "{\n";
     let i = 0;
-    const keys = new Set(Object.keys(shape.Members).concat(Object.keys(mappings || {})));
+    const keys = new Set(
+      Object.keys(shape.Members).concat(Object.keys(mappings || {})),
+    );
     for (const childName of keys) {
-      walk(shape, childName, (mappings as any)[childName], 1);
+      // eslint-disable-next-line security/detect-object-injection
+      walk(shape, childName, mappings[childName], 1);
       if (i + 1 < keys.size) {
-        template += ',';
+        template += ",";
       }
-      template += '\n';
+      template += "\n";
       i += 1;
     }
-    template += '}\n';
+    template += "}\n";
   } else {
-    template += '$inputRoot\n'; // TODO: this is probably wrong
+    template += "$inputRoot\n"; // TODO: this is probably wrong
   }
   return template;
 
-  function walk(shape: RecordShape, name: string, mapping: TypedMapping<any> | object, depth: number) {
-    template += '  '.repeat(depth);
+  function walk(
+    shape: RecordShape,
+    name: string,
+    mapping: TypedMapping<any> | object,
+    depth: number,
+  ): void {
+    template += "  ".repeat(depth);
 
     if (mapping) {
+      // eslint-disable-next-line security/detect-object-injection
       if ((mapping as any)[isMapping]) {
         template += `"${name}": ${(mapping as Mapping).path}`;
-      } else if (typeof mapping === 'object') {
+      } else if (typeof mapping === "object") {
         template += `"${name}": {\n`;
         Object.keys(mapping).forEach((childName, i) => {
-          const childShape = (shape.Members[childName]).Shape;
+          // eslint-disable-next-line security/detect-object-injection
+          const childShape = shape.Members[childName].Shape;
+          // eslint-disable-next-line security/detect-object-injection
           walk(childShape, childName, (mapping as any)[childName], depth + 1);
           if (i + 1 < Object.keys(mapping).length) {
-            template += ',\n';
+            template += ",\n";
           } else {
-            template += `\n${'  '.repeat(depth)}}`;
+            template += `\n${"  ".repeat(depth)}}`;
           }
         });
       } else {
-        throw new Error(`unexpected type when generating velocity template: ${typeof mapping}`);
+        throw new TypeError(
+          `unexpected type when generating velocity template: ${typeof mapping}`,
+        );
       }
     } else {
+      // eslint-disable-next-line security/detect-object-injection
       const field = shape.Members[name].Shape;
       let path: string;
-      if (ShapeGuards.isStringShape(field) || ShapeGuards.isTimestampShape(field)) {
+      if (
+        ShapeGuards.isStringShape(field) ||
+        ShapeGuards.isTimestampShape(field)
+      ) {
         path = `"$inputRoot.${name}"`;
       } else {
         path = `$inputRoot.${name}`;

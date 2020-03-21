@@ -1,7 +1,8 @@
 import { Metadata } from './metadata';
 import { Shape } from './shape';
 import { ArrayToTuple, AssertIsKey, RequiredKeys } from './util';
-import { Value } from './value';
+import { Value } from "./value";
+
 
 import { Compact, RowLacks } from 'typelevel-ts';
 

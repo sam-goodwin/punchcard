@@ -1,20 +1,21 @@
-import { Shape } from '@punchcard/shape';
-import { StatusCode } from './request-response';
-import { JsonPath } from '@punchcard/shape-jsonpath';
+import {JsonPath} from "@punchcard/shape-jsonpath";
+import {Shape} from "@punchcard/shape";
+import {StatusCode} from "./request-response";
 
 export class Model<T extends Shape> {
   constructor(
     // @ts-ignore
     private readonly name: string,
     // @ts-ignore
-    private readonly type: T) {}
+    private readonly type: T,
+  ) {}
 }
 
 export class Response<M extends Shape, Output extends Shape> {
   constructor(_props: {
+    mapping: (output: JsonPath.Of<Output>) => M;
     model: Model<M>;
     output: Output;
-    mapping: (output: JsonPath.Of<Output>) => M;
   }) {
     // do nothing
   }
@@ -22,8 +23,8 @@ export class Response<M extends Shape, Output extends Shape> {
 
 export class BodyRequest<M extends Shape, Request> {
   constructor(_props: {
-    model: Model<M>;
     mapping: (input: JsonPath.Of<M>) => Request;
+    model: Model<M>;
   }) {
     // do nothing
   }
@@ -31,12 +32,12 @@ export class BodyRequest<M extends Shape, Request> {
 
 export class BodyMethod<T extends Shape, Request extends Shape> {
   constructor(_props: {
-    request: BodyRequest<T, Request>,
+    request: BodyRequest<T, Request>;
     response: {
       [StatusCode.Ok]: Response<any, any>;
     } & {
       [Code in StatusCode]?: Response<any, any>;
-    }
+    };
   }) {
     // do nothing
   }

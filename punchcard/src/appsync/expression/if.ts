@@ -1,6 +1,9 @@
-import { GraphQL } from '../graphql';
+import {GraphQL} from "../graphql";
 
-export function $if<T extends GraphQL.Type>(condition: GraphQL.Bool, then: () => T): If<T> {
+export function $if<T extends GraphQL.Type>(
+  condition: GraphQL.Bool,
+  then: () => T,
+): If<T> {
   return new If(undefined, condition, then);
 }
 
@@ -10,7 +13,7 @@ export class If<T extends GraphQL.Type> {
   constructor(
     public readonly parent: If<T> | undefined,
     public readonly condition: GraphQL.Bool,
-    public readonly then: () => T
+    public readonly then: () => T,
   ) {}
 
   public $elseIf(condition: GraphQL.Bool, then: () => T): If<T> {
@@ -18,33 +21,38 @@ export class If<T extends GraphQL.Type> {
   }
 
   public $else(then: () => T): T {
+    // eslint-disable-next-line promise/valid-params
     const t = this.then();
-    return GraphQL.clone(t, new GraphQL.Expression(frame => {
-      frame.print('#if(');
-      const chain = this.chain();
-      chain.forEach((c, i) => {
-        frame.interpret(c.condition);
-        frame.print(')');
+    return GraphQL.clone(
+      t,
+      new GraphQL.Expression((frame) => {
+        frame.print("#if(");
+        const chain = this.chain();
+        chain.forEach((c, i) => {
+          frame.interpret(c.condition);
+          frame.print(")");
+          frame.indent();
+          frame.printLine();
+          // interpret the block
+          // eslint-disable-next-line promise/valid-params
+          frame.interpret(c.then());
+          frame.unindent();
+          frame.printLine();
+          if (i < chain.length - 1) {
+            frame.print("#elseif(");
+          }
+        });
+        frame.print("#{else}");
         frame.indent();
         frame.printLine();
-        // interpret the block
-        frame.interpret(c.then());
+
+        frame.interpret(then());
+
         frame.unindent();
         frame.printLine();
-        if (i < chain.length - 1) {
-          frame.print('#elseif(');
-        }
-      });
-      frame.print('#{else}');
-      frame.indent();
-      frame.printLine();
-
-      frame.interpret(then());
-
-      frame.unindent();
-      frame.printLine();
-      frame.print('#end');
-    }));
+        frame.print("#end");
+      }),
+    );
   }
 
   private chain(): If<any>[] {
