@@ -1,6 +1,5 @@
-
-import { Build } from './build';
-import { Run } from './run';
+import {Build} from "./build";
+import {Run} from "./run";
 
 /**
  * Dual.

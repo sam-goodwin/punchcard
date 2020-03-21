@@ -1,33 +1,34 @@
-import { identity } from 'fp-ts/lib/Identity';
-import { GraphQL } from '../graphql';
-import { Statement, StatementGuards, Statements } from './statement';
-
-import { Resolved } from './resolver';
-
-import { Shape } from '@punchcard/shape';
-import { foldFree } from 'fp-ts-contrib/lib/Free';
-import { Frame } from './frame';
+import {Statement, StatementGuards, Statements} from "./statement";
+import {Frame} from "./frame";
+import {GraphQL} from "../graphql";
+import {Resolved} from "./resolver";
+import {Shape} from "@punchcard/shape";
+import {foldFree} from "fp-ts-contrib/lib/Free";
+import {identity} from "fp-ts/lib/Identity";
 
 export interface CompiledResolver {
+  afterTemplate: string;
   arguments: {
-    [argumentName: string]: Shape.Like
-  },
+    [argumentName: string]: Shape.Like;
+  };
   beforeTemplate: string;
   stages: {
+    dataSource: any;
     requestTemplate: string;
     responseTemplate: string;
-    dataSource: any;
-  }[]
-  afterTemplate: string;
+  }[];
 }
 
-export function interpretResolver(resolved: Resolved<any>, _interpeters: Interpreter<any>[] = []) {
+export function interpretResolver(
+  resolved: Resolved<any>,
+  _interpeters: Interpreter<any>[] = [],
+): void {
   // const compiledProgram: Partial<CompiledResolver> = {};
 
   const root = new Frame();
   const frame = root;
 
-  foldFree(identity)((stmt => {
+  foldFree(identity)((stmt) => {
     if (StatementGuards.isCall(stmt)) {
       /**
        * TODO: Print to the output and make a request to a data source.
@@ -42,14 +43,16 @@ export function interpretResolver(resolved: Resolved<any>, _interpeters: Interpr
       frame.variables.interpret(stmt.value);
       frame.variables.print(`))`);
 
-      return GraphQL.clone(stmt.value, new GraphQL.Expression(() => `$ctx.stash.${name}`));
+      return GraphQL.clone(
+        stmt.value,
+        new GraphQL.Expression(() => `$ctx.stash.${name}`),
+      );
     } else {
-      throw new Error(`unknown statement type: ${stmt._tag}`);
+      throw new TypeError(`unknown statement type: ${stmt._tag}`);
     }
-    return null as any;
-  }), resolved.program);
+    return undefined as any;
+  }, resolved.program);
 }
-
 
 export interface Interpreter<T extends Statement = Statement> {
   interpret<Stmt extends T>(statement: Stmt, ctx: Frame): GraphQL.Type;
@@ -58,13 +61,20 @@ export interface Interpreter<T extends Statement = Statement> {
 // @ts-ignore
 class SetInterpreter implements Interpreter<Statements.Set> {
   // @ts-ignore
-  public interpret<Stmt extends Statements.Set>(_statement: Stmt, _currentFrame: Frame): GraphQL.Type {
-  }
+  public interpret<Stmt extends Statements.Set>(
+    _statement: Stmt,
+    _currentFrame: Frame,
+    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/no-empty-function
+  ): GraphQL.Type {}
 }
 
 // @ts-ignore
 class CallInterpreter implements Interpreter<Statements.Call> {
-  public interpret<Stmt extends Statements.Call<GraphQL.Type>>(_statement: Stmt, _frame: Frame): GraphQL.Type {
+  public interpret<Stmt extends Statements.Call<GraphQL.Type>>(
+    _statement: Stmt,
+    _frame: Frame,
+  ): GraphQL.Type {
     throw new Error("Method not implemented.");
   }
 }

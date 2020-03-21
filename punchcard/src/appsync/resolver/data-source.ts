@@ -1,6 +1,6 @@
 // import { Shape } from '@punchcard/shape';
 // import { Function } from '../../lambda';
-import { GraphQL } from '../graphql';
+import {GraphQL} from "../graphql";
 
 // interface DataSource<T, U> {
 //   invoke(request: T): GraphQL<U>;
@@ -21,15 +21,15 @@ import { GraphQL } from '../graphql';
 // }
 
 export interface InvokeLambda {
-  version: '2017-02-28';
-  operation: 'Invoke';
+  operation: "Invoke";
   payload: {
-    field: string;
     arguments?: {
-      [name: string]: GraphQL.Type
+      [name: string]: GraphQL.Type;
     };
+    field: string;
     source?: GraphQL.Type;
-  }
+  };
+  version: "2017-02-28";
 }
 
 export class LambdaHandler {

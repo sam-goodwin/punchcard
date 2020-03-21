@@ -1,14 +1,15 @@
-import { any, array, Record, string } from "@punchcard/shape";
+import {Record, any, array, string} from "@punchcard/shape";
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Event {
   export class Payload extends Record({
-    "account": string,
-    "region": string,
-    "detail": any,
-    'detail-type': string,
-    "source": string,
-    "time": string,
-    "id": string,
-    "resources": array(string)
+    account: string,
+    detail: any,
+    "detail-type": string,
+    id: string,
+    region: string,
+    resources: array(string),
+    source: string,
+    time: string,
   }) {}
 }

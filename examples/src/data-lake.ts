@@ -50,7 +50,7 @@ lake.pipelines.dataPoints.stream.records().forEach(
     // console.log('this does not compile', record.doesNotExist)
     // todo: delete the following promise creation & return (solely there to suppress type error).
     // this arg of the fn returned from `records()` should be overloaded to accept a sync fn
-    return new Promise((resolve) => resolve());
+    return Promise.resolve();
   },
 );
 

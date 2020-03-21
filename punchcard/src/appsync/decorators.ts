@@ -3,8 +3,10 @@
 // import { GraphQL } from './graphql';
 // import { Resolved } from './intepreter/resolver';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 export const Query: PropertyDecorator = () => {};
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
 export const Mutation: PropertyDecorator = () => {};
 
 // const arg = Symbol.for('punchcard/lib/appsync.Arg');
@@ -48,8 +50,6 @@ export const Mutation: PropertyDecorator = () => {};
 //   //   // return descriptor;
 //   // };
 // }
-
-
 
 // export function FieldResolver<T extends GraphQL.RecordClass>(returns: (type?: undefined) => [T]): <On extends GraphQL.Type>(
 //   target: On,

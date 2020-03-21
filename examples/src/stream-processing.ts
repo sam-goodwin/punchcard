@@ -119,7 +119,7 @@ topic.notifications().forEach(stack, "ForEachNotification", {}, (message) => {
       message.key
     }' with a delay of ${new Date().getTime() - message.timestamp.getTime()}ms`,
   );
-  return new Promise((resolve) => resolve());
+  return Promise.resolve();
 });
 
 /**

@@ -80,6 +80,8 @@
     "tsdoc/syntax": "error",
     "typescript-sort-keys/interface": "error",
     "typescript-sort-keys/string-enum": "error",
+    "unicorn/new-for-builtins": "off",
+    "unicorn/no-nested-ternary": "off",
     "unicorn/prevent-abbreviations": "off"
   }
 }

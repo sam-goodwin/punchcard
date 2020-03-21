@@ -63,6 +63,7 @@ Lambda.schedule(
         key: "key",
       },
       {
+        // @ts-ignore
         actions: (_) => [_.count.increment()],
       },
     );
@@ -73,5 +74,5 @@ Lambda.schedule(
 queue.messages().forEach(stack, "ForEachMessage", {}, (msg) => {
   console.log(`received message with key '${msg.key}' and count ${msg.count}`);
   // todo: same issue described in "./src/data-lake.ts#50"
-  return new Promise((resolve) => resolve());
+  return Promise.resolve();
 });

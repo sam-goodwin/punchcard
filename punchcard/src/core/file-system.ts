@@ -46,52 +46,52 @@
 //   }
 // }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace File {
   export class Reference {
     constructor(public readonly path: string) {}
   }
 }
 
-/**
- * Streams input to output and resolves only after stream has successfully ended.
- * Closes the output stream in success and error cases.
- * @param input {stream.Readable} Read from
- * @param output {stream.Writable} Write to
- * @return Promise Resolves only after the output stream is "end"ed or "finish"ed.
- * @see https://stackoverflow.com/questions/44013020/using-promises-with-streams-in-node-js
- */
-// @ts-ignore
-function promisifiedPipe(input: any, output?: any) {
-  let ended = false;
-  function end() {
-    if (!ended) {
-      ended = true;
-      // tslint:disable: no-unused-expression
-      output.close && output.close();
-      input.close && input.close();
-      return true;
-    }
-    return false;
-  }
+// /**
+//  * Streams input to output and resolves only after stream has successfully ended.
+//  * Closes the output stream in success and error cases.
+//  * @param input - {stream.Readable} Read from
+//  * @param output - {stream.Writable} Write to
+//  * @returns Promise Resolves only after the output stream is "end"ed or "finish"ed.
+//  * @see https://stackoverflow.com/questions/44013020/using-promises-with-streams-in-node-js
+//  */
+// function promisifiedPipe(input: any, output?: any) {
+//   let ended = false;
+//   function end() {
+//     if (!ended) {
+//       ended = true;
+//       // tslint:disable: no-unused-expression
+//       output.close && output.close();
+//       input.close && input.close();
+//       return true;
+//     }
+//     return false;
+//   }
 
-  return new Promise((resolve, reject) => {
-    input.pipe(output);
-    input.on('error', errorEnding);
+//   return new Promise((resolve, reject) => {
+//     input.pipe(output);
+//     input.on('error', errorEnding);
 
-    function niceEnding() {
-      if (end()) {
-        resolve();
-      }
-    }
+//     function niceEnding() {
+//       if (end()) {
+//         resolve();
+//       }
+//     }
 
-    function errorEnding(error: Error) {
-      if (end()) {
-        reject(error);
-      }
-    }
+//     function errorEnding(error: Error) {
+//       if (end()) {
+//         reject(error);
+//       }
+//     }
 
-    output.on('finish', niceEnding);
-    output.on('end', niceEnding);
-    output.on('error', errorEnding);
-  });
-}
+//     output.on('finish', niceEnding);
+//     output.on('end', niceEnding);
+//     output.on('error', errorEnding);
+//   });
+// }

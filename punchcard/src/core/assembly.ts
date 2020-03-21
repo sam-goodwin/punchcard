@@ -7,20 +7,25 @@ export class Namespace {
   constructor(
     public readonly scope: Namespace,
     protected readonly _namespace: string,
-    protected readonly _properties: {[key: string]: string}) {}
+    protected readonly _properties: {[key: string]: string},
+  ) {}
 
   /**
    * Create a sub-bag of properties prefixed by a namespace.
-   * @param namespace to prefix properties with.
+   * @param namespace -  to prefix properties with.
    */
-  public namespace(namespace: string) {
-    return new Namespace(this, `${this._namespace}_${namespace}`, this._properties);
+  public namespace(namespace: string): Namespace {
+    return new Namespace(
+      this,
+      `${this._namespace}_${namespace}`,
+      this._properties,
+    );
   }
 
   /**
    * Set the value of a property
-   * @param name name of the property
-   * @param value value of the property
+   * @param name - name of the property
+   * @param value - value of the property
    */
   public set(name: string, value: string): void {
     this._properties[this.makeKey(name)] = value;
@@ -28,7 +33,7 @@ export class Namespace {
 
   /**
    * Get a property from the bag and throw if it does not exist.
-   * @param name name of the property
+   * @param name - name of the property
    * @throws if the property does not exist
    */
   public get(name: string): string {
@@ -41,7 +46,7 @@ export class Namespace {
 
   /**
    * Get a property from the bag if it exists.
-   * @param name name of the property
+   * @param name - name of the property
    * @returns the property or undefined if it does not exist
    */
   public tryGet(name: string): undefined | string {
@@ -55,12 +60,13 @@ export class Namespace {
 
 export class Assembly extends Namespace {
   constructor(properties?: {[key: string]: string}) {
-    super(undefined as any, 'punchcard', properties || {});
+    super(undefined as any, "punchcard", properties || {});
   }
 
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   public get properties() {
     return {
-      ...this._properties
+      ...this._properties,
     };
   }
 }

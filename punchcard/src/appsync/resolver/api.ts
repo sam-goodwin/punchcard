@@ -4,7 +4,7 @@
 // import {  RecordMembers, RecordShape, Shape } from '@punchcard/shape';
 // import { Resolved, Resolver, $api } from '../intepreter/resolver';
 // import { GraphQL } from '../types';
-import { Construct } from '../../core/construct';
+import {Construct} from "../../core/construct";
 
 // export interface GraphQLApiProps {
 //   //
@@ -24,7 +24,6 @@ import { Construct } from '../../core/construct';
 // import Lambda = require('../../lambda');
 
 export class Api extends Construct {
-  public readonly api = this.scope.map(_scope => {
-    
-  })
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
+  public readonly api = this.scope.map((_scope) => {});
 }

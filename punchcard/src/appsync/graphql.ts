@@ -1,32 +1,58 @@
-import { ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, integer, IntegerShape, MapShape, NothingShape, NumberShape, RecordMembers, RecordShape, RecordType, SetShape, Shape, ShapeGuards, StringShape, TimestampShape, Trait } from '@punchcard/shape';
-import { integer as integerShape, number as numberShape, string as stringShape } from '@punchcard/shape';
-import { Record as MakeRecord, ShapeVisitor } from '@punchcard/shape';
-import { Construct } from '../core/construct';
-import { Frame } from './intepreter/frame';
-import { $api, Resolver } from './intepreter/resolver';
-import { Util } from './util';
-
-// tslint:disable: no-construct
+import {$api, Resolver} from "./intepreter/resolver";
+import {
+  ArrayShape,
+  BinaryShape,
+  BoolShape,
+  DynamicShape,
+  IntegerShape,
+  MapShape,
+  NothingShape,
+  NumberShape,
+  RecordMembers,
+  RecordShape,
+  RecordType,
+  SetShape,
+  Shape,
+  ShapeGuards,
+  StringShape,
+  TimestampShape,
+  Trait,
+  bool,
+  integer,
+} from "@punchcard/shape";
+import {Record as MakeRecord, ShapeVisitor} from "@punchcard/shape";
+import {
+  integer as integerShape,
+  number as numberShape,
+  string as stringShape,
+} from "@punchcard/shape";
+import {Construct} from "../core/construct";
+import {Frame} from "./intepreter/frame";
+import {Util} from "./util";
 
 const IDTrait: {
   [Trait.Data]: {
-    graphqlType: 'ID'
-  }
+    graphqlType: "ID";
+  };
 } = {
   [Trait.Data]: {
-    graphqlType: 'ID'
-  }
+    graphqlType: "ID",
+  },
 };
 
 export const ID = stringShape.apply(IDTrait);
 
-export function GraphQLResolver<M extends RecordMembers>(members: M): {
+export function GraphQLResolver<M extends RecordMembers>(
+  members: M,
+): {
   Record: RecordType<M>;
-} & Construct.Class<Construct & {
-  Shape: RecordType<M>;
-  $: GraphQL.TypeOf<RecordType<M>>;
-  $field: <T extends Shape.Like>(type: T) => Resolver<{}, Shape.Resolve<T>>;
-}> {
+} & Construct.Class<
+  Construct & {
+    $: GraphQL.TypeOf<RecordType<M>>;
+    $field: <T extends Shape.Like>(type: T) => Resolver<{}, Shape.Resolve<T>>;
+    Shape: RecordType<M>;
+  }
+> {
   const record = MakeRecord(members);
   return class NewType extends Construct {
     public static readonly Record = record;
@@ -36,64 +62,93 @@ export function GraphQLResolver<M extends RecordMembers>(members: M): {
     /**
      * A reference to `$context.source` as "this".
      */
-    public readonly $this = GraphQL.of(record, new GraphQL.Expression('$context.source'));
+    public readonly $this = GraphQL.of(
+      record,
+      new GraphQL.Expression("$context.source"),
+    );
     public readonly $ = this.$this;
 
-    public $field<T extends Shape.Like>(type: T): Resolver<{}, Shape.Resolve<T>> {
+    public $field<T extends Shape.Like>(
+      type: T,
+    ): Resolver<{}, Shape.Resolve<T>> {
       return $api({}, type);
     }
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GraphQL {
-  export function of<T extends Shape>(type: T, expr: GraphQL.Expression): TypeOf<T> {
-    return type.visit(GraphQL.visitor as any, expr) as any;
+  // eslint-disable-next-line no-inner-declarations
+  export function of<T extends Shape>(
+    type: T,
+    expr: GraphQL.Expression,
+  ): TypeOf<T> {
+    return type.visit(GraphQL.visitor as any, expr);
   }
 
-  export function clone<T extends GraphQL.Type>(t: T, expr: GraphQL.Expression): T {
+  // eslint-disable-next-line no-inner-declarations
+  export function clone<T extends GraphQL.Type>(
+    t: T,
+    expr: GraphQL.Expression,
+  ): T {
+    // eslint-disable-next-line security/detect-object-injection
     return of(t[type], expr) as any;
   }
 
-  export type Repr<T extends Shape> = (
-    T extends ArrayShape<infer I> ? TypeOf<T> | Repr<I>[] :
-    T extends MapShape<infer I> ? TypeOf<T> | {
-      [key: string]: Repr<I>;
-    } :
-    T extends RecordShape<infer M> ? TypeOf<T> | {
-      [m in keyof M]: Repr<Shape.Resolve<M[m]>>;
-    } :
-    TypeOf<T>
-  );
+  export type Repr<T extends Shape> = T extends ArrayShape<infer I>
+    ? TypeOf<T> | Repr<I>[]
+    : T extends MapShape<infer I>
+    ?
+        | TypeOf<T>
+        | {
+            [key: string]: Repr<I>;
+          }
+    : T extends RecordShape<infer M>
+    ?
+        | TypeOf<T>
+        | {
+            [m in keyof M]: Repr<Shape.Resolve<M[m]>>;
+          }
+    : TypeOf<T>;
 
-  // tslint:disable: ban-types
   // cool - we can use recursion now
-  export type TypeOf<T extends Shape.Like> =
-    Shape.Resolve<T> extends BoolShape ? Bool :
-    Shape.Resolve<T> extends DynamicShape<any> ? Any :
-    Shape.Resolve<T> extends IntegerShape ? Integer :
-    Shape.Resolve<T> extends NumberShape ? Integer :
-    Shape.Resolve<T> extends StringShape ? String :
-
-    Shape.Resolve<T> extends ArrayShape<infer I> ? List<TypeOf<I>> :
-    Shape.Resolve<T> extends MapShape<infer I> ? Map<TypeOf<I>> :
-    Shape.Resolve<T> extends RecordShape<infer M> ? GraphQL.Record<{
-      [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
-    }> & {
-      [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
-    } :
-    Type<Shape.Resolve<T>>
-    ;
+  export type TypeOf<T extends Shape.Like> = Shape.Resolve<T> extends BoolShape
+    ? Bool
+    : Shape.Resolve<T> extends DynamicShape<any>
+    ? Any
+    : Shape.Resolve<T> extends IntegerShape
+    ? Integer
+    : Shape.Resolve<T> extends NumberShape
+    ? Integer
+    : Shape.Resolve<T> extends StringShape
+    ? GraphQL.String
+    : Shape.Resolve<T> extends ArrayShape<infer I>
+    ? List<TypeOf<I>>
+    : Shape.Resolve<T> extends MapShape<infer I>
+    ? Map<TypeOf<I>>
+    : Shape.Resolve<T> extends RecordShape<infer M>
+    ? GraphQL.Record<
+        {
+          [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
+        }
+      > &
+        {
+          [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
+        }
+    : Type<Shape.Resolve<T>>;
 
   export type ShapeOf<T extends Type> = T extends Type<infer I> ? I : never;
 
   // export const Shape = Symbol.for('GraphQL.Shape');
-  export const type = Symbol.for('GraphQL.Type');
-  export const expr = Symbol.for('GraphQL.Expression');
+  export const type = Symbol.for("GraphQL.Type");
+  export const expr = Symbol.for("GraphQL.Expression");
   export class Type<T extends Shape = Shape> {
     public readonly [type]: T;
     public readonly [expr]: GraphQL.Expression;
     constructor(_type: T, _expr: GraphQL.Expression) {
+      // eslint-disable-next-line security/detect-object-injection
       this[type] = _type;
+      // eslint-disable-next-line security/detect-object-injection
       this[expr] = _expr;
     }
   }
@@ -101,14 +156,16 @@ export namespace GraphQL {
   export class Any extends Type<DynamicShape<any>> {}
   export class Bool extends Type<BoolShape> {
     public static not(a: Bool): Bool {
-      return new Bool(bool, a[expr].prepend('!'));
+      // eslint-disable-next-line security/detect-object-injection
+      return new Bool(bool, a[expr].prepend("!"));
     }
   }
   export class Integer extends Type<IntegerShape> {}
   export class Number extends Type<NumberShape> {}
   export class String extends Type<StringShape> {
-    public toUpperCase(): String {
-      return new String(this[type], this[expr].dot('toUpperCase()'));
+    public toUpperCase(): GraphQL.String {
+      // eslint-disable-next-line security/detect-object-injection
+      return new String(this[type], this[expr].dot("toUpperCase()"));
     }
 
     public isNotEmpty(): Bool {
@@ -116,11 +173,13 @@ export namespace GraphQL {
     }
 
     public isEmpty(): Bool {
-      return new Bool(bool, this[expr].dot('isEmpty()'));
+      // eslint-disable-next-line security/detect-object-injection
+      return new Bool(bool, this[expr].dot("isEmpty()"));
     }
 
     public size(): Integer {
-      return new Integer(integer, this[expr].dot('size()'));
+      // eslint-disable-next-line security/detect-object-injection
+      return new Integer(integer, this[expr].dot("size()"));
     }
   }
   export class Timestamp extends Type<TimestampShape> {}
@@ -136,15 +195,26 @@ export namespace GraphQL {
     }
   }
   export class Map<T extends Type = any> extends Type<MapShape<ShapeOf<T>>> {}
-  export class Record<M extends { [m: string]: Type; } = any> extends Type<RecordShape<{
-    [m in keyof M]: ShapeOf<M[m]>;
-  }>> {}
+  export class Record<M extends {[m: string]: Type} = any> extends Type<
+    RecordShape<
+      {
+        [m in keyof M]: ShapeOf<M[m]>;
+      }
+    >
+  > {}
+
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   export namespace Record {
-    export type GetMembers<R extends Record> = R extends Record<infer M> ? M : any;
+    export type GetMembers<R extends Record> = R extends Record<infer M>
+      ? M
+      : any;
   }
-  export type RecordClass<T extends Record = any> = (new(members: Record.GetMembers<T>) => T);
+  export type RecordClass<T extends Record = any> = new (
+    members: Record.GetMembers<T>,
+  ) => T;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GraphQL {
   /**
    * https://docs.aws.amazon.com/appsync/latest/devguide/resolver-util-reference.html
@@ -158,7 +228,12 @@ export namespace GraphQL {
    * GraphQL.string`${mustBeAGraphQLType}`;
    * ```
    */
-  export type ExpressionTemplate<T extends Shape> = <Args extends (GraphQL.Type)[]>(template: TemplateStringsArray,...args: Args) => GraphQL.TypeOf<T>;
+  export type ExpressionTemplate<T extends Shape> = <
+    Args extends GraphQL.Type[]
+  >(
+    template: TemplateStringsArray,
+    ...args: Args
+  ) => GraphQL.TypeOf<T>;
 
   export const $ = template;
 
@@ -172,73 +247,109 @@ export namespace GraphQL {
    * const str = GraphQL.$(string)`hello`;
    * ```
    *
-   * @param type
+   * @param type - todo: add description
    */
-  export function template<T extends Shape>(type: Shape): ExpressionTemplate<T> {
-    return (template, ...args) => {
-      return GraphQL.of(type, new GraphQL.Expression(frame => {
-        // return null as any;
-        template.forEach((str, i) => {
-          frame.print(str);
-          if (i < args.length) {
-            frame.interpret(args[i]);
-          }
-        });
-      })) as GraphQL.TypeOf<T>;
+  // eslint-disable-next-line no-inner-declarations
+  export function template<T extends Shape>(
+    type: Shape,
+  ): ExpressionTemplate<T> {
+    return (template, ...args): GraphQL.TypeOf<T> => {
+      return GraphQL.of(
+        type,
+        new GraphQL.Expression((frame) => {
+          // return null as any;
+          template.forEach((str, i) => {
+            frame.print(str);
+            if (i < args.length) {
+              // eslint-disable-next-line security/detect-object-injection
+              frame.interpret(args[i]);
+            }
+          });
+        }),
+      ) as GraphQL.TypeOf<T>;
     };
   }
 
-  export function string<Args extends (GraphQL.Type)[]>(template: TemplateStringsArray,...args: Args): GraphQL.String;
+  export function string<Args extends GraphQL.Type[]>(
+    template: TemplateStringsArray,
+    ...args: Args
+  ): GraphQL.String;
   export function string(s: string): GraphQL.String;
+  // eslint-disable-next-line no-inner-declarations
   export function string(...args: any[]): GraphQL.String {
-    if (typeof args[0] === 'string') {
-      return new GraphQL.String(stringShape, new GraphQL.VolatileExpression(stringShape, args[0]));
+    if (typeof args[0] === "string") {
+      return new GraphQL.String(
+        stringShape,
+        new GraphQL.VolatileExpression(stringShape, args[0]),
+      );
     } else {
       return ($(stringShape) as any)(...args);
     }
   }
 
-  export function number<Args extends (GraphQL.Type)[]>(template: TemplateStringsArray,...args: Args): GraphQL.Number;
+  export function number<Args extends GraphQL.Type[]>(
+    template: TemplateStringsArray,
+    ...args: Args
+  ): GraphQL.Number;
   export function number(n: number): GraphQL.Number;
+  // eslint-disable-next-line no-inner-declarations
   export function number(...args: any[]): GraphQL.Number {
-    if (typeof args[0] === 'number') {
-      return new GraphQL.Number(numberShape, new GraphQL.VolatileExpression(integerShape, args[0].toString(10)));
+    if (typeof args[0] === "number") {
+      return new GraphQL.Number(
+        numberShape,
+        new GraphQL.VolatileExpression(integerShape, args[0].toString(10)),
+      );
     } else {
       return ($(stringShape) as any)(...args);
     }
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GraphQL {
   export interface StaticInterface<M extends RecordMembers> {
-    readonly members: M;
     /**
      * Value of this type at runtime in a Lambda Function or Container.
      */
     readonly Record: RecordShape<M>;
+    readonly members: M;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-empty-interface
   export interface InstanceInterface {
     // todo
   }
 
-  export function NewType<M extends RecordMembers>(_members: M): StaticInterface<M> & (new(values: {
-    [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
-  }) => Record<{
-    readonly [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
-  }> & {
-    readonly [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
-  } & InstanceInterface) {
-    return null as any;
+  // eslint-disable-next-line no-inner-declarations
+  export function NewType<M extends RecordMembers>(
+    _members: M,
+  ): StaticInterface<M> &
+    (new (
+      values: {
+        [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
+      },
+    ) => Record<
+      {
+        readonly [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
+      }
+    > &
+      {
+        readonly [m in keyof M]: TypeOf<Shape.Resolve<M[m]>>;
+      } &
+      InstanceInterface) {
+    // todo: find way around needing this casting
+    return undefined as any;
   }
 }
+
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GraphQL {
   export class Expression {
     private readonly text: (ctx: Frame) => void;
 
     constructor(text: string | ((ctx: Frame) => void)) {
-      if (typeof text === 'string') {
-        this.text = (ctx) => ctx.print(text);
+      if (typeof text === "string") {
+        this.text = (ctx): void => ctx.print(text);
       } else {
         this.text = text;
       }
@@ -254,7 +365,7 @@ export namespace GraphQL {
     public dot(text: string): Expression {
       return new Expression((ctx) => {
         this.visit(ctx);
-        ctx.print('.');
+        ctx.print(".");
         ctx.print(text);
       });
     }
@@ -266,7 +377,7 @@ export namespace GraphQL {
       });
     }
 
-    public surround(left: string, right: string = ''): Expression {
+    public surround(left: string, right = ""): Expression {
       return new Expression((ctx) => {
         ctx.print(left);
         this.visit(ctx);
@@ -279,7 +390,10 @@ export namespace GraphQL {
    * Volatile expressions can not be indexed - they must be stored as a variable before being referenced.
    */
   export class VolatileExpression<T extends Shape = Shape> extends Expression {
-    constructor(public readonly type: T, text: string | ((ctx: Frame) => void)) {
+    constructor(
+      public readonly type: T,
+      text: string | ((ctx: Frame) => void),
+    ) {
       super(text);
     }
 
@@ -308,8 +422,10 @@ export namespace GraphQL {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GraphQL {
-  export class Visitor implements ShapeVisitor<GraphQL.Type, GraphQL.Expression> {
+  export class Visitor
+    implements ShapeVisitor<GraphQL.Type, GraphQL.Expression> {
     public arrayShape(shape: ArrayShape<any>, expr: Expression): List {
       return new List(shape, expr);
     }
@@ -328,20 +444,26 @@ export namespace GraphQL {
     public integerShape(shape: IntegerShape, expr: Expression): Integer {
       return new Integer(shape, expr);
     }
-    public mapShape(shape: MapShape<Shape>, expr: Expression): Map<GraphQL.Type> {
+    public mapShape(
+      shape: MapShape<Shape>,
+      expr: Expression,
+    ): Map<GraphQL.Type> {
       return new Map(shape, expr);
     }
     public nothingShape(shape: NothingShape, expr: Expression): Nothing {
       throw new Nothing(shape, expr);
     }
-    public numberShape(shape: NumberShape, expr: Expression): Number {
+    public numberShape(shape: NumberShape, expr: Expression): GraphQL.Number {
       // tslint:disable-next-line: no-construct
       return new Number(shape, expr);
     }
-    public setShape(shape: SetShape<Shape>, expr: Expression): Set<GraphQL.Type> {
+    public setShape(
+      shape: SetShape<Shape>,
+      expr: Expression,
+    ): Set<GraphQL.Type> {
       return new Set(shape, expr);
     }
-    public stringShape(shape: StringShape, expr: Expression): String {
+    public stringShape(shape: StringShape, expr: Expression): GraphQL.String {
       // tslint:disable-next-line: no-construct
       return new String(shape, expr);
     }
