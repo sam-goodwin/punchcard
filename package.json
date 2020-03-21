@@ -1,8 +1,11 @@
 {
   "name": "root",
   "private": true,
-  "devDependencies": {
-    "conventional-changelog-cli": "^2.0.23",
-    "lerna": "^3.16.4"
-  }
+  "packages": [
+    "aws-shapes",
+    "punchcard",
+    "shapes"
+  ],
+  "dependencies": {},
+  "devDependencies": {}
 }
