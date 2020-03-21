@@ -1,11 +1,12 @@
-import type * as dynamodb from '@aws-cdk/aws-dynamodb';
+import * as dynamodb from "@aws-cdk/aws-dynamodb";
+import {Meta, RecordShape, Shape, ShapeGuards} from "@punchcard/shape";
+import {Build} from "../core/build";
+import {CDK} from "../core/cdk";
+import {DDB} from "@punchcard/shape-dynamodb";
 
-import { Meta, RecordShape, Shape, ShapeGuards } from '@punchcard/shape';
-import { DDB } from '@punchcard/shape-dynamodb';
-import { Build } from '../core/build';
-import { CDK } from '../core/cdk';
-
-export function getKeyNames<A extends RecordShape>(key: DDB.KeyOf<A>): [string, string | undefined] {
+export function getKeyNames<A extends RecordShape>(
+  key: DDB.KeyOf<A>,
+): [string, string | undefined] {
   const partitionKeyName: string = key.partition as string;
   const sortKeyName: string | undefined = key.sort as string;
 
@@ -24,5 +25,7 @@ export function keyType(shape: Shape): dynamodb.AttributeType {
   } else if (ShapeGuards.isNumericShape(shape)) {
     return dynamodb.AttributeType.NUMBER;
   }
-  throw new Error(`shape of kind ${shape.Kind} can not be used as a DynamoDB Key`);
+  throw new Error(
+    `shape of kind ${shape.Kind} can not be used as a DynamoDB Key`,
+  );
 }

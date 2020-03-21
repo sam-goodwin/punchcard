@@ -1,51 +1,52 @@
-import { array, number, Record, string } from "@punchcard/shape";
+import {Record, array, number, string} from "@punchcard/shape";
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Event {
   export class RequestParameters extends Record({
-    sourceIPAddress: string
+    sourceIPAddress: string,
   }) {}
 
   export class ResponseElements extends Record({
-    'x-amz-request-id': string,
-    'x-amz-id-2': string,
+    "x-amz-id-2": string,
+    "x-amz-request-id": string,
   }) {}
 
   export class OwnerIdentity extends Record({
-    principalId: string
+    principalId: string,
   }) {}
 
   export class Bucket extends Record({
+    arn: string,
     name: string,
     ownerIdentity: OwnerIdentity,
-    arn: string,
   }) {}
 
   export class Object extends Record({
-    key: string,
-    size: number,
     eTag: string,
+    key: string,
     sequencer: string,
+    size: number,
   }) {}
 
   export class S3 extends Record({
-    s3SchemaVersion: string,
-    configurationId: string,
     bucket: Bucket,
-    object: Object
+    configurationId: string,
+    object: Object,
+    s3SchemaVersion: string,
   }) {}
 
   export class Notification extends Record({
-    eventVersion: string,
-    eventSource: string,
     awsRegion: string,
-    eventTime: string,
     eventName: string,
+    eventSource: string,
+    eventTime: string,
+    eventVersion: string,
     requestParameters: RequestParameters,
     responseElements: ResponseElements,
-    s3: S3
+    s3: S3,
   }) {}
 
   export class Payload extends Record({
-    Records: array(Event.Notification)
+    Records: array(Event.Notification),
   }) {}
 }

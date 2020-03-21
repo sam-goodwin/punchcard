@@ -1,6 +1,5 @@
 import * as apigateway from "@aws-cdk/aws-apigateway";
 import * as cdk from "@aws-cdk/core";
-
 import {Build} from "../core/build";
 import {CDK} from "../core/cdk";
 import {Resource} from "./resource";

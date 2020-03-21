@@ -1,4 +1,4 @@
-import { array, number, Record, string } from "@punchcard/shape";
+import {Record, array, number, string} from "@punchcard/shape";
 
 /**
  * Payload sent to Lambda Function subscribed to a Kinesis Stream.
@@ -7,44 +7,45 @@ import { array, number, Record, string } from "@punchcard/shape";
  */
 export interface Event {
   Records: {
+    awsRegion: string;
+    eventID: string;
+    eventName: string;
+    eventSource: string;
+    eventSourceARN: string;
+    eventVersion: string;
+    invokeIdentityArn: string;
     kinesis: {
+      approximateArrivalTimestamp: number;
+      data: string;
       kinesisSchemaVersion: string;
       partitionKey: string;
       sequenceNumber: string;
-      data: string;
-      approximateArrivalTimestamp: number;
     };
-    eventSource: string;
-    eventVersion: string;
-    eventID: string;
-    eventName: string;
-    invokeIdentityArn: string;
-    awsRegion: string;
-    eventSourceARN: string;
   }[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Event {
   export class Kinesis extends Record({
+    approximateArrivalTimestamp: number,
+    data: string,
     kinesisSchemaVersion: string,
     partitionKey: string,
     sequenceNumber: string,
-    data: string,
-    approximateArrivalTimestamp: number,
   }) {}
 
   export class DataRecord extends Record({
-    kinesis: Kinesis,
-    eventSource: string,
-    eventVersion: string,
+    awsRegion: string,
     eventID: string,
     eventName: string,
+    eventSource: string,
+    eventSourceARN: string,
+    eventVersion: string,
     invokeIdentityArn: string,
-    awsRegion: string,
-    eventSourceARN: string
+    kinesis: Kinesis,
   }) {}
 
   export class Payload extends Record({
-    Records: array(DataRecord)
+    Records: array(DataRecord),
   }) {}
 }

@@ -1,56 +1,69 @@
-import AWS = require('aws-sdk');
-
-import { any, AnyShape, Mapper, MapperFactory, Shape, Value } from '@punchcard/shape';
-import { Json } from '@punchcard/shape-json';
-import { Build } from '../core/build';
-import { CDK } from '../core/cdk';
-import { Dependency } from '../core/dependency';
-import { Resource } from '../core/resource';
-import { Run } from '../core/run';
-import { Queue } from '../sqs/queue';
-import { Sink, sink, SinkProps } from '../util/sink';
-import { Event } from './event';
-import { Notifications } from './notifications';
-
-import type * as sns from '@aws-cdk/aws-sns';
-import type * as cdk from '@aws-cdk/core';
+import * as cdk from "@aws-cdk/core";
+import * as sns from "@aws-cdk/aws-sns";
+import {
+  AnyShape,
+  Mapper,
+  MapperFactory,
+  Shape,
+  Value,
+  any,
+} from "@punchcard/shape";
+import {Sink, SinkProps, sink} from "../util/sink";
+import AWS from "aws-sdk";
+import {Build} from "../core/build";
+import {CDK} from "../core/cdk";
+import {Dependency} from "../core/dependency";
+import {Event} from "./event";
+import {Json} from "@punchcard/shape-json";
+import {Notifications} from "./notifications";
+import {Queue} from "../sqs/queue";
+import {Resource} from "../core/resource";
+import {Run} from "../core/run";
 
 export interface TopicProps<T extends Shape.Like = AnyShape> {
-  /**
-   * Shape of data in the topic.
-   *
-   * @default AnyShape
-   */
-  shape?: T;
   /**
    * Override serialziation mapper implementation. Messages are stringified
    * with a mapper when received/sent to/from a SNS Topic.
    *
-   * @default Json
+   * @defaultValue Json
    */
   mapper?: MapperFactory<string>;
+  /**
+   * Shape of data in the topic.
+   *
+   * @defaultValue AnyShape
+   */
+  shape?: T;
 
   /**
    * Override SNS Topic Props in the Build context - use this to change configuration
    * of the behavior with the AWS CDK.
    */
-  topicProps?: Build<sns.TopicProps>
+  topicProps?: Build<sns.TopicProps>;
 }
 
 /**
  * A SNS `Topic` with notifications of type, `T`.
  *
- * @typeparam T type of notifications sent and emitted from the `Topic`.
+ * @typeparam T - type of notifications sent and emitted from the `Topic`.
  */
 export class Topic<T extends Shape = AnyShape> implements Resource<sns.Topic> {
   public readonly mapperFactory: MapperFactory<string>;
   public readonly resource: Build<sns.Topic>;
   public readonly shape: T;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: TopicProps<T> = {}) {
-    this.resource = CDK.chain(({sns}) => scope.chain(scope =>
-      (props.topicProps || Build.of({})).map(props =>
-        new sns.Topic(scope, id, props))));
+  constructor(
+    scope: Build<cdk.Construct>,
+    id: string,
+    props: TopicProps<T> = {},
+  ) {
+    this.resource = CDK.chain(({sns}) =>
+      scope.chain((scope) =>
+        (props.topicProps || Build.of({})).map(
+          (props) => new sns.Topic(scope, id, props),
+        ),
+      ),
+    );
 
     this.shape = (props?.shape || any) as T;
 
@@ -65,8 +78,9 @@ export class Topic<T extends Shape = AnyShape> implements Resource<sns.Topic> {
     class Root extends Notifications<Value.Of<T>, []> {
       /**
        * Return an iterator of records parsed from the raw data in the event.
-       * @param event kinesis event sent to lambda
+       * @param event - kinesis event sent to lambda
        */
+      // eslint-disable-next-line @typescript-eslint/explicit-function-return-type,@typescript-eslint/require-await
       public async *run(event: Event.Payload) {
         for (const record of event.Records) {
           yield mapper.read(record.Sns.Message);
@@ -75,7 +89,7 @@ export class Topic<T extends Shape = AnyShape> implements Resource<sns.Topic> {
     }
     return new Root(this, undefined as any, {
       depends: [],
-      handle: i => i
+      handle: <T>(i: T): T => i,
     });
   }
 
@@ -84,15 +98,15 @@ export class Topic<T extends Shape = AnyShape> implements Resource<sns.Topic> {
    *
    * The new queue has the same type of messages as this Topic's notifications (raw message delivery is always enabled).
    *
-   * @param scope
-   * @param id
+   * @param scope - todo: add description
+   * @param id - todo: add description
    * @see https://docs.aws.amazon.com/sns/latest/dg/sns-sqs-as-subscriber.html
    * @see https://docs.aws.amazon.com/sns/latest/dg/sns-large-payload-raw-message-delivery.html
    */
   public toSQSQueue(scope: Build<cdk.Construct>, id: string): Queue<T> {
     const q = new Queue(scope, id, {
+      mapper: this.mapperFactory,
       shape: this.shape,
-      mapper: this.mapperFactory
     });
     this.subscribeQueue(q);
     return q;
@@ -103,77 +117,106 @@ export class Topic<T extends Shape = AnyShape> implements Resource<sns.Topic> {
    *
    * The Queue must habe the same type of messages as this Topic's notifications (raw message delivery is always enabled).
    *
-   * @param queue to subscribe to this `Topic`.
+   * @param queue - to subscribe to this `Topic`.
    */
   public subscribeQueue(queue: Queue<T>): Build<void> {
-    return this.resource.chain(topic => queue.resource.map(queue =>
-      topic.addSubscription(new (require('@aws-cdk/aws-sns-subscriptions')).SqsSubscription(queue, {
-      rawMessageDelivery: true
-    }))));
+    return this.resource.chain((topic) =>
+      queue.resource.map((queue) =>
+        topic.addSubscription(
+          new (require("@aws-cdk/aws-sns-subscriptions").SqsSubscription)(
+            queue,
+            {
+              rawMessageDelivery: true,
+            },
+          ),
+        ),
+      ),
+    );
   }
 
   public publishAccess(): Dependency<Topic.Client<Value.Of<T>>> {
     return {
-      install: this.resource.map(topic => (ns, g) => {
+      bootstrap: Run.of(
+        (ns, cache): Promise<Topic.Client<Value.Of<T>>> =>
+          Promise.resolve(
+            new Topic.Client(
+              this.mapperFactory(this.shape),
+              ns.get("topicArn"),
+              cache.getOrCreate("aws:sns", () => new AWS.SNS()),
+            ),
+          ),
+      ),
+      install: this.resource.map((topic) => (ns, g): void => {
         topic.grantPublish(g);
-        ns.set('topicArn', topic.topicArn);
+        ns.set("topicArn", topic.topicArn);
       }),
-      bootstrap: Run.of(async (ns, cache) => new Topic.Client(
-        this.mapperFactory(this.shape),
-        ns.get('topicArn'),
-        cache.getOrCreate('aws:sns', () => new AWS.SNS())))
     };
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Topic {
-  type _PublishInput<T> = {Message: T} & Pick<AWS.SNS.PublishInput, 'MessageAttributes' | 'MessageStructure'>;
-  export interface PublishInput<T> extends _PublishInput<T> {}
+  type _PublishInput<T> = {Message: T} & Pick<
+    AWS.SNS.PublishInput,
+    "MessageAttributes" | "MessageStructure"
+  >;
+  export type PublishInput = _PublishInput<T>;
 
-  export interface PublishResponse extends AWS.SNS.PublishResponse {}
+  export type PublishResponse = AWS.SNS.PublishResponse;
 
   /**
    * A client to a specific SNS `Topic` with messages of some type, `T`.
    *
-   * @typeparam T type of messages sent to (and emitted by) the SNS `Topic.
+   * @typeparam T - type of messages sent to (and emitted by) the SNS `Topic`.
    * @see https://aws.amazon.com/sns/faqs/ (scroll down to limits section)
    */
   export class Client<T> implements Sink<T> {
     constructor(
       public readonly mapper: Mapper<T, string>,
       public readonly topicArn: string,
-      public readonly client: AWS.SNS) {}
+      public readonly client: AWS.SNS,
+    ) {}
 
-      /**
-       * Publish a message to this SNS `Topic`.
-       *
-       * @param message content to send
-       * @param messageAttributes optional message attributes
-       */
-    public publish(message: T, messageAttributes?: {[key: string]: AWS.SNS.MessageAttributeValue}): Promise<PublishResponse> {
-      return this.client.publish({
-        Message: this.mapper.write(message),
-        MessageAttributes: messageAttributes,
-        TopicArn: this.topicArn
-      }).promise();
+    /**
+     * Publish a message to this SNS `Topic`.
+     *
+     * @param message - content to send
+     * @param messageAttributes - optional message attributes
+     */
+    public publish(
+      message: T,
+      messageAttributes?: {[key: string]: AWS.SNS.MessageAttributeValue},
+    ): Promise<PublishResponse> {
+      return this.client
+        .publish({
+          Message: this.mapper.write(message),
+          MessageAttributes: messageAttributes,
+          TopicArn: this.topicArn,
+        })
+        .promise();
     }
 
     /**
      * Publish multiple messages to this `Topic`; intermittent failures will be handled with back-offs and retry attempts.
      *
-     * @param messages messages to publish
-     * @param props optional properties to tune retry and concurrency behavior.
+     * @param messages - messages to publish
+     * @param props - optional properties to tune retry and concurrency behavior.
      */
     public async sink(messages: T[], props?: SinkProps): Promise<void> {
-      await sink(messages, async ([value]) => {
-        try {
-          await this.publish(value);
-          return [];
-        } catch (err) {
-          console.error(err);
-          return [value];
-        }
-      }, props, 1);
+      await sink(
+        messages,
+        async ([value]) => {
+          try {
+            await this.publish(value);
+            return [];
+          } catch (error) {
+            console.error(error);
+            return [value];
+          }
+        },
+        props,
+        1,
+      );
     }
   }
 }

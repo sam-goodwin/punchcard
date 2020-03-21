@@ -1,2 +1,2 @@
-export * from './collector';
-export * from './table';
+export * from "./collector";
+export * from "./table";

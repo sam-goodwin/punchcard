@@ -1,52 +1,57 @@
-import AWS = require('aws-sdk');
-
-import { Shape, Value } from '@punchcard/shape';
-import { sink, Sink, SinkProps } from '../util/sink';
-import { Stream } from './stream';
+import {Shape, Value} from "@punchcard/shape";
+import {Sink, SinkProps, sink} from "../util/sink";
+import AWS from "aws-sdk";
+import {Stream} from "./stream";
 
 /**
  * A client to a specific Kinesis Stream of some type, `T`.
  *
- * @typeparam T type of data in the stream.
+ * @typeparam T - type of data in the stream.
  * @see https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
  */
 export class Client<T extends Shape> implements Sink<Value.Of<T>> {
   constructor(
     public readonly stream: Stream<T>,
     public readonly streamName: string,
-    public readonly client: AWS.Kinesis
-  ) {
-  }
+    public readonly client: AWS.Kinesis,
+  ) {}
 
   /**
    * Gets and deserrializes data records from a Kinesis data stream's shard.
    *
-   * @param request get records input request payload.
+   * @param request - get records input request payload.
    */
-  public async getRecords(request: GetRecordsInput): Promise<GetRecordsOutput<Value.Of<T>>> {
+  public async getRecords(
+    request: GetRecordsInput,
+  ): Promise<GetRecordsOutput<Value.Of<T>>> {
     const response = await this.client.getRecords(request).promise();
 
     return {
       ...response,
-      Records: response.Records.map(r => ({
+      Records: response.Records.map((r) => ({
         ...r,
-        Data: this.stream.mapper.read(r.Data as Buffer)
-      })) as any
+        Data: this.stream.mapper.read(r.Data as Buffer),
+      })) as any,
     };
   }
 
   /**
    * Put a single record to the Stream.
    *
-   * @param input Data and optional ExplicitHashKey and SequenceNumberForOrdering
+   * @param input - Data and optional ExplicitHashKey and SequenceNumberForOrdering
    */
-  public putRecord(record: Value.Of<T>, input: PutRecordInput = {}): Promise<PutRecordOutput> {
-    return this.client.putRecord({
-      ...input,
-      StreamName: this.streamName,
-      Data: this.stream.mapper.write(record),
-      PartitionKey: this.stream.partitionBy(record),
-    }).promise();
+  public putRecord(
+    record: Value.Of<T>,
+    input: PutRecordInput = {},
+  ): Promise<PutRecordOutput> {
+    return this.client
+      .putRecord({
+        ...input,
+        Data: this.stream.mapper.write(record),
+        PartitionKey: this.stream.partitionBy(record),
+        StreamName: this.streamName,
+      })
+      .promise();
   }
 
   /**
@@ -58,19 +63,23 @@ export class Client<T extends Shape> implements Sink<Value.Of<T>> {
    * Maxiumum number of records: 500.
    * Maximum payload size: 1MB (base64-encoded).
    *
-   * @param request array of records containing Data and optional `ExplicitHashKey` and `SequenceNumberForOrdering`.
+   * @param request - array of records containing Data and optional `ExplicitHashKey` and `SequenceNumberForOrdering`.
    * @returns output containing sequence numbers of successful records and error codes of failed records.
    * @see https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html
    */
-  public putRecords(request: PutRecordsInput<Value.Of<T>>): Promise<PutRecordsOutput> {
-    return this.client.putRecords({
-      StreamName: this.streamName,
-      Records: request.map(record => ({
-        ...record,
-        Data: this.stream.mapper.write(record.Data),
-        PartitionKey: this.stream.partitionBy(record.Data)
-      }))
-    }).promise();
+  public putRecords(
+    request: PutRecordsInput<Value.Of<T>>,
+  ): Promise<PutRecordsOutput> {
+    return this.client
+      .putRecords({
+        Records: request.map((record) => ({
+          ...record,
+          Data: this.stream.mapper.write(record.Data),
+          PartitionKey: this.stream.partitionBy(record.Data),
+        })),
+        StreamName: this.streamName,
+      })
+      .promise();
   }
 
   /**
@@ -80,48 +89,62 @@ export class Client<T extends Shape> implements Sink<Value.Of<T>> {
    *
    * TODO: account for total payload size of 1MB base64-encoded.
    *
-   * @param records array of records to 'sink' to the stream.
-   * @param props configure retry and ordering behavior
+   * @param records - array of records to 'sink' to the stream.
+   * @param props - configure retry and ordering behavior
    */
   public async sink(records: Value.Of<T>[], props?: SinkProps): Promise<void> {
-    await sink(records, async values => {
-      const result = await this.putRecords(values.map(value => ({
-        Data: value
-      })));
+    await sink(
+      records,
+      async (values) => {
+        const result = await this.putRecords(
+          values.map((value) => ({
+            Data: value,
+          })),
+        );
 
-      const redrive: Value.Of<T>[] = [];
-      if (result.FailedRecordCount) {
-        result.Records.forEach((r, i) => {
-          if (!r.SequenceNumber) {
-            redrive.push(values[i]);
-          }
-        });
-      }
-      return redrive;
-    }, props, 500);
+        const redrive: Value.Of<T>[] = [];
+        if (result.FailedRecordCount) {
+          result.Records.forEach((r, i) => {
+            if (!r.SequenceNumber) {
+              // eslint-disable-next-line security/detect-object-injection
+              redrive.push(values[i]);
+            }
+          });
+        }
+        return redrive;
+      },
+      props,
+      500,
+    );
   }
 }
 
-export interface GetRecordsInput extends AWS.Kinesis.GetRecordsInput {}
-export interface GetRecordsOutput<T> extends _GetRecordsOutput<T> {}
+export type GetRecordsInput = AWS.Kinesis.GetRecordsInput;
+export type GetRecordsOutput = _GetRecordsOutput<T>;
 type _GetRecordsOutput<T> = AWS.Kinesis.GetRecordsOutput & {
   Records: _Record<T>[];
 };
 
-export interface Record<T> extends _Record<T> {}
-type _Record<T> = Omit<AWS.Kinesis.Record, 'Data'> & {
+export type Record = _Record<T>;
+type _Record<T> = Omit<AWS.Kinesis.Record, "Data"> & {
   /**
    * Deserialized record received from the Kinesis Stream.
    */
   Data: T;
 };
 
-export interface PutRecordInput extends Pick<AWS.Kinesis.PutRecordInput, 'ExplicitHashKey' | 'SequenceNumberForOrdering'> {}
+export type PutRecordInput = Pick<
+  AWS.Kinesis.PutRecordInput,
+  "ExplicitHashKey" | "SequenceNumberForOrdering"
+>;
 
-export interface PutRecordOutput extends AWS.Kinesis.PutRecordOutput {}
+export type PutRecordOutput = AWS.Kinesis.PutRecordOutput;
 
-export interface PutRecordsInputItem<T>  extends _PutRecordsInputItem<T> {}
-type _PutRecordsInputItem<T> = {Data: T} & Pick<AWS.Kinesis.PutRecordsRequestEntry, 'ExplicitHashKey'>;
+export type PutRecordsInputItem = _PutRecordsInputItem<T>;
+type _PutRecordsInputItem<T> = {Data: T} & Pick<
+  AWS.Kinesis.PutRecordsRequestEntry,
+  "ExplicitHashKey"
+>;
 
-export interface PutRecordsInput<T> extends Array<PutRecordsInputItem<T>> {}
-export interface PutRecordsOutput extends AWS.Kinesis.PutRecordsOutput {}
+export type PutRecordsInput = Array<PutRecordsInputItem<T>>;
+export type PutRecordsOutput = AWS.Kinesis.PutRecordsOutput;
