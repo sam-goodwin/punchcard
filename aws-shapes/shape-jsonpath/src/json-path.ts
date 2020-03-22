@@ -1,4 +1,3 @@
-import {ShapeVisitor, Value} from "@punchcard/shape";
 import {
   ArrayShape,
   MapShape,
@@ -19,6 +18,7 @@ import {
   number,
   string,
 } from "@punchcard/shape/lib/primitive";
+import {ShapeVisitor, Value} from "@punchcard/shape";
 import {RecordShape} from "@punchcard/shape/lib/record";
 import {Shape} from "@punchcard/shape/lib/shape";
 import {Writer} from "./writer";

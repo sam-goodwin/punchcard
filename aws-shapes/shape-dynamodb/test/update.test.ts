@@ -1,93 +1,91 @@
-import 'jest';
-
-import { DSL } from '../lib';
-import { Update } from '../lib/update';
-import { MyType } from './mock';
+import {DSL} from "../lib";
+import {MyType} from "./mock";
+import {Update} from "../lib/update";
 
 const _ = DSL.of(MyType);
 
-test('stringProperty = stringLiteral', () => {
-  expect(Update.compile([
-    _.id.set('value')
-  ])).toEqual({
-    UpdateExpression: 'SET #1=:1',
-    ExpressionAttributeNames: {
-      '#1': 'id'
-    },
-    ExpressionAttributeValues: {
-      ':1': {
-        S: 'value'
-      }
-    },
-  });
-});
-
-test('repeated clauses', () => {
-  expect(Update.compile([
-    _.id.set('value'),
-    _.id.set('value'),
-  ])).toEqual({
-    UpdateExpression: 'SET #1=:1, #1=:2',
-    ExpressionAttributeNames: {
-      '#1': 'id'
-    },
-    ExpressionAttributeValues: {
-      ':1': {
-        S: 'value'
+describe("update", () => {
+  it("stringProperty = stringLiteral", () => {
+    expect.assertions(1);
+    expect(Update.compile([_.id.set("value")])).toStrictEqual({
+      ExpressionAttributeNames: {
+        "#1": "id",
       },
-      ':2': {
-        S: 'value'
-      }
-    },
+      ExpressionAttributeValues: {
+        ":1": {
+          S: "value",
+        },
+      },
+      UpdateExpression: "SET #1=:1",
+    });
   });
-});
 
-test('list-push', () => {
-  expect(Update.compile([
-    _.array.push('value')
-  ])).toEqual({
-    UpdateExpression: 'SET #1[1]=:1',
-    ExpressionAttributeNames: {
-      '#1': 'array'
-    },
-    ExpressionAttributeValues: {
-      ':1': {
-        S: 'value'
-      }
-    },
+  it("repeated clauses", () => {
+    expect.assertions(1);
+    expect(
+      Update.compile([_.id.set("value"), _.id.set("value")]),
+    ).toStrictEqual({
+      ExpressionAttributeNames: {
+        "#1": "id",
+      },
+      ExpressionAttributeValues: {
+        ":1": {
+          S: "value",
+        },
+        ":2": {
+          S: "value",
+        },
+      },
+      UpdateExpression: "SET #1=:1, #1=:2",
+    });
   });
-});
 
-test('list-append', () => {
-  expect(Update.compile([
-    _.array.concat(['value'])
-  ])).toEqual({
-    UpdateExpression: 'SET #1=list_append(#1,:1)',
-    ExpressionAttributeNames: {
-      '#1': 'array'
-    },
-    ExpressionAttributeValues: {
-      ':1': {
-        L: [{
-          S: 'value'
-        }]
-      }
-    },
+  it("list-push", () => {
+    expect.assertions(1);
+    expect(Update.compile([_.array.push("value")])).toStrictEqual({
+      ExpressionAttributeNames: {
+        "#1": "array",
+      },
+      ExpressionAttributeValues: {
+        ":1": {
+          S: "value",
+        },
+      },
+      UpdateExpression: "SET #1[1]=:1",
+    });
   });
-});
 
-test('increment', () => {
-  expect(Update.compile([
-    _.count.increment()
-  ])).toEqual({
-    UpdateExpression: 'SET #1=#1+:1',
-    ExpressionAttributeNames: {
-      '#1': 'count'
-    },
-    ExpressionAttributeValues: {
-      ':1': {
-        N: '1'
-      }
-    }
+  it("list-append", () => {
+    expect.assertions(1);
+    expect(Update.compile([_.array.concat(["value"])])).toStrictEqual({
+      ExpressionAttributeNames: {
+        "#1": "array",
+      },
+      ExpressionAttributeValues: {
+        ":1": {
+          L: [
+            {
+              S: "value",
+            },
+          ],
+        },
+      },
+      UpdateExpression: "SET #1=list_append(#1,:1)",
+    });
+  });
+
+  it("increment", () => {
+    expect.assertions(1);
+    expect(Update.compile([_.count.increment()])).toStrictEqual({
+      ExpressionAttributeNames: {
+        "#1": "count",
+      },
+      ExpressionAttributeValues: {
+        ":1": {
+          N: "1",
+        },
+      },
+      UpdateExpression: "SET #1=#1+:1",
+    });
   });
 });

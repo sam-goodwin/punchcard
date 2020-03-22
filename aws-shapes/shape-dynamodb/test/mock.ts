@@ -1,3 +1,4 @@
+import "../lib";
 import {
   Record,
   any,
@@ -12,8 +13,6 @@ import {
 } from "@punchcard/shape";
 import {array, map, set} from "@punchcard/shape/lib/collection";
 
-import "../lib";
-
 export class Nested extends Record({
   /**
    * This is a nested string.
@@ -25,15 +24,15 @@ export class MyType extends Record({
   /**
    * Field documentation.
    */
-  array: array(string),
-
-  bool,
-  binaryField: binary,
-  complexArray: array(Nested),
   anyField: any,
 
-  complexMap: map(Nested),
+  array: array(string),
+  binaryField: binary,
   binarySet: set(binary),
+  bool,
+
+  complexArray: array(Nested),
+  complexMap: map(Nested),
   count: optional(number),
   id: string,
   integer,

@@ -1,8 +1,8 @@
 export class Writer {
   private tokens: string[] = [];
 
-  public toJsonPath() {
-    return this.tokens.join('');
+  public toJsonPath(): string {
+    return this.tokens.join("");
   }
 
   public head(): string | undefined {

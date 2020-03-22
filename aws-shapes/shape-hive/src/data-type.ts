@@ -1,6 +1,6 @@
-import { Mapper, Shape, Value } from '@punchcard/shape';
-import { DataFormat } from './data-format';
-import { JsonDataType } from './json';
+import {Mapper, Shape, Value} from "@punchcard/shape";
+import {DataFormat} from "./data-format";
+import {JsonDataType} from "./json";
 
 /**
  * Represents an Abstract Glue Data Type.

@@ -8,7 +8,7 @@
  *
  * Use of these classes must then be restricted to within a Punchcard `Build` context.
  *
- * @param regex
+ * @param regex - todo: add description
  */
 export function erasePattern(pattern: RegExp): void {
   patterns.push(pattern);
@@ -18,7 +18,7 @@ export function getPatterns(): RegExp[] {
   return patterns;
 }
 
-const erasure = Symbol.for('@punchcard/erasure');
+const erasure = Symbol.for("@punchcard/erasure");
 
 declare const global: any;
 

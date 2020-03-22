@@ -9,28 +9,36 @@ export class InputFormat {
    *
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/ql/io/avro/AvroContainerInputFormat.html
    */
-  public static readonly AVRO = new InputFormat('org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat');
+  public static readonly AVRO = new InputFormat(
+    "org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat",
+  );
 
   /**
    * InputFormat for Cloudtrail Logs.
    *
    * @see https://docs.aws.amazon.com/athena/latest/ug/cloudtrail.html
    */
-  public static readonly CLOUDTRAIL = new InputFormat('com.amazon.emr.cloudtrail.CloudTrailInputFormat');
+  public static readonly CLOUDTRAIL = new InputFormat(
+    "com.amazon.emr.cloudtrail.CloudTrailInputFormat",
+  );
 
   /**
    * InputFormat for Orc files.
    *
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/ql/io/orc/OrcInputFormat.html
    */
-  public static readonly ORC = new InputFormat('org.apache.hadoop.hive.ql.io.orc.OrcInputFormat');
+  public static readonly ORC = new InputFormat(
+    "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat",
+  );
 
   /**
    * InputFormat for Parquet files.
    *
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/ql/io/parquet/MapredParquetInputFormat.html
    */
-  public static readonly PARQUET = new InputFormat('org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat');
+  public static readonly PARQUET = new InputFormat(
+    "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat",
+  );
 
   /**
    * An InputFormat for plain text files. Files are broken into lines. Either linefeed or
@@ -40,7 +48,9 @@ export class InputFormat {
    *
    * @see https://hadoop.apache.org/docs/stable/api/org/apache/hadoop/mapred/TextInputFormat.html
    */
-  public static readonly TEXT = new InputFormat('org.apache.hadoop.mapred.TextInputFormat');
+  public static readonly TEXT = new InputFormat(
+    "org.apache.hadoop.mapred.TextInputFormat",
+  );
 
   constructor(public readonly className: string) {}
 }
@@ -54,28 +64,36 @@ export class OutputFormat {
    *
    * @see https://hive.apache.org/javadocs/r2.2.0/api/org/apache/hadoop/hive/ql/io/HiveIgnoreKeyTextOutputFormat.html
    */
-  public static readonly HIVE_IGNORE_KEY_TEXT = new OutputFormat('org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat');
+  public static readonly HIVE_IGNORE_KEY_TEXT = new OutputFormat(
+    "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+  );
 
   /**
    * OutputFormat for Avro files.
    *
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/ql/io/avro/AvroContainerOutputFormat.html
    */
-  public static readonly AVRO = new InputFormat('org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat');
+  public static readonly AVRO = new InputFormat(
+    "org.apache.hadoop.hive.ql.io.avro.AvroContainerOutputFormat",
+  );
 
   /**
    * OutputFormat for Orc files.
    *
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/ql/io/orc/OrcOutputFormat.html
    */
-  public static readonly ORC = new InputFormat('org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat');
+  public static readonly ORC = new InputFormat(
+    "org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat",
+  );
 
   /**
    * OutputFormat for Parquet files.
    *
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/ql/io/parquet/MapredParquetOutputFormat.html
    */
-  public static readonly PARQUET = new OutputFormat('org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat');
+  public static readonly PARQUET = new OutputFormat(
+    "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat",
+  );
 
   constructor(public readonly className: string) {}
 }
@@ -89,52 +107,72 @@ export class SerializationLibrary {
   /**
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/serde2/avro/AvroSerDe.html
    */
-  public static readonly AVRO = new SerializationLibrary('org.apache.hadoop.hive.serde2.avro.AvroSerDe');
+  public static readonly AVRO = new SerializationLibrary(
+    "org.apache.hadoop.hive.serde2.avro.AvroSerDe",
+  );
 
   /**
    * @see https://docs.aws.amazon.com/athena/latest/ug/cloudtrail.html
    */
-  public static readonly CLOUDTRAIL = new SerializationLibrary('com.amazon.emr.hive.serde.CloudTrailSerde');
+  public static readonly CLOUDTRAIL = new SerializationLibrary(
+    "com.amazon.emr.hive.serde.CloudTrailSerde",
+  );
 
   /**
    * @see https://docs.aws.amazon.com/athena/latest/ug/grok.html
    */
-  public static readonly GROK = new SerializationLibrary('com.amazonaws.glue.serde.GrokSerDe');
+  public static readonly GROK = new SerializationLibrary(
+    "com.amazonaws.glue.serde.GrokSerDe",
+  );
 
   /**
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hive/hcatalog/data/JsonSerDe.html
    */
-  public static readonly HIVE_JSON = new SerializationLibrary('org.apache.hive.hcatalog.data.JsonSerDe');
+  public static readonly HIVE_JSON = new SerializationLibrary(
+    "org.apache.hive.hcatalog.data.JsonSerDe",
+  );
 
   /**
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/serde2/lazy/LazySimpleSerDe.html
    */
-  public static readonly LAZY_SIMPLE = new SerializationLibrary('org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe');
+  public static readonly LAZY_SIMPLE = new SerializationLibrary(
+    "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe",
+  );
 
   /**
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/serde2/OpenCSVSerde.html
    */
-  public static readonly OPEN_CSV = new SerializationLibrary('org.apache.hadoop.hive.serde2.OpenCSVSerde');
+  public static readonly OPEN_CSV = new SerializationLibrary(
+    "org.apache.hadoop.hive.serde2.OpenCSVSerde",
+  );
 
   /**
    * @see https://github.com/rcongiu/Hive-JSON-Serde
    */
-  public static readonly OPENX_JSON = new SerializationLibrary('org.openx.data.jsonserde.JsonSerDe');
+  public static readonly OPENX_JSON = new SerializationLibrary(
+    "org.openx.data.jsonserde.JsonSerDe",
+  );
 
   /**
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/ql/io/orc/OrcSerde.html
    */
-  public static readonly ORC = new SerializationLibrary('org.apache.hadoop.hive.ql.io.orc.OrcSerde');
+  public static readonly ORC = new SerializationLibrary(
+    "org.apache.hadoop.hive.ql.io.orc.OrcSerde",
+  );
 
   /**
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/ql/io/parquet/serde/ParquetHiveSerDe.html
    */
-  public static readonly PARQUET = new SerializationLibrary('org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe');
+  public static readonly PARQUET = new SerializationLibrary(
+    "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe",
+  );
 
   /**
    * @see https://hive.apache.org/javadocs/r1.2.2/api/org/apache/hadoop/hive/serde2/RegexSerDe.html
    */
-  public static readonly REGEXP = new SerializationLibrary('org.apache.hadoop.hive.serde2.RegexSerDe');
+  public static readonly REGEXP = new SerializationLibrary(
+    "org.apache.hadoop.hive.serde2.RegexSerDe",
+  );
 
   constructor(public readonly className: string) {}
 }
@@ -168,7 +206,7 @@ export namespace DataFormat {
   export const ApacheLogs: DataFormat = {
     inputFormat: InputFormat.TEXT,
     outputFormat: OutputFormat.HIVE_IGNORE_KEY_TEXT,
-    serializationLibrary: SerializationLibrary.REGEXP
+    serializationLibrary: SerializationLibrary.REGEXP,
   };
 
   /**
@@ -179,7 +217,7 @@ export namespace DataFormat {
   export const Avro: DataFormat = {
     inputFormat: InputFormat.AVRO,
     outputFormat: OutputFormat.AVRO,
-    serializationLibrary: SerializationLibrary.AVRO
+    serializationLibrary: SerializationLibrary.AVRO,
   };
 
   /**
@@ -190,7 +228,7 @@ export namespace DataFormat {
   export const CloudTrailLogs: DataFormat = {
     inputFormat: InputFormat.CLOUDTRAIL,
     outputFormat: OutputFormat.HIVE_IGNORE_KEY_TEXT,
-    serializationLibrary: SerializationLibrary.CLOUDTRAIL
+    serializationLibrary: SerializationLibrary.CLOUDTRAIL,
   };
 
   /**
@@ -201,7 +239,7 @@ export namespace DataFormat {
   export const CSV: DataFormat = {
     inputFormat: InputFormat.TEXT,
     outputFormat: OutputFormat.HIVE_IGNORE_KEY_TEXT,
-    serializationLibrary: SerializationLibrary.OPEN_CSV
+    serializationLibrary: SerializationLibrary.OPEN_CSV,
   };
 
   /**
@@ -213,7 +251,7 @@ export namespace DataFormat {
   export const Json: DataFormat = {
     inputFormat: InputFormat.TEXT,
     outputFormat: OutputFormat.HIVE_IGNORE_KEY_TEXT,
-    serializationLibrary: SerializationLibrary.OPENX_JSON
+    serializationLibrary: SerializationLibrary.OPENX_JSON,
   };
 
   /**
@@ -224,7 +262,7 @@ export namespace DataFormat {
   export const Logstash: DataFormat = {
     inputFormat: InputFormat.TEXT,
     outputFormat: OutputFormat.HIVE_IGNORE_KEY_TEXT,
-    serializationLibrary: SerializationLibrary.GROK
+    serializationLibrary: SerializationLibrary.GROK,
   };
 
   /**
@@ -235,7 +273,7 @@ export namespace DataFormat {
   export const Orc: DataFormat = {
     inputFormat: InputFormat.ORC,
     outputFormat: OutputFormat.ORC,
-    serializationLibrary: SerializationLibrary.ORC
+    serializationLibrary: SerializationLibrary.ORC,
   };
 
   /**
@@ -246,7 +284,7 @@ export namespace DataFormat {
   export const Parquet: DataFormat = {
     inputFormat: InputFormat.PARQUET,
     outputFormat: OutputFormat.PARQUET,
-    serializationLibrary: SerializationLibrary.PARQUET
+    serializationLibrary: SerializationLibrary.PARQUET,
   };
 
   /**
@@ -257,6 +295,6 @@ export namespace DataFormat {
   export const TSV: DataFormat = {
     inputFormat: InputFormat.TEXT,
     outputFormat: OutputFormat.HIVE_IGNORE_KEY_TEXT,
-    serializationLibrary: SerializationLibrary.LAZY_SIMPLE
+    serializationLibrary: SerializationLibrary.LAZY_SIMPLE,
   };
 }

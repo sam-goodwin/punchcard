@@ -1,19 +1,19 @@
-import { Record } from '@punchcard/shape';
-import { smallint } from '@punchcard/shape-hive';
+import {Record} from "@punchcard/shape";
+import {smallint} from "@punchcard/shape-hive";
 
 export class PT1H extends Record({
-  year: smallint,
-  month: smallint,
   day: smallint,
-  hour: smallint
+  hour: smallint,
+  month: smallint,
+  year: smallint,
 }) {}
 
 export class PT1M extends Record({
-  year: smallint,
-  month: smallint,
   day: smallint,
   hour: smallint,
-  minute: smallint
+  minute: smallint,
+  month: smallint,
+  year: smallint,
 }) {}
 
 export namespace Period {
@@ -35,16 +35,24 @@ export class Period<P> {
   /**
    * Minutely partitions.
    */
-  public static readonly PT1M: Period<Period.PT1M> = new Period('minutely', PT1M, 60 * 1000);
+  public static readonly PT1M: Period<Period.PT1M> = new Period(
+    "minutely",
+    PT1M,
+    60 * 1000,
+  );
 
   /**
    * Hourly partitions.
    */
-  public static readonly PT1H: Period<Period.PT1H> = new Period('hourly', PT1H, 60 * 60 * 1000);
+  public static readonly PT1H: Period<Period.PT1H> = new Period(
+    "hourly",
+    PT1H,
+    60 * 60 * 1000,
+  );
 
   constructor(
     public readonly id: string,
     public readonly schema: P,
-    public readonly milliseconds: number
+    public readonly milliseconds: number,
   ) {}
 }

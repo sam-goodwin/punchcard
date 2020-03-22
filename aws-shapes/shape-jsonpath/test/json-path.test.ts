@@ -1,7 +1,5 @@
 import {Optional, Record, number, string} from "@punchcard/shape";
 import {array, map, set} from "@punchcard/shape/lib/collection";
-
-import "../lib";
 import {JsonPath} from "../lib";
 
 export class Nested extends Record({
