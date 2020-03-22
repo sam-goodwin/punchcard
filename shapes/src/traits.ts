@@ -1,5 +1,5 @@
-import { Apply, Decorated, Trait } from './metadata';
-import { Shape } from './shape';
+import {Apply, Decorated, Trait} from "./metadata";
+import {Shape} from "./shape";
 
 /**
  * Optional Trait metadata. Marks a shape as `{ nullable: true }`.
@@ -8,13 +8,13 @@ import { Shape } from './shape';
  */
 export const Optional: Trait<any, IsOptional> = {
   [Trait.Data]: {
-    nullable: true
-  }
+    nullable: true,
+  },
 };
 export type IsOptional = {
-  nullable: true
+  nullable: true;
 };
-export function isOptional(a: any) {
+export function isOptional(a: any): boolean {
   return a[Decorated.Data] && a[Decorated.Data].nullable === true;
 }
 
@@ -23,16 +23,20 @@ export function isOptional(a: any) {
  *
  * Decorates the Shape with the Optional trait.
  *
- * @param shapeOrRecord a Shape or a Record to transform as optional
+ * @param shapeOrRecord - a Shape or a Record to transform as optional
  */
-export function optional<T extends Shape.Like>(shape: T): Apply<Shape.Resolve<T>, IsOptional> {
+export function optional<T extends Shape.Like>(
+  shape: T,
+): Apply<Shape.Resolve<T>, IsOptional> {
   return Shape.resolve(shape).apply(Optional);
 }
 
-export function Description<D extends string>(description: D): Trait<any, { description: D }> {
+export function Description<D extends string>(
+  description: D,
+): Trait<any, {description: D}> {
   return {
     [Trait.Data]: {
-      description
-    }
+      description,
+    },
   };
 }

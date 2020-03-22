@@ -1,11 +1,21 @@
-import { ArrayShape, BinaryShape, BoolShape, DynamicShape, MapShape, NothingShape, NumericShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
-import { RecordMembers, RecordShape} from '@punchcard/shape/lib/record';
-
-// tslint:disable: ban-types
+import {
+  ArrayShape,
+  BinaryShape,
+  BoolShape,
+  DynamicShape,
+  MapShape,
+  NothingShape,
+  NumericShape,
+  SetShape,
+  Shape,
+  StringShape,
+  TimestampShape,
+} from "@punchcard/shape";
+import {RecordMembers, RecordShape} from "@punchcard/shape/lib/record";
 
 export namespace AttributeValue {
   export type Tag = typeof Tag;
-  export const Tag = Symbol.for('@punchcard/shape-dynamodb.AttributeValue.Tag');
+  export const Tag = Symbol.for("@punchcard/shape-dynamodb.AttributeValue.Tag");
 
   export type Type =
     | AttributeValue.Binary
@@ -18,28 +28,37 @@ export namespace AttributeValue {
     | AttributeValue.NumberValue
     | AttributeValue.StringSet
     | AttributeValue.StringValue
-    | AttributeValue.Struct<any>
-    ;
+    | AttributeValue.Struct<any>;
 
-  export type Of<T extends Shape> =
-    T extends StringShape | TimestampShape ? StringValue :
-    T extends NumericShape ? NumberValue :
-    T extends BoolShape ? Bool :
-    T extends BinaryShape ? Binary :
-    T extends NothingShape ? NothingValue :
-    T extends DynamicShape<any> ? AttributeValue.Type :
-    T extends ArrayShape<infer I> ? List<I> :
-    T extends MapShape<infer V> ? Map<V> :
-    T extends SetShape<infer I> ?
-      I extends BinaryShape ? AttributeValue.BinarySet :
-      I extends StringShape ? AttributeValue.StringSet :
-      I extends NumericShape ? AttributeValue.NumberSet :
-      never
-      :
-    T extends RecordShape<infer M> ? Struct<M> :
-    T extends { [Tag]: infer T2 } ? T2 :
-    never
-    ;
+  export type Of<T extends Shape> = T extends StringShape | TimestampShape
+    ? StringValue
+    : T extends NumericShape
+    ? NumberValue
+    : T extends BoolShape
+    ? Bool
+    : T extends BinaryShape
+    ? Binary
+    : T extends NothingShape
+    ? NothingValue
+    : T extends DynamicShape<any>
+    ? AttributeValue.Type
+    : T extends ArrayShape<infer I>
+    ? List<I>
+    : T extends MapShape<infer V>
+    ? Map<V>
+    : T extends SetShape<infer I>
+    ? I extends BinaryShape
+      ? AttributeValue.BinarySet
+      : I extends StringShape
+      ? AttributeValue.StringSet
+      : I extends NumericShape
+      ? AttributeValue.NumberSet
+      : never
+    : T extends RecordShape<infer M>
+    ? Struct<M>
+    : T extends {[Tag]: infer T2}
+    ? T2
+    : never;
 
   export interface Binary {
     B: Buffer;
@@ -60,8 +79,10 @@ export namespace AttributeValue {
   }
   export interface Struct<T extends RecordMembers> {
     M: {
-      [m in keyof RecordMembers.Natural<T>]: AttributeValue.Of<RecordMembers.Natural<T>[m]>;
-    }
+      [m in keyof RecordMembers.Natural<T>]: AttributeValue.Of<
+        RecordMembers.Natural<T>[m]
+      >;
+    };
     // M: {
     //   /**
     //    * Write each member and their documentation to the structure.

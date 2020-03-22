@@ -33,7 +33,6 @@ export class Objects<T, D extends any[]> extends Stream<
     return CDK.chain(({lambdaEventSources, s3}) =>
       this.s3Stream.resource.map(
         (s3Stream) =>
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           new lambdaEventSources.S3EventSource(s3Stream.s3Bucket!, {
             events: [s3.EventType.OBJECT_CREATED],
           }),

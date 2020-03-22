@@ -33,7 +33,6 @@ export class Frame {
 
   public register(a: any): string {
     this.lexicalScope.set(a, this.getNewId());
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return this.lookup(a)!;
   }
 

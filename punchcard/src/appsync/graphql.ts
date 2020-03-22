@@ -76,9 +76,7 @@ export function GraphQLResolver<M extends RecordMembers>(
   };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GraphQL {
-  // eslint-disable-next-line no-inner-declarations
   export function of<T extends Shape>(
     type: T,
     expr: GraphQL.Expression,
@@ -86,12 +84,10 @@ export namespace GraphQL {
     return type.visit(GraphQL.visitor as any, expr);
   }
 
-  // eslint-disable-next-line no-inner-declarations
   export function clone<T extends GraphQL.Type>(
     t: T,
     expr: GraphQL.Expression,
   ): T {
-    // eslint-disable-next-line security/detect-object-injection
     return of(t[type], expr) as any;
   }
 
@@ -146,9 +142,7 @@ export namespace GraphQL {
     public readonly [type]: T;
     public readonly [expr]: GraphQL.Expression;
     constructor(_type: T, _expr: GraphQL.Expression) {
-      // eslint-disable-next-line security/detect-object-injection
       this[type] = _type;
-      // eslint-disable-next-line security/detect-object-injection
       this[expr] = _expr;
     }
   }
@@ -156,7 +150,6 @@ export namespace GraphQL {
   export class Any extends Type<DynamicShape<any>> {}
   export class Bool extends Type<BoolShape> {
     public static not(a: Bool): Bool {
-      // eslint-disable-next-line security/detect-object-injection
       return new Bool(bool, a[expr].prepend("!"));
     }
   }
@@ -164,7 +157,6 @@ export namespace GraphQL {
   export class Number extends Type<NumberShape> {}
   export class String extends Type<StringShape> {
     public toUpperCase(): GraphQL.String {
-      // eslint-disable-next-line security/detect-object-injection
       return new String(this[type], this[expr].dot("toUpperCase()"));
     }
 
@@ -173,12 +165,10 @@ export namespace GraphQL {
     }
 
     public isEmpty(): Bool {
-      // eslint-disable-next-line security/detect-object-injection
       return new Bool(bool, this[expr].dot("isEmpty()"));
     }
 
     public size(): Integer {
-      // eslint-disable-next-line security/detect-object-injection
       return new Integer(integer, this[expr].dot("size()"));
     }
   }
@@ -203,7 +193,6 @@ export namespace GraphQL {
     >
   > {}
 
-  // eslint-disable-next-line @typescript-eslint/no-namespace
   export namespace Record {
     export type GetMembers<R extends Record> = R extends Record<infer M>
       ? M
@@ -214,7 +203,6 @@ export namespace GraphQL {
   ) => T;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GraphQL {
   /**
    * https://docs.aws.amazon.com/appsync/latest/devguide/resolver-util-reference.html
@@ -249,7 +237,6 @@ export namespace GraphQL {
    *
    * @param type - todo: add description
    */
-  // eslint-disable-next-line no-inner-declarations
   export function template<T extends Shape>(
     type: Shape,
   ): ExpressionTemplate<T> {
@@ -261,7 +248,6 @@ export namespace GraphQL {
           template.forEach((str, i) => {
             frame.print(str);
             if (i < args.length) {
-              // eslint-disable-next-line security/detect-object-injection
               frame.interpret(args[i]);
             }
           });
@@ -275,7 +261,6 @@ export namespace GraphQL {
     ...args: Args
   ): GraphQL.String;
   export function string(s: string): GraphQL.String;
-  // eslint-disable-next-line no-inner-declarations
   export function string(...args: any[]): GraphQL.String {
     if (typeof args[0] === "string") {
       return new GraphQL.String(
@@ -292,7 +277,6 @@ export namespace GraphQL {
     ...args: Args
   ): GraphQL.Number;
   export function number(n: number): GraphQL.Number;
-  // eslint-disable-next-line no-inner-declarations
   export function number(...args: any[]): GraphQL.Number {
     if (typeof args[0] === "number") {
       return new GraphQL.Number(
@@ -305,7 +289,6 @@ export namespace GraphQL {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GraphQL {
   export interface StaticInterface<M extends RecordMembers> {
     /**
@@ -320,7 +303,6 @@ export namespace GraphQL {
     // todo
   }
 
-  // eslint-disable-next-line no-inner-declarations
   export function NewType<M extends RecordMembers>(
     _members: M,
   ): StaticInterface<M> &
@@ -342,7 +324,6 @@ export namespace GraphQL {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GraphQL {
   export class Expression {
     private readonly text: (ctx: Frame) => void;
@@ -422,7 +403,6 @@ export namespace GraphQL {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace GraphQL {
   export class Visitor
     implements ShapeVisitor<GraphQL.Type, GraphQL.Expression> {
@@ -454,7 +434,6 @@ export namespace GraphQL {
       throw new Nothing(shape, expr);
     }
     public numberShape(shape: NumberShape, expr: Expression): GraphQL.Number {
-      // tslint:disable-next-line: no-construct
       return new Number(shape, expr);
     }
     public setShape(
@@ -464,7 +443,6 @@ export namespace GraphQL {
       return new Set(shape, expr);
     }
     public stringShape(shape: StringShape, expr: Expression): GraphQL.String {
-      // tslint:disable-next-line: no-construct
       return new String(shape, expr);
     }
     public timestampShape(shape: TimestampShape, expr: Expression): Timestamp {

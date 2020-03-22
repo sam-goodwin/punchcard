@@ -22,7 +22,6 @@ export class Cache {
     if (this.has(key)) {
       throw new Error(`cache already contains key '${key}'`);
     }
-    // eslint-disable-next-line security/detect-object-injection
     this.cache[key] = value;
   }
 
@@ -31,7 +30,6 @@ export class Cache {
    * @param key - cache key to check
    */
   public has(key: string): boolean {
-    // eslint-disable-next-line security/detect-object-injection
     return this.cache[key] !== undefined;
   }
 
@@ -57,7 +55,6 @@ export class Cache {
   // todo: fix implicit any
   // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   public tryGet(name: string) {
-    // eslint-disable-next-line security/detect-object-injection
     return this.cache[name];
   }
 }

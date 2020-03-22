@@ -4,7 +4,7 @@ export interface SinkProps {
   /**
    * Enforces messages are sent in the same order as they are passed.
    *
-   * @default false
+   * @defaultValue false
    */
   strictOrdering?: boolean;
 }
@@ -13,29 +13,40 @@ export interface Sink<T> {
   sink(values: Iterable<T>, prop?: SinkProps): Promise<void>;
 }
 
-export async function sink<T>(values: T[], tryPutBatch: (values: T[]) => Promise<T[]>, props: SinkProps = {}, batchSize: number): Promise<void> {
+export async function sink<T>(
+  values: T[],
+  tryPutBatch: (values: T[]) => Promise<T[]>,
+  props: SinkProps = {},
+  batchSize: number,
+): Promise<void> {
   if (values === undefined || values.length === 0) {
     return;
   }
   const retry = props.retry || {
     attemptsLeft: 3,
     backoffMs: 100,
-    maxBackoffMs: 10000
+    maxBackoffMs: 10000,
   };
-  const strictOrdering = props.strictOrdering === undefined ? false : props.strictOrdering;
+  const strictOrdering =
+    props.strictOrdering === undefined ? false : props.strictOrdering;
   if (values.length <= batchSize) {
     const redrive = await tryPutBatch(values);
     if (redrive && redrive.length > 0) {
       if (retry.attemptsLeft === 0) {
         throw new Error(`failed to send records to Kinesis`);
       }
-      return sink(redrive, tryPutBatch, {
-        retry: {
-          attemptsLeft: retry.attemptsLeft - 1,
-          backoffMs:  Math.min(2 * retry.backoffMs,  retry.maxBackoffMs),
-          maxBackoffMs: retry.maxBackoffMs
-        }
-      }, batchSize);
+      return sink(
+        redrive,
+        tryPutBatch,
+        {
+          retry: {
+            attemptsLeft: retry.attemptsLeft - 1,
+            backoffMs: Math.min(2 * retry.backoffMs, retry.maxBackoffMs),
+            maxBackoffMs: retry.maxBackoffMs,
+          },
+        },
+        batchSize,
+      );
     }
   } else {
     if (strictOrdering) {
@@ -59,8 +70,18 @@ export async function sink<T>(values: T[], tryPutBatch: (values: T[]) => Promise
       }
     } else {
       await Promise.all([
-        sink(values.slice(0, Math.floor(values.length / 2)), tryPutBatch, props, batchSize),
-        sink(values.slice(Math.floor(values.length / 2), values.length), tryPutBatch, props, batchSize)
+        sink(
+          values.slice(0, Math.floor(values.length / 2)),
+          tryPutBatch,
+          props,
+          batchSize,
+        ),
+        sink(
+          values.slice(Math.floor(values.length / 2), values.length),
+          tryPutBatch,
+          props,
+          batchSize,
+        ),
       ]);
     }
   }

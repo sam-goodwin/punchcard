@@ -47,7 +47,6 @@ export class Client<T extends Shape> implements Sink<T> {
           const redrive: Value.Of<T>[] = [];
           res.RequestResponses.forEach((v, i) => {
             if (v.ErrorCode !== undefined) {
-              // eslint-disable-next-line security/detect-object-injection
               redrive.push(values[i]);
             }
           });

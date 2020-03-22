@@ -1,47 +1,54 @@
-import 'jest';
+import {
+  HashSet,
+  MaxLength,
+  Maximum,
+  MinLength,
+  Minimum,
+  MultipleOf,
+  Optional,
+  Pattern,
+  Record,
+  bool,
+  dsl,
+  nothing,
+  number,
+  optional,
+  string,
+} from "@punchcard/shape";
+import {array, map, set} from "@punchcard/shape/lib/collection";
 
-import { bool, dsl, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, Optional, optional, Pattern, Record, string } from '@punchcard/shape';
-import { array, map, set } from '@punchcard/shape/lib/collection';
-
-import { Json } from '../lib';
-
-// tslint:disable: member-access
+import {Json} from "../lib";
 
 class Nested extends Record({
   /**
    * A docs.
    */
-  a: string
-    .apply(Optional)
+  a: string.apply(Optional),
 }) {}
 class MyType extends Record({
   /**
    * Field documentation.
    */
-  id: string
-    .apply(MaxLength(1))
-    .apply(MinLength(0))
-    .apply(Pattern('.*'))
-    ,
+  array: array(string),
+  boolean: bool,
+  complexArray: array(Nested),
 
+  complexMap: map(Nested),
+  complexSet: set(Nested),
   count: number
     .apply(Maximum(1))
     .apply(Minimum(1, true))
-    .apply(MultipleOf(2))
-    ,
-
-  boolean: bool,
-
-  nested: Nested,
-  array: array(string),
-  complexArray: array(Nested),
-  set: set(string),
-  complexSet: set(Nested),
+    .apply(MultipleOf(2)),
+  id: string
+    .apply(MaxLength(1))
+    .apply(MinLength(0))
+    .apply(Pattern(".*")),
   map: map(string),
-  complexMap: map(Nested),
-
+  nested: Nested,
   null: nothing,
-  optional: optional(string)
+
+  optional: optional(string),
+  set: set(string),
 }) {
   public static readonly DSL = dsl(MyType);
 }
@@ -49,55 +56,55 @@ class MyType extends Record({
 const mapper = Json.mapper(MyType);
 
 const jsonRepr = {
-  id: 'id',
-  count: 1,
+  array: ["array1", "arra2"],
   boolean: true,
-  nested: { a: 'nested' },
-  array: ['array1', 'arra2'],
-  complexArray: [{ a: 'complexArray' }],
-  set: ['set1', 'set2'],
-  complexSet: [{a: 'complexSet'}],
-  map: {
-    a: 'map'
-  },
+  complexArray: [{a: "complexArray"}],
   complexMap: {
     key: {
-      a: 'complexMap'
-    }
+      a: "complexMap",
+    },
   },
-  null: null
+  complexSet: [{a: "complexSet"}],
+  count: 1,
+  id: "id",
+  map: {
+    a: "map",
+  },
+  nested: {a: "nested"},
+  null: null,
+  set: ["set1", "set2"],
 };
 
 const runtimeRepr = new MyType({
-  id: 'id',
-  count: 1,
+  array: ["array1", "arra2"],
   boolean: true,
-  nested: new Nested({ a: 'nested' }),
-  array: ['array1', 'arra2'],
-  complexArray: [new Nested({ a: 'complexArray' })],
-  set: new Set(['set1', 'set2']),
-  complexSet: HashSet.of(Nested).add(new Nested({a: 'complexSet'})),
-  map: {
-    a: 'map'
-  },
+  complexArray: [new Nested({a: "complexArray"})],
   complexMap: {
     key: new Nested({
-      a: 'complexMap'
-    })
+      a: "complexMap",
+    }),
   },
-  null: null
+  complexSet: HashSet.of(Nested).add(new Nested({a: "complexSet"})),
+  count: 1,
+  id: "id",
+  map: {
+    a: "map",
+  },
+  nested: new Nested({a: "nested"}),
+  null: null,
+  set: new Set(["set1", "set2"]),
 });
 
-test('should read shape from json', () => {
-  expect(mapper.read(jsonRepr)).toEqual(runtimeRepr);
+test("should read shape from json", () => {
+  expect(mapper.read(jsonRepr)).toStrictEqual(runtimeRepr);
 });
 
-test('should write shape to json', () => {
-  expect(mapper.write(runtimeRepr)).toEqual(jsonRepr);
+test("should write shape to json", () => {
+  expect(mapper.write(runtimeRepr)).toStrictEqual(jsonRepr);
 });
 
 class Empty extends Record({}) {}
 
-test('should support empty record', () => {
+test("should support empty record", () => {
   expect(() => Json.mapper(Empty)).not.toThrow();
 });

@@ -6,8 +6,6 @@ import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
 import { Writer } from './writer';
 
-// tslint:disable: ban-types
-
 // we have a thing named Object inside Query, so stash this here.
 const Objekt = Object;
 
@@ -94,7 +92,6 @@ export namespace DSL {
       return new Set(shape.Items, expression);
     },
     stringShape: (shape: StringShape, expression: ExpressionNode<any>): Node => {
-      // tslint:disable: no-construct
       return new String(expression, shape);
     },
     timestampShape: (_shape: TimestampShape, expression: ExpressionNode<any>): Node => {

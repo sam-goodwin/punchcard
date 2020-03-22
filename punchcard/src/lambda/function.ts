@@ -222,7 +222,6 @@ export class Function<
       const bag: {[name: string]: string} = {};
       for (const [env, value] of Object.entries(process.env)) {
         if (env.startsWith("punchcard") && value !== undefined) {
-          // eslint-disable-next-line security/detect-object-injection
           bag[env] = value;
         }
       }
@@ -231,7 +230,6 @@ export class Function<
       if (this.dependencies) {
         const cache = new Cache();
         const runtimeProperties = new Assembly(bag);
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         client = await Run.resolve(this.dependencies!.bootstrap)(
           runtimeProperties,
           cache,
@@ -298,7 +296,6 @@ export class Function<
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Function {
   /**
    * Client for invoking a Lambda Function

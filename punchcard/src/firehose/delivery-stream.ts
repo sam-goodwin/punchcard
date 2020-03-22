@@ -133,7 +133,6 @@ export class DeliveryStream<T extends Shape>
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     this.bucket = new S3.Bucket(this.resource.map((ds) => ds.s3Bucket!));
   }
 

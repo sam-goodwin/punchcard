@@ -31,7 +31,6 @@ export class LambdaIntegration<R extends Dependency<any>>
 
     this.resource = CDK.chain(({apigateway}) =>
       fn.resource.chain((f) =>
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         options!.map(
           (options) =>
             new apigateway.LambdaIntegration(f, {
@@ -45,7 +44,6 @@ export class LambdaIntegration<R extends Dependency<any>>
 
   public mapResource(resource: Resource): Build<void> {
     const id = resource[TreeFields.path].replace(/\W/g, "_");
-    // eslint-disable-next-line security/detect-object-injection
     this.resourceMappings[id] = resource; // TODO: mutability here seems bad
 
     return Build.concat(this.fn.resource, resource.resource).map(([fn, r]) => {
@@ -59,18 +57,15 @@ export class LambdaIntegration<R extends Dependency<any>>
       this.index = {};
       Object.keys(process.env).forEach((name) => {
         if (name.startsWith(resourceIdPrefix)) {
-          // eslint-disable-next-line security/detect-object-injection
           const resourceId = process.env[name];
           if (resourceId === undefined) {
             throw new Error(`no environment variable, '${name}'`);
           }
           const uniqueId = name.slice(resourceIdPrefix.length);
-          // eslint-disable-next-line security/detect-object-injection
           this.index[resourceId] = this.resourceMappings[uniqueId];
         }
       });
     }
-    // eslint-disable-next-line security/detect-object-injection
     const resource = this.index[resourceId];
     if (!resource) {
       throw new Error(`could not find resource for resource id: ${resourceId}`);

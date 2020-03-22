@@ -1,16 +1,16 @@
-import { any, array, map, Record, string } from "@punchcard/shape";
+import {Record, any, array, map, string} from "@punchcard/shape";
 
 export namespace Event {
   export class Message extends Record({
-    messageId: string,
-    receiptHandle: string,
-    body: string,
     attributes: map(any),
-    messageAttributes: map(any),
-    md5OfBody: string,
+    awsRegion: string,
+    body: string,
     eventSource: string,
     eventSourceARN: string,
-    awsRegion: string,
+    md5OfBody: string,
+    messageAttributes: map(any),
+    messageId: string,
+    receiptHandle: string,
   }) {}
 
   /**
@@ -19,6 +19,6 @@ export namespace Event {
    * @see https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
    */
   export class Payload extends Record({
-    Records: array(Message)
+    Records: array(Message),
   }) {}
 }

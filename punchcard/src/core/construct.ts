@@ -9,7 +9,6 @@ export class Construct {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Construct {
   export type Class<C extends Construct = Construct, Props = undefined> = new (
     scope: Scope,
@@ -20,9 +19,7 @@ export namespace Construct {
 
 export type Scope = Construct | Build<cdk.Construct>;
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Scope {
-  // eslint-disable-next-line no-inner-declarations
   export function resolve<S extends Scope>(scope: S): Build<cdk.Construct> {
     if (Build.isBuild(scope)) {
       return scope;

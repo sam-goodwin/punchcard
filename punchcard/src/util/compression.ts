@@ -1,41 +1,40 @@
-import util = require('util');
-import zlib = require('zlib');
+import util from "util";
+import zlib from "zlib";
 
 export interface Compression {
-  type: CompressionType;
-  extension?: string;
-  isCompressed: boolean;
   compress(content: Buffer): Promise<Buffer>;
   decompress(content: Buffer): Promise<Buffer>;
+  extension?: string;
+  isCompressed: boolean;
+  type: CompressionType;
 }
 
 export enum CompressionType {
-  UNCOMPRESSED = "UNCOMPRESSED",
   GZIP = "GZIP",
+  Snappy = "Snappy",
+  UNCOMPRESSED = "UNCOMPRESSED",
   ZIP = "ZIP",
-  Snappy = "Snappy"
 }
 
 export namespace Compression {
-  // tslint:disable: variable-name
   export const None: Compression = {
-    type: CompressionType.UNCOMPRESSED,
+    compress: (content) => Promise.resolve(content),
+    decompress: (content) => Promise.resolve(content),
     isCompressed: false,
-    compress: content => Promise.resolve(content),
-    decompress: content => Promise.resolve(content),
+    type: CompressionType.UNCOMPRESSED,
   };
   export const Gzip: Compression = {
-    type: CompressionType.GZIP,
-    extension: 'gz',
-    isCompressed: true,
     compress: util.promisify(zlib.gzip),
-    decompress: util.promisify(zlib.gunzip)
+    decompress: util.promisify(zlib.gunzip),
+    extension: "gz",
+    isCompressed: true,
+    type: CompressionType.GZIP,
   };
   export const Zip: Compression = {
-    type: CompressionType.ZIP,
-    extension: 'zip',
-    isCompressed: true,
     compress: util.promisify(zlib.deflate),
-    decompress: util.promisify(zlib.inflate)
+    decompress: util.promisify(zlib.inflate),
+    extension: "zip",
+    isCompressed: true,
+    type: CompressionType.ZIP,
   };
 }

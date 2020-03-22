@@ -1,9 +1,13 @@
-import { ShapeGuards } from './guards';
-import { Shape } from './shape';
+import {Shape} from "./shape";
+import {ShapeGuards} from "./guards";
 
 export type Pointer<T extends Shape.Like> = T | ((is?: undefined) => T);
 export namespace Pointer {
-  export type Resolve<P extends Pointer<any>> = P extends (is?: undefined) => infer T ? T : P;
+  export type Resolve<P extends Pointer<any>> = P extends (
+    is?: undefined,
+  ) => infer T
+    ? T
+    : P;
   export function resolve<P extends Pointer<any>>(pointer?: P): Resolve<P> {
     if (pointer === undefined) {
       return undefined as any;

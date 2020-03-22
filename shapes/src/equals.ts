@@ -1,9 +1,18 @@
-import { ArrayShape, MapShape, SetShape } from './collection';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
-import { RecordShape } from './record';
-import { Shape } from './shape';
-import { Value } from './value';
-import { ShapeVisitor } from './visitor';
+import {ArrayShape, MapShape, SetShape} from "./collection";
+import {
+  BinaryShape,
+  BoolShape,
+  DynamicShape,
+  IntegerShape,
+  NothingShape,
+  NumberShape,
+  StringShape,
+  TimestampShape,
+} from "./primitive";
+import {RecordShape} from "./record";
+import {Shape} from "./shape";
+import {ShapeVisitor} from "./visitor";
+import {Value} from "./value";
 
 /**
  * Computes whether two Values of a Shape are equal.
@@ -13,7 +22,10 @@ export type Equals<T> = (a: T, b: T) => boolean;
 export namespace Equals {
   const cache = new WeakMap();
 
-  export function of<T extends Shape>(shape: T, noCache: boolean = false): Equals<Value.Of<T>> {
+  export function of<T extends Shape>(
+    shape: T,
+    noCache = false,
+  ): Equals<Value.Of<T>> {
     if (noCache) {
       return make();
     }
@@ -23,34 +35,41 @@ export namespace Equals {
     return cache.get(shape);
 
     function make() {
-      return (shape as any).visit(visitor );
+      return (shape as any).visit(visitor);
     }
   }
 
   export class Visitor implements ShapeVisitor<Equals<any>> {
-    public nothingShape(_shape: NothingShape, _context: undefined): Equals<NothingShape> {
+    public nothingShape(
+      _shape: NothingShape,
+      _context: undefined,
+    ): Equals<NothingShape> {
       return (a, b) => a === b && a === undefined;
     }
-    public dynamicShape(_shape: DynamicShape<any>, _context: undefined): Equals<DynamicShape<any>> {
+    public dynamicShape(
+      _shape: DynamicShape<any>,
+      _context: undefined,
+    ): Equals<DynamicShape<any>> {
       return function equals(a: any, b: any): boolean {
         const type = typeof a;
         if (type !== typeof b) {
           return false;
         }
         switch (type) {
-          case 'undefined': return true;
-          case 'string':
-          case 'number':
-          case 'bigint':
-          case 'boolean':
+          case "undefined":
+            return true;
+          case "string":
+          case "number":
+          case "bigint":
+          case "boolean":
             return a === b;
-          case 'object':
+          case "object":
             if (Array.isArray(a) && Array.isArray(b)) {
               if (a.length !== b.length) {
                 return false;
               }
-              for (let i = 0; i < a.length; i++) {
-                if (!equals(a[i], b[i])) {
+              for (const [i, element] of a.entries()) {
+                if (!equals(element, b[i])) {
                   return false;
                 }
               }
@@ -77,7 +96,10 @@ export namespace Equals {
         }
       };
     }
-    public binaryShape(_shape: BinaryShape, _context: undefined): Equals<BinaryShape> {
+    public binaryShape(
+      _shape: BinaryShape,
+      _context: undefined,
+    ): Equals<BinaryShape> {
       return ((a: Buffer, b: Buffer) => {
         if (a.length !== b.length) {
           return false;
@@ -96,8 +118,7 @@ export namespace Equals {
         if (a.length !== b.length) {
           return false;
         }
-        for (let i = 0; i < a.length; i++) {
-          const aItem = a[i];
+        for (const [i, aItem] of a.entries()) {
           const bItem = b[i];
           if (!itemEq(aItem, bItem)) {
             return false;
@@ -112,7 +133,7 @@ export namespace Equals {
     public recordShape(shape: RecordShape<any>): Equals<RecordShape<any>> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
-          [name]: of((member as any))
+          [name]: of(member as any),
         }))
         .reduce((a, b) => ({...a, ...b}));
 
@@ -123,8 +144,8 @@ export namespace Equals {
           return false;
         }
         for (const aKey of aKeys) {
-          const aValue = (a as any)[aKey];
-          const bValue = (b as any)[aKey];
+          const aValue = a[aKey];
+          const bValue = b[aKey];
           if (aValue === undefined && bValue === undefined) {
             return false;
           }
@@ -181,7 +202,7 @@ export namespace Equals {
       return (a, b) => a === b;
     }
     public timestampShape(_shape: TimestampShape): Equals<TimestampShape> {
-      return (((a: Date, b: Date) => a.getTime() === b.getTime())) as any;
+      return ((a: Date, b: Date) => a.getTime() === b.getTime()) as any;
     }
   }
 

@@ -24,7 +24,6 @@ import {isOptional} from "@punchcard/shape/lib/traits";
 export type Tag = typeof Tag;
 export const Tag = Symbol.for("@punchcard/shape-json.Json.Tag");
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Json {
   export type Of<T> = T extends RecordShape<infer M>
     ? {
@@ -57,14 +56,12 @@ export namespace Json {
     : never;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Json {
   export interface MapperOptions {
     validate?: boolean;
     visitor?: MapperVisitor;
   }
 
-  // eslint-disable-next-line no-inner-declarations
   export function mapper<T>(
     shape: T & Shape,
     options: MapperOptions = {},
@@ -94,7 +91,6 @@ export namespace Json {
     return mapper;
   }
 
-  // eslint-disable-next-line no-inner-declarations
   export function asString<T, U>(mapper: Mapper<T, U>): Mapper<T, string> {
     return {
       read: (s): T => mapper.read(JSON.parse(s)),
@@ -102,7 +98,6 @@ export namespace Json {
     };
   }
 
-  // eslint-disable-next-line no-inner-declarations
   export function stringifyMapper<T extends Shape>(
     type: T,
     options: MapperOptions = {},
@@ -114,7 +109,6 @@ export namespace Json {
     };
   }
 
-  // eslint-disable-next-line no-inner-declarations
   export function bufferMapper<T extends Shape>(
     type: T,
     options: MapperOptions = {},
@@ -214,17 +208,14 @@ export namespace Json {
           const res: any = {};
           // TODO: optionals
           for (const [name, codec] of Object.entries(fields)) {
-            // eslint-disable-next-line security/detect-object-injection
             res[name] = codec.read(value[name]);
           }
           return new (shape as any)(res);
         },
-        // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
         write: (value: any) => {
           const res: any = {};
           // TODO: optionals
           for (const [name, codec] of Object.entries(fields)) {
-            // eslint-disable-next-line security/detect-object-injection
             res[name] = codec.write(value[name]);
           }
           return res;
@@ -248,7 +239,6 @@ export namespace Json {
           const res: any = {};
           // TODO: optionals
           for (const [name] of Object.entries(map)) {
-            // eslint-disable-next-line security/detect-object-injection
             res[name] = valueMapper.read(map[name]);
           }
           return res;
@@ -257,7 +247,6 @@ export namespace Json {
           const res: any = {};
           // TODO: optionals
           for (const [name] of Object.entries(map)) {
-            // eslint-disable-next-line security/detect-object-injection
             res[name] = valueMapper.write(map[name]);
           }
           return res;

@@ -156,13 +156,11 @@ export class Table<
           ...extraTableProps,
           partitionKey: {
             name: partitionKeyName,
-            // eslint-disable-next-line security/detect-object-injection
             type: keyType(dataType.Members[partitionKeyName].Shape),
           },
           sortKey: sortKeyName
             ? {
                 name: sortKeyName,
-                // eslint-disable-next-line security/detect-object-injection
                 type: keyType(dataType.Members[sortKeyName].Shape),
               }
             : undefined,
@@ -288,9 +286,7 @@ export type KeyGraphQLRepr<
   [k in Extract<K[keyof K], string>]: GraphQL.TypeOf<DataType["Members"][k]>;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Table {
-  // eslint-disable-next-line no-inner-declarations
   export function NewType<
     DataType extends Shape.Like<RecordShape>,
     Key extends DDB.KeyOf<Shape.Resolve<DataType>>
@@ -333,7 +329,6 @@ export namespace Table {
   export type ReadWrite = TableClient<Shape.Resolve<A>, K>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Table {
   export type Data<T extends Table<any, any>> = T extends Table<infer D, any>
     ? Shape.Resolve<D>

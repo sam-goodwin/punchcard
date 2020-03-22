@@ -106,7 +106,6 @@ export class Client<T extends Shape> implements Sink<Value.Of<T>> {
         if (result.FailedRecordCount) {
           result.Records.forEach((r, i) => {
             if (!r.SequenceNumber) {
-              // eslint-disable-next-line security/detect-object-injection
               redrive.push(values[i]);
             }
           });

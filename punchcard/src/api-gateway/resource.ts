@@ -60,7 +60,6 @@ export class Resource extends Tree<Resource>
 
   public async handle(event: any, context: any): Promise<any> {
     const upperHttpMethod = event.__httpMethod.toUpperCase();
-    // eslint-disable-next-line security/detect-object-injection
     const handler = this.methods[upperHttpMethod];
     if (handler) {
       const request = handler.requestMapper.read(event);
@@ -208,7 +207,6 @@ export class Resource extends Tree<Resource>
                 return {
                   ResponseTemplates: {
                     "application/json": velocityTemplate(
-                      // eslint-disable-next-line security/detect-object-injection
                       (method.responses as any)[statusCode],
                       {},
                       "$util.parseJson($input.path('$.errorMessage')).body",
@@ -265,7 +263,6 @@ export class Resource extends Tree<Resource>
                     contentType: "application/json",
                     restApiId: resource.restApi.restApiId,
                     schema: JsonSchema.of(
-                      // eslint-disable-next-line security/detect-object-injection
                       (method.responses as {[key: string]: Shape})[statusCode],
                     ),
                   },
@@ -288,9 +285,7 @@ export class Resource extends Tree<Resource>
     const responseMappers: ResponseMappers = {} as ResponseMappers;
     Object.keys(method.responses).forEach((statusCode) => {
       // TODO: can we return raw here?
-      // eslint-disable-next-line security/detect-object-injection
       (responseMappers as any)[statusCode] = Json.mapper(
-        // eslint-disable-next-line security/detect-object-injection
         method.responses[statusCode],
       );
     });
@@ -316,7 +311,6 @@ function velocityTemplate<S extends Shape>(
       Object.keys(shape.Members).concat(Object.keys(mappings || {})),
     );
     for (const childName of keys) {
-      // eslint-disable-next-line security/detect-object-injection
       walk(shape, childName, mappings[childName], 1);
       if (i + 1 < keys.size) {
         template += ",";
@@ -339,15 +333,12 @@ function velocityTemplate<S extends Shape>(
     template += "  ".repeat(depth);
 
     if (mapping) {
-      // eslint-disable-next-line security/detect-object-injection
       if ((mapping as any)[isMapping]) {
         template += `"${name}": ${(mapping as Mapping).path}`;
       } else if (typeof mapping === "object") {
         template += `"${name}": {\n`;
         Object.keys(mapping).forEach((childName, i) => {
-          // eslint-disable-next-line security/detect-object-injection
           const childShape = shape.Members[childName].Shape;
-          // eslint-disable-next-line security/detect-object-injection
           walk(childShape, childName, (mapping as any)[childName], depth + 1);
           if (i + 1 < Object.keys(mapping).length) {
             template += ",\n";
@@ -361,7 +352,6 @@ function velocityTemplate<S extends Shape>(
         );
       }
     } else {
-      // eslint-disable-next-line security/detect-object-injection
       const field = shape.Members[name].Shape;
       let path: string;
       if (

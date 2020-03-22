@@ -1,3 +1,3 @@
-import { Shape } from './shape';
+import {Shape} from "./shape";
 
-export type Kind<S extends Shape> = S['Kind'];
+export type Kind<S extends Shape> = S["Kind"];

@@ -64,7 +64,6 @@ export class Resolver<L extends ResolverScope, Ret extends Shape> {
   ): Resolved<Ret extends GraphQL.ShapeOf<L[K]> ? Ret : never>;
   public return(f: any): any {
     if (typeof f === "string") {
-      // eslint-disable-next-line security/detect-object-injection
       return new Resolved(this._do.return((scope) => scope[f]));
     } else {
       return new Resolved(this._do.return(f) as any);

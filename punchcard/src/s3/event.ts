@@ -1,6 +1,5 @@
 import {Record, array, number, string} from "@punchcard/shape";
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Event {
   export class RequestParameters extends Record({
     sourceIPAddress: string,

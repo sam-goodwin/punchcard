@@ -154,7 +154,6 @@ export class Topic<T extends Shape = AnyShape> implements Resource<sns.Topic> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Topic {
   type _PublishInput<T> = {Message: T} & Pick<
     AWS.SNS.PublishInput,

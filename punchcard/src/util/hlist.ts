@@ -15,7 +15,7 @@ export type Head<T> = T extends [infer U, ...unknown[]] ? U : never;
  * Extract the tail from a tuple.
  */
 export type Tail<T> = T extends any[]
-  ? ((...args: T) => never) extends ((a: any, ...args: infer R) => never)
+  ? ((...args: T) => never) extends (a: any, ...args: infer R) => never
     ? R
     : never
   : never;
@@ -23,10 +23,14 @@ export type Tail<T> = T extends any[]
 /**
  * Add an element to the front of the list (append is like a stack).
  */
-export type Cons<T extends any[], H> = ((h: H, ...t: T) => any) extends ((...x: infer X) => any) ? X : never;
+export type Cons<T extends any[], H> = ((h: H, ...t: T) => any) extends (
+  ...x: infer X
+) => any
+  ? X
+  : never;
 
 export function list<T extends any[]>(...values: T): HList<T> {
-  return Array.from(values) as HList<T>;
+  return [...values] as HList<T>;
 }
 export function cons<T extends any[], H>(head: H, tail: T): Cons<T, H> {
   return [head].concat(tail) as Cons<T, H>;

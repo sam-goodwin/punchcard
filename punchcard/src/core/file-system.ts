@@ -46,7 +46,6 @@
 //   }
 // }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace File {
   export class Reference {
     constructor(public readonly path: string) {}
@@ -66,7 +65,6 @@ export namespace File {
 //   function end() {
 //     if (!ended) {
 //       ended = true;
-//       // tslint:disable: no-unused-expression
 //       output.close && output.close();
 //       input.close && input.close();
 //       return true;

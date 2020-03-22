@@ -1,50 +1,57 @@
-import 'jest';
+import {
+  Optional,
+  Record,
+  any,
+  binary,
+  nothing,
+  number,
+  optional,
+  string,
+} from "@punchcard/shape";
+import {
+  MaxLength,
+  Maximum,
+  MinLength,
+  Minimum,
+  MultipleOf,
+  Pattern,
+} from "@punchcard/shape";
+import {array, map, set} from "@punchcard/shape/lib/collection";
+import {JsonSchema, NumberSchema} from "../lib";
 
-import { any, binary, nothing, number, Optional, optional, Record, string } from '@punchcard/shape';
-import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape';
-import { array, map, set } from '@punchcard/shape/lib/collection';
-import { JsonSchema, NumberSchema } from '../lib';
-
-// tslint:disable: member-access
 class Nested extends Record({
-  a: optional(string)
+  a: optional(string),
 }) {}
 
 class MyType extends Record({
   /**
    * Field documentation.
    */
-  id: string
-    .apply(MaxLength(1))
-    .apply(MinLength(0))
-    .apply(Pattern('.*'))
-    ,
-
+  any,
+  array: array(string),
+  binary: binary.apply(MaxLength(1)),
+  complexArray: array(Nested),
+  complexMap: map(Nested).apply(Optional),
+  complexSet: set(Nested),
   count: number
     .apply(Maximum(1))
     .apply(Minimum(1, true))
-    .apply(MultipleOf(2))
-    ,
+    .apply(MultipleOf(2)),
+  id: string
+    .apply(MaxLength(1))
+    .apply(MinLength(0))
+    .apply(Pattern(".*")),
+  map: map(string),
 
   nested: Nested,
-  array: array(string),
-  complexArray: array(Nested),
-  set: set(string),
-  complexSet: set(Nested),
-  map: map(string),
-  complexMap: map(Nested)
-    .apply(Optional),
-
-  binary: binary
-    .apply(MaxLength(1)),
-
-  any,
 
   nothing,
+
+  set: set(string),
 }) {}
 
 // "stamp" an interface representing the JSON schema of MyType - sick code generation!
-interface MyTypeJsonSchema extends JsonSchema.Of<typeof MyType> {}
+type MyTypeJsonSchema = JsonSchema.Of<typeof MyType>;
 
 const schema: MyTypeJsonSchema = JsonSchema.of(MyType);
 function requireEven(schema: NumberSchema<{multipleOf: 2}>) {
@@ -52,215 +59,215 @@ function requireEven(schema: NumberSchema<{multipleOf: 2}>) {
 }
 requireEven(schema.properties.count);
 
-it('should render JSON schema', () => {
-  expect(schema).toEqual({
-    type: 'object',
-    required: [
-      'id',
-      'count',
-      'nested',
-      'array',
-      'complexArray',
-      'set',
-      'complexSet',
-      'map',
-      'binary',
-      'any',
-      'nothing'
-    ],
+test("should render JSON schema", () => {
+  expect(schema).toStrictEqual({
     properties: {
-      id: {
-        type: 'string',
-        maxLength: 1,
-        minLength: 0,
-        pattern: '.*'
-      },
-      count: {
-        type: 'number',
-        maximum: 1,
-        exclusiveMaximum: false,
-        minimum: 1,
-        exclusiveMinimum: true,
-        multipleOf: 2
-      },
-      nested: {
-        type: 'object',
-        properties: {
-          a: {
-            type: 'string'
-          }
-        }
+      any: {
+        type: {},
       },
       array: {
-        type: 'array',
         items: {
-          type: 'string'
+          type: "string",
         },
-        uniqueItems: false
-      },
-      complexArray: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            a: {
-              type: 'string'
-            }
-          }
-        },
-        uniqueItems: false
-      },
-      set: {
-        type: 'array',
-        items: {
-          type: 'string'
-        },
-        uniqueItems: true
-      },
-      complexSet: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            a: {
-              type: 'string'
-            }
-          }
-        },
-        uniqueItems: true
-      },
-      map: {
-        type: 'object',
-        properties: {},
-        additionalProperties: {
-          type: 'string'
-        },
-        allowAdditionalProperties: true
-      },
-      complexMap: {
-        type: 'object',
-        properties: {},
-        additionalProperties: {
-          type: 'object',
-          properties: {
-            a: {
-              type: 'string'
-            }
-          }
-        },
-        allowAdditionalProperties: true
+        type: "array",
+        uniqueItems: false,
       },
       binary: {
-        type: 'string',
-        format: 'base64',
-        maxLength: 1
+        format: "base64",
+        maxLength: 1,
+        type: "string",
       },
-      any: {
-        type: {}
+      complexArray: {
+        items: {
+          properties: {
+            a: {
+              type: "string",
+            },
+          },
+          type: "object",
+        },
+        type: "array",
+        uniqueItems: false,
+      },
+      complexMap: {
+        additionalProperties: {
+          properties: {
+            a: {
+              type: "string",
+            },
+          },
+          type: "object",
+        },
+        allowAdditionalProperties: true,
+        properties: {},
+        type: "object",
+      },
+      complexSet: {
+        items: {
+          properties: {
+            a: {
+              type: "string",
+            },
+          },
+          type: "object",
+        },
+        type: "array",
+        uniqueItems: true,
+      },
+      count: {
+        exclusiveMaximum: false,
+        exclusiveMinimum: true,
+        maximum: 1,
+        minimum: 1,
+        multipleOf: 2,
+        type: "number",
+      },
+      id: {
+        maxLength: 1,
+        minLength: 0,
+        pattern: ".*",
+        type: "string",
+      },
+      map: {
+        additionalProperties: {
+          type: "string",
+        },
+        allowAdditionalProperties: true,
+        properties: {},
+        type: "object",
+      },
+      nested: {
+        properties: {
+          a: {
+            type: "string",
+          },
+        },
+        type: "object",
       },
       nothing: {
-        type: 'null'
-      }
-    }
+        type: "null",
+      },
+      set: {
+        items: {
+          type: "string",
+        },
+        type: "array",
+        uniqueItems: true,
+      },
+    },
+    required: [
+      "id",
+      "count",
+      "nested",
+      "array",
+      "complexArray",
+      "set",
+      "complexSet",
+      "map",
+      "binary",
+      "any",
+      "nothing",
+    ],
+    type: "object",
   });
 
   // how fking awesome is it that the type-signature is the same as the value ^^
   const expected: {
-    type: 'object',
-    required: string[],
     properties: {
-      id: {
-        type: 'string',
-        maxLength: 1,
-        minLength: 0,
-        pattern: '.*'
-      },
+      any: {
+        type: {};
+      };
+      array: {
+        items: {
+          type: "string";
+        };
+        type: "array";
+        uniqueItems?: false;
+      };
+      binary: {
+        format: "base64";
+        maxLength: 1;
+        type: "string";
+      };
+      complexArray: {
+        items: {
+          properties: {
+            a: {
+              type: "string";
+            };
+          };
+          type: "object";
+        };
+        type: "array";
+        uniqueItems?: false;
+      };
+      complexMap: {
+        additionalProperties: {
+          properties: {
+            a: {
+              type: "string";
+            };
+          };
+          type: "object";
+        };
+        allowAdditionalProperties: true;
+        properties: {};
+        type: "object";
+      };
+      complexSet: {
+        items: {
+          properties: {
+            a: {
+              type: "string";
+            };
+          };
+          type: "object";
+        };
+        type: "array";
+        uniqueItems: true;
+      };
       count: {
-        type: 'number',
-        maximum: 1,
-        exclusiveMaximum: false,
-        minimum: 1,
-        exclusiveMinimum: true,
-        multipleOf: 2
-      },
+        exclusiveMaximum: false;
+        exclusiveMinimum: true;
+        maximum: 1;
+        minimum: 1;
+        multipleOf: 2;
+        type: "number";
+      };
+      id: {
+        maxLength: 1;
+        minLength: 0;
+        pattern: ".*";
+        type: "string";
+      };
+      map: {
+        additionalProperties: {
+          type: "string";
+        };
+        allowAdditionalProperties: true;
+        properties: {};
+        type: "object";
+      };
       nested: {
-        type: 'object',
         properties: {
           a: {
-            type: 'string'
-          }
-        }
-      },
-      array: {
-        type: 'array',
-        items: {
-          type: 'string'
-        },
-        uniqueItems?: false
-      },
-      complexArray: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            a: {
-              type: 'string'
-            }
-          }
-        },
-        uniqueItems?: false
-      },
-      set: {
-        type: 'array',
-        items: {
-          type: 'string'
-        },
-        uniqueItems: true
-      },
-      complexSet: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            a: {
-              type: 'string'
-            }
-          }
-        },
-        uniqueItems: true
-      },
-      map: {
-        type: 'object',
-        properties: {},
-        additionalProperties: {
-          type: 'string'
-        },
-        allowAdditionalProperties: true
-      },
-      complexMap: {
-        type: 'object',
-        properties: {},
-        additionalProperties: {
-          type: 'object',
-          properties: {
-            a: {
-              type: 'string'
-            }
-          }
-        },
-        allowAdditionalProperties: true
-      },
-      binary: {
-        type: 'string',
-        format: 'base64',
-        maxLength: 1
-      },
-      any: {
-        type: {}
-      },
+            type: "string";
+          };
+        };
+        type: "object";
+      };
       nothing: {
-        type: 'null'
-      }
-    }
+        type: "null";
+      };
+      set: {
+        items: {
+          type: "string";
+        };
+        type: "array";
+        uniqueItems: true;
+      };
+    };
+    required: string[];
+    type: "object";
   } = schema;
 });

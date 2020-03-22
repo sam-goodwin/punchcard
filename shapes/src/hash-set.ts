@@ -1,16 +1,16 @@
-import { Equals } from './equals';
-import { HashCode } from './hash-code';
-import { Shape } from './shape';
-import { Value } from './value';
+import {Equals} from "./equals";
+import {HashCode} from "./hash-code";
+import {Shape} from "./shape";
+import {Value} from "./value";
 
 export class HashSet<T> {
   public static of<T extends Shape>(t: T): HashSet<Value.Of<T>> {
     return new HashSet(t);
   }
 
-  public readonly [Symbol.toStringTag]: 'HashSet' = 'HashSet';
+  public readonly [Symbol.toStringTag]: "HashSet" = "HashSet";
 
-  public size: number = 0;
+  public size = 0;
 
   private readonly map = new Map<number, T[]>();
 
@@ -26,7 +26,7 @@ export class HashSet<T> {
     const hashCode = this.itemHashCode(value);
     if (this.map.has(hashCode)) {
       const values = this.map.get(hashCode)!;
-      if (values.find(v => this.itemEquals(value, v) === undefined)) {
+      if (values.find((v) => this.itemEquals(value, v) === undefined)) {
         values.push(value);
         this.size += 1;
       }
@@ -39,7 +39,11 @@ export class HashSet<T> {
 
   public has(value: T): boolean {
     const hashCode = this.itemHashCode(value);
-    return this.map.has(hashCode) && this.map.get(hashCode)!.find(v => this.itemEquals(value, v)) !== undefined;
+    return (
+      this.map.has(hashCode) &&
+      this.map.get(hashCode)!.find((v) => this.itemEquals(value, v)) !==
+        undefined
+    );
   }
 
   public delete(value: T): boolean {
@@ -86,7 +90,10 @@ export class HashSet<T> {
     return this[Symbol.iterator]();
   }
 
-  public forEach(callbackfn: (value: T, value2: T, set: Set<T>) => void, thisArg?: any): void {
+  public forEach(
+    callbackfn: (value: T, value2: T, set: Set<T>) => void,
+    thisArg?: any,
+  ): void {
     for (const v of this.values()) {
       if (thisArg) {
         callbackfn.call(thisArg, v, v, this);

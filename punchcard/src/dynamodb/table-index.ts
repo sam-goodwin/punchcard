@@ -190,7 +190,6 @@ export class Index<
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Index {
   /**
    * Constrains an Index to a valid Projection of a SourceTable.

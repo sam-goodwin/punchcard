@@ -1,47 +1,46 @@
-import { Shape } from './shape';
+import {Shape} from "./shape";
 
 // @ts-ignore
 export abstract class DynamicShape<T extends any | unknown> extends Shape {
-  public abstract readonly Tag: 'any' | 'unknown';
-
-  public readonly Kind: 'dynamicShape' = 'dynamicShape';
+  public readonly Kind: "dynamicShape" = "dynamicShape";
+  public abstract readonly Tag: "any" | "unknown";
 }
 export class AnyShape extends DynamicShape<any> {
-  public readonly Tag: 'any' = 'any';
+  public readonly Tag: "any" = "any";
 }
 export class UnknownShape extends DynamicShape<any> {
-  public readonly Tag: 'unknown' = 'unknown';
+  public readonly Tag: "unknown" = "unknown";
 }
 
 export class BinaryShape extends Shape {
-  public readonly Kind: 'binaryShape' = 'binaryShape';
+  public readonly Kind: "binaryShape" = "binaryShape";
 }
 
 export class BoolShape extends Shape {
-  public readonly Kind: 'boolShape' = 'boolShape';
+  public readonly Kind: "boolShape" = "boolShape";
 }
 
 export class StringShape extends Shape {
-  public readonly Kind: 'stringShape' = 'stringShape';
+  public readonly Kind: "stringShape" = "stringShape";
 }
 
 export abstract class NumericShape extends Shape {
   public readonly isNumeric: true = true;
 }
 export class NumberShape extends NumericShape {
-  public readonly Kind: 'numberShape' = 'numberShape';
+  public readonly Kind: "numberShape" = "numberShape";
 }
 
 export class IntegerShape extends NumericShape {
-  public readonly Kind: 'integerShape' = 'integerShape';
+  public readonly Kind: "integerShape" = "integerShape";
 }
 
 export class TimestampShape extends Shape {
-  public readonly Kind: 'timestampShape' = 'timestampShape';
+  public readonly Kind: "timestampShape" = "timestampShape";
 }
 
 export class NothingShape extends Shape {
-  public readonly Kind: 'nothingShape' = 'nothingShape';
+  public readonly Kind: "nothingShape" = "nothingShape";
 }
 
 export const nothing = new NothingShape();

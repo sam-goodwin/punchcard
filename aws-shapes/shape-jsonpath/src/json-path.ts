@@ -1,43 +1,68 @@
-import { ShapeVisitor, Value } from '@punchcard/shape';
-import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
-import { RecordShape } from '@punchcard/shape/lib/record';
-import { Shape } from '@punchcard/shape/lib/shape';
-import { Writer } from './writer';
+import {ShapeVisitor, Value} from "@punchcard/shape";
+import {
+  ArrayShape,
+  MapShape,
+  SetShape,
+  array,
+} from "@punchcard/shape/lib/collection";
+import {
+  BinaryShape,
+  BoolShape,
+  DynamicShape,
+  IntegerShape,
+  NothingShape,
+  NumberShape,
+  NumericShape,
+  StringShape,
+  TimestampShape,
+  bool,
+  number,
+  string,
+} from "@punchcard/shape/lib/primitive";
+import {RecordShape} from "@punchcard/shape/lib/record";
+import {Shape} from "@punchcard/shape/lib/shape";
+import {Writer} from "./writer";
 
 const Objekt = Object;
 
-// tslint:disable: array-type
-
 export namespace JsonPath {
   export type Tag = typeof Tag;
-  export const Tag = Symbol.for('@punchcard/shape-jsonpath.JsonPath.Tag');
+  export const Tag = Symbol.for("@punchcard/shape-jsonpath.JsonPath.Tag");
 
-  export type Of<T extends Shape> =
-    T extends BinaryShape ? JsonPath.Binary :
-    T extends BoolShape ? JsonPath.Bool :
-    T extends DynamicShape<any> ? JsonPath.Dynamic<T> :
-    T extends NumericShape ? JsonPath.Number :
-    T extends StringShape ? JsonPath.String :
-
-    T extends ArrayShape<infer I> ? JsonPath.Array<I> :
-    T extends MapShape<infer V> ? JsonPath.Map<V> :
-    T extends RecordShape<any> ? JsonPath.Struct<T> & {
-      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
-    } :
-    T extends SetShape<infer V> ? JsonPath.Array<V> :
-
-    T extends { [Tag]: infer Q } ? Q :
-
-    JsonPath.Object<T>
-    ;
+  export type Of<T extends Shape> = T extends BinaryShape
+    ? JsonPath.Binary
+    : T extends BoolShape
+    ? JsonPath.Bool
+    : T extends DynamicShape<any>
+    ? JsonPath.Dynamic<T>
+    : T extends NumericShape
+    ? JsonPath.Number
+    : T extends StringShape
+    ? JsonPath.String
+    : T extends ArrayShape<infer I>
+    ? JsonPath.Array<I>
+    : T extends MapShape<infer V>
+    ? JsonPath.Map<V>
+    : T extends RecordShape<any>
+    ? JsonPath.Struct<T> &
+        {
+          [fieldName in keyof T["Members"]]: Of<T["Members"][fieldName]>;
+        }
+    : T extends SetShape<infer V>
+    ? JsonPath.Array<V>
+    : T extends {[Tag]: infer Q}
+    ? Q
+    : JsonPath.Object<T>;
 
   export type Root<T extends RecordShape> = Struct<T>[Fields];
 
   export function of<T extends RecordShape>(shape: T): Root<T> {
     const result: any = {};
-    for (const [name, member] of Objekt.entries(shape.Members) as [string, Shape][]) {
-      result[name] = member.visit(visitor as any, new Id(member, `$['${name}']`));
+    for (const [name, member] of Objekt.entries(shape.Members)) {
+      result[name] = member.visit(
+        visitor as any,
+        new Id(member, `$['${name}']`),
+      );
     }
     return result;
   }
@@ -50,18 +75,39 @@ export namespace JsonPath {
 
   export const isNode = (a: any): a is Node => a[NodeType] !== undefined;
 
-  function resolveExpression<T extends StringShape | NumberShape | IntegerShape>(type: T, expression: Expression<T>): ExpressionNode<T> {
-    return isNode(expression) ? expression : new Id(type, typeof expression === 'number' ? expression.toString() : `'${expression}'`) as any;
+  function resolveExpression<
+    T extends StringShape | NumberShape | IntegerShape
+  >(type: T, expression: Expression<T>): ExpressionNode<T> {
+    return isNode(expression)
+      ? expression
+      : (new Id(
+          type,
+          typeof expression === "number"
+            ? expression.toString()
+            : `'${expression}'`,
+        ) as any);
   }
 
   export type Expression<T extends Shape> = ExpressionNode<T> | Value.Of<T>;
 
-  export const NodeType = Symbol.for('@punchcard/shape-jsonpath.JsonPath.NodeType');
-  export const SubNodeType = Symbol.for('@punchcard/shape-jsonpath.JsonPath.SubNodeType');
-  export const DataType = Symbol.for('@punchcard/shape-jsonpath.JsonPath.DataType');
-  export const InstanceExpression = Symbol.for('@punchcard/shape-jsonpath.JsonPath.InstanceExpression');
-  export const Synthesize = Symbol.for('@punchcard/shape-jsonpath.JsonPath.Synthesize');
-  export const ExpressionTag = Symbol.for('@punchcard/shape-jsonpath.JsonPath.ExpressionTag');
+  export const NodeType = Symbol.for(
+    "@punchcard/shape-jsonpath.JsonPath.NodeType",
+  );
+  export const SubNodeType = Symbol.for(
+    "@punchcard/shape-jsonpath.JsonPath.SubNodeType",
+  );
+  export const DataType = Symbol.for(
+    "@punchcard/shape-jsonpath.JsonPath.DataType",
+  );
+  export const InstanceExpression = Symbol.for(
+    "@punchcard/shape-jsonpath.JsonPath.InstanceExpression",
+  );
+  export const Synthesize = Symbol.for(
+    "@punchcard/shape-jsonpath.JsonPath.Synthesize",
+  );
+  export const ExpressionTag = Symbol.for(
+    "@punchcard/shape-jsonpath.JsonPath.ExpressionTag",
+  );
 
   export abstract class Node<T extends string = string> {
     public readonly [NodeType]: T;
@@ -72,25 +118,26 @@ export namespace JsonPath {
     public abstract [Synthesize](writer: Writer): void;
   }
 
-  export abstract class StatementNode extends Node<'statement'> {
-    public abstract [SubNodeType]: string;
+  export abstract class StatementNode extends Node<"statement"> {
     constructor() {
-      super('statement');
+      super("statement");
     }
+    public abstract [SubNodeType]: string;
   }
 
-  export abstract class ExpressionNode<S extends Shape> extends Node<'expression'> {
+  export abstract class ExpressionNode<S extends Shape> extends Node<
+    "expression"
+  > {
     public readonly [DataType]: S;
-    public abstract readonly [SubNodeType]: string;
-
     constructor(shape: S) {
-      super('expression');
+      super("expression");
       this[DataType] = shape;
     }
+    public abstract readonly [SubNodeType]: string;
   }
 
   export class Id<T extends Shape> extends ExpressionNode<T> {
-    public readonly [SubNodeType]: 'identifier' = 'identifier';
+    public readonly [SubNodeType]: "identifier" = "identifier";
 
     constructor(shape: T, public readonly value: string) {
       super(shape);
@@ -102,7 +149,7 @@ export namespace JsonPath {
   }
 
   export class Object<T extends Shape = Shape> extends ExpressionNode<T> {
-    public readonly [SubNodeType]: 'object' = 'object';
+    public readonly [SubNodeType]: "object" = "object";
 
     public readonly [ExpressionTag]: ExpressionNode<T>;
 
@@ -116,11 +163,17 @@ export namespace JsonPath {
     }
   }
   export namespace Object {
-    export abstract class Comparison<T extends Shape, U extends Shape> extends ExpressionNode<BoolShape> {
-      protected abstract operator: string;
-      constructor(public readonly left: ExpressionNode<T>, public readonly right: ExpressionNode<U>) {
+    export abstract class Comparison<
+      T extends Shape,
+      U extends Shape
+    > extends ExpressionNode<BoolShape> {
+      constructor(
+        public readonly left: ExpressionNode<T>,
+        public readonly right: ExpressionNode<U>,
+      ) {
         super(bool);
       }
+      protected abstract operator: string;
 
       public [Synthesize](writer: Writer): void {
         this.left[Synthesize](writer);
@@ -129,16 +182,18 @@ export namespace JsonPath {
       }
     }
     export class Equals<T extends Shape> extends Object.Comparison<T, T> {
-      protected readonly operator: '==' = '==';
-      public readonly [SubNodeType] = 'equals';
+      protected readonly operator: "==" = "==";
+      public readonly [SubNodeType] = "equals";
     }
     export class NotEquals<T extends Shape> extends Object.Comparison<T, T> {
-      protected readonly operator: '!=' = '!=';
-      public readonly [SubNodeType] = 'not-equals';
+      protected readonly operator: "!=" = "!=";
+      public readonly [SubNodeType] = "not-equals";
     }
   }
 
-  export class Dynamic<T extends DynamicShape<any | unknown>> extends Object<T> {
+  export class Dynamic<T extends DynamicShape<any | unknown>> extends Object<
+    T
+  > {
     public as<S extends Shape>(shape: S): JsonPath.Of<S> {
       return shape.visit(visitor as any, this);
     }
@@ -165,42 +220,41 @@ export namespace JsonPath {
   }
   export namespace Bool {
     export abstract class Operands extends ExpressionNode<BoolShape> {
-      public abstract readonly operator: string;
-
       constructor(public readonly operands: ExpressionNode<BoolShape>[]) {
         super(bool);
       }
+      public abstract readonly operator: string;
 
       public [Synthesize](writer: Writer): void {
-        writer.writeToken('(');
+        writer.writeToken("(");
         for (const op of this.operands) {
           op[Synthesize](writer);
           writer.writeToken(` ${this.operator} `);
         }
         writer.pop();
-        writer.writeToken(')');
+        writer.writeToken(")");
       }
     }
 
     export class And extends Operands {
-      public readonly operator = '&&';
-      public [SubNodeType] = 'and';
+      public readonly operator = "&&";
+      public [SubNodeType] = "and";
     }
     export class Or extends Operands {
-      public readonly operator = '||';
-      public [SubNodeType] = 'or';
+      public readonly operator = "||";
+      public [SubNodeType] = "or";
     }
     export class Not extends ExpressionNode<BoolShape> {
-      public [SubNodeType] = 'or';
+      public [SubNodeType] = "or";
 
       constructor(public readonly operand: ExpressionNode<BoolShape>) {
         super(bool);
       }
 
       public [Synthesize](writer: Writer): void {
-        writer.writeToken('(!');
+        writer.writeToken("(!");
         this.operand[Synthesize](writer);
-        writer.writeToken(')');
+        writer.writeToken(")");
       }
     }
   }
@@ -228,39 +282,59 @@ export namespace JsonPath {
       return new Bool(new Number.Lte(this, resolveExpression(number, other)));
     }
     public equals(other: Expression<Number.Shape>): Bool {
-      return new Bool(new Object.Equals(this, resolveExpression(number, other as any)));
+      return new Bool(
+        new Object.Equals(this, resolveExpression(number, other as any)),
+      );
     }
     public notEquals(other: Expression<Number.Shape>): Bool {
-      return new Bool(new Object.NotEquals(this, resolveExpression(number, other as any)));
+      return new Bool(
+        new Object.NotEquals(this, resolveExpression(number, other as any)),
+      );
     }
   }
   export namespace Number {
     export type Shape = NumberShape | IntegerShape;
 
-    export class Gt<T extends Shape> extends Object.Comparison<T, Number.Shape> {
-      protected readonly operator: '>' = '>';
-      public readonly [SubNodeType] = 'greaterThan';
+    export class Gt<T extends Shape> extends Object.Comparison<
+      T,
+      Number.Shape
+    > {
+      protected readonly operator: ">" = ">";
+      public readonly [SubNodeType] = "greaterThan";
     }
-    export class Gte<T extends Shape> extends Object.Comparison<T, Number.Shape> {
-      protected readonly operator: '>=' = '>=';
-      public readonly [SubNodeType] = 'greaterThanOrEqual';
+    export class Gte<T extends Shape> extends Object.Comparison<
+      T,
+      Number.Shape
+    > {
+      protected readonly operator: ">=" = ">=";
+      public readonly [SubNodeType] = "greaterThanOrEqual";
     }
-    export class Lt<T extends Shape> extends Object.Comparison<T, Number.Shape> {
-      protected readonly operator: '<' = '<';
-      public readonly [SubNodeType] = 'lessThan';
+    export class Lt<T extends Shape> extends Object.Comparison<
+      T,
+      Number.Shape
+    > {
+      protected readonly operator: "<" = "<";
+      public readonly [SubNodeType] = "lessThan";
     }
-    export class Lte<T extends Shape> extends Object.Comparison<T, Number.Shape> {
-      protected readonly operator: '<=' = '<=';
-      public readonly [SubNodeType] = 'lessThanOrEqual';
+    export class Lte<T extends Shape> extends Object.Comparison<
+      T,
+      Number.Shape
+    > {
+      protected readonly operator: "<=" = "<=";
+      public readonly [SubNodeType] = "lessThanOrEqual";
     }
   }
 
   export class String extends Object<StringShape> {
     public equals(other: Expression<StringShape>): Bool {
-      return new Bool(new Object.Equals(this, resolveExpression(string, other as any)));
+      return new Bool(
+        new Object.Equals(this, resolveExpression(string, other as any)),
+      );
     }
     public notEquals(other: Expression<StringShape>): Bool {
-      return new Bool(new Object.NotEquals(this, resolveExpression(string, other as any)));
+      return new Bool(
+        new Object.NotEquals(this, resolveExpression(string, other as any)),
+      );
     }
     public match(regex: RegExp): Bool {
       return new Bool(new String.Match(this, regex));
@@ -269,25 +343,30 @@ export namespace JsonPath {
 
   export namespace String {
     export class Match extends ExpressionNode<BoolShape> {
-      public readonly [SubNodeType]: 'string-match' = 'string-match';
+      public readonly [SubNodeType]: "string-match" = "string-match";
 
-      // tslint:disable-next-line: ban-types
-      constructor(private readonly string: String, public readonly regex: RegExp) {
+      constructor(
+        private readonly string: string,
+        public readonly regex: RegExp,
+      ) {
         super(bool);
       }
 
       public [Synthesize](writer: Writer): void {
         this.string[Synthesize](writer);
-        writer.writeToken(' =~ ');
+        writer.writeToken(" =~ ");
         writer.writeToken(this.regex.source);
       }
     }
   }
 
   export class Filter<T extends Shape> extends ExpressionNode<ArrayShape<T>> {
-    public readonly [SubNodeType]: 'filter' = 'filter';
+    public readonly [SubNodeType]: "filter" = "filter";
 
-    constructor(private readonly parent: ExpressionNode<any>, public readonly condition: Bool) {
+    constructor(
+      private readonly parent: ExpressionNode<any>,
+      public readonly condition: Bool,
+    ) {
       super(parent[DataType]);
     }
 
@@ -300,37 +379,52 @@ export namespace JsonPath {
   }
   export namespace Filter {
     export class Item<T extends Shape> extends ExpressionNode<T> {
-      public readonly [SubNodeType]: 'filter-item' = 'filter-item';
+      public readonly [SubNodeType]: "filter-item" = "filter-item";
 
       public [Synthesize](writer: Writer): void {
-        writer.writeToken('@');
+        writer.writeToken("@");
       }
     }
   }
 
   export type Item = typeof Item;
-  export const Item = Symbol.for('@punchcard/shape-jsonpath.JsonPath.Item');
+  export const Item = Symbol.for("@punchcard/shape-jsonpath.JsonPath.Item");
 
   export class Array<T extends Shape> extends Object<ArrayShape<T>> {
     public readonly [Item]: Of<T>;
-    constructor(shape: ArrayShape<T>, expression: ExpressionNode<ArrayShape<T>>) {
+    constructor(
+      shape: ArrayShape<T>,
+      expression: ExpressionNode<ArrayShape<T>>,
+    ) {
       super(shape, expression);
-      this[Item] = expression[DataType].Items.visit(visitor as any, new Filter.Item(expression[DataType])) as any;
+      this[Item] = expression[DataType].Items.visit(
+        visitor as any,
+        new Filter.Item(expression[DataType]),
+      );
     }
 
     public get(key: number): Of<T> {
-      return this[DataType].Items.visit(visitor as any, new Array.Get(this, key)) as any;
+      return this[DataType].Items.visit(
+        visitor as any,
+        new Array.Get(this, key),
+      );
     }
 
     public filter(f: (item: Of<T>) => Bool): Array<T> {
-      return this[DataType].Items.visit(visitor as any, new Filter(this, f(this[Item]))) as any;
+      return this[DataType].Items.visit(
+        visitor as any,
+        new Filter(this, f(this[Item])),
+      );
     }
   }
   export namespace Array {
     export class Get<T extends Shape> extends ExpressionNode<T> {
-      public readonly [SubNodeType]: 'array-get-value' = 'array-get-value';
+      public readonly [SubNodeType]: "array-get-value" = "array-get-value";
 
-      constructor(public readonly array: Array<T>, public readonly key: number) {
+      constructor(
+        public readonly array: Array<T>,
+        public readonly key: number,
+      ) {
         super(array[DataType].Items);
       }
 
@@ -345,20 +439,26 @@ export namespace JsonPath {
     public readonly [Item]: Of<T>;
     constructor(shape: MapShape<T>, expression: ExpressionNode<MapShape<T>>) {
       super(shape, expression);
-      this[Item] = shape.Items.visit(visitor as any, new Filter.Item(expression[DataType])) as any;
+      this[Item] = shape.Items.visit(
+        visitor as any,
+        new Filter.Item(expression[DataType]),
+      );
     }
 
     public get(key: string): Of<T> {
-      return this[DataType].Items.visit(visitor as any, new Map.Get(this, key)) as any;
+      return this[DataType].Items.visit(visitor as any, new Map.Get(this, key));
     }
 
     public filter(f: (item: Of<T>) => Bool): Map<T> {
-      return this[DataType].Items.visit(visitor as any, new Filter(this, f(this[Item]))) as any;
+      return this[DataType].Items.visit(
+        visitor as any,
+        new Filter(this, f(this[Item])),
+      );
     }
   }
   export namespace Map {
     export class Get<T extends Shape> extends ExpressionNode<T> {
-      public readonly [SubNodeType]: 'map-get-value' = 'map-get-value';
+      public readonly [SubNodeType]: "map-get-value" = "map-get-value";
 
       constructor(public readonly map: Map<T>, public readonly key: string) {
         super(map[DataType].Items);
@@ -371,27 +471,34 @@ export namespace JsonPath {
     }
   }
 
-  export const Fields = Symbol.for('@punchcard/shape-jsonpath.JsonPath.Fields');
+  export const Fields = Symbol.for("@punchcard/shape-jsonpath.JsonPath.Fields");
   export type Fields = typeof Fields;
 
   export class Struct<T extends RecordShape<any>> extends Object<T> {
     public readonly [Fields]: {
-      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
+      [fieldName in keyof T["Members"]]: Of<T["Members"][fieldName]>;
     };
 
     constructor(type: T, expression: ExpressionNode<T>) {
       super(type, expression);
       this[Fields] = {} as any;
-      for (const [name, prop] of Objekt.entries(type.Members) as [string, Shape][]) {
-        (this[Fields] as any)[name] = prop.visit(visitor as any, new Struct.Field(this, prop, name));
+      for (const [name, prop] of Objekt.entries(type.Members)) {
+        (this[Fields] as any)[name] = prop.visit(
+          visitor as any,
+          new Struct.Field(this, prop, name),
+        );
       }
     }
   }
   export namespace Struct {
     export class Field<T extends Shape> extends ExpressionNode<T> {
-      public readonly [SubNodeType] = 'struct-field';
+      public readonly [SubNodeType] = "struct-field";
 
-      constructor(public readonly struct: Struct<any>, type: T, public readonly name: string) {
+      constructor(
+        public readonly struct: Struct<any>,
+        type: T,
+        public readonly name: string,
+      ) {
         super(type);
       }
 
@@ -404,68 +511,104 @@ export namespace JsonPath {
 }
 
 class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
-  public nothingShape(shape: NothingShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Object<NothingShape> {
+  public nothingShape(
+    shape: NothingShape,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.Object<NothingShape> {
     return new JsonPath.Object(shape, expression);
   }
-  public dynamicShape(shape: DynamicShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Dynamic<any> {
+  public dynamicShape(
+    shape: DynamicShape<any>,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.Dynamic<any> {
     return new JsonPath.Dynamic(shape, expression);
   }
-  public binaryShape(shape: BinaryShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Binary {
+  public binaryShape(
+    shape: BinaryShape,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.Binary {
     return new JsonPath.Binary(shape, expression);
   }
-  public arrayShape(shape: ArrayShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Array<any> {
+  public arrayShape(
+    shape: ArrayShape<any>,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.Array<any> {
     return new Proxy(new JsonPath.Array(shape, expression), {
       get: (target, prop) => {
-        if (typeof prop === 'string') {
+        if (typeof prop === "string") {
           if (!isNaN(prop as any)) {
             return target.get(parseInt(prop, 10));
           }
-        } else if (typeof prop === 'number' && prop % 1 === 0) {
+        } else if (typeof prop === "number" && prop % 1 === 0) {
           return target.get(prop);
         }
         return (target as any)[prop];
-      }
+      },
     });
   }
-  public boolShape(shape: BoolShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Bool {
+  public boolShape(
+    shape: BoolShape,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.Bool {
     return new JsonPath.Bool(expression, shape);
   }
-  public recordShape(shape: RecordShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Struct<RecordShape<any>> {
+  public recordShape(
+    shape: RecordShape<any>,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.Struct<RecordShape<any>> {
     return new Proxy(new JsonPath.Struct(shape, expression), {
       get: (target, prop) => {
-        if (typeof prop === 'string') {
+        if (typeof prop === "string") {
           return target[JsonPath.Fields][prop];
         }
         return (target as any)[prop];
-      }
+      },
     });
   }
-  public mapShape(shape: MapShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Map<Shape> {
+  public mapShape(
+    shape: MapShape<any>,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.Map<Shape> {
     return new Proxy(new JsonPath.Map(shape, expression), {
       get: (target, prop) => {
-        if (typeof prop === 'string') {
-          if (typeof (target as any)[prop] === 'function') {
+        if (typeof prop === "string") {
+          if (typeof (target as any)[prop] === "function") {
             return (target as any)[prop];
           }
           return target.get(prop);
         }
         return (target as any)[prop];
-      }
+      },
     });
   }
-  public integerShape(shape: IntegerShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Number {
+  public integerShape(
+    shape: IntegerShape,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.Number {
     return new JsonPath.Number(shape, expression);
   }
-  public numberShape(shape: NumberShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Number {
+  public numberShape(
+    shape: NumberShape,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.Number {
     return new JsonPath.Number(shape, expression);
   }
-  public setShape(shape: SetShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Array<Shape> {
+  public setShape(
+    shape: SetShape<any>,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.Array<Shape> {
     return new JsonPath.Array(array(shape.Items), expression);
   }
-  public stringShape(shape: StringShape, expression: JsonPath.ExpressionNode<any>): JsonPath.String {
+  public stringShape(
+    shape: StringShape,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.String {
     return new JsonPath.String(shape, expression);
   }
-  public timestampShape(_shape: TimestampShape, expression: JsonPath.ExpressionNode<any>): JsonPath.String {
+  public timestampShape(
+    _shape: TimestampShape,
+    expression: JsonPath.ExpressionNode<any>,
+  ): JsonPath.String {
     return new JsonPath.String(string, expression);
   }
 }

@@ -1,8 +1,7 @@
 import * as lint from "tslint";
-import * as ts from "typescript";
-
-import fs = require("fs");
-import path = require("path");
+import ts from "typescript";
+import fs from "fs";
+import path from "path";
 
 /**
  * Shape of data stored under "punchcard" in a package's `package.json`.

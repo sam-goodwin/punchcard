@@ -1,8 +1,20 @@
-import 'jest';
+import {
+  Equals,
+  HashCode,
+  HashSet,
+  Record,
+  Value,
+  any,
+  array,
+  bool,
+  dsl,
+  map,
+  number,
+  optional,
+  set,
+  string,
+} from "../lib";
 
-import { any, array, bool, dsl, Equals, HashCode, HashSet, map, number, optional, Record, set, string, Value} from '../lib';
-
-// tslint:disable: member-access
 class Nested extends Record({
   /**
    * Documentation for `a`
@@ -19,260 +31,319 @@ class MyType extends Record({
   /**
    * Field documentation.
    */
-  id: optional(string),
-
-  dynamic: any,
-  count: number,
-  bool,
-
-  nested: optional(Nested),
   array: array(string),
+
+  bool,
   complexArray: array(Nested),
-  set: set(string),
-  complexSet: set(Nested),
-  map: map(string),
   complexMap: map(Nested),
+
+  complexSet: set(Nested),
+  count: number,
+  dynamic: any,
+  id: optional(string),
+  map: map(string),
+  nested: optional(Nested),
+  set: set(string),
 }) {
   public static readonly DSL = dsl(MyType);
 
-  public getId() {
-    return this.id || 'default';
+  public getId(): string {
+    return this.id || "default";
   }
 }
 
 // some compile-time checks
-const v: Value.Of<typeof Nested> = new Nested({a: 'a', b: 'b'});
+const v: Value.Of<typeof Nested> = new Nested({a: "a", b: "b"});
+// @ts-ignore
 const vv: Value.Of<typeof Nested> = v;
-
-// tslint:disable: no-unused-expression
 v.b;
 v.a;
 v.a?.length;
 
 const myType = new MyType({
-  id: 'id',
-  count: 1,
+  array: ["some", "strings"],
   bool: true,
-  dynamic: ['dynamic'],
-  nested: new Nested({
-    b: 'b'
-  }),
-  array: ['some', 'strings'],
-  complexArray: [new Nested({
-    a: 'a',
-    b: 'b'
-  })],
-  map: {
-    key: 'value'
-  },
+  complexArray: [
+    new Nested({
+      a: "a",
+      b: "b",
+    }),
+  ],
   complexMap: {
     key: new Nested({
-      a: 'a',
-      b: 'b'
-    })
-  },
-  set: new Set<string>().add('value'),
-  complexSet: HashSet.of(Nested)
-    .add(new Nested({
-      a: 'a',
-      b: 'b'
-    })),
-});
-
-it('should derive runtime type recursively', () => {
-  const expected: {
-    id?: string | undefined;
-    count: number;
-    bool: boolean;
-    dynamic: any;
-
-    nested?: Nested;
-
-    array: string[];
-    complexArray: Nested[];
-
-    set: Set<string>;
-    complexSet: Set<Nested>;
-
-    map: { [key: string]: string; };
-    complexMap: { [key: string]: Nested; };
-  } = myType;
-
-  expect(expected.array).toEqual(['some', 'strings']);
-  expect(expected.bool).toEqual(true);
-  expect(expected.complexArray).toEqual([new Nested({
-    a: 'a',
-    b: 'b'
-  })]);
-  expect(expected.complexMap).toEqual({
-    key: new Nested({
-      a: 'a',
-      b: 'b'
-    })
-  });
-  expect(expected.complexSet).toEqual(HashSet.of(Nested).add(new Nested({
-    a: 'a',
-    b: 'b'
-  })));
-  expect(expected.count).toEqual(1);
-  expect(expected.dynamic).toEqual(['dynamic']);
-  expect(expected.id).toEqual('id');
-  expect(expected.map).toEqual({
-    key: 'value'
-  });
-  expect(expected.nested).toEqual(new Nested({
-    b: 'b'
-  }));
-  expect(expected.set).toEqual(new Set().add('value'));
-});
-
-it('should compare equals semantically', () => {
-  const eq = Equals.of(MyType);
-  expect(eq(myType, myType)).toEqual(true);
-  expect(eq(myType, new MyType({
-    ...myType,
-    count: 2 // different value
-  }))).toEqual(false);
-});
-
-it('should compute hash code', () => {
-  const hc = HashCode.of(MyType);
-  expect(hc(myType)).toEqual(hc(myType));
-  expect(hc(new MyType({
-    ...myType,
-    count: 2 // different value
-  }))).not.toEqual(hc(myType));
-});
-
-describe('Extend', () => {
-  class Extended extends MyType.Extend({
-    extendedProp: string
-  }) {}
-  const extended = new Extended({
-    extendedProp: 'extended',
-    id: 'id',
-    count: 1,
-    bool: true,
-    dynamic: ['dynamic'],
-    nested: new Nested({
-      b: 'b'
+      a: "a",
+      b: "b",
     }),
-    array: ['some', 'strings'],
-    complexArray: [new Nested({
-      a: 'a',
-      b: 'b'
-    })],
-    map: {
-      key: 'value'
-    },
-    complexMap: {
-      key: new Nested({
-        a: 'a',
-        b: 'b'
-      })
-    },
-    set: new Set<string>().add('value'),
-    complexSet: HashSet.of(Nested)
-      .add(new Nested({
-        a: 'a',
-        b: 'b'
-      })),
-  });
+  },
+  complexSet: HashSet.of(Nested).add(
+    new Nested({
+      a: "a",
+      b: "b",
+    }),
+  ),
+  count: 1,
+  dynamic: ["dynamic"],
+  id: "id",
+  map: {
+    key: "value",
+  },
+  nested: new Nested({
+    b: "b",
+  }),
+  set: new Set<string>().add("value"),
+});
 
-  it('should derive runtime type recursively', () => {
+describe("recursion, comparison, hashing", () => {
+  it("should derive runtime type recursively", () => {
+    expect.assertions(11);
     const expected: {
-      extendedProp: string;
-      id?: string | undefined;
-      count: number;
-      bool: boolean;
-      dynamic: any;
-
-      nested?: Nested;
-
       array: string[];
+      bool: boolean;
       complexArray: Nested[];
+      complexMap: {[key: string]: Nested};
 
-      set: Set<string>;
       complexSet: Set<Nested>;
 
-      map: { [key: string]: string; };
-      complexMap: { [key: string]: Nested; };
-    } = extended;
+      count: number;
+      dynamic: any;
 
-    expect(expected.array).toEqual(['some', 'strings']);
-    expect(expected.bool).toEqual(true);
-    expect(expected.complexArray).toEqual([new Nested({
-      a: 'a',
-      b: 'b'
-    })]);
-    expect(expected.complexMap).toEqual({
+      id?: string | undefined;
+      map: {[key: string]: string};
+
+      nested?: Nested;
+      set: Set<string>;
+    } = myType;
+
+    expect(expected.array).toStrictEqual(["some", "strings"]);
+    expect(expected.bool).toStrictEqual(true);
+    expect(expected.complexArray).toStrictEqual([
+      new Nested({
+        a: "a",
+        b: "b",
+      }),
+    ]);
+    expect(expected.complexMap).toStrictEqual({
       key: new Nested({
-        a: 'a',
-        b: 'b'
-      })
+        a: "a",
+        b: "b",
+      }),
     });
-    expect(expected.complexSet).toEqual(HashSet.of(Nested).add(new Nested({
-      a: 'a',
-      b: 'b'
-    })));
-    expect(expected.count).toEqual(1);
-    expect(expected.dynamic).toEqual(['dynamic']);
-    expect(expected.id).toEqual('id');
-    expect(expected.map).toEqual({
-      key: 'value'
+    expect(expected.complexSet).toStrictEqual(
+      HashSet.of(Nested).add(
+        new Nested({
+          a: "a",
+          b: "b",
+        }),
+      ),
+    );
+    expect(expected.count).toStrictEqual(1);
+    expect(expected.dynamic).toStrictEqual(["dynamic"]);
+    expect(expected.id).toStrictEqual("id");
+    expect(expected.map).toStrictEqual({
+      key: "value",
     });
-    expect(expected.nested).toEqual(new Nested({
-      b: 'b'
-    }));
-    expect(expected.set).toEqual(new Set().add('value'));
+    expect(expected.nested).toStrictEqual(
+      new Nested({
+        b: "b",
+      }),
+    );
+    expect(expected.set).toStrictEqual(new Set().add("value"));
   });
 
-  it('should compare equals semantically', () => {
-    const eq = Equals.of(Extended);
-    expect(eq(extended, extended)).toEqual(true);
-    expect(eq(extended, new Extended({
-      ...extended,
-      count: 2 // different value
-    }))).toEqual(false);
+  it("should compare equals semantically", () => {
+    expect.assertions(2);
+    const eq = Equals.of(MyType);
+    expect(eq(myType, myType)).toStrictEqual(true);
+    expect(
+      eq(
+        myType,
+        new MyType({
+          ...myType,
+          count: 2, // different value
+        }),
+      ),
+    ).toStrictEqual(false);
   });
 
-  it('should compute hash code', () => {
-    const hc = HashCode.of(Extended);
-    expect(hc(extended)).toEqual(hc(extended));
-    expect(hc(new Extended({
-      ...extended,
-      count: 2 // different value
-    }))).not.toEqual(hc(extended));
+  it("should compute hash code", () => {
+    expect.assertions(2);
+    const hc = HashCode.of(MyType);
+    expect(hc(myType)).toStrictEqual(hc(myType));
+    expect(
+      hc(
+        new MyType({
+          ...myType,
+          count: 2, // different value
+        }),
+      ),
+    ).not.toStrictEqual(hc(myType));
   });
 });
 
-describe('Pick', () => {
-  class Picked extends MyType.Pick(['id']) {}
-  const picked = new Picked({
-    id: 'id',
+describe("extend", () => {
+  class Extended extends MyType.Extend({
+    extendedProp: string,
+  }) {}
+  const extended = new Extended({
+    array: ["some", "strings"],
+    bool: true,
+    complexArray: [
+      new Nested({
+        a: "a",
+        b: "b",
+      }),
+    ],
+    complexMap: {
+      key: new Nested({
+        a: "a",
+        b: "b",
+      }),
+    },
+    complexSet: HashSet.of(Nested).add(
+      new Nested({
+        a: "a",
+        b: "b",
+      }),
+    ),
+    count: 1,
+    dynamic: ["dynamic"],
+    extendedProp: "extended",
+    id: "id",
+    map: {
+      key: "value",
+    },
+    nested: new Nested({
+      b: "b",
+    }),
+    set: new Set<string>().add("value"),
   });
 
-  it('should derive runtime type recursively', () => {
+  it("should derive runtime type recursively", () => {
+    expect.assertions(11);
+    const expected: {
+      array: string[];
+      bool: boolean;
+      complexArray: Nested[];
+      complexMap: {[key: string]: Nested};
+      complexSet: Set<Nested>;
+
+      count: number;
+
+      dynamic: any;
+      extendedProp: string;
+
+      id?: string | undefined;
+      map: {[key: string]: string};
+
+      nested?: Nested;
+      set: Set<string>;
+    } = extended;
+
+    expect(expected.array).toStrictEqual(["some", "strings"]);
+    expect(expected.bool).toStrictEqual(true);
+    expect(expected.complexArray).toStrictEqual([
+      new Nested({
+        a: "a",
+        b: "b",
+      }),
+    ]);
+    expect(expected.complexMap).toStrictEqual({
+      key: new Nested({
+        a: "a",
+        b: "b",
+      }),
+    });
+    expect(expected.complexSet).toStrictEqual(
+      HashSet.of(Nested).add(
+        new Nested({
+          a: "a",
+          b: "b",
+        }),
+      ),
+    );
+    expect(expected.count).toStrictEqual(1);
+    expect(expected.dynamic).toStrictEqual(["dynamic"]);
+    expect(expected.id).toStrictEqual("id");
+    expect(expected.map).toStrictEqual({
+      key: "value",
+    });
+    expect(expected.nested).toStrictEqual(
+      new Nested({
+        b: "b",
+      }),
+    );
+    expect(expected.set).toStrictEqual(new Set().add("value"));
+  });
+
+  it("should compare equals semantically", () => {
+    expect.assertions(2);
+    const eq = Equals.of(Extended);
+    expect(eq(extended, extended)).toStrictEqual(true);
+    expect(
+      eq(
+        extended,
+        new Extended({
+          ...extended,
+          count: 2, // different value
+        }),
+      ),
+    ).toStrictEqual(false);
+  });
+
+  it("should compute hash code", () => {
+    expect.assertions(2);
+    const hc = HashCode.of(Extended);
+    expect(hc(extended)).toStrictEqual(hc(extended));
+    expect(
+      hc(
+        new Extended({
+          ...extended,
+          count: 2, // different value
+        }),
+      ),
+    ).not.toStrictEqual(hc(extended));
+  });
+});
+
+describe("pick", () => {
+  class Picked extends MyType.Pick(["id"]) {}
+  const picked = new Picked({
+    id: "id",
+  });
+
+  it("should derive runtime type recursively", () => {
+    expect.assertions(1);
     const expected: {
       id?: string | undefined;
     } = picked;
 
-    expect(expected.id).toEqual('id');
+    expect(expected.id).toStrictEqual("id");
   });
 
-  it('should compare equals semantically', () => {
+  it("should compare equals semantically", () => {
+    expect.assertions(2);
     const eq = Equals.of(Picked);
-    expect(eq(picked, picked)).toEqual(true);
-    expect(eq(picked, new Picked({
-      id: 'different value'
-    }))).toEqual(false);
+    expect(eq(picked, picked)).toStrictEqual(true);
+    expect(
+      eq(
+        picked,
+        new Picked({
+          id: "different value",
+        }),
+      ),
+    ).toStrictEqual(false);
   });
 
-  it('should compute hash code', () => {
+  it("should compute hash code", () => {
+    expect.assertions(2);
     const hc = HashCode.of(Picked);
-    expect(hc(picked)).toEqual(hc(picked));
-    expect(hc(new Picked({
-      id: 'different value'
-    }))).not.toEqual(hc(picked));
+    expect(hc(picked)).toStrictEqual(hc(picked));
+    expect(
+      hc(
+        new Picked({
+          id: "different value",
+        }),
+      ),
+    ).not.toStrictEqual(hc(picked));
   });
 });

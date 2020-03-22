@@ -14,7 +14,6 @@ declare module "fp-ts/lib/HKT" {
 export const RUN: Monad1<URI> = {
   URI,
   ap: (fab, fa) => RUN.chain(fab, (ab) => fa.map(ab)),
-  // eslint-disable-next-line security/detect-object-injection
   chain: (fa, f) => new Run(() => f(fa[get]())[get]()),
   map: (fa, f) => RUN.chain(fa, (a) => new Run(() => f(a))),
   of: (a) => new Run(() => a),
@@ -27,7 +26,6 @@ const get = Symbol.for("Runtime.get");
  */
 export class Run<A> {
   public static resolve<T>(r: Run<T>): T {
-    // eslint-disable-next-line security/detect-object-injection
     return r[get]();
   }
   public static lazy<B>(f: IO<B>): Run<B> {
@@ -53,13 +51,11 @@ export class Run<A> {
     // memoize
     let isMemoized = false;
     let value: A | undefined;
-    // eslint-disable-next-line security/detect-object-injection
     this[get] = (): A => {
       if (!isMemoized) {
         value = _next();
         isMemoized = true;
       }
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       return value!;
     };
   }

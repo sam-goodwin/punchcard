@@ -168,7 +168,6 @@ export class Stream<T extends Shape = AnyShape>
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Stream {
   export type ReadOnly = Omit<Client<S>, "putRecord" | "putRecords" | "sink">;
   export type WriteOnly = Omit<Client<S>, "getRecords">;

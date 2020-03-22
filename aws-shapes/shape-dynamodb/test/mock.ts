@@ -1,37 +1,47 @@
-import { any, binary, bool, integer, number, optional, Record, string, timestamp, unknown } from '@punchcard/shape';
-import { array, map, set } from '@punchcard/shape/lib/collection';
+import {
+  Record,
+  any,
+  binary,
+  bool,
+  integer,
+  number,
+  optional,
+  string,
+  timestamp,
+  unknown,
+} from "@punchcard/shape";
+import {array, map, set} from "@punchcard/shape/lib/collection";
 
-import '../lib';
+import "../lib";
 
-// tslint:disable: member-access
 export class Nested extends Record({
   /**
    * This is a nested string.
    */
-  a: string
+  a: string,
 }) {}
 
 export class MyType extends Record({
   /**
    * Field documentation.
    */
-  id: string,
-
-  count: optional(number),
-  integer,
-  bool,
-  ts: timestamp,
-
-  nested: Nested,
   array: array(string),
-  complexArray: array(Nested),
-  stringSet: set(string),
-  numberSet: set(number),
-  map: map(string),
-  complexMap: map(Nested),
 
+  bool,
   binaryField: binary,
-  binarySet: set(binary),
+  complexArray: array(Nested),
   anyField: any,
-  unknownField: unknown
+
+  complexMap: map(Nested),
+  binarySet: set(binary),
+  count: optional(number),
+  id: string,
+  integer,
+  map: map(string),
+  nested: Nested,
+
+  numberSet: set(number),
+  stringSet: set(string),
+  ts: timestamp,
+  unknownField: unknown,
 }) {}

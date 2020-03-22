@@ -30,19 +30,15 @@ const buildNodes = Symbol.for("Build.nodes");
  * @param node - todo: add description
  */
 function add(node: Build<any>): void {
-  // eslint-disable-next-line security/detect-object-injection
   if (Global[buildNodes] === undefined) {
-    // eslint-disable-next-line security/detect-object-injection
     Global[buildNodes] = [];
   }
-  // eslint-disable-next-line security/detect-object-injection
   Global[buildNodes].push(node);
 }
 
 // todo: fix implicit return type of `any`
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 function all() {
-  // eslint-disable-next-line security/detect-object-injection
   return Global[buildNodes] || [];
 }
 
@@ -58,7 +54,6 @@ export class Build<A> {
   }
 
   public static isBuild(a: any): a is Build<any> {
-    // eslint-disable-next-line security/detect-object-injection
     return a && a[get] !== undefined;
   }
 
@@ -71,7 +66,6 @@ export class Build<A> {
   }
 
   public static resolve<B>(a: Build<B>): B {
-    // eslint-disable-next-line security/detect-object-injection
     return a[get]();
   }
 
@@ -96,7 +90,6 @@ export class Build<A> {
     let isMemoized = false;
     let value: A | undefined;
     let i = 0;
-    // eslint-disable-next-line security/detect-object-injection
     this[get] = (): A => {
       if (process.env.is_runtime === "true") {
         const err = "attempted to resolve a Build value at runtime";
@@ -111,7 +104,6 @@ export class Build<A> {
         value = io();
         isMemoized = true;
       }
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       return value!;
     };
   }

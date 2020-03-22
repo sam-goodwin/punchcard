@@ -17,11 +17,9 @@ import path = require("path");
 import erasure = require("@punchcard/erasure");
 import {Webpack} from "./app";
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Code {
   const symbol = Symbol.for("punchcard:code");
 
-  // eslint-disable-next-line no-inner-declarations,unicorn/consistent-function-scoping
   function findApp(c: cdk.IConstruct): cdk.App {
     while (c.node.scope !== undefined) {
       c = c.node.scope;
@@ -29,7 +27,6 @@ export namespace Code {
     return c as cdk.App;
   }
 
-  // eslint-disable-next-line no-inner-declarations
   export function getCode(scope: cdk.Construct): lambda.Code {
     const c = tryGetCode(scope);
     if (!c) {
@@ -38,14 +35,11 @@ export namespace Code {
     return c;
   }
 
-  // eslint-disable-next-line no-inner-declarations
   export function tryGetCode(scope: cdk.Construct): lambda.Code | undefined {
     // todo: get rid of usage of casting as any
-    // eslint-disable-next-line security/detect-object-injection
     return (findApp(scope) as any)[symbol];
   }
 
-  // eslint-disable-next-line no-inner-declarations,unicorn/consistent-function-scoping
   async function exists(path: string): Promise<boolean> {
     try {
       await fs.stat(path);
@@ -58,7 +52,6 @@ export namespace Code {
     }
   }
 
-  // eslint-disable-next-line no-inner-declarations
   export function mock(): lambda.Code {
     class MockCode extends Build.resolve(CDK).lambda.Code {
       public readonly isInline: boolean = true;
@@ -73,14 +66,12 @@ export namespace Code {
     return new MockCode();
   }
 
-  // eslint-disable-next-line no-inner-declarations
   export async function initCode(
     app: cdk.App,
     externals: string[],
     plugins: Build<webpack.Plugin>[],
   ): Promise<lambda.Code> {
     // todo: get rid of use of any
-    // eslint-disable-next-line security/detect-object-injection
     if ((app as any)[symbol] === undefined) {
       if (process.mainModule === undefined) {
         // console.warn('Mocking code, assuming its a unit test. Are you running the node process from another tool like jest?');
@@ -161,13 +152,11 @@ export namespace Code {
 
       // cache the asset
       // todo: get rid of use of `as any`
-      // eslint-disable-next-line security/detect-object-injection
       (app as any)[symbol] = asset;
     }
 
     // return the cached one
     // todo: get rid of use of `as any`
-    // eslint-disable-next-line security/detect-object-injection
     return (app as any)[symbol];
   }
 }

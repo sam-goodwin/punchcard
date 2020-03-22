@@ -1,6 +1,5 @@
 import {Record, array, map, string} from "@punchcard/shape";
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Event {
   export class MesssageAttribute extends Record({
     Type: string,

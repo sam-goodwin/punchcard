@@ -12,7 +12,6 @@ export interface Dependency<D = any> {
   install: Build<Install>;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Dependency {
   export type None = typeof none;
   export const none: Dependency<{}> = {
@@ -23,7 +22,6 @@ export namespace Dependency {
   };
 
   export function concat<D extends any[]>(...ds: D): Concat<D>;
-  // eslint-disable-next-line no-inner-declarations
   export function concat(...ds: Dependency<any>[]): Dependency<any[]> {
     return {
       bootstrap: Run.concat(

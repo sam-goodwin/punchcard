@@ -44,13 +44,17 @@
     "@typescript-eslint/explicit-function-return-type": "error",
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/no-for-in-array": "off",
+    "@typescript-eslint/no-namespace": "off",
+    "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-use-before-define": "off",
     "@typescript-eslint/unbound-method": 0,
     "arrow-parens": ["error", "always"],
     "import/order": "off",
+    "no-inner-declarations": "off",
     "no-null/no-null": "error",
     "security/detect-non-literal-fs-filename": "off",
+    "security/detect-object-injection": "off",
     "sort-class-members/sort-class-members": [
       "error",
       {
@@ -78,8 +82,9 @@
     ],
     "sort-keys-fix/sort-keys-fix": "error",
     "tsdoc/syntax": "error",
-    "typescript-sort-keys/interface": "error",
+    "typescript-sort-keys/interface": "off",
     "typescript-sort-keys/string-enum": "error",
+    "unicorn/consistent-function-scoping": "off",
     "unicorn/new-for-builtins": "off",
     "unicorn/no-nested-ternary": "off",
     "unicorn/prevent-abbreviations": "off"

@@ -296,7 +296,6 @@ function partitionKeyMapper<T extends Shape>(type: T): Mapper<T, string> {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Table {
   /**
    * Client type aliaes.
@@ -387,7 +386,7 @@ export namespace Table {
      * Warning: This method should not be used for rapid calls with small payloads, as it my
      * result in many S3 objects being written to the table which could slow down consumers.
      *
-     * @param records to write to the glue table
+     * @param records – to write to the glue table
      */
     public async sink(records: Iterable<Value.Of<T>>) {
       const partitions: Map<
@@ -401,7 +400,6 @@ export namespace Table {
       for (const record of records) {
         const partition = this.table.partition.get(record);
         const key = this.partitions
-          // eslint-disable-next-line security/detect-object-injection
           .map((p) => partition[p].toString())
           .join("");
         if (!partitions.has(key)) {
@@ -410,7 +408,6 @@ export namespace Table {
             records: [],
           });
         }
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         partitions.get(key)!.records.push(record);
       }
       await Promise.all(
@@ -418,7 +415,6 @@ export namespace Table {
           // determine the partition location in S3
           const partitionPath = Object.entries(partition)
             .map(([name, value]) => {
-              // eslint-disable-next-line security/detect-object-injection
               return `${name}=${(this.partitionMappers as any)[name].write(
                 value,
               )}`;
@@ -441,10 +437,8 @@ export namespace Table {
           const sha256 = crypto.createHash("sha256");
           sha256.update(content);
           const extension = this.table.compression.isCompressed
-            ? `${this.table.dataType.extension}.${
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                this.table.compression.extension!
-              }`
+            ? `${this.table.dataType.extension}.${this.table.compression
+                .extension!}`
             : this.table.dataType.extension;
 
           await this.bucket.putObject({
@@ -483,11 +477,8 @@ export namespace Table {
       return {
         Partitions: (response.Partitions || []).map((partition) => {
           const values: any = {};
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
           partition.Values!.forEach((value, i) => {
-            // eslint-disable-next-line security/detect-object-injection
             const name = this.partitions[i];
-            // eslint-disable-next-line security/detect-object-injection
             values[name] = (this.partitionMappers as any)[name].read(value);
           });
           return {
@@ -571,9 +562,8 @@ export namespace Table {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 export namespace Partition {
-  // eslint-disable-next-line unicorn/consistent-function-scoping,no-inner-declarations,@typescript-eslint/explicit-function-return-type
+  // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
   function partition(timestamp: Date) {
     return {
       day: timestamp.getUTCDate(),

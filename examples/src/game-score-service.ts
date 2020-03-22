@@ -52,7 +52,6 @@ class UserGameScore extends Record({
   wins: integer.apply(Minimum(0)),
 }) {}
 
-// eslint-disable-next-line @typescript-eslint/no-namespace
 namespace UserGameScore {
   export class Key extends UserGameScore.Pick(["userId", "gameTitle"]) {}
 }
@@ -276,7 +275,6 @@ const getHighScores = new Lambda.Function(
         },
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       scores = scores.concat(nextScores.Items!);
 
       if (!nextScores.LastEvaluatedKey || scores.length >= maxResults) {
