@@ -19,6 +19,12 @@ erasure.erasePattern(/^(webpack|@aws-cdk.*)$/);
  */
 export const Webpack: Build<typeof import('webpack')> = Build.lazy(() => require('webpack')) as any;
 
+
+const a = Build.of('a');
+const i = a.map(s => s.length);
+
+
+
 export class App {
   /**
    * Root of the application contained within a Build context.

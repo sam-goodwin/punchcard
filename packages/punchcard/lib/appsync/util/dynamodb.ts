@@ -1,5 +1,5 @@
-import { ArrayShape, BinaryShape, BoolShape, MapShape, NumericShape, RecordShape, RecordType, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
-import { GraphQL } from '../types';
+import { ArrayShape, BinaryShape, BoolShape, MapShape, NumericShape, Pointer, RecordShape, RecordType, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
+import { VBool, VInteger, VList, VNumber, VObject, VString } from '../types';
 
 export class $DynamoDBUtil {
   /**
@@ -10,7 +10,7 @@ export class $DynamoDBUtil {
    *
    * @param object value to convert to its DynamoDB encoding
    */
-  public toDynamoDB<T extends GraphQL.Type>(object: T): GraphQL.TypeOf<ToDynamoDBJson<GraphQL.ShapeOf<T>>> {
+  public toDynamoDB<T extends VObject>(object: T): VObject.Of<ToDynamoDBJson<VObject.ShapeOf<T>>> {
     throw new Error('todo');
   }
 
@@ -20,23 +20,23 @@ export class $DynamoDBUtil {
    *
    * @param object value to convert to its DynamoDB encoding
    */
-  public toDynamoDBJson<T extends GraphQL.Type>(object: T): GraphQL.String {
+  public toDynamoDBJson<T extends VObject>(object: T): VString {
     throw new Error('todo');
   }
 
-  public toBoolean(bool: GraphQL.Bool): GraphQL.TypeOf<ToDynamoDBJson<BoolShape>> {
+  public toBoolean(bool: VBool): VObject.Of<ToDynamoDBJson<BoolShape>> {
     throw new Error('todo');
   }
 
-  public toNumber<N extends GraphQL.Integer | GraphQL.Number>(number: N): GraphQL.TypeOf<ToDynamoDBJson<GraphQL.ShapeOf<N>>> {
+  public toNumber<N extends VInteger | VNumber>(number: N): VObject.Of<ToDynamoDBJson<VObject.ShapeOf<N>>> {
     throw new Error('todo');
   }
 
-  public toString(value: GraphQL.String): GraphQL.TypeOf<ToDynamoDBJson<StringShape>> {
+  public toString(value: VString): VObject.Of<ToDynamoDBJson<StringShape>> {
     throw new Error('todo');
   }
 
-  public toStringSet(value: GraphQL.List<GraphQL.String>): GraphQL.TypeOf<RecordType<{
+  public toStringSet(value: VList<VString>): VObject.Of<RecordType<{
     SS: ArrayShape<StringShape>
   }>> {
     throw new Error('todo');
@@ -67,17 +67,17 @@ export type ToDynamoDBJson<T extends Shape> =
   }> :
   T extends RecordType<infer M> ? RecordType<{
     M: RecordType<{
-      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<M[m]>>;
+      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<Pointer.Resolve<M[m]>>>;
     }>
   }> :
   T extends RecordShape<infer M> ? RecordType<{
     M: RecordType<{
-      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<M[m]>>;
+      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<Pointer.Resolve<M[m]>>>;
     }>
   }> :
   T extends RecordType<infer M> ? RecordType<{
     M: RecordType<{
-      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<M[m]>>;
+      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<Pointer.Resolve<M[m]>>>;
     }>
   }> :
   never

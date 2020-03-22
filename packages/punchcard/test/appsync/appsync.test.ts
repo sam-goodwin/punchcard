@@ -1,11 +1,12 @@
 import 'jest';
 
-import { array, optional, Record, string, Value } from '@punchcard/shape';
+import { array, optional, Record, string } from '@punchcard/shape';
+import { Api } from '../../lib/appsync/api';
 import { Mutation, Query } from '../../lib/appsync/decorators';
 import { $if } from '../../lib/appsync/expression';
-import { GraphQL, GraphQLResolver, ID } from '../../lib/appsync/graphql';
-import { $api} from '../../lib/appsync/intepreter/resolver';
-import { Api } from '../../lib/appsync/resolver';
+import { $api } from '../../lib/appsync/syntax';
+import { GraphQLResolver, ID, VObject } from '../../lib/appsync/types';
+import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
 import { Scope } from '../../lib/core/construct';
 import DynamoDB = require('../../lib/dynamodb');
@@ -54,19 +55,19 @@ class PostApi extends Api {
 
   @Mutation
   public addPost = $api({title: optional(string), content: string}, this.Post)
-    .let('id', () => GraphQL.$util.autoId())
-    .let('a', ({id}) => GraphQL.string`#if(${id.size()} > 0)hello#{else}goodbye#end`)
+    .let('id', () => $util.autoId())
+    .let('a', ({id}) => VObject.string`#if(${id.size()} > 0)hello#{else}goodbye#end`)
     .let('idUpper', ({id}) => id.toUpperCase())
     .validate(({content}) => content.isNotEmpty(), 'content must not be empty')
     .resolve('item', () => this.table.get({
-      id: GraphQL.string('test')
+      id: VObject.string('test')
     }))
     .resolve('newPost', ({id, title, content}) => this.addPostFn.invoke({
       id,
-      title: $if(GraphQL.$util.isNull(title), () =>
+      title: $if($util.isNull(title), () =>
         title
       ).$else(() =>
-        GraphQL.string('generated title')
+        VObject.string('generated title')
       ),
       content
     }))
@@ -115,23 +116,6 @@ namespace PostApi {
   export type AddPostRequest = PostApi['AddPostRequest'];
 }
 
-
-// class User extends GraphQLResolver({
-// }) {
-//   constructor(public readonly post: Post) {
-//   }
-
-//   public posts = this.$field(this.post);
-// }
-
-/*
-type Post {
-  id: ID!
-  title: string!
-  content: string!
-  relatedPosts: [Post]
-}
-*/
 class Post extends GraphQLResolver({
   /**
    * ID
@@ -189,3 +173,4 @@ const app = new App();
 const stack = app.stack('stack');
 
 const postApi = new PostApi(stack, 'PostApi');
+

@@ -1,25 +1,27 @@
-import { GraphQL } from '../graphql';
+import { VBool } from '../types';
+import { VObject } from '../types/object';
+import { Expression } from './expression';
 
-export function $if<T extends GraphQL.Type>(condition: GraphQL.Bool, then: () => T): If<T> {
+export function $if<T extends VObject>(condition: VBool, then: () => T): If<T> {
   return new If(undefined, condition, then);
 }
 
 export const $elseIf = $if;
 
-export class If<T extends GraphQL.Type> {
+export class If<T extends VObject> {
   constructor(
     public readonly parent: If<T> | undefined,
-    public readonly condition: GraphQL.Bool,
+    public readonly condition: VBool,
     public readonly then: () => T
   ) {}
 
-  public $elseIf(condition: GraphQL.Bool, then: () => T): If<T> {
+  public $elseIf(condition: VBool, then: () => T): If<T> {
     return new If(this, condition, then);
   }
 
   public $else(then: () => T): T {
     const t = this.then();
-    return GraphQL.clone(t, new GraphQL.Expression(frame => {
+    return VObject.clone(t, new Expression(frame => {
       frame.print('#if(');
       const chain = this.chain();
       chain.forEach((c, i) => {

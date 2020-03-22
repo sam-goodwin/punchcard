@@ -1,4 +1,5 @@
 import { Metadata } from './metadata';
+import { Pointer } from './pointer';
 import { Shape } from './shape';
 import { ArrayToTuple, AssertIsKey, RequiredKeys } from './util';
 import { Value } from './value';
@@ -6,7 +7,7 @@ import { Value } from './value';
 import { Compact, RowLacks } from 'typelevel-ts';
 
 export interface RecordMembers {
-  [member: string]: Shape.Like<Shape>;
+  [member: string]: Pointer<Shape.Like<Shape>>;
 }
 export namespace RecordMembers {
   /**
@@ -17,12 +18,12 @@ export namespace RecordMembers {
      * Write each member and their documentation to the structure.
      * Write them all as '?' for now.
      */
-    [m in keyof M]+?: Shape.Resolve<M[m]>;
+    [m in keyof M]+?: Shape.Resolve<Pointer.Resolve<M[m]>>;
   } & {
     /**
      * Remove '?' from required properties.
      */
-    [m in RequiredKeys<M>]-?: Shape.Resolve<M[m]>;
+    [m in RequiredKeys<M>]-?: Shape.Resolve<Pointer.Resolve<M[m]>>;
   };
 }
 
@@ -88,12 +89,12 @@ export type RecordValues<M extends RecordMembers> = {
    * Write each member and their documentation to the structure.
    * Write them all as '?' for now.
    */
-  [m in keyof M]+?: Value.Of<Shape.Resolve<M[m]>>;
+  [m in keyof M]+?: Value.Of<Shape.Resolve<Pointer.Resolve<M[m]>>>;
 } & {
   /**
    * Remove '?' from required properties.
    */
-  [m in RequiredKeys<M>]-?: Value.Of<Shape.Resolve<M[m]>>;
+  [m in RequiredKeys<M>]-?: Value.Of<Shape.Resolve<Pointer.Resolve<M[m]>>>;
 };
 
 export interface RecordType<M extends RecordMembers = any> extends RecordShape<M> {
@@ -170,7 +171,7 @@ export function Record<T extends RecordMembers = any>(members: T): RecordType<T>
     }
 
     constructor(values: {
-      [K in keyof T]: Value.Of<Shape.Resolve<T[K]>>;
+      [K in keyof T]: Value.Of<Shape.Resolve<Pointer.Resolve<T[K]>>>;
     }) {
       for (const [name, value] of Object.entries(values)) {
         (this as any)[name] = value;

@@ -49,7 +49,7 @@ export class Frame {
     return this._variables || this;
   }
 
-  public interpret(type: GraphQL.Type) {
+  public interpret(type: GraphQL.Object) {
     type[GraphQL.expr].visit(this);
   }
 

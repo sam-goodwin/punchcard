@@ -37,3 +37,4 @@ const boundedString = <T extends string, N extends number>(type: T, n: N) => str
 
 export const varchar = <N extends number>(n: N) => boundedString('varchar', n);
 export const char = <N extends number>(n: N) => boundedString('char', n);
+

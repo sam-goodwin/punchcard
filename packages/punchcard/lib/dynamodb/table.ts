@@ -5,15 +5,14 @@ import type * as iam from '@aws-cdk/aws-iam';
 
 import { Pointer, RecordShape, Shape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { GraphQL } from '../appsync/graphql';
-import { StatementF, Statements, call } from '../appsync/intepreter/statement';
+import { StatementF } from '../appsync/intepreter/statement';
+import { VObject } from '../appsync/types';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
-import { getDynamoDBItem } from './resolver';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
@@ -133,8 +132,8 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
     super(scope, id);
 
     this.dataType = props.data;
-
     this.key = props.key;
+
     const [partitionKeyName, sortKeyName] = getKeyNames<Shape.Resolve<DataType>>(props.key);
 
     this.resource = CDK.chain(({dynamodb}) => Scope.resolve(scope).map(scope => {
@@ -156,8 +155,9 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
     }));
   }
 
-  public get(key: KeyGraphQLRepr<Shape.Resolve<DataType>, Key>): StatementF<GraphQL.TypeOf<Shape.Resolve<DataType>>> {
-    return call(this, );
+  public get(key: KeyGraphQLRepr<Shape.Resolve<DataType>, Key>): StatementF<VObject.Of<Shape.Resolve<DataType>>> {
+    throw new Error('todo');
+    // return call(this, );
   }
 
   /**
@@ -253,7 +253,7 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
 }
 
 export type KeyGraphQLRepr<DataType extends RecordShape, K extends DDB.KeyOf<DataType>> = {
-  [k in Extract<K[keyof K], string>]: GraphQL.TypeOf<DataType['Members'][k]>;
+  [k in Extract<K[keyof K], string>]: VObject.Of<DataType['Members'][k]>;
 };
 
 

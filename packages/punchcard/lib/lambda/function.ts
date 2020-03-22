@@ -1,13 +1,14 @@
 import AWS = require('aws-sdk');
 
+import type * as appsync from '@aws-cdk/aws-appsync';
+import type * as iam from '@aws-cdk/aws-iam';
 import type * as lambda from '@aws-cdk/aws-lambda';
-import type * as cdk from '@aws-cdk/core';
 
 import { Json } from '@punchcard/shape-json';
 
 import { any, AnyShape, Mapper, MapperFactory, Pointer, Shape, Value } from '@punchcard/shape';
+import { GraphQL } from '../appsync/graphql';
 import { StatementF } from '../appsync/intepreter/statement';
-import { GraphQL } from '../appsync/types';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -200,7 +201,33 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
     });
   }
 
-  public invoke(value: GraphQL.Repr<Shape.Resolve<T>>): StatementF<GraphQL.TypeOf<Shape.Resolve<U>>> {
+  /**
+   * Build an AppSync Lambda Data Source to this Function.
+   *
+   * @param id unique id of the data source.
+   * @param props api and an optionally specific service role.
+   */
+  public dataSource(id: string, props: {
+    api: Build<appsync.GraphQLApi>;
+    serviceRole?: Build<iam.Role | undefined>;
+  }): Build<appsync.LambdaDataSource> {
+    return Build
+      .concat(
+        CDK,
+        this.resource,
+        props.api,
+        props.serviceRole || Build.of(undefined))
+      .map(([{appsync}, fn, api, serviceRole]) =>
+        new appsync.LambdaDataSource(fn, id, {
+          api,
+          lambdaFunction: fn,
+          name: id,
+          description: 'TODO: do a nicer description like: `Function<${this.request}, ${this.response}>`',
+          serviceRole
+        }));
+  }
+
+  public invoke(value: GraphQL.LikeObject<Shape.Resolve<T>>): StatementF<GraphQL.ObjectOf<Shape.Resolve<U>>> {
     return invokeLambda(this as any, value);
   }
 

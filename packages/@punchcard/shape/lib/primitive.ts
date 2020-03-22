@@ -5,10 +5,12 @@ export abstract class DynamicShape<T extends any | unknown> extends Shape {
 
   public readonly Kind: 'dynamicShape' = 'dynamicShape';
 }
+
 export class AnyShape extends DynamicShape<any> {
   public readonly Tag: 'any' = 'any';
 }
-export class UnknownShape extends DynamicShape<any> {
+
+export class UnknownShape extends DynamicShape<unknown> {
   public readonly Tag: 'unknown' = 'unknown';
 }
 

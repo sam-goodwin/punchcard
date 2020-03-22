@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, DynamicShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, RecordShape, SetShape, StringShape } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, DynamicShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, Pointer, RecordShape, SetShape, StringShape } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
 import { ObjectSchema } from './object';
@@ -36,7 +36,7 @@ export namespace JsonSchema {
     T extends MapShape<infer V> ? MapSchema<V> :
     T extends SetShape<infer I> ? SetSchema<I> :
     T extends RecordShape<infer M> ? ObjectSchema<{
-      [m in keyof M]: Of<Shape.Resolve<M[m]>>;
+      [m in keyof M]: Of<Shape.Resolve<Pointer.Resolve<M[m]>>>;
     }> :
 
     T extends { [Tag]: infer J } ? J :
