@@ -1,6 +1,6 @@
 import 'jest';
 
-import { array, integer, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape } from '@punchcard/shape';
+import { array, integer, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape } from '@punchcard/shape';
 import { Do } from 'fp-ts-contrib/lib/Do';
 import { foldFree, free } from 'fp-ts-contrib/lib/Free';
 import { identity, Identity } from 'fp-ts/lib/Identity';
@@ -21,9 +21,21 @@ import { Scope } from '../../lib/core/construct';
 import DynamoDB = require('../../lib/dynamodb');
 import { Function } from '../../lib/lambda';
 
-class Post extends Record({
+export class PostStore extends DynamoDB.Table.NewType({
+  data: type => PostType.Shape,
+  key: {
+    partition: 'id'
+  }
+}) {}
+
+export interface PostProps {
+  postStore: PostStore,
+  getPost?: Function<StringShape, PostType['Shape']>;
+}
+
+export class PostType extends TypeConstructor({
   /**
-   * ID
+   * ID.
    */
   id: ID,
   /**
@@ -31,74 +43,71 @@ class Post extends Record({
    */
   title: string,
   /**
-   * Content of the Post
+   * Content of the Post.
    */
   content: string
-}) {}
+}) {
+  public readonly getPost: Function<StringShape, PostType['Shape']>;
 
-export class PostStore extends DynamoDB.Table.NewType({
-  data: Post,
-  key: {
-    partition: 'id'
+  constructor(scope: Scope, id: string, {getPost, postStore}: PostProps) {
+    super(scope, id);
+
+    this.getPost = getPost || new Function(this, 'getPost', {
+      request: string,
+      response: this.Shape,
+      depends: postStore.readAccess()
+    }, async (id, posts) => {
+      const p = await posts.get({
+        id
+      });
+      if (p === undefined) {
+        throw new Error('not found');
+      }
+
+      return p;
+    });
   }
-}) {}
 
-interface PostApiProps {
+  public relatedPosts = $(returns => this)
+    .resolve('a', () => this.getPost.invoke(this.title))
+    .return('a');
+
+  public averageScore = $(returns => number)
+    .resolve('a', () => this.getPost.invoke(this.id))
+    .return('a');
+}
+
+interface PostApiProps<T extends typeof PostType = typeof PostType> {
   /**
    * @default - Post
    */
   typeName?: string;
+
+  Post?: T;
 }
 
-export const PostApi = (scope: Scope, props: PostApiProps = {}) => {
-  const PostType = GraphQLType({
-    self: Post,
-    typeName: props.typeName,
-    fields: self => ({
-      relatedPosts: $({id: string}, string)
-        .resolve('a', ({id}) => getPost.invoke(self.id))
-        .return('id')
-      ,
-
-      averageScore: $({}, string)
-        .resolve('a', () => getPost.invoke(self.id))
-        .return('a')
-      ,
-    })
-  });
-
+export const PostApi = <T extends typeof PostType = typeof PostType>(scope: Scope, props: PostApiProps<T> = {}) => {
   const postStore = new PostStore(scope, 'pet-store');
 
-  const getPost = new Function(scope, 'getPostFn', {
-    request: string,
-    response: Post,
-    depends: postStore.readAccess()
-  }, async (id, posts) => {
-    const p = await posts.get({
-      id
-    });
-    if (p === undefined) {
-      throw new Error('not found');
-    }
-    return p;
+  const Post = new PostType(scope, 'Post', {
+    postStore,
   });
 
   const query = {
-    getPost: $({id: ID}, PostType)
-      .resolve('post', ({id}) => getPost.invoke(id))
+    getPost: $({id: ID}, returns => Post)
+      .resolve('post', ({id}) => Post.getPost.invoke(id))
       .return('post')
   };
 
   const mutation = {
-    addPost: $({title: string, content: optional(string)}, PostType)
-      .resolve('post', ({title, content}) => getPost.invoke(title))
+    addPost: $({title: string, content: optional(string)}, returns => Post)
+      .resolve('post', ({title, content}) => Post.getPost.invoke(title))
       .return('post')
   };
 
   return {
-    PostType,
-    getPost,
     postStore,
+    Post,
     graphql: {
       query,
       mutation
@@ -109,9 +118,13 @@ export const PostApi = (scope: Scope, props: PostApiProps = {}) => {
 const app = new App();
 const stack = app.stack('stack');
 
-const postApi = PostApi(stack);
+const {Post} = PostApi(stack);
 
-// export class Post extends PostType.Record {}
+class ExtendedPostType extends PostType {
+
+}
+
+// export class Post extends Post.Record {}
 
 // it('should', () => {
 //   const a = Build.resolve(postApi.resource);

@@ -111,7 +111,7 @@ export interface FunctionProps<T extends Shape.Like = AnyShape, U extends Shape.
  * @typeparam U return type
  * @typeparam D runtime dependencies
  */
-export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = AnyShape, D extends Dependency<any> | undefined = undefined> implements Entrypoint, Resource<lambda.Function> {
+export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = AnyShape, D extends Dependency<any> | undefined = any> implements Entrypoint, Resource<lambda.Function> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 

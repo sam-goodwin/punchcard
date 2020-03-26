@@ -19,12 +19,26 @@ import { set, Statement, StatementF } from './statement';
 export interface ResolverScope {
   [lexicalName: string]: VObject;
 }
+
+// export const $ = Resolver.new;
+export function $<Args extends RecordMembers, Ret extends Shape.Like>(args: Args, returns: Pointer<Ret>): Resolver<{
+  [a in keyof Args]: VObject.Of<Shape.Resolve<Pointer.Resolve<Args[a]>>>;
+}, Shape.Resolve<Ret>>;
+export function $<Ret extends Shape.Like>(returns: Pointer<Ret>): Resolver<{}, Ret>;
+export function $(a: any, b?: any) {
+  if (b !== undefined) {
+    return Resolver.new(a, b);
+  } else {
+    return Resolver.new({}, a);
+  }
+}
+
 /**
  * Builder for constructing a ResolverPipeline
  *
  * @see https://docs.aws.amazon.com/appsync/latest/devguide/pipeline-resolvers.html
  */
-export class Resolver<L extends ResolverScope, Ret extends Shape> {
+export class Resolver<L extends ResolverScope, Ret extends Shape.Like> {
   public static new<Args extends RecordMembers, Ret extends Shape.Like>(args: Args, returns: Ret): Resolver<{
     [a in keyof Args]: VObject.Of<Shape.Resolve<Pointer.Resolve<Args[a]>>>;
   }, Shape.Resolve<Ret>> {
@@ -70,7 +84,7 @@ export class Resolver<L extends ResolverScope, Ret extends Shape> {
     return this.doL(scope => $util.validate(f(scope), message));
   }
 
-  public return(f: (scope: L) => VObject.Like<Ret>): Resolved<Ret>;
+  public return(f: (scope: L) => VObject.Like<Shape.Resolve<Ret>>): Resolved<Ret>;
   public return<K extends keyof L>(value: K): Resolved<Ret extends VObject.ShapeOf<L[K]> ? Ret : never>;
   public return(f: any): any {
     if (typeof f === 'string') {
@@ -81,14 +95,12 @@ export class Resolver<L extends ResolverScope, Ret extends Shape> {
   }
 }
 
-export const $ = Resolver.new;
-
-export class Resolved<S extends Shape> {
+export class Resolved<S extends Shape.Like> {
   public static isResolved(a: any): a is Resolved<Shape> {
     return a._tag === 'resolved';
   }
 
   public readonly _tag: 'resolved' = 'resolved';
 
-  constructor(public readonly program: StatementF<VObject.Like<S>>) {}
+  constructor(public readonly program: StatementF<VObject.Like<Shape.Resolve<S>>>) {}
 }
