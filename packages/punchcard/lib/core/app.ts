@@ -7,6 +7,7 @@ import { Code } from './code';
 
 import type * as cdk from '@aws-cdk/core';
 import type * as webpack from 'webpack';
+import { Construct } from './construct';
 
 /**
  * Erase webpack and the CDK from the runtime bundle./
@@ -57,7 +58,7 @@ export class App {
   }
 
   public stack(id: string): Build<cdk.Stack> {
-    return CDK.chain(({core}) => this.root.map(app => new core.Stack(app, id)));
+    return CDK.chain(({core}) => this.root.map(a => new core.Stack(a, id)));
   }
 
   public addExternal(external: string): void {

@@ -1,122 +1,27 @@
 import 'jest';
 
-import { array, optional, Record, string } from '@punchcard/shape';
-import { Api } from '../../lib/appsync/api';
-import { Mutation, Query } from '../../lib/appsync/decorators';
-import { $if } from '../../lib/appsync/expression';
-import { $api } from '../../lib/appsync/syntax';
-import { GraphQLResolver, ID, VObject } from '../../lib/appsync/types';
+import { array, integer, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape } from '@punchcard/shape';
+import { Do } from 'fp-ts-contrib/lib/Do';
+import { foldFree, free } from 'fp-ts-contrib/lib/Free';
+import { identity, Identity } from 'fp-ts/lib/Identity';
+import { VInterpreter } from '../../lib/appsync';
+import { GraphQLApi } from '../../lib/appsync/api';
+import { Mutation } from '../../lib/appsync/decorators';
+import { Resolved } from '../../lib/appsync/syntax';
+import { $if } from '../../lib/appsync/syntax/if';
+import { $mutation } from '../../lib/appsync/syntax/mutation';
+import { $ } from '../../lib/appsync/syntax/resolver';
+import { ID, VObject } from '../../lib/appsync/types';
+import { GraphQLType, TypeConstructor } from '../../lib/appsync/types/type-constructor';
+import { VTL } from '../../lib/appsync/types/vtl';
 import { $util } from '../../lib/appsync/util';
-import { App } from '../../lib/core';
+import { App, Dependency } from '../../lib/core';
+import { Build } from '../../lib/core/build';
 import { Scope } from '../../lib/core/construct';
 import DynamoDB = require('../../lib/dynamodb');
 import { Function } from '../../lib/lambda';
 
-export class PostStore extends DynamoDB.Table.NewType({
-  data: type => Post.Record,
-  key: {
-    partition: 'id'
-  }
-}) {}
-
-class PostApi extends Api {
-  public readonly table: PostStore;
-
-  public readonly Post: Post;
-
-  constructor(scope: Scope, id: string) {
-    super(scope, id);
-
-    this.table = new PostStore(this, 'pet-store');
-    this.Post = new Post(this, 'Post', this.table);
-  }
-
-  /**
-   * AppSync Function for getting a post with Lambda.
-   */
-  @Query
-  public getPost = $api({id: ID}, optional(this.Post))
-    .resolve('post', ({id}) => this.getPostFn.invoke(id))
-    .return('post');
-
-  private readonly getPostFn = new Function(this, 'getPostFn', {
-    request: string,
-    response: this.Post,
-    depends: this.table.readAccess()
-  }, async (id, posts) => {
-    const p = await posts.get({
-      id
-    });
-    if (p === undefined) {
-      throw new Error('not found');
-    }
-    return p;
-  });
-
-  @Mutation
-  public addPost = $api({title: optional(string), content: string}, this.Post)
-    .let('id', () => $util.autoId())
-    .let('a', ({id}) => VObject.string`#if(${id.size()} > 0)hello#{else}goodbye#end`)
-    .let('idUpper', ({id}) => id.toUpperCase())
-    .validate(({content}) => content.isNotEmpty(), 'content must not be empty')
-    .resolve('item', () => this.table.get({
-      id: VObject.string('test')
-    }))
-    .resolve('newPost', ({id, title, content}) => this.addPostFn.invoke({
-      id,
-      title: $if($util.isNull(title), () =>
-        title
-      ).$else(() =>
-        VObject.string('generated title')
-      ),
-      content
-    }))
-    .return('newPost');
-
-  /**
-   * Nested class to represent input enveolve types.
-   */
-  public AddPostRequest = class AddPostRequest extends Record({
-    /**
-     * This is an ID.
-     */
-    id: optional(string),
-    title: string,
-    content: string
-  }) {};
-  // alternative syntax that doesn't name the class
-  // public AddPostRequest = Record({
-  //  /**
-  //   * This is an ID.
-  //   */
-  //   id: optional(string),
-  //   title: string,
-  //   content: string
-  // });
-
-  private readonly addPostFn = new Function(this, 'addPostFn', {
-    request: this.AddPostRequest,
-    response: this.Post,
-    depends: this.table.readWriteAccess()
-  }, async (request, posts) => {
-    const post = new Post.Record({
-      ...request,
-      id: request.id || 'random',
-    });
-
-    await posts.put(post);
-
-    return post;
-  });
-}
-namespace PostApi {
-  /**
-   * Type of nested class.
-   */
-  export type AddPostRequest = PostApi['AddPostRequest'];
-}
-
-class Post extends GraphQLResolver({
+class Post extends Record({
   /**
    * ID
    */
@@ -129,48 +34,96 @@ class Post extends GraphQLResolver({
    * Content of the Post
    */
   content: string
-}) {
-  constructor(scope: Scope, id: string, private readonly table: PostStore) {
-    super(scope, id);
+}) {}
+
+export class PostStore extends DynamoDB.Table.NewType({
+  data: Post,
+  key: {
+    partition: 'id'
   }
+}) {}
 
+interface PostApiProps {
   /**
-   * Related Posts can be resolved from Lambda.
+   * @default - Post
    */
-  // public relatedPosts: Resolved<ArrayShape<Post.Record>> = this.$field(array(this))
-  public relatedPosts = this.$field(array(this))
-    .resolve('item', () => this.table.get({
-      id: this.$.id
-    }))
-    .resolve('relatedPosts', ({item}) =>
-      this.getRelatedPosts.invoke(item.title)
-    )
-    .return('relatedPosts');
+  typeName?: string;
+}
 
-  /**
-   * Lambda Function for getting related posts.
-   */
-  private getRelatedPosts = new Function(this, 'getRelatedPosts', {
+export const PostApi = (scope: Scope, props: PostApiProps = {}) => {
+  const PostType = GraphQLType({
+    self: Post,
+    typeName: props.typeName,
+    fields: self => ({
+      relatedPosts: $({id: string}, string)
+        .resolve('a', ({id}) => getPost.invoke(self.id))
+        .return('id')
+      ,
+
+      averageScore: $({}, string)
+        .resolve('a', () => getPost.invoke(self.id))
+        .return('a')
+      ,
+    })
+  });
+
+  const postStore = new PostStore(scope, 'pet-store');
+
+  const getPost = new Function(scope, 'getPostFn', {
     request: string,
-    response: array(this.Shape),
-    depends: this.table.readAccess()
+    response: Post,
+    depends: postStore.readAccess()
   }, async (id, posts) => {
-    // todo: perform a query
     const p = await posts.get({
       id
     });
     if (p === undefined) {
       throw new Error('not found');
     }
-    return [p];
+    return p;
   });
-}
-namespace Post {
-  export type Record = typeof Post.Record;
-}
+
+  const query = {
+    getPost: $({id: ID}, PostType)
+      .resolve('post', ({id}) => getPost.invoke(id))
+      .return('post')
+  };
+
+  const mutation = {
+    addPost: $({title: string, content: optional(string)}, PostType)
+      .resolve('post', ({title, content}) => getPost.invoke(title))
+      .return('post')
+  };
+
+  return {
+    PostType,
+    getPost,
+    postStore,
+    graphql: {
+      query,
+      mutation
+    }
+  };
+};
 
 const app = new App();
 const stack = app.stack('stack');
 
-const postApi = new PostApi(stack, 'PostApi');
+const postApi = PostApi(stack);
+
+// export class Post extends PostType.Record {}
+
+// it('should', () => {
+//   const a = Build.resolve(postApi.resource);
+
+//   // const record = foldFree(identity)(stmt => {
+//   //   if (StatementGuards.isCall(stmt)) {
+//   //     console.log(VInterpreter.render(stmt.request));
+//   //   }
+//   //   return null as any;
+//   // }, a);
+
+//   // console.log(record);
+//   // console.log(VInterpreter.render(record));
+// });
 

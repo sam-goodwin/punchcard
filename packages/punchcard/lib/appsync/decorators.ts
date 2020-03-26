@@ -1,7 +1,5 @@
 // import { GraphQL } from './types';
 
-import { GraphQL } from './graphql';
-import { Resolved } from './intepreter/resolver';
 
 export const Query: PropertyDecorator = () => {};
 

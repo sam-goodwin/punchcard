@@ -64,7 +64,6 @@ export namespace Mapper {
     }
 
     function resolveShape() {
-
       if (ShapeGuards.isRecordShape(shape)) {
         const mappers: {[key: string]: Mapper<any>; } = Object.entries(shape.Members)
           .map(([name, m]) => ({ [name]: Mapper.of(m as Shape, options) }))

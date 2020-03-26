@@ -5,7 +5,7 @@ import type * as iam from '@aws-cdk/aws-iam';
 
 import { Pointer, RecordShape, Shape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { StatementF } from '../appsync/intepreter/statement';
+import { StatementF } from '../appsync/syntax/statement';
 import { VObject } from '../appsync/types';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
@@ -145,11 +145,11 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
         ...extraTableProps,
         partitionKey: {
           name: partitionKeyName,
-          type: keyType((dataType.Members as any)[partitionKeyName].Shape)
+          type: keyType((dataType.Members as any)[partitionKeyName])
         },
         sortKey: sortKeyName ? {
           name: sortKeyName,
-          type: keyType((dataType.Members as any)[sortKeyName].Shape)
+          type: keyType((dataType.Members as any)[sortKeyName])
         } : undefined
       });
     }));

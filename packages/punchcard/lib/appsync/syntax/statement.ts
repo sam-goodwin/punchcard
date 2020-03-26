@@ -1,7 +1,7 @@
-import { GraphQL } from '../graphql';
-
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Free, liftF } from 'fp-ts-contrib/lib/Free';
+import { Build } from '../../core/build';
+import { VObject } from '../types/object';
 
 declare module 'fp-ts/lib/HKT' {
   interface URItoKind<A> {
@@ -31,19 +31,12 @@ export namespace Statement {
  */
 export type StatementF<A extends VObject = VObject> = Free<Statement.URI, A>;
 
-import type * as appsync from '@aws-cdk/aws-appsync';
-import { Build } from '../../core/build';
-import { VObject } from '../types/object';
-
-export interface DataSource<T extends Shape, U extends Shape> {
-  readonly owner: any;
-  readonly input: T;
-  readonly output: U;
-  dataSource(id: string): Build<appsync.BaseDataSource>;
-}
-
-export function call<T extends Shape, U extends VObject>(dataSource: DataSource<T, VObject.ShapeOf<U>>, request: VObject.Like<T>, response: U): StatementF<U> {
-  return liftF(new Statements.Call(dataSource , request, response));
+export function call<T extends Shape, U extends VObject>(
+  resolverFunction: Build<any>,
+  request: VObject.Of<T>,
+  response: U
+): StatementF<U> {
+  return liftF(new Statements.Call(resolverFunction, request, response));
 }
 
 export function set<T extends VObject>(value: T, id?: string): StatementF<T> {
@@ -56,10 +49,10 @@ export namespace Statements {
    */
   export class Call<T = VObject> {
     _URI: Statement.URI;
-    _tag: 'call';
+    _tag: 'call' = 'call';
     _A: T;
     constructor(
-      public readonly dataSource: DataSource<Shape, Shape>,
+      public readonly resolverFunction: Build<any>,
       public readonly request: VObject,
       public readonly response: T,
       ) {}
@@ -70,7 +63,7 @@ export namespace Statements {
    */
   export class Print<T = VObject> {
     _URI: Statement.URI;
-    _tag: 'print';
+    _tag: 'print' = 'print';
     _A: T;
     constructor(
       public readonly value: T) {}
@@ -81,7 +74,7 @@ export namespace Statements {
    */
   export class Set<T = VObject> {
     _URI: Statement.URI;
-    _tag: 'set';
+    _tag: 'set' = 'set';
     _A: T;
 
     constructor(

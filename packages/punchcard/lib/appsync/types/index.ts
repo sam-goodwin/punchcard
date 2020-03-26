@@ -11,4 +11,5 @@ export * from './record';
 export * from './set';
 export * from './string';
 export * from './timestamp';
-export * from './type';
+export * from './type-constructor';
+export * from './vtl';

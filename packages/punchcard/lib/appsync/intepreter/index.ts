@@ -1,3 +1,2 @@
+export * from './frame';
 export * from './interpreter';
-export * from './resolver';
-export * from './statement';

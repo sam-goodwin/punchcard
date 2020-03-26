@@ -1,6 +1,6 @@
 import { bool, string } from '@punchcard/shape';
-import { Expression } from '../intepreter/expression';
-import { StatementF } from '../intepreter/statement';
+import { VExpression } from '../syntax/expression';
+import { StatementF } from '../syntax/statement';
 import { VBool } from '../types/bool';
 import { VNothing } from '../types/nothing';
 import { expr, VObject } from '../types/object';
@@ -14,7 +14,7 @@ export class Util {
   }
 
   public autoId(): VString {
-    return new VString(string, new Expression('$util.autoId()'));
+    return new VString(string, new VExpression('$util.autoId()'));
   }
 
   public matches(regex: RegExp | string): StatementF<VBool> {
@@ -22,7 +22,7 @@ export class Util {
   }
 
   public isNull(value: VObject): VBool {
-    return new VBool(bool, new Expression((frame) => {
+    return new VBool(bool, new VExpression((frame) => {
       frame.print(`$util.isNull(`);
       value[expr].visit(frame);
       frame.print(')');

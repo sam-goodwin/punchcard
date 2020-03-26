@@ -1,14 +1,14 @@
 import appsync = require('@aws-cdk/aws-appsync');
-import { identity } from 'fp-ts/lib/Identity';
-import { Build } from '../../core/build';
-import { Frame } from './frame';
-import { StatementGuards } from './statement';
-
-import { Resolved } from './resolver';
-
 import { Shape } from '@punchcard/shape';
+
 import { foldFree } from 'fp-ts-contrib/lib/Free';
+import { identity } from 'fp-ts/lib/Identity';
+
+import { Build } from '../../core/build';
+import { Resolved } from '../syntax/resolver';
+import { StatementGuards } from '../syntax/statement';
 import { VObject } from '../types/object';
+import { Frame } from './frame';
 
 interface ResolverStage {
   requestTemplate: string;
@@ -26,36 +26,33 @@ export interface CompiledResolver {
 }
 
 export class VInterpreter {
+  constructor(public readonly api: appsync.GraphQLApi) {
+
+  }
+
   public static render(type: VObject): string {
-    const frame = new Frame(undefined, new Frame());
+    console.log(type);
+    const frame = new Frame(undefined);
     frame.interpret(type);
-    // console.log(frame);
     return frame.render();
   }
 
-  public static interpretResolver(resolved: Resolved<any>) {
-    const compiledProgram: Partial<CompiledResolver> = {
-      stages: []
-    };
-
-    const root = new Frame();
-    const frame = root;
-
+  public interpret(fieldName: string, resolved: Resolved<any, any>): CompiledResolver {
     const stages: ResolverStage[] = [];
 
     foldFree(identity)((stmt => {
       if (StatementGuards.isCall(stmt)) {
-        const dataSource = stmt.dataSource.dataSource('todo');
+      console.log('call', stmt);
         const requestTemplate = VInterpreter.render(stmt.request);
         const responseTemplate = VInterpreter.render(stmt.response);
 
         stages.push({
-          dataSource,
+          dataSource: null as any,
           requestTemplate,
           responseTemplate,
         });
       } else if (StatementGuards.isSet(stmt)) {
-
+        console.log('stmt', stmt);
         // /**
         //  * Compute a value and store it in the stash.
         //  */
@@ -71,5 +68,12 @@ export class VInterpreter {
       }
       return null as any;
     }), resolved.program);
+
+    return {
+      afterTemplate: 'todo',
+      arguments: {},
+      beforeTemplate: 'todo',
+      stages
+    };
   }
 }

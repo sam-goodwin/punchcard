@@ -24,7 +24,11 @@ type GetComment<T extends Shape> =
   ;
 
 function getComment<T extends Shape>(member: T): GetComment<T> {
-  return (member as any)[Decorated.Data].description;
+  const _member = member as any;
+  if (_member[Decorated.Data]) {
+    return _member[Decorated.Data].description;
+  }
+  return undefined as GetComment<T>;
 }
 
 type Column<K extends keyof T['Members'], T extends RecordShape<any>> = {
@@ -42,7 +46,7 @@ export type Columns<T extends RecordShape<any>> = {
 export function schema<T extends RecordShape<any>>(shape: T): Columns<T> {
   const columns: { [name: string]: Column<any, any>; } = {};
   for (const [name, member] of Object.entries(shape.Members) as [string, Shape][]) {
-    const type = (member as Shape).visit(SchemaVisitor.instance, null);
+    const type = member.visit(SchemaVisitor.instance, null);
     const col = {
       name,
       type,

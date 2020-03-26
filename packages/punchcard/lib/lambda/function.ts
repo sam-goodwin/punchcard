@@ -6,9 +6,12 @@ import type * as lambda from '@aws-cdk/aws-lambda';
 
 import { Json } from '@punchcard/shape-json';
 
-import { any, AnyShape, Mapper, MapperFactory, Pointer, Shape, Value } from '@punchcard/shape';
-import { GraphQL } from '../appsync/graphql';
-import { StatementF } from '../appsync/intepreter/statement';
+import { any, AnyShape, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, Mapper, MapperFactory, MapShape, NothingShape, NumberShape, Pointer, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Value } from '@punchcard/shape';
+import { VExpression } from '../appsync/syntax/expression';
+import { $if } from '../appsync/syntax/if';
+import { call, StatementF } from '../appsync/syntax/statement';
+import { VTL } from '../appsync/types';
+import { expr, type, VObject } from '../appsync/types/object';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -23,7 +26,6 @@ import { Global } from '../core/global';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { ENTRYPOINT_ENV_KEY, IS_RUNTIME_ENV_KEY } from '../util/constants';
-import { invokeLambda } from './resolver';
 
 /**
  * Overridable subset of @aws-cdk/aws-lambda.FunctionProps
@@ -137,7 +139,14 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
   private readonly dependencies?: D;
   private readonly mapperFactory: MapperFactory<Json.Of<T>>;
 
-  constructor(scope: Scope, id: string, props: FunctionProps<T, U, D>, handle: (event: Value.Of<Shape.Resolve<T>>, run: Client<D>, context: any) => Promise<Value.Of<Shape.Resolve<U>>>) {
+  constructor(
+    scope: Scope,
+    id: string,
+    props: FunctionProps<T, U, D>,
+    handle: (event: Value.Of<Shape.Resolve<T>>, run: Client<D>, context: any) => Promise<Value.Of<Shape.Resolve<U>>>
+  ) {
+    this.request = (props.request || any) as any;
+    this.response = (props.request || any) as any;
     this.handle = handle;
     const entrypointId = Global.addEntrypoint(this);
 
@@ -173,8 +182,8 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
     })));
 
     this.entrypoint = Run.lazy(async () => {
-      const requestMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(props.request)) || any);
-      const responseMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(props.response)) || any);
+      const requestMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(props.request) || any));
+      const responseMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(props.response) || any));
       const bag: {[name: string]: string} = {};
       for (const [env, value] of Object.entries(process.env)) {
         if (env.startsWith('punchcard') && value !== undefined) {
@@ -201,13 +210,31 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
     });
   }
 
+  public invoke(request: VObject.Like<Shape.Resolve<T>>): StatementF<VObject.Of<Shape.Resolve<U>>> {
+    const requestShape = Shape.resolve(Pointer.resolve(this.request));
+    const responseShape = Shape.resolve(Pointer.resolve(this.response));
+
+    const requestObject: VObject.Of<Shape.Resolve<T>> =
+      VObject.isObject(request) ?
+        request as any :
+        VTL.of(requestShape, requestShape.visit(new ToVExpressionVisitor() as any, request))
+    ;
+
+    const response: VObject.Of<Shape.Resolve<U>> = VTL.of(
+      Shape.resolve(Pointer.resolve(this.response)),
+      VExpression.text('$ctx.prev.result'),
+    ) as VObject.Of<Shape.Resolve<U>>;
+
+    return call(null as any, requestObject, response) ;
+  }
+
   /**
    * Build an AppSync Lambda Data Source to this Function.
    *
    * @param id unique id of the data source.
    * @param props api and an optionally specific service role.
    */
-  public dataSource(id: string, props: {
+  private dataSource(id: string, props: {
     api: Build<appsync.GraphQLApi>;
     serviceRole?: Build<iam.Role | undefined>;
   }): Build<appsync.LambdaDataSource> {
@@ -225,10 +252,6 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
           description: 'TODO: do a nicer description like: `Function<${this.request}, ${this.response}>`',
           serviceRole
         }));
-  }
-
-  public invoke(value: GraphQL.LikeObject<Shape.Resolve<T>>): StatementF<GraphQL.ObjectOf<Shape.Resolve<U>>> {
-    return invokeLambda(this as any, value);
   }
 
   /**
@@ -299,5 +322,105 @@ export namespace Function {
         Payload: this.requestMapper.write(request)
       }).promise();
     }
+  }
+}
+
+
+function toJson(obj: VObject.Like<any>): VExpression {
+  if (VObject.isObject(obj)) {
+    return VExpression.concat(
+      VExpression.text('$util.toJson('),
+      obj[expr],
+      VExpression.text(')')
+    );
+  } else {
+    return null as any;
+  }
+}
+
+/**
+ * Transforms a VObject.Like to a VExpression so that it may be written to the output.
+ */
+class ToVExpressionVisitor implements ShapeVisitor<VExpression, VObject.Like<Shape>> {
+  public arrayShape(shape: ArrayShape<any>, obj: VObject.Like<Shape>): VExpression {
+    if (Array.isArray(obj)) {
+      const items = [new VExpression('[')]
+        .concat((obj as VObject[]).map(o => o[type].visit(this, o)) as VExpression[])
+        .concat(new VExpression(']'));
+
+      return VExpression.concat(...items);
+    } else {
+      throw new Error(`expected an array, but got: ${obj}`);
+    }
+  }
+  public binaryShape(shape: BinaryShape, obj: VObject.Like<Shape>): VExpression {
+    return obj[expr];
+  }
+  public boolShape(shape: BoolShape, obj: VObject.Like<Shape>): VExpression {
+    return obj[expr];
+  }
+  public recordShape(shape: RecordShape<any>, obj: VObject.Like<Shape>): VExpression {
+    if (VObject.isObject(obj)) {
+      return toJson(obj);
+    } else {
+      const members = Object.entries((obj as Record<string, VObject.Like<Shape>>));
+
+      return VExpression.concat(
+        VExpression.text('{'),
+        ...members.map(([name, obj], i) => {
+          return VExpression.concat(
+            VExpression.text('"'),
+            VExpression.text(name),
+            VExpression.text('":'),
+            shape.Members[name].visit(this, obj),
+            VExpression.text(i < members.length ? ',' : '')
+          );
+        }),
+        VExpression.text('}')
+      );
+    }
+  }
+  public dynamicShape(shape: DynamicShape<any>, obj: VObject.Like<Shape>): VExpression {
+    if (VObject.isObject(obj)) {
+      return toJson(obj);
+    }
+    throw new Error(`Shape.Like is not supported by dynamic shapes`);
+  }
+  public integerShape(shape: IntegerShape, obj: VObject.Like<Shape>): VExpression {
+    return obj[expr];
+  }
+  public mapShape(shape: MapShape<any>, obj: VObject.Like<Shape>): VExpression {
+    throw new Error("Method not implemented.");
+  }
+  public nothingShape(shape: NothingShape, obj: VObject.Like<Shape>): VExpression {
+    return VExpression.text('null');
+  }
+  public numberShape(shape: NumberShape, obj: VObject.Like<Shape>): VExpression {
+    return obj[expr];
+  }
+  public setShape(shape: SetShape<any>, obj: VObject.Like<Shape>): VExpression {
+    if (Array.isArray(obj)) {
+      const items = [new VExpression('[')]
+        .concat((obj as VObject[]).map(o => o[type].visit(this, o)) as VExpression[])
+        .concat(new VExpression(']'));
+
+      return VExpression.concat(...items);
+    } else {
+      throw new Error(`expected an array, but got: ${obj}`);
+    }
+  }
+  public stringShape(shape: StringShape, obj: VObject.Like<Shape>): VExpression {
+    return VExpression.concat(
+      VExpression.text('"'),
+      obj[expr],
+      VExpression.text('"')
+    );
+  }
+  public timestampShape(shape: TimestampShape, obj: VObject.Like<Shape>): VExpression {
+    return VExpression.concat(
+      VExpression.text('"'),
+      obj[expr],
+      VExpression.text('"')
+    );
   }
 }

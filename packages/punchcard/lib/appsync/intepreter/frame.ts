@@ -1,13 +1,13 @@
-import { GraphQL } from '../graphql';
-
+import { expr, VObject } from "../types/object";
 
 export class Frame {
   private readonly ids: Generator<string>;
+  private readonly directives: (string | Frame)[] = [];
   private readonly tokens: (string | Frame)[] = [];
   private readonly children: Frame[];
   private readonly lexicalScope: WeakMap<any, string> = new WeakMap();
 
-  constructor(private readonly parent?: Frame, private readonly _variables?: Frame) {
+  constructor(private readonly parent?: Frame) {
     if (parent) {
       parent.children.push(this);
       this.ids = parent.ids;
@@ -45,26 +45,18 @@ export class Frame {
     }
   }
 
-  public get variables(): Frame {
-    return this._variables || this;
-  }
-
-  public interpret(type: GraphQL.Object) {
-    type[GraphQL.expr].visit(this);
+  public interpret(type: VObject): string | void {
+    return type[expr].visit(this);
   }
 
   public render(): string {
-    const variables = this._variables ? this._variables.render() : '';
-
-    const print = (this.tokens).map(t => {
+    return (this.tokens).map(t => {
       if (typeof t === 'string') {
         return t;
       } else {
         return t.render();
       }
     }).join('');
-
-    return variables + print;
   }
 
   public getNewId(): string {

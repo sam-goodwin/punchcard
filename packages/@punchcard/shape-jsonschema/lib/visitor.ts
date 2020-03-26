@@ -95,7 +95,7 @@ export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema, undefined> 
     const schema: any = {
       type: 'object',
       properties: Object.entries(shape.Members)
-        .map(([name, member]) => ({ [name]: (member as any).Shape.visit(this) }))
+        .map(([name, member]) => ({ [name]: (member as any).visit(this) }))
         .reduce((a, b) => ({...a, ...b}), {})
     };
     if (required.length > 0) {

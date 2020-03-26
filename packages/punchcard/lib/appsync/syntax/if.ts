@@ -1,6 +1,7 @@
 import { VBool } from '../types';
 import { VObject } from '../types/object';
-import { Expression } from './expression';
+import { VTL } from '../types/vtl';
+import { VExpression } from './expression';
 
 export function $if<T extends VObject>(condition: VBool, then: () => T): If<T> {
   return new If(undefined, condition, then);
@@ -21,7 +22,7 @@ export class If<T extends VObject> {
 
   public $else(then: () => T): T {
     const t = this.then();
-    return VObject.clone(t, new Expression(frame => {
+    return VTL.clone(t, new VExpression(frame => {
       frame.print('#if(');
       const chain = this.chain();
       chain.forEach((c, i) => {

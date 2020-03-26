@@ -1,7 +1,11 @@
 import { Pointer, RecordShape } from '@punchcard/shape';
 import { VObject } from './object';
 
-export class VRecord<M extends { [m: string]: VObject; } = any> extends VObject<RecordShape<{
+export interface VRecordMembers {
+  [m: string]: VObject;
+}
+
+export class VRecord<M extends VRecordMembers = any> extends VObject<RecordShape<{
   [m in keyof M]: VObject.ShapeOf<Pointer.Resolve<M[m]>>;
 }>> {}
 

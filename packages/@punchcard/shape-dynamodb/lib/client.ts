@@ -61,7 +61,7 @@ export class BaseClient<T extends RecordShape<any>, K extends DDB.KeyOf<T>> {
     this.mapper = Mapper.of(this.type);
 
     if (typeof this.key.sort === 'undefined') {
-      const hashKeyMapper = Mapper.of(this.type.Members[this.key.partition].Shape);
+      const hashKeyMapper = Mapper.of(this.type.Members[this.key.partition]);
       this.writeKey = (k: any) => ({
         [this.key.partition]: hashKeyMapper.write(k[this.key.partition])
       });
@@ -71,8 +71,8 @@ export class BaseClient<T extends RecordShape<any>, K extends DDB.KeyOf<T>> {
     } else {
       const hk = this.key.partition;
       const sk = this.key.sort;
-      const hashKeyMapper = Mapper.of(this.type.Members[hk].Shape);
-      const sortKeyMapper = Mapper.of(this.type.Members[sk].Shape);
+      const hashKeyMapper = Mapper.of(this.type.Members[hk]);
+      const sortKeyMapper = Mapper.of(this.type.Members[sk]);
       this.writeKey = (k: any) => ({
         [hk]: hashKeyMapper.write(k[hk]),
         [sk]: sortKeyMapper.write(k[sk])
