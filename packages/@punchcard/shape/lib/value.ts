@@ -1,12 +1,16 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { HashSet } from './hash-set';
+import { Decorated } from './metadata';
 import { AnyShape, BinaryShape, BoolShape, NothingShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
+import { IsOptional } from './traits';
 
 export namespace Value {
   export type Tag = typeof Tag;
   export const Tag = Symbol.for('@punchcard/shape-runtime.Value.Tag');
 
-  export type Of<T> =
+  export type Of<T> = T extends { [Decorated.Data]: IsOptional; } ? undefined | _Of<T> : _Of<T>;
+
+  export type _Of<T> =
     // use the instance type if this type can be constructed (for class A extends Record({}) {})
     T extends (new (...args: any[]) => infer I) ? I :
     // support overriding the type of a value

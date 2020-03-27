@@ -1,6 +1,7 @@
 import { Pointer, RecordMembers, Shape } from '@punchcard/shape';
 import { Do, Do2C } from 'fp-ts-contrib/lib/Do';
 import { free } from 'fp-ts-contrib/lib/Free';
+import { GraphQLType } from '../types';
 import { VBool } from '../types/bool';
 import { VObject } from '../types/object';
 import { VTL } from '../types/vtl';
@@ -23,8 +24,8 @@ export interface ResolverScope {
 // export const $ = Resolver.new;
 export function $<Args extends RecordMembers, Ret extends Shape.Like>(args: Args, returns: Pointer<Ret>): Resolver<{
   [a in keyof Args]: VObject.Of<Shape.Resolve<Pointer.Resolve<Args[a]>>>;
-}, Shape.Resolve<Ret>>;
-export function $<Ret extends Shape.Like>(returns: Pointer<Ret>): Resolver<{}, Ret>;
+}, Ret>;
+export function $<Ret extends Shape.Like>(returns: Ret): Resolver<{}, Ret>;
 export function $(a: any, b?: any) {
   if (b !== undefined) {
     return Resolver.new(a, b);
@@ -69,7 +70,7 @@ export class Resolver<L extends ResolverScope, Ret extends Shape.Like> {
   }, Ret> {
     return new Resolver(this._do.bindL(id, f));
   }
-  public resolve = this.bindL;
+  public call = this.bindL;
 
   public let<ID extends string, B extends VObject>(
     id: Exclude<ID, keyof L>,
@@ -84,8 +85,10 @@ export class Resolver<L extends ResolverScope, Ret extends Shape.Like> {
     return this.doL(scope => $util.validate(f(scope), message));
   }
 
-  public return(f: (scope: L) => VObject.Like<Shape.Resolve<Ret>>): Resolved<Ret>;
-  public return<K extends keyof L>(value: K): Resolved<Ret extends VObject.ShapeOf<L[K]> ? Ret : never>;
+  public return(f: (scope: L) => VObject.Of<Shape.Resolve<Ret>>): Resolved<Ret>;
+  public return<K extends keyof L>(value: K): Resolved<
+    Shape.Resolve<Ret> extends VObject.ShapeOf<L[K]> ? Ret : never
+  >;
   public return(f: any): any {
     if (typeof f === 'string') {
       return new Resolved(this._do.return(scope => scope[f]));

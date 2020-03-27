@@ -1,7 +1,7 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { ShapeGuards } from './guards';
 import { Apply, Meta, Trait } from './metadata';
-import { BinaryShape, BoolShape, IntegerShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { BinaryShape, BoolShape, IntegerShape, NumberShape, PrimitiveShapes, StringShape, TimestampShape } from './primitive';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
 
@@ -27,6 +27,7 @@ export abstract class Shape {
   }
 }
 export namespace Shape {
+  export type Primitive = PrimitiveShapes;
   export type Like<T extends Shape = Shape> = T | { Shape: T; };
   export type Resolve<T extends Shape.Like> =
     T extends { Shape: infer S } ?

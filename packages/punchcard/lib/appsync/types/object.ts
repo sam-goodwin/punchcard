@@ -54,13 +54,13 @@ export namespace VObject {
    * of expressions that share the structure of the target type.
    */
   export type Like<T extends Shape> = VObject.Of<T> | (
+    T extends RecordShape<infer M> ? {
+      [m in keyof M]: Like<Shape.Resolve<Pointer.Resolve<M[m]>>>;
+    } :
     T extends ArrayShape<infer I> ? Like<I>[] :
     T extends SetShape<infer I> ? Like<I>[] :
     T extends MapShape<infer I> ? {
       [key: string]: Like<I>;
-    } :
-    T extends RecordShape<infer M> ? {
-      [m in keyof M]: Like<Shape.Resolve<Pointer.Resolve<M[m]>>>;
     } :
     VObject.Of<T>
   );

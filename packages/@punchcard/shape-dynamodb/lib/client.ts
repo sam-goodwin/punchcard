@@ -311,7 +311,7 @@ export namespace DDB {
     never;
 
   export type KeyValue<T extends RecordShape<any>, K extends KeyOf<T>> = {
-    [k in KeyNames<T, K>]: Value.Of<T['Members'][AssertIsKey<T['Members'], k>]>;
+    [k in KeyNames<T, K>]: Value.Of<T['Members'][k]>;
   };
 
   export type HashKeyName<K> = K extends { partition: infer H; } ? H : never;

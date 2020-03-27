@@ -1,5 +1,16 @@
 import { Shape } from './shape';
 
+export type PrimitiveShapes =
+  | AnyShape
+  | UnknownShape
+  | BoolShape
+  | StringShape
+  | NumberShape
+  | IntegerShape
+  | TimestampShape
+  | NothingShape
+  ;
+
 export abstract class DynamicShape<T extends any | unknown> extends Shape {
   public abstract readonly Tag: 'any' | 'unknown';
 
