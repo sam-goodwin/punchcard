@@ -5,7 +5,7 @@ import { Do } from 'fp-ts-contrib/lib/Do';
 import { foldFree, free } from 'fp-ts-contrib/lib/Free';
 import { identity, Identity } from 'fp-ts/lib/Identity';
 import { VInterpreter, VString } from '../../lib/appsync';
-import { Api } from '../../lib/appsync/api';
+import { Api, ApiFragment, Imports, FQN, ImportIndex, Exports } from '../../lib/appsync/api';
 import { Mutation } from '../../lib/appsync/decorators';
 import { Resolved } from '../../lib/appsync/syntax';
 import { $if } from '../../lib/appsync/syntax/if';
@@ -24,7 +24,9 @@ import { Function } from '../../lib/lambda';
 export class User extends Record({
   id: ID,
   alias: string,
-}) {}
+}) {
+  public static readonly [FQN]: 'User' = 'User';
+}
 
 export class UserStore extends DynamoDB.Table.NewType({
   data: User,
@@ -41,46 +43,51 @@ export class UserStore extends DynamoDB.Table.NewType({
  * @param scope in which to install the component
  * @param props api to add UserAPI to
  */
-export const UserApi = <A extends Api<{Post: typeof Post}>>(
-  api: A,
+// <A extends Api<{Post: typeof Post}>>
+export const UserApi = (
+  scope: Scope,
   props: {
     postStore: PostStore
   }
 ) => {
-  const userStore = new UserStore(api, 'UserStore');
+  const userStore = new UserStore(scope, 'UserStore');
 
-  const userApi = api.extend({
-    types: {
+  const userApiFragment = ApiFragment.new({
+    import: [
       /**
-       * User
+       * Import the User Type
        */
       User,
-    },
-    fields: {
-      Post: post => ({
-        /**
-         * Resolve the User record for a Post.
-         */
-        author: $(User)
-          .call('post', () => userStore.get({
-            id: post.id
-          })) // todo
-          .return('post')
-      }),
-      User: user => ({
-        /**
-         * Get a User's posts between a start and end
-         *
-         * @param start lower bound
-         * @param end upper bound
-         */
-        posts: $({start: timestamp, end: timestamp}, Post)
-          .call('post', ({start}) => props.postStore.get({
-            id: user.id
-          })) // todo
-          .return('post')
-      })
-    },
+      /**
+       * Import the Post Type
+       */
+      Post,
+    ],
+    // export: {
+    //   Post: post => ({
+    //     /**
+    //      * Resolve the User record for a Post.
+    //      */
+    //     author: $(User)
+    //       .call('post', () => userStore.get({
+    //         id: post.id as any
+    //       })) // todo
+    //       .return('post')
+    //   }),
+    //   User: user => ({
+    //     /**
+    //      * Get a User's posts between a start and end
+    //      *
+    //      * @param start lower bound
+    //      * @param end upper bound
+    //      */
+    //     posts: $({start: timestamp, end: timestamp}, Post)
+    //       .call('post', ({start}) => props.postStore.get({
+    //         id: user.id as any
+    //       })) // todo
+    //       .return('post')
+    //   })
+    // },
     query: {
       /**
        * Get a User by ID.
@@ -88,10 +95,17 @@ export const UserApi = <A extends Api<{Post: typeof Post}>>(
       getUser: $({id: ID}, optional(User))
         .call('user', ({id}) => getUser.invoke(id))
         .return('user')
+    },
+    mutation: {
+      addPost: $({title: string, content: string}, Post)
+        .let('id', () => $util.autoId())
+        .let('userId', () => $util.autoId() /* TODO: get from user context */)
+        .call('user', params => props.postStore.put(params))
+        .return('user')
     }
   });
 
-  const getUser = new Function(api, 'getUser', {
+  const getUser = new Function(scope, 'getUser', {
     request: string,
     response: optional(User),
     depends: userStore.readAccess()
@@ -104,9 +118,9 @@ export const UserApi = <A extends Api<{Post: typeof Post}>>(
   });
 
   return {
+    getUser,
+    userApiFragment,
     userStore,
-    userApi,
-    getUser
   };
 };
 
@@ -114,8 +128,10 @@ export class Post extends Record({
   id: ID,
   title: string,
   content: string,
-  authorUserId: ID
-}) {}
+  userId: ID
+}) {
+  public static readonly [FQN]: 'Post' = 'Post';
+}
 
 export class PostStore extends DynamoDB.Table.NewType({
   data: Post,
@@ -131,17 +147,17 @@ export interface PostApiProps {
   typeName?: string;
 }
 
-export const PostApi = <A extends Api>(api: A) => {
-  const postStore = new PostStore(api, 'PostStore');
+export const PostApi = (scope: Scope) => {
+  const postStore = new PostStore(scope, 'PostStore');
 
-  const postApi = api.extend({
-    types: {
+  const postApiFragment = ApiFragment.new({
+    import: [
       /**
-       * Posts
+       * Import the Post Type.
        */
-      Post,
-    },
-    fields: {
+      Post
+    ],
+    resolvers: {
       Post: post => ({
         relatedPosts: null as any
       })
@@ -153,7 +169,7 @@ export const PostApi = <A extends Api>(api: A) => {
     }
   });
 
-  const getPostFn = new Function(api, 'getPost', {
+  const getPostFn = new Function(scope, 'getPost', {
     request: string,
     response: Post,
     depends: postStore.readAccess()
@@ -170,7 +186,7 @@ export const PostApi = <A extends Api>(api: A) => {
 
   return {
     getPostFn,
-    postApi,
+    postApiFragment,
     postStore,
   };
 };
@@ -179,13 +195,26 @@ export const PostApi = <A extends Api>(api: A) => {
 const app = new App();
 const stack = app.stack('stack');
 
-const api = new Api(stack, 'PostApi', Build.of({name: 'PostApi'}), {});
+// const api = new Api(stack, 'PostApi', Build.of({name: 'PostApi'}), {});
 
-const {postApi, postStore, getPostFn} = PostApi(api);
+const {postApiFragment, postStore, getPostFn} = PostApi(stack);
 
-const {userApi, userStore, getUser} = UserApi(postApi, {
+const {userApiFragment, userStore, getUser} = UserApi(stack, {
   postStore
 });
+
+export type Static<T> = T;
+export interface MyApi extends Static<typeof MyApi> {}
+const MyApi = Api.from(ApiFragment.join(
+  userApiFragment,
+  postApiFragment
+));
+
+
+export function extraStuff(api: MyApi) {
+}
+
+
 
 
 

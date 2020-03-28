@@ -155,6 +155,10 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
     }));
   }
 
+  public put(value: VObject.Like<Shape.Resolve<DataType>>): StatementF<VObject.Of<Shape.Resolve<DataType>>> {
+    throw new Error('todo');
+  }
+
   public get(key: KeyGraphQLRepr<Shape.Resolve<DataType>, Key>): StatementF<VObject.Of<Shape.Resolve<DataType>>> {
     throw new Error('todo');
     // return call(this, );
