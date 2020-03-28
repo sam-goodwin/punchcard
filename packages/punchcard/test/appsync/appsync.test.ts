@@ -5,7 +5,7 @@ import { Do } from 'fp-ts-contrib/lib/Do';
 import { foldFree, free } from 'fp-ts-contrib/lib/Free';
 import { identity, Identity } from 'fp-ts/lib/Identity';
 import { VInterpreter, VString } from '../../lib/appsync';
-import { Api, ApiFragment, Imports, FQN, ImportIndex, Exports } from '../../lib/appsync/api';
+import { Api, ApiFragment, FQN, ImportIndex } from '../../lib/appsync/api';
 import { Mutation } from '../../lib/appsync/decorators';
 import { Resolved } from '../../lib/appsync/syntax';
 import { $if } from '../../lib/appsync/syntax/if';
@@ -63,31 +63,31 @@ export const UserApi = (
        */
       Post,
     ],
-    // export: {
-    //   Post: post => ({
-    //     /**
-    //      * Resolve the User record for a Post.
-    //      */
-    //     author: $(User)
-    //       .call('post', () => userStore.get({
-    //         id: post.id as any
-    //       })) // todo
-    //       .return('post')
-    //   }),
-    //   User: user => ({
-    //     /**
-    //      * Get a User's posts between a start and end
-    //      *
-    //      * @param start lower bound
-    //      * @param end upper bound
-    //      */
-    //     posts: $({start: timestamp, end: timestamp}, Post)
-    //       .call('post', ({start}) => props.postStore.get({
-    //         id: user.id as any
-    //       })) // todo
-    //       .return('post')
-    //   })
-    // },
+    resolvers: {
+      Post: post => ({
+        /**
+         * Resolve the User record for a Post.
+         */
+        author: $(User)
+          .call('post', () => userStore.get({
+            id: post.id as any
+          })) // todo
+          .return('post')
+      }),
+      User: user => ({
+        /**
+         * Get a User's posts between a start and end
+         *
+         * @param start lower bound
+         * @param end upper bound
+         */
+        posts: $({start: timestamp, end: timestamp}, Post)
+          .call('post', ({start}) => props.postStore.get({
+            id: user.id as any
+          })) // todo
+          .return('post')
+      })
+    },
     query: {
       /**
        * Get a User by ID.
@@ -159,7 +159,9 @@ export const PostApi = (scope: Scope) => {
     ],
     resolvers: {
       Post: post => ({
-        relatedPosts: null as any
+        relatedPosts: $(Post)
+          .call('post', () => getPostFn.invoke(post.title))
+          .return('post')
       })
     },
     query: {
@@ -195,8 +197,6 @@ export const PostApi = (scope: Scope) => {
 const app = new App();
 const stack = app.stack('stack');
 
-// const api = new Api(stack, 'PostApi', Build.of({name: 'PostApi'}), {});
-
 const {postApiFragment, postStore, getPostFn} = PostApi(stack);
 
 const {userApiFragment, userStore, getUser} = UserApi(stack, {
@@ -211,11 +211,8 @@ const MyApi = Api.from(ApiFragment.join(
 ));
 
 
-export function extraStuff(api: MyApi) {
+export function doStuffWithApi(api: MyApi) {
 }
-
-
-
 
 
 // const {Post, graphql} = PostApi(stack);

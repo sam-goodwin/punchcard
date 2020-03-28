@@ -8,7 +8,6 @@ import { Resource } from '../core/resource';
 import { VInterpreter } from './intepreter';
 import { Resolved } from './syntax/resolver';
 import { GraphQLType, VObject, ID } from './types';
-import { QLDB } from 'aws-sdk';
 
 export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
   'schemaDefinition' |
@@ -106,7 +105,7 @@ export namespace Imports {
    * }
    * ```
    */
-  export type Mixins<I extends Imports> = {
+  export type Resolvers<I extends Imports> = {
     [fqn in Imports.FullyQualifiedNames<I>]?: (self: VObject.Of<Imports.LookupByFQN<I, fqn>>) => {
       [fieldName: string]: Resolved<any>;
     };
@@ -179,7 +178,8 @@ export class ApiFragment<
       return null as any;
   }
 
-  public readonly import: I;
+  public readonly import?: I;
+  public readonly imports: I[];
   public readonly resolvers: R;
   public readonly query: Q;
   public readonly mutation: M;
@@ -199,7 +199,7 @@ export namespace ApiFragment {
     f1: F1,
     f2: F2
   ): ApiFragment<
-    F1['import'] | F2['import'],
+    Exclude<F1['import'], undefined> | Exclude<F2['import'], undefined>,
     F1['resolvers'] & F2['resolvers'],
     F1['query'] & F1['query'],
     F1['mutation'] & F1['mutation']
@@ -213,13 +213,13 @@ export namespace ApiFragment {
  */
 export class Api<
   I extends Imports,
-  R extends Imports.Mixins<I> = {},
+  R extends Imports.Resolvers<I> = {},
   Q extends Methods = {},
   M extends Methods = {},
 > extends Construct implements Resource<appsync.GraphQLApi> {
   public static from<F extends ApiFragment<Type, {}, {}, {}>>(fragment: F)
     : Api<
-    F['import'][],
+    F['imports'],
     F['resolvers'],
     F['query'],
     F['mutation']
