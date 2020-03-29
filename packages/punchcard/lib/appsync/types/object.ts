@@ -30,7 +30,7 @@ export namespace VObject {
 
   export type ShapeOf<T extends VObject> = T extends VObject<infer I> ? I : never;
 
-  export type Of<T extends Shape.Like> =
+  export type Of<T extends Shape> =
     Shape.Resolve<T> extends BoolShape ? VBool :
     Shape.Resolve<T> extends DynamicShape<any> ? VAny :
     Shape.Resolve<T> extends IntegerShape ? VInteger :

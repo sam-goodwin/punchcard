@@ -16,6 +16,8 @@ export abstract class Shape {
 
   public readonly NodeType: 'shape' = 'shape';
 
+  public abstract readonly FQN: string;
+
   public abstract readonly Kind: keyof ShapeVisitor;
 
   public visit<V extends ShapeVisitor<T, C>, T, C>(visitor: V, context: C): T {

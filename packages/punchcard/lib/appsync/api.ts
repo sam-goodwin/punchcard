@@ -7,7 +7,7 @@ import { Construct, Scope } from '../core/construct';
 import { Resource } from '../core/resource';
 import { VInterpreter } from './intepreter';
 import { Resolved } from './syntax/resolver';
-import { GraphQLType, VObject, ID } from './types';
+import { GraphQLType, VObject } from './types';
 
 export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
   'schemaDefinition' |
@@ -15,192 +15,98 @@ export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
 > {}
 
 export const FQN = Symbol.for('Type');
+// export const FQN = 'FQN';
 export type FQN = typeof FQN;
 
+export function fqn<T extends RecordShape<any>, FQN extends string>(shape: T, fqn: FQN): FQN {
+  return null as any;
+}
+
 /**
- * 
+ *
  */
 export type Type = ({
-  [FQN]: string;
+  FQN: string;
 } & RecordShape);
 
-/**
- * 
- */
-export interface ImportIndex {
-  [type: string]: Type;
+export namespace Type {
 }
-export namespace ImportIndex {
-  export type FromTypeUnion<I extends Type> = {
-    [fqn in I[FQN]]: Extract<I, {
-      [FQN]: fqn;
-    }>;
-  };
-  export type Mixins<T extends ImportIndex> = {
-    [t in keyof T]?: (self: VObject.Of<T[t]>) => {
-      [fieldName: string]: Resolved<any>;
-    };
-  };
-}
-
-/**
- * ```ts
- * {
- *   import: [
- *     ImportA,
- *     ImportB
- *   ]
- * }
- * ```
- */
-// export type Namespace = Type;
-
-/**
- * Set of types to import into an API namespace.
- */
-export type Imports = Type[];
-export namespace Imports {
-  // export type Types<I extends Imports> = I[Extract<keyof I, number>];
-
-  /**
-   * Union of all imported types.
-   *
-   * I.e. represents the types that are valid within a specific scope.
-   */
-  export type Types<I extends Imports> = I[Extract<keyof I, number>];
-
-  /**
-   * Union of all fully qualified names contained within a set of `Imports`.
-   */
-  export type FullyQualifiedNames<I extends Imports> = Types<I>[FQN];
-
-  /**
-   * Lookup a type by its FQN.
-   *
-   * This is a hyper-useful tool as it lets us associate data with
-   * a type by its name, enabling APIs to be built with mix-ins.
-   */
-  export type LookupByFQN<I extends Imports, Tag extends string> = Extract<Types<I>, { [FQN]: Tag; }>;
-
-  /**
-   * Create an index from FQN -> Type for types within a given set of imports.
-   */
-  export type ToIndex<I extends Imports> = {
-    [t in FullyQualifiedNames<I>]: LookupByFQN<I, t>;
-  };
-
-  /**
-   * Represents a set of mix-ins for a given set of imports.
-   *
-   * Types that are "imported" can have fields dynamically mixed in,
-   * creating a free-flowing modular approach to designing AppSync APIs.
-   *
-   * ```ts
-   * import: [
-   *    User,
-   *    Post,
-   * ],
-   * export: {
-   *   Post: post => ({ .. })
-   * }
-   * ```
-   */
-  export type Resolvers<I extends Imports> = {
-    [fqn in Imports.FullyQualifiedNames<I>]?: (self: VObject.Of<Imports.LookupByFQN<I, fqn>>) => {
-      [fieldName: string]: Resolved<any>;
-    };
-  };
-}
-
-export type LookupByFQN<T extends Type, Tag extends string> = Extract<T, { [FQN]: Tag; }>;
+export type Fields = {
+  [fieldName: string]: Resolved<any> | undefined;
+};
 
 export interface Methods {
   [methodName: string]: Resolved<any>;
 }
-export type ApiMethod = Methods | undefined;
 
-export interface Root<
-  Q extends ApiMethod,
-  M extends ApiMethod
-> {
-  query?: Q;
-  mutation?: M;
+export interface Impl<T extends RecordShape = any, F extends Fields = Fields> {
+  type: T;
+  fields: (self: VObject.Of<T>) => F;
 }
+export interface ImplIndex {
+  [type: string]: Impl[];
+}
+export namespace ImplIndex {
+  type LookupType<FQN extends string, T extends Impl[]> =
+    Extract<T[Extract<keyof T, number>]['type'], { FQN: FQN; }>;
+  type LookupFields<FQN extends string, T extends Impl[]> =
+    ReturnType<Extract<T[Extract<keyof T, number>], {
+      type: {
+        FQN: FQN;
+      }
+    }>['fields']>;
 
-export type Exports<I extends Type> = {
-  [fqn in I[FQN]]?: (self: VObject.Of<LookupByFQN<I, fqn>>) => {
-    [fieldName: string]: Resolved<any>;
-  };
-};
-
-export namespace Type {
-  export type FromImports<T extends Type[]> = Extract<T[Extract<keyof T, number>], Type>;
-
-  export type Resolvers<T extends Type> = {
-    [fqn in T[FQN]]?: (self: VObject.Of<LookupByFQN<T, fqn>>) => {
-      [fieldName: string]: Resolved<any>;
+  export type FromTuple<T extends Impl[]> = {
+    [fqn in T[Extract<keyof T, number>]['type']['FQN']]: {
+      type: LookupType<fqn, T>;
+      fields: LookupFields<fqn, T>;
     };
   };
 }
 
+export function impl<T extends Type, F extends Fields>(
+  type: T,
+  fields: (self: VObject.Of<T>) => F
+): Impl<T, F> {
+  return null as any;
+}
+
 export interface ApiFragmentProps<
-  I extends Imports,
-  R extends Type.Resolvers<Type.FromImports<I>>,
-  Q extends Methods,
-  M extends Methods
+  T extends Impl[] = [],
+  Q extends Methods = {},
+  M extends Methods = {}
 > {
-  import?: I;
-  resolvers?: {
-    [r in keyof R]: R[r];
-  }
+  impl: T;
   query?: Q;
   mutation?: M;
 }
 
 export class ApiFragment<
-  I extends Type,
-  R extends Type.Resolvers<I>,
+  I extends Impl[],
   Q extends Methods,
   M extends Methods,
 > {
-  public static new<
-    I extends Imports,
-    R extends Type.Resolvers<Type.FromImports<I>>,
-    Q extends Methods,
-    M extends Methods
-  >(
-    props: ApiFragmentProps<I, R, Q, M>): ApiFragment<
-      Type.FromImports<I>,
-      R,
-      Q,
-      M
-    > {
-      return null as any;
-  }
-
-  public readonly import?: I;
-  public readonly imports: I[];
-  public readonly resolvers: R;
+  public readonly impl: I;
   public readonly query: Q;
   public readonly mutation: M;
 
-  constructor() {
-    // this.import = props.import;
-    // this.export = props.export || {};
-    // this.query = props.query || {};
-    // this.mutation = props.mutation || {};
+  constructor(props: ApiFragmentProps<I, Q, M>) {
+    this.impl = props.impl;
+    this.query = (props.query || {}) as Q;
+    this.mutation = (props.mutation || {}) as M;
   }
 }
+import tramp = require('trampoline-test');
+
 export namespace ApiFragment {
   export function join<
-    F1 extends ApiFragment<Type, {}, {}, {}>,
-    F2 extends ApiFragment<Type, {}, {}, {}>,
+    F1 extends ApiFragment<Impl[], {}, {}>,
+    F2 extends ApiFragment<Impl[], {}, {}>,
   >(
     f1: F1,
     f2: F2
   ): ApiFragment<
-    Exclude<F1['import'], undefined> | Exclude<F2['import'], undefined>,
-    F1['resolvers'] & F2['resolvers'],
+    tramp.Concat<F1['impl'], F2['impl']>,
     F1['query'] & F1['query'],
     F1['mutation'] & F1['mutation']
   > {
@@ -212,15 +118,13 @@ export namespace ApiFragment {
  * @typeparam Types - map of names to types in this API
  */
 export class Api<
-  I extends Imports,
-  R extends Imports.Resolvers<I> = {},
+  I extends Impl[] = [],
   Q extends Methods = {},
   M extends Methods = {},
 > extends Construct implements Resource<appsync.GraphQLApi> {
-  public static from<F extends ApiFragment<Type, {}, {}, {}>>(fragment: F)
+  public static from<F extends ApiFragment<Impl[], {}, {}>>(fragment: F)
     : Api<
-    F['imports'],
-    F['resolvers'],
+    F['impl'],
     F['query'],
     F['mutation']
   > {
@@ -230,9 +134,8 @@ export class Api<
   public readonly resource: Build<appsync.GraphQLApi>;
   public readonly interpret: Build<void>;
 
-  public readonly Imports: I;
-  public readonly ImportIndex: Imports.ToIndex<I>;
-  public readonly Resolvers: R;
+  public readonly Impls: I;
+  public readonly ImplIndex: ImplIndex.FromTuple<I>;
   public readonly Query: Q;
   public readonly Mutation: M;
 

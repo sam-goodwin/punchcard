@@ -80,7 +80,8 @@
     "type-graphql": "0.17.6",
     "typelevel-ts": "0.4.0",
     "uuid": "^3.3.2",
-    "webpack": "^4.31.0"
+    "webpack": "^4.31.0",
+    "trampoline-test": "0.0.0"
   },
   "peerDependencies": {
     "@aws-cdk/aws-apigateway": "^1.27.0",
