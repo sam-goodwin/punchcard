@@ -58,35 +58,32 @@ export const UserApi = (
 ) => {
   const userStore = props.userStore || new UserStore(scope, 'UserStore');
 
-  const user = impl(User, self => ({
-    /**
-     * Get a User's posts between a start and end
-     *
-     * @param start lower bound
-     * @param end upper bound
-     */
-    posts: $({start: timestamp, end: timestamp}, Post)
-      .call('post', ({start}) => props.postStore.get({
-        id: self.id
-      })) // todo
-      .return('post')
-  }));
-
-  const post = impl(Post, self => ({
-    /**
-     * Resolve the User record for a Post.
-     */
-    author: $(User)
-      .call('post', () => userStore.get({
-        id: self.id
-      })) // todo
-      .return('post')
-  }));
-
   const userApiFragment = new ApiFragment({
     impl: [
-      user,
-      post
+      /**
+       * Get a User's posts between a start and end
+       *
+       * @param start lower bound
+       * @param end upper bound
+       */
+      impl(User, self => ({
+        posts: $({start: timestamp, end: timestamp}, Post)
+          .call('post', ({start}) => props.postStore.get({
+            id: self.id
+          })) // todo
+          .return('post')
+      })),
+
+      /**
+       * Resolve the User record for a Post.
+       */
+      impl(Post, self => ({
+        author: $(User)
+          .call('post', () => userStore.get({
+            id: self.id
+          })) // todo
+          .return('post')
+      }))
     ],
     query: {
       /**
@@ -204,7 +201,7 @@ const MyApi = Api.from(ApiFragment.join(
 ));
 
 export function doStuffWithApi(api: MyApi) {
-  const author = Api.from(userApiFragment).ImplIndex.Post.fields.author;
+  const author = Api.from(userApiFragment).ImplIndex;
 }
 
 // const {Post, graphql} = PostApi(stack);

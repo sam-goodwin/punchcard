@@ -12,7 +12,7 @@ import { Core, DynamoDB } from '../../lib';
 import { Build } from '../../lib/core/build';
 import { Run } from '../../lib/core/run';
 
-class Struct extends Record({
+class Struct extends Record('Struct', {
   key: string
 }) {}
 
@@ -135,7 +135,7 @@ describe('DynamoDB.Table', () => {
     keyTypeTests(type => {
       const stack = Build.of(new core.Stack(new core.App(), 'stack'));
 
-      class Data extends Record({
+      class Data extends Record('Data', {
         key: type
       }) {}
       const table = new DynamoDB.Table(stack, 'table', {
@@ -151,7 +151,7 @@ describe('DynamoDB.Table', () => {
   function boringTable(stack?: Build<core.Stack>) {
     stack = stack || Build.of(new core.Stack(new core.App(), 'stack'));
 
-    class Data extends Record({
+    class Data extends Record('Data', {
       key: string
     }) {}
     return new DynamoDB.Table(stack, 'table', {
@@ -172,7 +172,7 @@ describe('SortedTable', () => {
   describe('partition and sort keys must be S, N or B', () => {
     keyTypeTests(type => {
       const stack = Build.of(new core.Stack(new core.App(), 'stack'));
-      class Data extends Record({
+      class Data extends Record('Data', {
         key: type,
         sortKey: type
       }) {}
@@ -191,7 +191,7 @@ describe('SortedTable', () => {
     });
   });
   function boringTable(stack: Build<core.Stack>) {
-    class Data extends Record({
+    class Data extends Record('Data', {
       key: string,
       sortKey: string
     }) {}
@@ -216,7 +216,7 @@ describe('SortedTable', () => {
 describe('gloal secondary index', () => {
   it('should', () => {
     const stack = Build.of(new core.Stack(new core.App(), 'stack'));
-    class Data extends Record({
+    class Data extends Record('Data', {
       /**
        * Docs
        */
@@ -234,7 +234,7 @@ describe('gloal secondary index', () => {
       }
     });
 
-    class DataProjection extends Data.Pick(['a', 'b', 'c']) {}
+    class DataProjection extends Data.Pick('DataProjection', ['a', 'b', 'c']) {}
 
     const successfulProjection = table
       .projectTo(DataProjection)
@@ -247,7 +247,7 @@ describe('gloal secondary index', () => {
       });
 
     // this does not compile since it is an invalid projection
-    // class IncompatibleProjection extends Record({z: string}) {}
+    // class IncompatibleProjection extends Record('Data', {z: string}) {}
     // const failsCompileCheck = table.projectTo(IncompatibleProjection).globalIndex({
     //   indexName: 'illegal',
     //   key: {
@@ -263,7 +263,7 @@ describe('gloal secondary index', () => {
       },
     });
 
-    class HashedByA extends Data.Pick(['a', 'b']) {}
+    class HashedByA extends Data.Pick('A', ['a', 'b']) {}
     table.projectTo(HashedByA).globalIndex({
       indexName: 'project-hashed',
       key: {
