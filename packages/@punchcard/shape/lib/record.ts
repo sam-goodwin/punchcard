@@ -171,6 +171,8 @@ export interface RecordType<M extends RecordMembers = any, FQN extends string = 
 export function Record<FQN extends string, T extends RecordMembers = any>(fqn: FQN, members: T): RecordType<T, FQN> {
 // export function Record<T extends RecordMembers = any>(members: T): RecordType<T> {
   class NewType {
+    public static readonly FQN: FQN = fqn;
+
     public static Extend<FQN extends string, M extends RecordMembers>(fqn: FQN, members: RowLacks<M, keyof T>): Extend<T, FQN, M> {
       return Extend(this as any, fqn, members) as any;
     }
