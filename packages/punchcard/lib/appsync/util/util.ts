@@ -1,5 +1,5 @@
 import { bool, string } from '@punchcard/shape';
-import { VExpression } from '../syntax/expression';
+import { VExpression, VolatileExpression } from '../syntax/expression';
 import { StatementF } from '../syntax/statement';
 import { VBool } from '../types/bool';
 import { VNothing } from '../types/nothing';
@@ -14,7 +14,7 @@ export class Util {
   }
 
   public autoId(): VString {
-    return new VString(string, new VExpression('$util.autoId()'));
+    return new VString(string, new VolatileExpression(string, '$util.autoId()'));
   }
 
   public matches(regex: RegExp | string): StatementF<VBool> {

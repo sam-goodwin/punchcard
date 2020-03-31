@@ -43,7 +43,7 @@ export interface BaseTableProps {
  * @typeparam DataType type of data in the Table.
  * @typeparam Key partition and optional sort keys of the Table (members of DataType)
  */
-export interface TableProps<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>> extends BaseTableProps {
+export interface TableProps<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> extends BaseTableProps {
   /**
    * Type of data in the Table.
    */
@@ -111,7 +111,7 @@ export interface TableProps<DataType extends Shape.Like<RecordShape>, Key extend
  * @typeparam DataType type of data in the Table.
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
-export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>>
+export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>>
     extends Construct implements Resource<dynamodb.Table> {
   /**
    * The DynamoDB Table Construct.
@@ -134,12 +134,12 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
     this.dataType = props.data;
     this.key = props.key;
 
-    const [partitionKeyName, sortKeyName] = getKeyNames<Shape.Resolve<DataType>>(props.key);
+    const [partitionKeyName, sortKeyName] = getKeyNames<DataType>(props.key);
 
     this.resource = CDK.chain(({dynamodb}) => Scope.resolve(scope).map(scope => {
       const extraTableProps = props.tableProps ? Build.resolve(props.tableProps) : {};
 
-      const dataType = Shape.resolve(Pointer.resolve(this.dataType));
+      const dataType = Pointer.resolve(this.dataType);
 
       return new dynamodb.Table(scope, id, {
         ...extraTableProps,
@@ -155,11 +155,11 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
     }));
   }
 
-  public put(value: VObject.Like<Shape.Resolve<DataType>>): StatementF<VObject.Of<Shape.Resolve<DataType>>> {
+  public put(value: VObject.Of<DataType>): StatementF<VObject.Of<DataType>> {
     throw new Error('todo');
   }
 
-  public get(key: KeyGraphQLRepr<Shape.Resolve<DataType>, Key>): StatementF<VObject.Of<Shape.Resolve<DataType>>> {
+  public get(key: KeyGraphQLRepr<DataType, Key>): StatementF<VObject.Of<DataType>> {
     throw new Error('todo');
     // return call(this, );
   }
@@ -186,7 +186,7 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
    * ```
    * @param projection type of projected data (subset of the Table's properties)
    */
-  public projectTo<Projection extends RecordShape>(projection: AssertValidProjection<Shape.Resolve<DataType>, Projection>): Projected<this, Projection> {
+  public projectTo<Projection extends RecordShape>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
     return new Projected(this, projection) as any;
   }
 
@@ -197,7 +197,7 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
    *
    * @param props Global Index props such as name and key information.
    */
-  public globalIndex<IndexKey extends DDB.KeyOf<Shape.Resolve<DataType>>>(
+  public globalIndex<IndexKey extends DDB.KeyOf<DataType>>(
       props: Index.GlobalProps<DataType, IndexKey>):
         Index.Of<this, DataType, IndexKey> {
     return new Index({
@@ -239,7 +239,7 @@ export class Table<DataType extends Shape.Like<RecordShape>, Key extends DDB.Key
     return this.dependency((t, g) => t.grantFullAccess(g));
   }
 
-  private dependency(grant: (table: dynamodb.Table, grantable: iam.IGrantable) => void): Dependency<TableClient<Shape.Resolve<DataType>, Key>> {
+  private dependency(grant: (table: dynamodb.Table, grantable: iam.IGrantable) => void): Dependency<TableClient<DataType, Key>> {
     return {
       install: this.resource.map(table => (ns, grantable) => {
         ns.set('tableName', table.tableName);
@@ -262,7 +262,7 @@ export type KeyGraphQLRepr<DataType extends RecordShape, K extends DDB.KeyOf<Dat
 
 
 export namespace Table {
-  export function NewType<DataType extends Shape.Like<RecordShape>, Key extends DDB.KeyOf<Shape.Resolve<DataType>>>(
+  export function NewType<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>>(
     input: { data: Pointer<DataType>, key: Key }):
       Construct.Class<Table<DataType, Key>, BaseTableProps> {
         return class extends Table<DataType, Key> {
@@ -279,23 +279,23 @@ export namespace Table {
    *
    * Unavailable methods: `put`, `putBatch`, `delete`, `update`.
    */
-  export interface ReadOnly<A extends Shape.Like<RecordShape>, K extends DDB.KeyOf<Shape.Resolve<A>>> extends Omit<TableClient<Shape.Resolve<A>, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
+  export interface ReadOnly<A extends RecordShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
 
   /**
    * A DynamoDB Table with write-only permissions.
    *
    * Unavailable methods: `batchGet`, `get`, `scan`, `query`
    */
-  export interface WriteOnly<A extends Shape.Like<RecordShape>, K extends DDB.KeyOf<Shape.Resolve<A>>> extends Omit<TableClient<Shape.Resolve<A>, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
+  export interface WriteOnly<A extends RecordShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
 
   /**
    * A DynamODB Table with read and write permissions.
    */
-  export interface ReadWrite<A extends Shape.Like<RecordShape>, K extends DDB.KeyOf<Shape.Resolve<A>>> extends TableClient<Shape.Resolve<A>, K> {}
+  export interface ReadWrite<A extends RecordShape, K extends DDB.KeyOf<A>> extends TableClient<A, K> {}
 }
 
 export namespace Table {
-  export type Data<T extends Table<any, any>> = T extends Table<infer D, any> ? Shape.Resolve<D> : never;
+  export type Data<T extends Table<any, any>> = T extends Table<infer D, any> ? D : never;
   export type Key<T extends Table<any, any>> = T extends Table<any, infer K> ? K : never;
 }
 
@@ -309,10 +309,10 @@ type AssertValidProjection<T extends RecordShape, P extends RecordShape> = T['Me
  * @typeparam SourceTable the projected table
  * @typeparam Projection the type of projected data
  */
-export class Projected<SourceTable extends Table<any, any>, Projection extends Shape.Like<RecordShape>> {
+export class Projected<SourceTable extends Table<any, any>, Projection extends RecordShape> {
   constructor(public readonly sourceTable: SourceTable, public readonly projection: Projection) {}
 
-  public globalIndex<IndexKey extends DDB.KeyOf<Shape.Resolve<Projection>>>(
+  public globalIndex<IndexKey extends DDB.KeyOf<Projection>>(
       props: Index.GlobalProps<Projection, IndexKey>):
         Index.Of<SourceTable, Projection, IndexKey> {
     return new Index({

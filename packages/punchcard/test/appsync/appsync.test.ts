@@ -1,42 +1,67 @@
 import 'jest';
 
-import { array, integer, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape, timestamp } from '@punchcard/shape';
-import { Do } from 'fp-ts-contrib/lib/Do';
-import { foldFree, free } from 'fp-ts-contrib/lib/Free';
-import { identity, Identity } from 'fp-ts/lib/Identity';
-import { VInterpreter, VString } from '../../lib/appsync';
+import { array, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape, timestamp } from '@punchcard/shape';
+import { VFunction } from '@punchcard/shape/lib/function';
+import { $context } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
-import { Mutation } from '../../lib/appsync/decorators';
-import { ApiFragment } from '../../lib/appsync/fragment';
-import { Resolved } from '../../lib/appsync/syntax';
-import { $if } from '../../lib/appsync/syntax/if';
-import { $mutation } from '../../lib/appsync/syntax/mutation';
-import { $ } from '../../lib/appsync/syntax/resolver';
-import { ID, VObject } from '../../lib/appsync/types';
-import { GraphQLType } from '../../lib/appsync/types/type-constructor';
-import { VTL } from '../../lib/appsync/types/vtl';
+import { Trait } from '../../lib/appsync/impl';
+import { ID } from '../../lib/appsync/types';
 import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
 import { Scope } from '../../lib/core/construct';
 import DynamoDB = require('../../lib/dynamodb');
-import { Function } from '../../lib/lambda';
+import Lambda = require('../../lib/lambda');
 
-export class User extends Record('User', {
-  id: ID,
-  alias: string,
-}) {}
+// root of query interface
+class Query extends Record('Query', {}) {}
+
+// root of mutation interface
+class Mutation extends Record('Mutation', {}) {}
 
 export class UserStore extends DynamoDB.Table.NewType({
-  data: User,
+  data: () => User,
   key: {
     partition: 'id'
   }
 }) {}
 
+export class User extends Record('User', {
+  id: ID,
+  alias: string,
+}) {}
+export namespace User {
+  /**
+   * Trait for querying Users.
+   */
+  export class GetUser extends Trait(Query, {
+    getUser: VFunction({
+      args: { id: ID },
+      returns: User
+    })
+  }) {}
+
+  /**
+   * Trait for mutating Users.
+   */
+  export class CreateUser extends Trait(Mutation, {
+    createUser: VFunction({
+      args: { alias: string },
+      returns: User
+    })
+  }) {}
+
+  /**
+   * A user record exposts a feed of Posts.
+   */
+  export class Feed extends Trait(User, {
+    feed: array(() => Post)
+  }) {}
+}
+
+
 /**
- * User API component.
- *
- * TODO:
+ * User API component - implements the query, mutations and field
+ * resolvers for Users.
  *
  * @param scope in which to install the component
  * @param props api to add UserAPI to
@@ -51,47 +76,20 @@ export const UserApi = (
 ) => {
   const userStore = props.userStore || new UserStore(scope, 'UserStore');
 
-  const userApiFragment = ApiFragment
-    .query({
-      /**
-       * Get a User by ID.
-       */
-      getUser: $({id: ID}, optional(User))
-        .call('user', ({id}) => getUser.invoke(id))
-        .return('user')
-    })
-    .type(User, self => ({
-      /**
-       * Get a User's posts between a start and end
-       *
-       * @param start lower bound
-       * @param end upper bound
-       */
-      posts: $({start: timestamp, end: timestamp}, Post)
-        .call('post', ({start}) => props.postStore.get({
-          id: self.id
-        })) // todo
-        .return('post')
-    }))
-    .type(Post, self => ({
-      /**
-       * Resolve the User record for a Post's author.
-       */
-      author: $(User)
-        .call('post', () => userStore.get({
-          id: self.id
-        })) // todo
-        .return('post')
-    }))
-    .mutation({
-      addPost: $({title: string, content: string}, Post)
-        .let('id', () => $util.autoId())
-        .let('userId', () => $util.autoId() /* TODO: get from user context */)
-        .call('user', params => props.postStore.put(params))
-        .return('user')
-    });
+  const createUser = new User.CreateUser({
+    createUser() {
+    }
+  });
 
-  const getUser = new Function(scope, 'getUser', {
+  const userFeed = new User.Feed({
+    feed(f: any) {
+      return props.postStore.get({
+        id: this.id
+      });
+    }
+  });
+
+  const getUser = new Lambda.Function(scope, 'getUser', {
     request: string,
     response: optional(User),
     depends: userStore.readAccess()
@@ -105,49 +103,85 @@ export const UserApi = (
 
   return {
     getUser,
-    userApiFragment,
     userStore,
   };
 };
 
-export class Post extends Record('Post', {
-  id: ID,
-  title: string,
-  content: string,
-  userId: ID
-}) {}
-
 export class PostStore extends DynamoDB.Table.NewType({
-  data: Post,
+  data: () => Post,
   key: {
     partition: 'id'
   }
 }) {}
 
-export interface PostApiProps {
+export class Post extends Record('Post', {
   /**
-   * @default - Post
+   * ID
    */
-  typeName?: string;
+  id: ID,
+  title: string,
+  content: string,
+  userId: ID,
+  category: string,
+  timestamp
+}) {}
+export namespace Post {
+  export const Get = <T extends RecordShape>(type: T) => Trait(type, {
+    /**
+     * Function documentation goes here.
+     */
+    createPost: VFunction({
+      args: { title: string, content: string },
+      returns: () => Post
+    }),
+
+    getPost: VFunction({
+      args: { id: ID, },
+      returns: () => Post
+    })
+  });
 }
+
+class PostQuery extends Post.Get(Query) {}
+
+// adds some methods to the top-level (root) `Query` graph node.
+
+class RelatedPosts extends Trait(() => Post, {
+  relatedPosts: array(() => Post)
+}) {}
 
 export const PostApi = (scope: Scope) => {
   const postStore = new PostStore(scope, 'PostStore');
 
-  const postApiFragment = ApiFragment
-    .type(Post, self => ({
-      relatedPosts: $({token: optional(string)}, Post)
-        .call('post', () => getPostFn.invoke(self.title))
-        .return('post')
-    }))
-    .query({
-      getPost: $({id: ID}, Post)
-        .call('post', ({id}) => getPostFn.invoke(id))
-        .return('post')
-    })
-  ;
+  const postCRUDApi = new PostQuery({
 
-  const getPostFn = new Function(scope, 'getPost', {
+    // createPost({title, content}) {
+    //   const post = postStore.put({
+    //     userId: $context.identity.user,
+    //     id: $util.autoId(),
+    //     title,
+    //     content,
+    //   });
+
+    //   return post;
+    // }
+  });
+
+  const relatedPostIndex = postStore.globalIndex({
+    indexName: 'related-posts',
+    key: {
+      partition: 'category',
+      sort: 'timestamp'
+    }
+  });
+
+  const relatedPostsApi = new RelatedPosts({
+    relatedPosts({}) {
+      return item;
+    }
+  });
+
+  const getPostFn = new Lambda.Function(scope, 'getPost', {
     request: string,
     response: Post,
     depends: postStore.readAccess()
@@ -164,7 +198,7 @@ export const PostApi = (scope: Scope) => {
 
   return {
     getPostFn,
-    postApiFragment,
+    postCrud: postCRUDApi,
     postStore,
   };
 };
@@ -172,7 +206,7 @@ export const PostApi = (scope: Scope) => {
 const app = new App();
 const stack = app.stack('stack');
 
-const {postApiFragment, postStore, getPostFn} = PostApi(stack);
+const {postCrud, postStore, getPostFn, } = PostApi(stack);
 
 const {userApiFragment, userStore, getUser} = UserApi(stack, {
   postStore
@@ -181,12 +215,17 @@ const {userApiFragment, userStore, getUser} = UserApi(stack, {
 export type Static<T> = T;
 export interface MyApi extends Static<typeof MyApi> {}
 
-const MyApi = Api.from(userApiFragment
-  .include(postApiFragment)
-);
+const frag = postCrud.include(userApiFragment);
+
+const MyApi = new Api(stack, 'MyApi', {
+  name: 'MyApi',
+  query: Query,
+  types: frag
+});
 
 
 export function doStuffWithApi(api: MyApi) {
+  // api.Types
 }
 
 // const {Post, graphql} = PostApi(stack);

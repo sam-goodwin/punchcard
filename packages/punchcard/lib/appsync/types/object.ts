@@ -31,20 +31,20 @@ export namespace VObject {
   export type ShapeOf<T extends VObject> = T extends VObject<infer I> ? I : never;
 
   export type Of<T extends Shape> =
-    Shape.Resolve<T> extends BoolShape ? VBool :
-    Shape.Resolve<T> extends DynamicShape<any> ? VAny :
-    Shape.Resolve<T> extends IntegerShape ? VInteger :
-    Shape.Resolve<T> extends NumberShape ? VNumber :
-    Shape.Resolve<T> extends StringShape ? VString :
+    T extends BoolShape ? VBool :
+    T extends DynamicShape<any> ? VAny :
+    T extends IntegerShape ? VInteger :
+    T extends NumberShape ? VNumber :
+    T extends StringShape ? VString :
 
-    Shape.Resolve<T> extends ArrayShape<infer I> ? VList<VObject.Of<I>> :
-    Shape.Resolve<T> extends MapShape<infer I> ? VMap<VObject.Of<I>> :
-    Shape.Resolve<T> extends RecordShape<infer M> ? VRecord<{
-      [m in keyof M]: Of<Shape.Resolve<Pointer.Resolve<M[m]>>>;
+    T extends ArrayShape<infer I> ? VList<VObject.Of<I>> :
+    T extends MapShape<infer I> ? VMap<VObject.Of<I>> :
+    T extends RecordShape<infer M> ? VRecord<{
+      [m in keyof M]: Of<Pointer.Resolve<M[m]>>;
     }> & {
-      [m in keyof M]: Of<Shape.Resolve<Pointer.Resolve<M[m]>>>;
+      [m in keyof M]: Of<Pointer.Resolve<M[m]>>;
     } :
-    VObject<Shape.Resolve<T>>
+    VObject<T>
     ;
 
   /**
@@ -55,7 +55,7 @@ export namespace VObject {
    */
   export type Like<T extends Shape> = VObject.Of<T> | (
     T extends RecordShape<infer M> ? {
-      [m in keyof M]: Like<Shape.Resolve<Pointer.Resolve<M[m]>>>;
+      [m in keyof M]: Like<Pointer.Resolve<M[m]>>;
     } :
     T extends ArrayShape<infer I> ? Like<I>[] :
     T extends SetShape<infer I> ? Like<I>[] :

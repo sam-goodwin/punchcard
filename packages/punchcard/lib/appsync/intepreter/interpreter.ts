@@ -5,7 +5,7 @@ import { foldFree } from 'fp-ts-contrib/lib/Free';
 import { identity } from 'fp-ts/lib/Identity';
 
 import { Build } from '../../core/build';
-import { Resolved } from '../syntax/resolver';
+import { ResolverImpl } from '../syntax/resolver';
 import { StatementGuards } from '../syntax/statement';
 import { VObject } from '../types/object';
 import { Frame } from './frame';
@@ -18,7 +18,7 @@ interface ResolverStage {
 
 export interface CompiledResolver {
   arguments: {
-    [argumentName: string]: Shape.Like
+    [argumentName: string]: Shape
   },
   beforeTemplate: string;
   stages: ResolverStage[]
@@ -37,7 +37,7 @@ export class VInterpreter {
     return frame.render();
   }
 
-  public interpret(fieldName: string, resolved: Resolved<any, any>): CompiledResolver {
+  public interpret(fieldName: string, resolved: ResolverImpl<any, any>): CompiledResolver {
     const stages: ResolverStage[] = [];
 
     foldFree(identity)((stmt => {
