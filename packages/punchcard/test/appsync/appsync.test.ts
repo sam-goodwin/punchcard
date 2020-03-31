@@ -4,7 +4,7 @@ import { array, integer, nothing, number, optional, Pointer, Record, RecordMembe
 import { VFunction } from '@punchcard/shape/lib/function';
 import { $context } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
-import { Trait } from '../../lib/appsync/impl';
+import { Trait } from '../../lib/appsync/trait';
 import { ID } from '../../lib/appsync/types';
 import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
@@ -29,35 +29,47 @@ export class User extends Record('User', {
   id: ID,
   alias: string,
 }) {}
+
 export namespace User {
   /**
    * Trait for querying Users.
+   *
+   * Attachable/generic to any type, T.
+   *
+   * @typeparam T type to bind this trait to.
    */
-  export class GetUser extends Trait(Query, {
+  export const GetUserTrait = <T extends RecordShape>(type: T) => Trait(type, {
     getUser: VFunction({
       args: { id: ID },
       returns: User
     })
-  }) {}
+  });
 
   /**
    * Trait for mutating Users.
+   *
+   * Attachable/generic to any type, T.
+   *
+   * @typeparam T type to bind this trait to.
    */
-  export class CreateUser extends Trait(Mutation, {
+  export const CreateUserTrait = <T extends RecordShape>(type: T) => Trait(type, {
     createUser: VFunction({
       args: { alias: string },
       returns: User
     })
-  }) {}
+  });
 
   /**
-   * A user record exposts a feed of Posts.
+   * A user record exposes a feed of `Post`.
    */
-  export class Feed extends Trait(User, {
+  export class FeedTrait extends Trait(User, {
     feed: array(() => Post)
   }) {}
 }
 
+class CreateUser extends User.CreateUserTrait(Mutation) {}
+
+class GetUser extends User.CreateUserTrait(Query) {}
 
 /**
  * User API component - implements the query, mutations and field
@@ -76,20 +88,11 @@ export const UserApi = (
 ) => {
   const userStore = props.userStore || new UserStore(scope, 'UserStore');
 
-  const createUser = new User.CreateUser({
-    createUser() {
-    }
-  });
+  const createUser = new CreateUser({} as any);
 
-  const userFeed = new User.Feed({
-    feed(f: any) {
-      return props.postStore.get({
-        id: this.id
-      });
-    }
-  });
+  const getUser = new GetUser({} as any);
 
-  const getUser = new Lambda.Function(scope, 'getUser', {
+  const getUserFn = new Lambda.Function(scope, 'getUser', {
     request: string,
     response: optional(User),
     depends: userStore.readAccess()
@@ -102,7 +105,9 @@ export const UserApi = (
   });
 
   return {
+    createUser,
     getUser,
+    getUserFn,
     userStore,
   };
 };
@@ -125,8 +130,16 @@ export class Post extends Record('Post', {
   category: string,
   timestamp
 }) {}
+
 export namespace Post {
-  export const Get = <T extends RecordShape>(type: T) => Trait(type, {
+  export const GetTrait = <T extends RecordShape>(type: T) => Trait(type, {
+    getPost: VFunction({
+      args: { id: ID, },
+      returns: () => Post
+    })
+  });
+
+  export const CreateTrait = <T extends RecordShape>(type: T) => Trait(type, {
     /**
      * Function documentation goes here.
      */
@@ -134,38 +147,21 @@ export namespace Post {
       args: { title: string, content: string },
       returns: () => Post
     }),
-
-    getPost: VFunction({
-      args: { id: ID, },
-      returns: () => Post
-    })
   });
+
+  export class RelatedPostsTrait extends Trait(Post, {
+    relatedPosts: array(Post)
+  }) {}
 }
 
-class PostQuery extends Post.Get(Query) {}
-
-// adds some methods to the top-level (root) `Query` graph node.
-
-class RelatedPosts extends Trait(() => Post, {
-  relatedPosts: array(() => Post)
-}) {}
+class GetPost extends Post.GetTrait(Query) {}
+class CreatePost extends Post.CreateTrait(Mutation) {}
 
 export const PostApi = (scope: Scope) => {
   const postStore = new PostStore(scope, 'PostStore');
 
-  const postCRUDApi = new PostQuery({
-
-    // createPost({title, content}) {
-    //   const post = postStore.put({
-    //     userId: $context.identity.user,
-    //     id: $util.autoId(),
-    //     title,
-    //     content,
-    //   });
-
-    //   return post;
-    // }
-  });
+  const getPost = new GetPost({} as any);
+  const createPost = new CreatePost({} as any);
 
   const relatedPostIndex = postStore.globalIndex({
     indexName: 'related-posts',
@@ -175,11 +171,7 @@ export const PostApi = (scope: Scope) => {
     }
   });
 
-  const relatedPostsApi = new RelatedPosts({
-    relatedPosts({}) {
-      return item;
-    }
-  });
+  const relatedPostsApi = new Post.RelatedPostsTrait({} as any);
 
   const getPostFn = new Lambda.Function(scope, 'getPost', {
     request: string,
@@ -198,7 +190,8 @@ export const PostApi = (scope: Scope) => {
 
   return {
     getPostFn,
-    postCrud: postCRUDApi,
+    getPost,
+    createPost,
     postStore,
   };
 };
@@ -206,22 +199,31 @@ export const PostApi = (scope: Scope) => {
 const app = new App();
 const stack = app.stack('stack');
 
-const {postCrud, postStore, getPostFn, } = PostApi(stack);
+const {createPost, getPost, postStore, getPostFn, } = PostApi(stack);
 
-const {userApiFragment, userStore, getUser} = UserApi(stack, {
+const {createUser, userStore, getUser} = UserApi(stack, {
   postStore
 });
 
 export type Static<T> = T;
 export interface MyApi extends Static<typeof MyApi> {}
 
-const frag = postCrud.include(userApiFragment);
+// concatenate all the fragments into a single type system
+const types = createUser
+  .include(getUser)
+  .include(createPost)
+  .include(getPost)
+;
 
+// instantiate an API with that type system
 const MyApi = new Api(stack, 'MyApi', {
   name: 'MyApi',
+  // root of query starts at the `Query` type
   query: Query,
-  types: frag
+  types
 });
+
+// MyApi.Types.Mutation.fields.createPost
 
 
 export function doStuffWithApi(api: MyApi) {

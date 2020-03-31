@@ -9,7 +9,7 @@ import { ApiFragment, ShapeIndex } from './fragment';
 import { VInterpreter } from './intepreter';
 import { VolatileExpression } from './syntax';
 import { ResolverImpl } from './syntax/resolver';
-import { VObject, VTL } from './types';
+import { VTL } from './types';
 
 export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
   | 'name'
@@ -61,7 +61,7 @@ export class Api<
         const self = VTL.of(type.type, new VolatileExpression(type.type, "$context.source"));
         types[fqn] = {
           type,
-          fields: type.fields(self)
+          fields: type.fields
         };
       }
 
