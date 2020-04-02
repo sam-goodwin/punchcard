@@ -1,8 +1,8 @@
 import 'jest';
 
-import { array, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape, timestamp } from '@punchcard/shape';
+import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape, timestamp } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $context } from '../../lib/appsync';
+import { $context, VBool, VObject, VString } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { Trait } from '../../lib/appsync/trait';
 import { ID } from '../../lib/appsync/types';
@@ -18,11 +18,15 @@ class Query extends Record('Query', {}) {}
 // root of mutation interface
 class Mutation extends Record('Mutation', {}) {}
 
-export class UserStore extends DynamoDB.Table.NewType({
-  data: () => User,
-  key: {
-    partition: 'id'
-  }
+export class Post extends Record('Post', {
+  /**
+   * ID
+   */
+  id: ID,
+  title: string,
+  content: string,
+  category: string,
+  timestamp
 }) {}
 
 export class User extends Record('User', {
@@ -30,46 +34,51 @@ export class User extends Record('User', {
   alias: string,
 }) {}
 
-export namespace User {
-  /**
-   * Trait for querying Users.
-   *
-   * Attachable/generic to any type, T.
-   *
-   * @typeparam T type to bind this trait to.
-   */
-  export const GetUserTrait = <T extends RecordShape>(type: T) => Trait(type, {
-    getUser: VFunction({
-      args: { id: ID },
-      returns: User
-    })
-  });
+export class UserStore extends DynamoDB.Table.NewType({
+  data: User,
+  key: {
+    partition: 'id'
+  }
+}) {}
 
-  /**
-   * Trait for mutating Users.
-   *
-   * Attachable/generic to any type, T.
-   *
-   * @typeparam T type to bind this trait to.
-   */
-  export const CreateUserTrait = <T extends RecordShape>(type: T) => Trait(type, {
-    createUser: VFunction({
-      args: { alias: string },
-      returns: User
-    })
-  });
+/**
+ * Trait for querying Users.
+ *
+ * Attachable/generic to any type, T.
+ *
+ * @typeparam T type to bind this trait to.
+ */
+export const GetUserTrait = <T extends RecordShape>(type: T) => Trait(type, {
+  getUser: VFunction({
+    args: { id: ID },
+    returns: User
+  })
+});
+/**
+ * Trait for mutating Users.
+ *
+ * Attachable/generic to any type, T.
+ *
+ * @typeparam T type to bind this trait to.
+ */
+export const CreateUserTrait = <T extends RecordShape>(type: T) => Trait(type, {
+  createUser: VFunction({
+    args: { alias: string },
+    returns: User
+  })
+});
 
-  /**
-   * A user record exposes a feed of `Post`.
-   */
-  export class FeedTrait extends Trait(User, {
-    feed: array(() => Post)
-  }) {}
-}
+/**
+ * A user record exposes a feed of `Post`.
+ */
+export class FeedTrait extends Trait(User, {
+  feed: array(Post)
+}) {}
 
-class CreateUser extends User.CreateUserTrait(Mutation) {}
 
-class GetUser extends User.CreateUserTrait(Query) {}
+class CreateUser extends CreateUserTrait(Mutation) {}
+
+class GetUser extends CreateUserTrait(Query) {}
 
 /**
  * User API component - implements the query, mutations and field
@@ -113,55 +122,50 @@ export const UserApi = (
 };
 
 export class PostStore extends DynamoDB.Table.NewType({
-  data: () => Post,
+  data: Post,
   key: {
     partition: 'id'
   }
 }) {}
 
-export class Post extends Record('Post', {
-  /**
-   * ID
-   */
-  id: ID,
-  title: string,
-  content: string,
-  userId: ID,
-  category: string,
-  timestamp
+class GetPostTrait extends Trait(Query, {
+  getPost: VFunction({
+    args: { id: ID, },
+    returns: Post
+  })
 }) {}
 
-export namespace Post {
-  export const GetTrait = <T extends RecordShape>(type: T) => Trait(type, {
-    getPost: VFunction({
-      args: { id: ID, },
-      returns: () => Post
-    })
-  });
+class CreatePostTrait extends Trait(Mutation, {
+  /**
+   * Function documentation goes here.
+   */
+  createPost: VFunction({
+    args: { title: string, content: string },
+    returns: Post
+  }),
+}) {}
 
-  export const CreateTrait = <T extends RecordShape>(type: T) => Trait(type, {
-    /**
-     * Function documentation goes here.
-     */
-    createPost: VFunction({
-      args: { title: string, content: string },
-      returns: () => Post
-    }),
-  });
-
-  export class RelatedPostsTrait extends Trait(Post, {
-    relatedPosts: array(Post)
-  }) {}
-}
-
-class GetPost extends Post.GetTrait(Query) {}
-class CreatePost extends Post.CreateTrait(Mutation) {}
+export class RelatedPostsTrait extends Trait(Post, {
+  post: array(Post)
+}) {}
 
 export const PostApi = (scope: Scope) => {
+  // const postStore = new PostStore(scope, 'PostStore');
   const postStore = new PostStore(scope, 'PostStore');
 
-  const getPost = new GetPost({} as any);
-  const createPost = new CreatePost({} as any);
+  const getPost = new GetPostTrait({
+    *getPost({id}) {
+      const item = yield* postStore.get({
+        id
+      });
+
+      const p = yield* getPostFn.invoke(id);
+
+      return p;
+    }
+  });
+
+  const createPost = new CreatePostTrait({} as any);
 
   const relatedPostIndex = postStore.globalIndex({
     indexName: 'related-posts',
@@ -170,8 +174,6 @@ export const PostApi = (scope: Scope) => {
       sort: 'timestamp'
     }
   });
-
-  const relatedPostsApi = new Post.RelatedPostsTrait({} as any);
 
   const getPostFn = new Lambda.Function(scope, 'getPost', {
     request: string,
@@ -199,9 +201,9 @@ export const PostApi = (scope: Scope) => {
 const app = new App();
 const stack = app.stack('stack');
 
-const {createPost, getPost, postStore, getPostFn, } = PostApi(stack);
+const {createPost, getPost, postStore, getPostFn } = PostApi(stack);
 
-const {createUser, userStore, getUser} = UserApi(stack, {
+const {createUser, userStore, getUser } = UserApi(stack, {
   postStore
 });
 
@@ -210,9 +212,9 @@ export interface MyApi extends Static<typeof MyApi> {}
 
 // concatenate all the fragments into a single type system
 const types = createUser
+  .include(getPost)
   .include(getUser)
   .include(createPost)
-  .include(getPost)
 ;
 
 // instantiate an API with that type system
@@ -222,9 +224,6 @@ const MyApi = new Api(stack, 'MyApi', {
   query: Query,
   types
 });
-
-// MyApi.Types.Mutation.fields.createPost
-
 
 export function doStuffWithApi(api: MyApi) {
   // api.Types

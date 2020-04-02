@@ -5,11 +5,11 @@ import Glue = require('../lib');
 
 // tslint:disable: member-access
 
-class Nested extends Record({
+class Nested extends Record('Nested', {
   name: string
 }) {}
 
-class Data extends Record({
+class Data extends Record('Data', {
   id: string
     .apply(Description('this is a comment')),
 

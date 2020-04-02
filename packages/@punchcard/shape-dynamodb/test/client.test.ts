@@ -6,7 +6,7 @@ import { any, array, map, number, Record, string } from '@punchcard/shape';
 import { TableClient } from '../lib/client';
 
 // tslint:disable: member-access
-class Type extends Record({
+class Type extends Record('Type', {
   key: string,
   count: number,
   list: array(string),

@@ -3,10 +3,10 @@ import AWS = require('aws-sdk');
 import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 
-import { Pointer, RecordShape, Shape } from '@punchcard/shape';
+import { RecordShape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
 import { StatementF } from '../appsync/syntax/statement';
-import { VObject } from '../appsync/types';
+import { VObject, VTL } from '../appsync/types';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -47,7 +47,7 @@ export interface TableProps<DataType extends RecordShape, Key extends DDB.KeyOf<
   /**
    * Type of data in the Table.
    */
-  data: Pointer<DataType>;
+  data: DataType;
   /**
    * Partition and (optional) Sort Key of the Table.
    */
@@ -121,7 +121,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
   /**
    * RecordShape of data in the table.
    */
-  public readonly dataType: Pointer<DataType>;
+  public readonly dataType: DataType;
 
   /**
    * The table's key (hash key, or hash+sort key pair).
@@ -139,7 +139,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     this.resource = CDK.chain(({dynamodb}) => Scope.resolve(scope).map(scope => {
       const extraTableProps = props.tableProps ? Build.resolve(props.tableProps) : {};
 
-      const dataType = Pointer.resolve(this.dataType);
+      const dataType = this.dataType;
 
       return new dynamodb.Table(scope, id, {
         ...extraTableProps,
@@ -155,11 +155,19 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     }));
   }
 
-  public put(value: VObject.Of<DataType>): StatementF<VObject.Of<DataType>> {
+  public put(value: VObject.Of<DataType>): VTL<VObject.Of<DataType>> {
     throw new Error('todo');
   }
 
-  public get(key: KeyGraphQLRepr<DataType, Key>): StatementF<VObject.Of<DataType>> {
+  public putF(value: VObject.Of<DataType>): StatementF<VObject.Of<DataType>> {
+    throw new Error('todo');
+  }
+
+  public get(key: KeyGraphQLRepr<DataType, Key>): VTL<VObject.Of<DataType>> {
+    throw new Error('todo');
+  }
+
+  public getF(key: KeyGraphQLRepr<DataType, Key>): StatementF<VObject.Of<DataType>> {
     throw new Error('todo');
     // return call(this, );
   }
@@ -247,7 +255,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       }),
       bootstrap: Run.of(async (ns, cache) =>
         new TableClient({
-          data: Pointer.resolve(this.dataType) as any,
+          data: this.dataType,
           key: this.key as any,
           tableName: ns.get('tableName'),
           client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())
@@ -260,10 +268,12 @@ export type KeyGraphQLRepr<DataType extends RecordShape, K extends DDB.KeyOf<Dat
   [k in Extract<K[keyof K], string>]: VObject.Of<DataType['Members'][k]>;
 };
 
-
 export namespace Table {
   export function NewType<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>>(
-    input: { data: Pointer<DataType>, key: Key }):
+    input: {
+      data: DataType,
+      key: Key
+    }):
       Construct.Class<Table<DataType, Key>, BaseTableProps> {
         return class extends Table<DataType, Key> {
           constructor(scope: Scope, id: string, props: BaseTableProps) {

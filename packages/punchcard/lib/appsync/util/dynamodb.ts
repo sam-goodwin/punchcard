@@ -1,5 +1,5 @@
 import { ArrayShape, BinaryShape, BoolShape, MapShape, NumericShape, Pointer, RecordShape, RecordType, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
-import { VBool, VInteger, VList, VNumber, VObject, VString } from '../types';
+import { type, VBool, VInteger, VList, VNumber, VObject, VString } from '../types';
 
 export class $DynamoDBUtil {
   /**
@@ -10,7 +10,7 @@ export class $DynamoDBUtil {
    *
    * @param object value to convert to its DynamoDB encoding
    */
-  public toDynamoDB<T extends VObject>(object: T): VObject.Of<ToDynamoDBJson<VObject.ShapeOf<T>>> {
+  public toDynamoDB<T extends VObject>(object: T): VObject.Of<ToDynamoDBJson<T[typeof type]>> {
     throw new Error('todo');
   }
 
@@ -28,7 +28,7 @@ export class $DynamoDBUtil {
     throw new Error('todo');
   }
 
-  public toNumber<N extends VInteger | VNumber>(number: N): VObject.Of<ToDynamoDBJson<VObject.ShapeOf<N>>> {
+  public toNumber<N extends VInteger | VNumber>(number: N): VObject.Of<ToDynamoDBJson<N[typeof type]>> {
     throw new Error('todo');
   }
 
@@ -67,17 +67,17 @@ export type ToDynamoDBJson<T extends Shape> =
   }> :
   T extends RecordType<infer M> ? RecordType<{
     M: RecordType<{
-      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<Pointer.Resolve<M[m]>>>;
+      [m in keyof M]: ToDynamoDBJson<M[m]>;
     }>
   }> :
   T extends RecordShape<infer M> ? RecordType<{
     M: RecordType<{
-      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<Pointer.Resolve<M[m]>>>;
+      [m in keyof M]: ToDynamoDBJson<M[m]>;
     }>
   }> :
   T extends RecordType<infer M> ? RecordType<{
     M: RecordType<{
-      [m in keyof M]: ToDynamoDBJson<Shape.Resolve<Pointer.Resolve<M[m]>>>;
+      [m in keyof M]: ToDynamoDBJson<M[m]>;
     }>
   }> :
   never

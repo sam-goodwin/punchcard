@@ -1,4 +1,5 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
+import { FunctionShape } from './function';
 import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
 import { RecordShape } from './record';
 import { Shape } from './shape';
@@ -42,6 +43,12 @@ export namespace ShapeGuards {
   export const assertBoolShape = (a: any): asserts a is BoolShape => {
     if (!isBoolShape(a)) {
       throw new Error(`${a} is not of type: BoolShape`);
+    }
+  };
+  export const isFunctionShape = (a: any): a is FunctionShape<{}, Shape> => isShape(a) && a.Kind === 'boolShape';
+  export const assertFunctionShape = (a: any): asserts a is FunctionShape<{}, Shape> => {
+    if (!isFunctionShape(a)) {
+      throw new Error(`${a} is not of type: FunctionShape`);
     }
   };
   export const isRecordShape = (a: any): a is RecordShape<any> => isShape(a) && a.Kind === 'recordShape';

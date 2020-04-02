@@ -7,6 +7,7 @@ import type * as lambda from '@aws-cdk/aws-lambda';
 import { Json } from '@punchcard/shape-json';
 
 import { any, AnyShape, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, Mapper, MapperFactory, MapShape, NothingShape, NumberShape, Pointer, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Value } from '@punchcard/shape';
+import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { VExpression } from '../appsync/syntax/expression';
 import { $if } from '../appsync/syntax/if';
 import { call, StatementF } from '../appsync/syntax/statement';
@@ -32,7 +33,7 @@ import { ENTRYPOINT_ENV_KEY, IS_RUNTIME_ENV_KEY } from '../util/constants';
  */
 export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'functionName' | 'handler' | 'runtime' | 'memorySize'> {}
 
-export interface HandlerProps<T extends Shape.Like = AnyShape, U extends Shape.Like = AnyShape, D extends Dependency<any> | undefined = undefined> {
+export interface HandlerProps<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined> {
   /**
    * Type of the request
    *
@@ -62,7 +63,7 @@ export interface HandlerProps<T extends Shape.Like = AnyShape, U extends Shape.L
   depends?: D;
 }
 
-export interface FunctionProps<T extends Shape.Like = AnyShape, U extends Shape.Like = AnyShape, D extends Dependency<any> | undefined = undefined>
+export interface FunctionProps<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined>
     extends HandlerProps<T, U, D> {
   /**
    * A name for the function.
@@ -111,7 +112,7 @@ export interface FunctionProps<T extends Shape.Like = AnyShape, U extends Shape.
  * @typeparam U return type
  * @typeparam D runtime dependencies
  */
-export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = AnyShape, D extends Dependency<any> | undefined = any> implements Entrypoint, Resource<lambda.Function> {
+export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = any> implements Entrypoint, Resource<lambda.Function> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
@@ -131,7 +132,7 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
    * @param event the parsed request
    * @param clients initialized clients to dependency resources
    */
-  public readonly handle: (event: Value.Of<Shape.Resolve<T>>, clients: Client<D>, context: any) => Promise<Value.Of<Shape.Resolve<U>>>;
+  public readonly handle: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<Value.Of<U>>;
 
   public readonly request: Pointer<T>;
   public readonly response: Pointer<U>;
@@ -143,7 +144,7 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
     scope: Scope,
     id: string,
     props: FunctionProps<T, U, D>,
-    handle: (event: Value.Of<Shape.Resolve<T>>, run: Client<D>, context: any) => Promise<Value.Of<Shape.Resolve<U>>>
+    handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<Value.Of<U>>
   ) {
     this.request = (props.request || any) as any;
     this.response = (props.request || any) as any;
@@ -182,8 +183,8 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
     })));
 
     this.entrypoint = Run.lazy(async () => {
-      const requestMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(props.request) || any));
-      const responseMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(props.response) || any));
+      const requestMapper = this.mapperFactory(Pointer.resolve(props.request) || any);
+      const responseMapper = this.mapperFactory(Pointer.resolve(props.response) || any);
       const bag: {[name: string]: string} = {};
       for (const [env, value] of Object.entries(process.env)) {
         if (env.startsWith('punchcard') && value !== undefined) {
@@ -210,20 +211,25 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
     });
   }
 
-  public invoke(request: VObject.Like<Shape.Resolve<T>>): StatementF<VObject.Of<Shape.Resolve<U>>> {
-    const requestShape = Shape.resolve(Pointer.resolve(this.request));
-    const responseShape = Shape.resolve(Pointer.resolve(this.response));
 
-    const requestObject: VObject.Of<Shape.Resolve<T>> =
+  public invoke(request: VObject.Of<T>): Generator<unknown, VObject.Of<U>> {
+    // todo
+  }
+
+  public invokeF(request: VObject.Of<T>): StatementF<VObject.Of<U>> {
+    const requestShape = Pointer.resolve(this.request);
+    const responseShape = Pointer.resolve(this.response);
+
+    const requestObject: VObject.Of<T> =
       VObject.isObject(request) ?
         request as any :
         VTL.of(requestShape, requestShape.visit(new ToVExpressionVisitor() as any, request))
     ;
 
-    const response: VObject.Of<Shape.Resolve<U>> = VTL.of(
-      Shape.resolve(Pointer.resolve(this.response)),
+    const response: VObject.Of<U> = VTL.of(
+      Pointer.resolve(this.response),
       VExpression.text('$ctx.prev.result'),
-    ) as VObject.Of<Shape.Resolve<U>>;
+    ) as VObject.Of<U>;
 
     return call(null as any, requestObject, response) ;
   }
@@ -257,15 +263,15 @@ export class Function<T extends Shape.Like = AnyShape, U extends Shape.Like = An
   /**
    * Depend on invoking this Function.
    */
-  public invokeAccess(): Dependency<Function.Client<Value.Of<Shape.Resolve<T>>, Value.Of<Shape.Resolve<U>>>> {
+  public invokeAccess(): Dependency<Function.Client<Value.Of<T>, Value.Of<U>>> {
     return {
       install: this.resource.map(fn => (ns, g) => {
         fn.grantInvoke(g);
         ns.set('functionArn', fn.functionArn);
       }),
       bootstrap: Run.of(async (ns, cache) => {
-        const requestMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(this.request)) || any);
-        const responseMapper = this.mapperFactory(Shape.resolve(Pointer.resolve(this.response)) || any);
+        const requestMapper = this.mapperFactory(Pointer.resolve(this.request)) || any;
+        const responseMapper = this.mapperFactory(Pointer.resolve(this.response)) || any;
         return new Function.Client(
           cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
           ns.get('functionArn'),
@@ -342,6 +348,10 @@ function toJson(obj: VObject.Like<any>): VExpression {
  * Transforms a VObject.Like to a VExpression so that it may be written to the output.
  */
 class ToVExpressionVisitor implements ShapeVisitor<VExpression, VObject.Like<Shape>> {
+  functionShape(shape: FunctionShape<FunctionArgs, Shape>): VExpression {
+    throw new Error("Method not implemented.");
+  }
+
   public arrayShape(shape: ArrayShape<any>, obj: VObject.Like<Shape>): VExpression {
     if (Array.isArray(obj)) {
       const items = [new VExpression('[')]
@@ -384,7 +394,7 @@ class ToVExpressionVisitor implements ShapeVisitor<VExpression, VObject.Like<Sha
     if (VObject.isObject(obj)) {
       return toJson(obj);
     }
-    throw new Error(`Shape.Like is not supported by dynamic shapes`);
+    throw new Error(`Shape is not supported by dynamic shapes`);
   }
   public integerShape(shape: IntegerShape, obj: VObject.Like<Shape>): VExpression {
     return obj[expr];

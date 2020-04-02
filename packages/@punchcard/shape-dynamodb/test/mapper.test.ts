@@ -109,7 +109,7 @@ it('should read attribute values', () => {
   expect(actual).toEqual(expected);
 });
 
-class T extends Record({
+class T extends Record('T', {
   id: string.apply(MaxLength(1))
 }) {}
 
@@ -126,7 +126,7 @@ it('should validate', () => {
 });
 
 it('should support empty record', () => {
-  class Empty extends Record({}) {}
+  class Empty extends Record('Empty', {}) {}
 
   expect(() => Mapper.of(Empty)).not.toThrow();
 });

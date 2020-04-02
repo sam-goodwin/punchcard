@@ -5,10 +5,11 @@ import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
 import { Resource } from '../core/resource';
-import { ApiFragment, ShapeIndex } from './fragment';
+import { ApiFragment } from './fragment';
 import { VInterpreter } from './intepreter';
 import { VolatileExpression } from './syntax';
 import { ResolverImpl } from './syntax/resolver';
+import { TraitImplIndex } from './trait';
 import { VTL } from './types';
 
 export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
@@ -18,7 +19,7 @@ export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
 > {}
 
 export interface ApiProps<
-  T extends ShapeIndex,
+  T extends TraitImplIndex,
   Q extends RecordShape<RecordMembers, Extract<keyof T, string>> | undefined,
   M extends RecordShape<RecordMembers, Extract<keyof T, string>> | undefined
 > {
@@ -29,6 +30,7 @@ export interface ApiProps<
   overrideProps?: Build<OverrideApiProps>;
 }
 
+
 /**
  * A finalized AppSync-managed GraphQL API.
  *
@@ -37,16 +39,18 @@ export interface ApiProps<
  * @typeparam Types - map of names to types in this API
  */
 export class Api<
-  T extends ShapeIndex,
+  T extends TraitImplIndex,
   Q extends RecordShape<RecordMembers, Extract<keyof T, string>> | undefined,
   M extends RecordShape<RecordMembers, Extract<keyof T, string>> | undefined,
 > extends Construct implements Resource<appsync.GraphQLApi> {
+  public static new() {}
+
   public readonly resource: Build<appsync.GraphQLApi>;
   public readonly interpret: Build<void>;
 
   public readonly Types: T;
-  public readonly Query: Q extends { FQN: keyof T } ? T[Q['FQN']]['fields'] : undefined;
-  public readonly Mutation: M extends { FQN: keyof T } ? T[M['FQN']]['fields'] : undefined;
+  public readonly Query: Q extends { FQN: keyof T } ? T[Q['FQN']]['impl'] : undefined;
+  public readonly Mutation: M extends { FQN: keyof T } ? T[M['FQN']]['impl'] : undefined;
 
   constructor(scope: Scope, id: string, props: ApiProps<T, Q, M>) {
     super(scope, id);
@@ -61,7 +65,7 @@ export class Api<
         const self = VTL.of(type.type, new VolatileExpression(type.type, "$context.source"));
         types[fqn] = {
           type,
-          fields: type.fields
+          fields: type.impl
         };
       }
 
@@ -86,6 +90,24 @@ export class Api<
 
     function deriveSchema(): string {
       return 'todo';
+    }
+  }
+}
+
+function resolve() {
+  const self: VObject.Of<T> = VTL.of(type, new VolatileExpression(type, "$context.source"));
+  for (const [name, field] of Object.entries(impl)) {
+    const fieldShape = fields[name];
+    if (ShapeGuards.isFunctionShape(fieldShape)) {
+      const args = Object.entries(fieldShape.args).map(([name, shape]) => {
+
+      });
+
+      const f = field({
+
+      }, self);
+    } else {
+
     }
   }
 }

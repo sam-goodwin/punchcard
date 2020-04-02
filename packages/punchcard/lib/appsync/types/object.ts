@@ -1,6 +1,6 @@
 // tslint:disable: ban-types
 
-import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShape, Pointer, RecordShape, SetShape, Shape, StringShape } from '@punchcard/shape';
+import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShape, Pointer, RecordShape, SetShape, Shape, StringShape, Record, string } from '@punchcard/shape';
 import { VExpression } from '../syntax/expression';
 import { VAny } from './any';
 import { VBool } from './bool';
@@ -28,22 +28,22 @@ export namespace VObject {
     return a[expr] !== undefined;
   }
 
-  export type ShapeOf<T extends VObject> = T extends VObject<infer I> ? I : never;
+  // export type ShapeOf<T extends VObject> = T extends VObject<infer I> ? I : never;
 
   export type Of<T extends Shape> =
+    T extends RecordShape<infer M> ? VRecord<{
+      [m in keyof M]: Of<Pointer.Resolve<M[m]>>;
+    }> & {
+      [m in keyof M]: Of<Pointer.Resolve<M[m]>>;
+    } :
+    T extends ArrayShape<infer I> ? VList<VObject.Of<I>> :
+    T extends MapShape<infer I> ? VMap<VObject.Of<I>> :
     T extends BoolShape ? VBool :
     T extends DynamicShape<any> ? VAny :
     T extends IntegerShape ? VInteger :
     T extends NumberShape ? VNumber :
     T extends StringShape ? VString :
 
-    T extends ArrayShape<infer I> ? VList<VObject.Of<I>> :
-    T extends MapShape<infer I> ? VMap<VObject.Of<I>> :
-    T extends RecordShape<infer M> ? VRecord<{
-      [m in keyof M]: Of<Pointer.Resolve<M[m]>>;
-    }> & {
-      [m in keyof M]: Of<Pointer.Resolve<M[m]>>;
-    } :
     VObject<T>
     ;
 

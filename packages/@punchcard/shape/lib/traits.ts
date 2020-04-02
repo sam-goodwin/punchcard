@@ -25,8 +25,8 @@ export function isOptional(a: any) {
  *
  * @param shapeOrRecord a Shape or a Record to transform as optional
  */
-export function optional<T extends Shape.Like>(shape: T): Apply<Shape.Resolve<T>, IsOptional> {
-  return Shape.resolve(shape).apply(Optional);
+export function optional<T extends Shape>(shape: T): Apply<T, IsOptional> {
+  return shape.apply(Optional);
 }
 
 export function Description<D extends string>(description: D): Trait<any, { description: D }> {

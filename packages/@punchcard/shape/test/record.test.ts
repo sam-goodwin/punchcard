@@ -4,11 +4,11 @@ import { array, ArrayShape, map, MapShape, set, SetShape } from '../lib/collecti
 
 // tslint:disable: member-access
 
-class Nested extends Record({
+class Nested extends Record('Nested', {
   a: string
 }) {}
 
-class MyType extends Record({
+class MyType extends Record('MyType', {
   anyType: any,
   unknownType: unknown,
   binaryType: binary,
@@ -41,7 +41,7 @@ it('should parse members', () => {
   expect(MyType.Members.complexMap).toEqual(new MapShape(Nested));
 });
 
-class Empty extends Record({}) {}
+class Empty extends Record('Empty', {}) {}
 
 it('should support no members', () => {
   expect(Empty.Members).toEqual({});

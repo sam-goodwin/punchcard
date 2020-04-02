@@ -7,14 +7,14 @@ import { Json } from '../lib';
 
 // tslint:disable: member-access
 
-class Nested extends Record({
+class Nested extends Record('Nested', {
   /**
    * A docs.
    */
   a: string
     .apply(Optional)
 }) {}
-class MyType extends Record({
+class MyType extends Record('MyType', {
   /**
    * Field documentation.
    */
@@ -96,7 +96,7 @@ test('should write shape to json', () => {
   expect(mapper.write(runtimeRepr)).toEqual(jsonRepr);
 });
 
-class Empty extends Record({}) {}
+class Empty extends Record('Empty', {}) {}
 
 test('should support empty record', () => {
   expect(() => Json.mapper(Empty)).not.toThrow();

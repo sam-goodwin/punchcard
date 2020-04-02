@@ -2,7 +2,7 @@ import { Record, timestamp } from '@punchcard/shape';
 
 import Glue = require('../lib');
 
-class Data extends Record({
+class Data extends Record('Data', {
   timestamp
 }) {}
 

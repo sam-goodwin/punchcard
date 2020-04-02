@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { AssertIsKey, Pointer, RecordShape, Shape, Value } from '@punchcard/shape';
+import { AssertIsKey, RecordShape, Value } from '@punchcard/shape';
 import { Compact } from 'typelevel-ts';
 import { DSL } from './dsl';
 import { Condition } from './filter';
@@ -48,7 +48,7 @@ export class BaseClient<T extends RecordShape<any>, K extends DDB.KeyOf<T>> {
 
   protected readonly dsl: DSL.Root<T>;
 
-  public readonly type: Pointer<T>;
+  public readonly type: T;
   public readonly key: K;
 
   constructor(config: BaseClientProps<T, K>)  {

@@ -4,14 +4,14 @@ import { array, map, set } from '@punchcard/shape/lib/collection';
 import '../lib';
 
 // tslint:disable: member-access
-export class Nested extends Record({
+export class Nested extends Record('Nested', {
   /**
    * This is a nested string.
    */
   a: string
 }) {}
 
-export class MyType extends Record({
+export class MyType extends Record('MyType', {
   /**
    * Field documentation.
    */

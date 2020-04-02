@@ -1,13 +1,13 @@
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
+import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
 import { Mapper, ValidatingMapper } from '@punchcard/shape/lib/mapper';
 import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from '@punchcard/shape/lib/primitive';
 import { RecordMembers, RecordShape, RecordType } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
+import { isOptional } from '@punchcard/shape/lib/traits';
 import { Value } from '@punchcard/shape/lib/value';
 import { ShapeVisitor } from '@punchcard/shape/lib/visitor';
-
-import { isOptional } from '@punchcard/shape/lib/traits';
 
 export type Tag = typeof Tag;
 export const Tag = Symbol.for('@punchcard/shape-json.Json.Tag');
@@ -93,6 +93,9 @@ export namespace Json {
   }
 
   export class MapperVisitor implements ShapeVisitor<Mapper<any, any>> {
+    public functionShape(shape: FunctionShape<FunctionArgs, Shape>): Mapper<any, any> {
+      throw new Error("Functions are not supported by JSON");
+    }
     public nothingShape(shape: NothingShape, context: undefined): Mapper<void, any> {
       return {
         read: (a: any) => {

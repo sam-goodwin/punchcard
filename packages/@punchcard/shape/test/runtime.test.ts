@@ -3,7 +3,7 @@ import 'jest';
 import { any, array, bool, dsl, Equals, HashCode, HashSet, map, number, optional, Record, set, string, Value} from '../lib';
 
 // tslint:disable: member-access
-class Nested extends Record({
+class Nested extends Record('Nested', {
   /**
    * Documentation for `a`
    */
@@ -15,7 +15,7 @@ class Nested extends Record({
   b: string,
 }) {}
 
-class MyType extends Record({
+class MyType extends Record('MyType', {
   /**
    * Field documentation.
    */
@@ -145,7 +145,7 @@ it('should compute hash code', () => {
 });
 
 describe('Extend', () => {
-  class Extended extends MyType.Extend({
+  class Extended extends MyType.Extend('Extended', {
     extendedProp: string
   }) {}
   const extended = new Extended({
@@ -247,7 +247,7 @@ describe('Extend', () => {
 });
 
 describe('Pick', () => {
-  class Picked extends MyType.Pick(['id']) {}
+  class Picked extends MyType.Pick('Picked', ['id']) {}
   const picked = new Picked({
     id: 'id',
   });

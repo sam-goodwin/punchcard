@@ -1,4 +1,5 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
+import { FunctionShape } from './function';
 import { HashSet } from './hash-set';
 import { Decorated } from './metadata';
 import { AnyShape, BinaryShape, BoolShape, NothingShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
@@ -26,6 +27,9 @@ export namespace Value {
     T extends ArrayShape<infer I> ? Of<I>[] :
     T extends MapShape<infer V> ? { [key: string]: Of<V>; } :
     T extends SetShape<infer I> ? I extends StringShape | NumericShape | BoolShape ? Set<Of<I>> : HashSet<Of<I>> :
+    T extends FunctionShape<infer Args, infer Returns> ? (args: {
+      [argName in keyof Args]: Value.Of<Args[argName]>;
+    }) => Value.Of<Returns> :
 
     // adhoc mapping
     T extends { [Value.Tag]: infer V } ? V :

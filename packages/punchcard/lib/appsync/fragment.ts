@@ -1,45 +1,15 @@
-import { RecordShape, Shape } from '@punchcard/shape';
+import { Shape } from '@punchcard/shape';
 import { ResolverImpl } from './syntax/resolver';
-import { VObject } from './types/object';
+import { TraitImplIndex } from './trait';
 
 /**
- * A map from a type's FQN to its field-level resolvers.
+ *
  */
-export type ShapeIndex = {
-  [fqn in string]: {
-    type: RecordShape<{}, fqn>;
-    fields: ResolverFields;
-  };
-};
-
-export interface ResolverFields {
+export interface ResolverFieldImpls {
   [fieldName: string]: ResolverImpl<{}, Shape>;
 }
 
-export class ApiFragment<I extends ShapeIndex = {}> {
-  /**
-   * Start a new API Fragment by defining a type with field resolvers.
-   *
-   * @param type type these fields are associated with.
-   * @param fields resolved fields to add to this `type`.
-   */
-  public static new<T extends RecordShape, F extends ResolverFields>(
-    type: T,
-    fields: F
-  ): ApiFragment<{
-    [fqn in T['FQN']]: {
-      type: T;
-      fields: F
-    };
-  }> {
-    return new ApiFragment({
-      [type.FQN]: {
-        type,
-        fields
-      }
-    });
-  }
-
+export class ApiFragment<I extends TraitImplIndex = {}> {
   constructor(public readonly Types: I) {}
 
   // Can't figure out how to do this miultiplication over a tuple of arbitrary arity.
@@ -90,7 +60,7 @@ export class ApiFragment<I extends ShapeIndex = {}> {
   public include<F extends ApiFragment[]>(
     ...fragments: F
   ): ApiFragment {
-    const implIndex: ShapeIndex = {};
+    const implIndex: TraitImplIndex = {};
     const query = {};
     const mutation = {};
     for (const fragment of fragments) {
@@ -100,8 +70,9 @@ export class ApiFragment<I extends ShapeIndex = {}> {
         if (prev !== undefined) {
           implIndex[fqn] = {
             type: i.type,
-            fields: (self: any) => {
-              const a = prev.fields(self);
+            fields,
+            impl: (self: any) => {
+              const a = prev.impl(self);
               const b = i.fields(self);
               return {
                 ...a,

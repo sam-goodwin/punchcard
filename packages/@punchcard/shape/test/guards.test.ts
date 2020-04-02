@@ -59,7 +59,7 @@ test('isMapShape', () => {
   expect(ShapeGuards.isMapShape(string)).toBe(false);
 });
 
-class MyClass extends Record({
+class MyClass extends Record('MyClass', {
   key: string
 }) {}
 

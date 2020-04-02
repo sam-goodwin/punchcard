@@ -1,4 +1,5 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
+import { FunctionArgs, FunctionShape } from './function';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape } from './record';
 import { Shape } from './shape';
@@ -28,6 +29,10 @@ export namespace Equals {
   }
 
   export class Visitor implements ShapeVisitor<Equals<any>> {
+    // todo: is this the logic we want?
+    public functionShape(shape: FunctionShape<FunctionArgs, Shape>): Equals<any> {
+      return (a, b) => a === b && typeof a === 'function';
+    }
     public nothingShape(shape: NothingShape, context: undefined): Equals<NothingShape> {
       return (a, b) => a === b && a === undefined;
     }

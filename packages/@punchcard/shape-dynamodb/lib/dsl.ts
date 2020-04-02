@@ -1,5 +1,6 @@
 import { RecordShape, RecordType, ShapeVisitor, Value } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
+import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
@@ -42,6 +43,9 @@ export namespace DSL {
   }
 
   export const DslVisitor: ShapeVisitor<Node, ExpressionNode<any>> = {
+    functionShape: (() => {
+      throw new Error(`functionShape is not valid on a DynamoDB DSL`);
+    }) as any,
     nothingShape: (shape: NothingShape, expression: ExpressionNode<any>): Object<NothingShape> => {
       return new Object(shape, expression);
     },
@@ -550,7 +554,7 @@ export namespace DSL {
       public readonly [SubNodeType] = 'list-item';
 
       constructor(public readonly list: List<T>, public readonly index: ExpressionNode<NumberShape>) {
-        super(list[DataType].Items);
+        super(list[DataType].Items as T);
       }
 
       public [Synthesize](writer: Writer): void {
@@ -599,7 +603,7 @@ export namespace DSL {
     export class GetValue<T extends Shape> extends ExpressionNode<T> {
       public readonly [SubNodeType] = 'map-value';
       constructor(public readonly map: Map<T>, public readonly key: ExpressionNode<StringShape>) {
-        super(map[DataType].Items);
+        super(map[DataType].Items as T);
       }
 
       public [Synthesize](writer: Writer): void {

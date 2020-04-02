@@ -1,13 +1,12 @@
-import { Pointer } from './pointer';
 import { Shape } from './shape';
 
 export interface FunctionArgs {
-  [argName: string]: Pointer<Shape>;
+  [argName: string]: Shape;
 }
 
 export interface FunctionShapeProps<Args extends FunctionArgs, Returns extends Shape> {
   args: Args;
-  returns: Pointer<Returns>;
+  returns: Returns;
 }
 
 export class FunctionShape<Args extends FunctionArgs, Returns extends Shape> extends Shape {

@@ -6,11 +6,11 @@ import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema, NumberSchema } from '../lib';
 
 // tslint:disable: member-access
-class Nested extends Record({
+class Nested extends Record('Nested', {
   a: optional(string)
 }) {}
 
-class MyType extends Record({
+class MyType extends Record('MyType', {
   /**
    * Field documentation.
    */

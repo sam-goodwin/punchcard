@@ -3,9 +3,10 @@ import { number as numberShape, Shape, string as stringShape } from '@punchcard/
 import { VExpression, VolatileExpression } from '../syntax';
 import { VNumber } from './numeric';
 import { type, VObject } from './object';
-import { VRecord } from './record';
 import { VString } from './string';
 import { Visitor } from './visitor';
+
+export type VTL<T> = Generator<unknown, T>;
 
 export namespace VTL {
   export function of<T extends Shape>(type: T, expr: VExpression): VObject.Of<T> {

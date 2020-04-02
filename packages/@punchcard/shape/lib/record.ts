@@ -7,7 +7,7 @@ import { Value } from './value';
 import { Compact, RowLacks } from 'typelevel-ts';
 
 export interface RecordMembers {
-  [member: string]: Pointer<Shape>;
+  [member: string]: Shape;
 }
 export namespace RecordMembers {
   /**
@@ -51,6 +51,8 @@ export class RecordShape<M extends RecordMembers = any, FQN extends string = str
   public readonly Kind: 'recordShape' = 'recordShape';
 
   public readonly FQN: FQN;
+
+  [key: string]: any;
 
   constructor(
     public readonly Members: M,
