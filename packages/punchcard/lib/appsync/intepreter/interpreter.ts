@@ -5,8 +5,9 @@ import { foldFree } from 'fp-ts-contrib/lib/Free';
 import { identity } from 'fp-ts/lib/Identity';
 
 import { Build } from '../../core/build';
-import { ResolverImpl } from '../syntax/resolver';
-import { StatementGuards } from '../syntax/statement';
+import { VExpression } from '../syntax/expression';
+import { StatementF, StatementGuards } from '../syntax/statement';
+import { VTL } from '../types';
 import { VObject } from '../types/object';
 import { Frame } from './frame';
 
@@ -17,34 +18,37 @@ interface ResolverStage {
 }
 
 export interface CompiledResolver {
+  typeName: string;
+  fieldName: string;
   arguments: {
-    [argumentName: string]: Shape
-  },
+    [argumentName: string]: Shape;
+  };
   beforeTemplate: string;
   stages: ResolverStage[]
   afterTemplate: string;
 }
 
 export class VInterpreter {
+  private frame: Frame = new Frame();
+
   constructor(public readonly api: appsync.GraphQLApi) {
 
   }
 
-  public static render(type: VObject): string {
-    console.log(type);
-    const frame = new Frame(undefined);
-    frame.interpret(type);
-    return frame.render();
-  }
-
-  public interpret(fieldName: string, resolved: ResolverImpl<any, any>): CompiledResolver {
+  public interpret(typeName: string, fieldName: string, program: StatementF<VObject>): CompiledResolver {
     const stages: ResolverStage[] = [];
 
     foldFree(identity)((stmt => {
       if (StatementGuards.isCall(stmt)) {
-      console.log('call', stmt);
-        const requestTemplate = VInterpreter.render(stmt.request);
-        const responseTemplate = VInterpreter.render(stmt.response);
+        const requestTemplate = this.frame
+          .interpret(stmt.request)
+          .render();
+
+        this.frame = new Frame();
+
+        const responseTemplate = this.frame
+          .interpret(stmt.response)
+          .render();
 
         stages.push({
           dataSource: null as any,
@@ -52,24 +56,25 @@ export class VInterpreter {
           responseTemplate,
         });
       } else if (StatementGuards.isSet(stmt)) {
-        console.log('stmt', stmt);
-        // /**
-        //  * Compute a value and store it in the stash.
-        //  */
-        // const name = stmt.id || frame.getNewId();
+        /**
+         * Compute a value and store it in the stash.
+         */
+        const name = stmt.id || this.frame.getNewId();
 
-        // frame.variables.print(`$util.qr($ctx.stash.put("${name}",`);
-        // frame.variables.interpret(stmt.value);
-        // frame.variables.print(`))`);
+        this.frame.print(`$util.qr($ctx.stash.put("${name}",`);
+        this.frame.interpret(stmt.value);
+        this.frame.print(`))`);
 
-        // return GraphQL.clone(stmt.value, new GraphQL.Expression(() => `$ctx.stash.${name}`));
+        return VTL.clone(stmt.value, new VExpression(() => `$ctx.stash.${name}`));
       } else {
         throw new Error(`unknown statement type: ${stmt._tag}`);
       }
       return null as any;
-    }), resolved.program);
+    }), program);
 
     return {
+      typeName,
+      fieldName,
       afterTemplate: 'todo',
       arguments: {},
       beforeTemplate: 'todo',

@@ -124,10 +124,8 @@ export const UserApi = (
 
   const createUser = new CreateUserTrait({
     *createUser({alias}) {
-      const id = yield* $util.autoId();
-
       return yield* userStore.put({
-        id,
+        id: yield* $util.autoId(),
         alias,
       });
     }
@@ -190,7 +188,6 @@ export const PostApi = (scope: Scope) => {
   //     return (yield* getPostFn.invoke(this.id)) as any;
   //   }
   // });
-
 
   return {
     getPost,

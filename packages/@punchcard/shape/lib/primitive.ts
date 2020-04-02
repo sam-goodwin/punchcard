@@ -70,6 +70,7 @@ export class NeverShape extends Shape {
   public readonly FQN: 'never' = 'never';
 }
 
+export const never = new NeverShape();
 export const nothing = new NothingShape();
 export const any = new AnyShape();
 export const unknown = new UnknownShape();

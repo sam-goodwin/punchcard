@@ -1,16 +1,15 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
+import { ShapeGuards } from '@punchcard/shape';
 import { RecordMembers, RecordShape } from '@punchcard/shape/lib/record';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
 import { Resource } from '../core/resource';
 import { ApiFragment } from './fragment';
-import { VInterpreter } from './intepreter';
-import { VolatileExpression } from './syntax';
-import { ResolverImpl } from './syntax/resolver';
+import { StatementGuards, VExpression } from './syntax';
 import { TraitImplIndex } from './trait';
-import { VTL } from './types';
+import { expr, VObject, VTL } from './types';
 
 export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
   | 'name'
@@ -49,7 +48,9 @@ export class Api<
   public readonly interpret: Build<void>;
 
   public readonly Types: T;
+  public readonly QueryType: Q;
   public readonly Query: Q extends { FQN: keyof T } ? T[Q['FQN']]['impl'] : undefined;
+  public readonly MutationType: M;
   public readonly Mutation: M extends { FQN: keyof T } ? T[M['FQN']]['impl'] : undefined;
 
   constructor(scope: Scope, id: string, props: ApiProps<T, Q, M>) {
@@ -58,56 +59,78 @@ export class Api<
       CDK,
       Scope.resolve(scope),
       props.overrideProps || Build.of(undefined)
-    ).map(([{appsync}, scope, buildProps]) => {
+    ).map(([{appsync, core}, scope, buildProps]) => {
       const types: any = {};
 
-      for (const [fqn, type] of Object.entries(props.types.Types)) {
-        const self = VTL.of(type.type, new VolatileExpression(type.type, "$context.source"));
-        types[fqn] = {
-          type,
-          fields: type.impl
-        };
-      }
+      const blocks: string[] = [
+        `schema {
+          ${this.Query ? `Query: ${this.QueryType!.FQN}` : ''}
+          ${this.Mutation ? ',' : ''}
+          ${this.Mutation ? `Mutation: ${this.MutationType!.FQN}` : ''}
+        }`
+      ];
 
       const api = new appsync.GraphQLApi(scope, id, {
         ...buildProps,
         name: props.name,
-        schemaDefinition: deriveSchema(),
+        schemaDefinition: core.Token.asString(() => blocks.join('\n')),
       });
+
+      for (const [typeName, impl] of Object.entries(props.types.Types)) {
+        const self = VTL.of(impl.type, new VExpression('$context.source'));
+        blocks.push(`type ${typeName} {
+          ${Object.entries(impl.fields).map(([fieldName, fieldShape]) => {
+            let generator: VTL<VObject>;
+            if (ShapeGuards.isFunctionShape(fieldShape)) {
+              // todo: args
+              generator = (impl as any).impl({}, self);
+            } else {
+              generator = (impl as any).impl({}, self);
+            }
+
+            let next = generator.next();
+            let template: string[] = [];
+
+            let i = 0;
+
+            while (!(next = generator.next()).done) {
+              const stmt = next.value;
+              if (StatementGuards.isSet(stmt)) {
+                const name = stmt.id || (i += 1).toString(10);
+                template.push(`#set($${name} = ${stmt.value[expr].visit()})`);
+              } else if (StatementGuards.isCall(stmt)) {
+                template.push(stmt.request[expr].visit());
+                const requestMappingTemplate = template.join('\n');
+                const responseMappingTemplate = stmt.response[expr].visit();
+                // const dataSource = stmt.resolverFunction;
+                template = [];
+
+                const fqn = `${typeName}.${fieldName}`;
+                const dataSourceProps = Build.resolve(stmt.dataSourcePRops);
+                const dataSource = new appsync.CfnDataSource(scope, `DataSource(${fqn})`, {
+                  ...dataSourceProps,
+                  apiId: api.apiId,
+                  name: fqn,
+                });
+
+                const resolver = new appsync.CfnResolver(scope, `Resolve(${fqn})`, {
+                  apiId: api.apiId,
+                  typeName,
+                  fieldName,
+                  requestMappingTemplate,
+                  responseMappingTemplate,
+                  dataSourceName: dataSource.name
+                });
+              } else {
+                throw new Error(`unknown statement: ${next}`);
+              }
+            }
+          })}
+        }`);
+      }
 
       return api;
     });
-
-    this.interpret = CDK.chain(({appsync}) => this.resource.map(api => {
-      const interpreter = new VInterpreter(api);
-      for (const [fieldName, value] of Object.entries(this)) {
-        if (ResolverImpl.isResolved(value)) {
-          console.log(fieldName, value);
-          interpreter.interpret(fieldName, value);
-        }
-      }
-    }));
-
-    function deriveSchema(): string {
-      return 'todo';
-    }
   }
 }
 
-function resolve() {
-  const self: VObject.Of<T> = VTL.of(type, new VolatileExpression(type, "$context.source"));
-  for (const [name, field] of Object.entries(impl)) {
-    const fieldShape = fields[name];
-    if (ShapeGuards.isFunctionShape(fieldShape)) {
-      const args = Object.entries(fieldShape.args).map(([name, shape]) => {
-
-      });
-
-      const f = field({
-
-      }, self);
-    } else {
-
-    }
-  }
-}

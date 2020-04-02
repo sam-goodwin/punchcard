@@ -1,7 +1,11 @@
+import type * as appsync from '@aws-cdk/aws-appsync';
+
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Free, liftF } from 'fp-ts-contrib/lib/Free';
 import { Build } from '../../core/build';
 import { VObject } from '../types/object';
+import { VTL } from '../types/vtl';
+
 
 declare module 'fp-ts/lib/HKT' {
   interface URItoKind<A> {
@@ -39,9 +43,23 @@ export function call<T extends Shape, U extends VObject>(
   return liftF(new Statements.Call(resolverFunction, request, response));
 }
 
-export function set<T extends VObject>(value: T, id?: string): StatementF<T> {
-  return liftF(new Statements.Set(value, id));
+export function* set<T extends VObject>(value: T, id?: string): VTL<T> {
+  return (yield new Statements.Set(value, id)) as T;
 }
+
+export enum DataSourceType {
+  AMAZON_DYNAMODB = 'AMAZON_DYNAMODB',
+  AMAZON_ELASTICSEARCH = 'AMAZON_ELASTICSEARCH',
+  AWS_LAMBDA = 'AWS_LAMBDA',
+  NONE = 'NONE',
+  HTTP = 'HTTP',
+  RELATIONAL_DATABASE = 'RELATIONAL_DATABASE',
+}
+
+export interface DataSourceProps extends Omit<appsync.CfnDataSourceProps,
+  | 'apiId'
+  | 'name'
+> {}
 
 export namespace Statements {
   /**
@@ -52,21 +70,10 @@ export namespace Statements {
     _tag: 'call' = 'call';
     _A: T;
     constructor(
-      public readonly resolverFunction: Build<any>,
+      public readonly dataSourcePRops: Build<DataSourceProps>,
       public readonly request: VObject,
       public readonly response: T,
       ) {}
-  }
-
-  /**
-   * Print to the output of the current VTL template.
-   */
-  export class Print<T = VObject> {
-    _URI: Statement.URI;
-    _tag: 'print' = 'print';
-    _A: T;
-    constructor(
-      public readonly value: T) {}
   }
 
   /**

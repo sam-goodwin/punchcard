@@ -2,7 +2,6 @@ import { expr, VObject } from "../types/object";
 
 export class Frame {
   private readonly ids: Generator<string>;
-  private readonly directives: (string | Frame)[] = [];
   private readonly tokens: (string | Frame)[] = [];
   private readonly children: Frame[];
   private readonly lexicalScope: WeakMap<any, string> = new WeakMap();
@@ -45,8 +44,9 @@ export class Frame {
     }
   }
 
-  public interpret(type: VObject): string | void {
-    return type[expr].visit(this);
+  public interpret(type: VObject): this {
+    type[expr].visit(this);
+    return this;
   }
 
   public render(): string {

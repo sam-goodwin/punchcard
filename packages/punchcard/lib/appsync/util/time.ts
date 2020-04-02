@@ -3,7 +3,7 @@ import { VInteger, VString, VTimestamp, VTL } from '../types';
 export class TimeUtil {
 
   public nowISO8601(): VTL<VTimestamp> {
-
+    yield 
   }
   public nowEpochSeconds() : VTL<VInteger> {
 

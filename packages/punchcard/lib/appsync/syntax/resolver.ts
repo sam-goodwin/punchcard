@@ -1,7 +1,6 @@
 import { Pointer, RecordMembers, Shape } from '@punchcard/shape';
 import { Do, Do2C } from 'fp-ts-contrib/lib/Do';
 import { free } from 'fp-ts-contrib/lib/Free';
-import { GraphQLType } from '../types';
 import { VBool } from '../types/bool';
 import { VObject } from '../types/object';
 import { VTL } from '../types/vtl';
@@ -95,7 +94,7 @@ export class Resolver<Args extends RecordMembers = {}, Ret extends Shape = Shape
   }
 
   public validate(f: (scope: L) => VBool, message: string) {
-    return this.doL(scope => $util.validate(f(scope), message));
+    return this.doL(scope => $util.validateF(f(scope), message));
   }
 
   public return(f: (scope: L) => VObject.Of<Ret>): ResolverImpl<Args, Ret>;

@@ -1,6 +1,6 @@
-import { bool, string } from '@punchcard/shape';
-import { VExpression, VolatileExpression } from '../syntax/expression';
-import { StatementF } from '../syntax/statement';
+import { bool, never, string } from '@punchcard/shape';
+import { VExpression } from '../syntax/expression';
+import { set, StatementF } from '../syntax/statement';
 import { VTL } from '../types';
 import { VBool } from '../types/bool';
 import { VNever } from '../types/never';
@@ -13,22 +13,25 @@ import { TimeUtil } from './time';
 
 export class Util {
   public validate(condition: VBool, message: VString | string, errorType?: VString | string): VTL<VNever> {
-    
+    throw new Error('todo');
   }
   public validateF(condition: VBool, message: VString | string, errorType?: VString | string): StatementF<VNothing> {
     return null as any;
   }
 
-  public autoId(): VTL<VString> {
-    return new VString(string, new VolatileExpression(string, '$util.autoId()'));
+  public *autoId(): VTL<VString> {
+    // return yield new Statements.Set(value, id);
+    return yield* set(new VString(string, new VExpression('$util.autoId()')));
   }
 
   public matches(regex: RegExp | string): StatementF<VBool> {
     throw new Error('todo');
   }
 
-  public error(message: VString): VTL<VNever> {
+  public *error(message: VString): VTL<VNever> {
+    return yield* set(new VNever(never, new VExpression(frame => {
 
+    })));
   }
 
   public isNull(value: VObject): VBool {
