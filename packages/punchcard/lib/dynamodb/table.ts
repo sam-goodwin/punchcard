@@ -155,7 +155,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     }));
   }
 
-  public put(value: VObject.Of<DataType>): VTL<VObject.Of<DataType>> {
+  public put(value: VObject.Like<DataType>): VTL<VObject.Of<DataType>> {
     throw new Error('todo');
   }
 

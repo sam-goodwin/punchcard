@@ -5,7 +5,7 @@ import { VFunction } from '@punchcard/shape/lib/function';
 import { $context, VBool, VObject, VString } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { Trait } from '../../lib/appsync/trait';
-import { ID } from '../../lib/appsync/types';
+import { ID, VList } from '../../lib/appsync/types';
 import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
 import { Scope } from '../../lib/core/construct';
@@ -165,13 +165,33 @@ export const PostApi = (scope: Scope) => {
     }
   });
 
-  const createPost = new CreatePostTrait({} as any);
+  const createPost = new CreatePostTrait({
+    *createPost(input) {
+      const id = $util.autoId();
+
+      const post = yield* postStore.put({
+        id,
+        title: input.title,
+        content: input.content,
+        category: id,
+        timestamp: id as any
+      });
+
+      return post;
+    }
+  });
 
   const relatedPostIndex = postStore.globalIndex({
     indexName: 'related-posts',
     key: {
       partition: 'category',
       sort: 'timestamp'
+    }
+  });
+
+  new RelatedPostsTrait({
+    *post() {
+      return (yield* getPostFn.invoke(this.id)) as any;
     }
   });
 
@@ -224,7 +244,6 @@ const MyApi = new Api(stack, 'MyApi', {
   query: Query,
   types
 });
-
 export function doStuffWithApi(api: MyApi) {
   // api.Types
 }

@@ -1,9 +1,9 @@
 import { ArrayShape } from '@punchcard/shape';
 import { VExpression } from '../syntax/expression';
-import { VObject } from './object';
+import { type, VObject } from './object';
 
-export class VList<T extends VObject = any> extends VObject<ArrayShape<VObject.ShapeOf<T>>> {
-  constructor(shape: ArrayShape<VObject.ShapeOf<T>>, expression: VExpression) {
+export class VList<T extends VObject = VObject> extends VObject<ArrayShape<T[typeof type]>> {
+  constructor(shape: ArrayShape<T[typeof type]>, expression: VExpression) {
     super(shape, expression);
   }
 }
