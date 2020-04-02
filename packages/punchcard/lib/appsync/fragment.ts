@@ -25,7 +25,7 @@ export class ApiFragment<I extends TraitImplIndex = {}> {
     f1: F1,
     f2: F2
   ): ApiFragment<
-    F1['Types'] & F2['Types']
+    I & F1['Types'] & F2['Types']
   >;
 
   public include<
@@ -37,7 +37,7 @@ export class ApiFragment<I extends TraitImplIndex = {}> {
     f2: F2,
     f3: F3,
   ): ApiFragment<
-    F1['Types'] & F2['Types'] & F3['Types']
+    I & F1['Types'] & F2['Types'] & F3['Types']
   >;
 
   public include<
@@ -51,7 +51,7 @@ export class ApiFragment<I extends TraitImplIndex = {}> {
     f3: F3,
     f4: F4
   ): ApiFragment<
-    F1['Types'] & F2['Types'] & F3['Types'] & F4['Types']
+    I & F1['Types'] & F2['Types'] & F3['Types'] & F4['Types']
   >;
 
   /**

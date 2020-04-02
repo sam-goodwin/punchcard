@@ -2,32 +2,20 @@ import 'jest';
 
 import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape, timestamp } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $context, VBool, VObject, VString } from '../../lib/appsync';
+import { $context, $else, $if, VBool, VObject, VString } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { Trait } from '../../lib/appsync/trait';
-import { ID, VList } from '../../lib/appsync/types';
+import { ID, VList, VNothing, VTL } from '../../lib/appsync/types';
 import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
 import { Scope } from '../../lib/core/construct';
 import DynamoDB = require('../../lib/dynamodb');
-import Lambda = require('../../lib/lambda');
 
 // root of query interface
-class Query extends Record('Query', {}) {}
+export class Query extends Record('Query', {}) {}
 
 // root of mutation interface
-class Mutation extends Record('Mutation', {}) {}
-
-export class Post extends Record('Post', {
-  /**
-   * ID
-   */
-  id: ID,
-  title: string,
-  content: string,
-  category: string,
-  timestamp
-}) {}
+export class Mutation extends Record('Mutation', {}) {}
 
 export class User extends Record('User', {
   id: ID,
@@ -48,12 +36,13 @@ export class UserStore extends DynamoDB.Table.NewType({
  *
  * @typeparam T type to bind this trait to.
  */
-export const GetUserTrait = <T extends RecordShape>(type: T) => Trait(type, {
+export class GetUserTrait extends Trait(Query, {
   getUser: VFunction({
     args: { id: ID },
     returns: User
   })
-});
+}) {}
+
 /**
  * Trait for mutating Users.
  *
@@ -61,65 +50,26 @@ export const GetUserTrait = <T extends RecordShape>(type: T) => Trait(type, {
  *
  * @typeparam T type to bind this trait to.
  */
-export const CreateUserTrait = <T extends RecordShape>(type: T) => Trait(type, {
+export class CreateUserTrait extends Trait(Mutation, {
   createUser: VFunction({
     args: { alias: string },
     returns: User
   })
-});
-
-/**
- * A user record exposes a feed of `Post`.
- */
-export class FeedTrait extends Trait(User, {
-  feed: array(Post)
 }) {}
 
-
-class CreateUser extends CreateUserTrait(Mutation) {}
-
-class GetUser extends CreateUserTrait(Query) {}
-
 /**
- * User API component - implements the query, mutations and field
- * resolvers for Users.
- *
- * @param scope in which to install the component
- * @param props api to add UserAPI to
+ * A Post of some content in some category
  */
-// <A extends Api<{Post: typeof Post}>>
-export const UserApi = (
-  scope: Scope,
-  props: {
-    postStore: PostStore,
-    userStore?: UserStore
-  }
-) => {
-  const userStore = props.userStore || new UserStore(scope, 'UserStore');
-
-  const createUser = new CreateUser({} as any);
-
-  const getUser = new GetUser({} as any);
-
-  const getUserFn = new Lambda.Function(scope, 'getUser', {
-    request: string,
-    response: optional(User),
-    depends: userStore.readAccess()
-  }, async (id, userStore) => {
-    const user = await userStore.get({
-      id
-    });
-
-    return user!; // TODO: why isn't undefined supported?
-  });
-
-  return {
-    createUser,
-    getUser,
-    getUserFn,
-    userStore,
-  };
-};
+export class Post extends Record('Post', {
+  /**
+   * ID
+   */
+  id: ID,
+  title: string,
+  content: string,
+  category: string,
+  timestamp
+}) {}
 
 export class PostStore extends DynamoDB.Table.NewType({
   data: Post,
@@ -128,14 +78,21 @@ export class PostStore extends DynamoDB.Table.NewType({
   }
 }) {}
 
-class GetPostTrait extends Trait(Query, {
+/**
+ * A user record exposes a feed of `Post`.
+ */
+export class FeedTrait extends Trait(User, {
+  feed: array(Post)
+}) {}
+
+export class GetPostTrait extends Trait(Query, {
   getPost: VFunction({
     args: { id: ID, },
     returns: Post
   })
 }) {}
 
-class CreatePostTrait extends Trait(Mutation, {
+export class CreatePostTrait extends Trait(Mutation, {
   /**
    * Function documentation goes here.
    */
@@ -149,69 +106,93 @@ export class RelatedPostsTrait extends Trait(Post, {
   post: array(Post)
 }) {}
 
+/**
+ * User API component - implements the query, mutations and field
+ * resolvers for Users.
+ *
+ * @param scope in which to install the component
+ * @param props api to add UserAPI to
+ */
+export const UserApi = (
+  scope: Scope,
+  props: {
+    postStore: PostStore,
+    userStore?: UserStore
+  }
+) => {
+  const userStore = props.userStore || new UserStore(scope, 'UserStore');
+
+  const createUser = new CreateUserTrait({
+    *createUser({alias}) {
+      const id = yield* $util.autoId();
+
+      return yield* userStore.put({
+        id,
+        alias,
+      });
+    }
+  });
+
+  const getUser = new GetUserTrait({
+    *getUser({id}) {
+      return yield* userStore.get({id});
+    }
+  });
+
+  return {
+    createUser,
+    getUser,
+    userStore,
+  };
+};
+
 export const PostApi = (scope: Scope) => {
   // const postStore = new PostStore(scope, 'PostStore');
   const postStore = new PostStore(scope, 'PostStore');
 
   const getPost = new GetPostTrait({
     *getPost({id}) {
-      const item = yield* postStore.get({
-        id
-      });
-
-      const p = yield* getPostFn.invoke(id);
-
-      return p;
+      return yield* postStore.get({id});
     }
   });
 
   const createPost = new CreatePostTrait({
     *createPost(input) {
-      const id = $util.autoId();
+      const id = yield* $util.autoId();
+      const timestamp = yield* $util.time.nowISO8601();
+
+      const i: VNothing = yield* $if(input.title.isEmpty(), () =>
+        $util.error(VTL.string`Title must be non empty: ${id}`)
+      );
 
       const post = yield* postStore.put({
         id,
         title: input.title,
         content: input.content,
         category: id,
-        timestamp: id as any
+        timestamp
       });
 
       return post;
     }
   });
 
-  const relatedPostIndex = postStore.globalIndex({
-    indexName: 'related-posts',
-    key: {
-      partition: 'category',
-      sort: 'timestamp'
-    }
-  });
+  // const relatedPostIndex = postStore.globalIndex({
+  //   indexName: 'related-posts',
+  //   key: {
+  //     partition: 'category',
+  //     sort: 'timestamp'
+  //   }
+  // });
 
-  new RelatedPostsTrait({
-    *post() {
-      return (yield* getPostFn.invoke(this.id)) as any;
-    }
-  });
+  // const relatedPosts = new RelatedPostsTrait({
+  //   *post() {
+  //     return (yield* getPostFn.invoke(this.id)) as any;
+  //   }
+  // });
 
-  const getPostFn = new Lambda.Function(scope, 'getPost', {
-    request: string,
-    response: Post,
-    depends: postStore.readAccess()
-  }, async (id, posts) => {
-    const p = await posts.get({
-      id
-    });
-    if (p === undefined) {
-      throw new Error('not found');
-    }
-
-    return p;
-  });
 
   return {
-    getPostFn,
     getPost,
     createPost,
     postStore,
@@ -221,7 +202,7 @@ export const PostApi = (scope: Scope) => {
 const app = new App();
 const stack = app.stack('stack');
 
-const {createPost, getPost, postStore, getPostFn } = PostApi(stack);
+const {createPost, getPost, postStore } = PostApi(stack);
 
 const {createUser, userStore, getUser } = UserApi(stack, {
   postStore
@@ -230,22 +211,22 @@ const {createUser, userStore, getUser } = UserApi(stack, {
 export type Static<T> = T;
 export interface MyApi extends Static<typeof MyApi> {}
 
-// concatenate all the fragments into a single type system
-const types = createUser
-  .include(getPost)
-  .include(getUser)
-  .include(createPost)
-;
 
 // instantiate an API with that type system
 const MyApi = new Api(stack, 'MyApi', {
   name: 'MyApi',
   // root of query starts at the `Query` type
   query: Query,
-  types
+  // root of mutation starts at the `Mutation` type
+  mutation: Mutation,
+  // concatenate all the fragments into a single type system
+  types: createUser
+    .include(getPost)
+    .include(getUser)
+    .include(createPost)
 });
+
 export function doStuffWithApi(api: MyApi) {
-  // api.Types
 }
 
 // const {Post, graphql} = PostApi(stack);

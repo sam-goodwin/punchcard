@@ -1,6 +1,6 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordMembers, RecordShape } from './record';
 import type { Shape } from './shape';
 
@@ -13,6 +13,7 @@ export interface ShapeVisitor<T = unknown, C = undefined> {
   functionShape(shape: FunctionShape<FunctionArgs, Shape>): T;
   integerShape(shape: IntegerShape, context: C): T;
   mapShape(shape: MapShape<Shape>, context: C): T;
+  neverShape(shape: NeverShape, context: C): T;
   nothingShape(shape: NothingShape, context: C): T;
   numberShape(shape: NumberShape, context: C): T;
   setShape(shape: SetShape<Shape>, context: C): T;

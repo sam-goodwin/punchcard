@@ -1,6 +1,6 @@
 // tslint:disable: ban-types
 
-import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShape, Pointer, RecordShape, SetShape, Shape, StringShape, Record, string } from '@punchcard/shape';
+import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShape, Pointer, RecordShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
 import { VExpression } from '../syntax/expression';
 import { VAny } from './any';
 import { VBool } from './bool';
@@ -9,6 +9,7 @@ import { VMap } from './map';
 import { VInteger, VNumber } from './numeric';
 import { VRecord } from './record';
 import { VString } from './string';
+import { VTimestamp } from './timestamp';
 
 // export const Shape = Symbol.for('GraphQL.Shape');
 export const type = Symbol.for('GraphQL.Type');
@@ -43,6 +44,7 @@ export namespace VObject {
     T extends IntegerShape ? VInteger :
     T extends NumberShape ? VNumber :
     T extends StringShape ? VString :
+    T extends TimestampShape ? VTimestamp :
 
     VObject<T>
     ;

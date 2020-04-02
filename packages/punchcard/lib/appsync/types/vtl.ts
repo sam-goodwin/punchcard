@@ -6,6 +6,10 @@ import { type, VObject } from './object';
 import { VString } from './string';
 import { Visitor } from './visitor';
 
+export function vtl() {
+  
+}
+
 export type VTL<T> = Generator<unknown, T>;
 
 export namespace VTL {

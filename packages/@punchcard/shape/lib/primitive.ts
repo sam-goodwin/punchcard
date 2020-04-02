@@ -65,6 +65,11 @@ export class NothingShape extends Shape {
   public readonly FQN: 'nothing' = 'nothing';
 }
 
+export class NeverShape extends Shape {
+  public readonly Kind: 'neverShape' = 'neverShape';
+  public readonly FQN: 'never' = 'never';
+}
+
 export const nothing = new NothingShape();
 export const any = new AnyShape();
 export const unknown = new UnknownShape();
