@@ -6,7 +6,7 @@ import type * as lambda from '@aws-cdk/aws-lambda';
 
 import { Json } from '@punchcard/shape-json';
 
-import { any, AnyShape, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, Mapper, MapperFactory, MapShape, NothingShape, NumberShape, Pointer, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Value } from '@punchcard/shape';
+import { any, AnyShape, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, Mapper, MapperFactory, MapShape, NeverShape, NothingShape, NumberShape, Pointer, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Value } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { VExpression } from '../appsync/syntax/expression';
 import { $if } from '../appsync/syntax/if';
@@ -212,8 +212,9 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
   }
 
 
-  public invoke(request: VObject.Of<T>): Generator<unknown, VObject.Of<U>> {
+  public invoke(request: VObject.Of<T>): VTL  <VObject.Of<U>> {
     // todo
+    throw new Error('not implemented');
   }
 
   public invokeF(request: VObject.Of<T>): StatementF<VObject.Of<U>> {
@@ -348,6 +349,9 @@ function toJson(obj: VObject.Like<any>): VExpression {
  * Transforms a VObject.Like to a VExpression so that it may be written to the output.
  */
 class ToVExpressionVisitor implements ShapeVisitor<VExpression, VObject.Like<Shape>> {
+  neverShape(shape: NeverShape, context: VObject<Shape>): VExpression {
+    throw new Error("Method not implemented.");
+  }
   functionShape(shape: FunctionShape<FunctionArgs, Shape>): VExpression {
     throw new Error("Method not implemented.");
   }

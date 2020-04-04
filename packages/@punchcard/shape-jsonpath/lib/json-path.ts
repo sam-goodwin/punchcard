@@ -1,7 +1,7 @@
 import { ShapeVisitor, Value } from '@punchcard/shape';
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
-import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { RecordShape } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Writer } from './writer';
@@ -405,6 +405,9 @@ export namespace JsonPath {
 }
 
 class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
+  public neverShape(shape: NeverShape, context: JsonPath.ExpressionNode<any>) {
+    throw new Error("NeverShape is not supported by JSON Path");
+  }
   public functionShape(shape: FunctionShape<FunctionArgs, Shape>) {
     throw new Error("FunctionShape is not supported by JSON Path");
   }

@@ -2,7 +2,7 @@ import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection'
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
 import { Mapper, ValidatingMapper } from '@punchcard/shape/lib/mapper';
-import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from '@punchcard/shape/lib/primitive';
+import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from '@punchcard/shape/lib/primitive';
 import { RecordMembers, RecordShape, RecordType } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { isOptional } from '@punchcard/shape/lib/traits';
@@ -93,8 +93,11 @@ export namespace Json {
   }
 
   export class MapperVisitor implements ShapeVisitor<Mapper<any, any>> {
+    public neverShape(shape: NeverShape, context: undefined): Mapper<any, any> {
+      throw new Error("NeverShape is not supported by JSON");
+    }
     public functionShape(shape: FunctionShape<FunctionArgs, Shape>): Mapper<any, any> {
-      throw new Error("Functions are not supported by JSON");
+      throw new Error("FunctionShape is not supported by JSON");
     }
     public nothingShape(shape: NothingShape, context: undefined): Mapper<void, any> {
       return {

@@ -1,4 +1,4 @@
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, Meta, NumberShape, RecordShape, Shape, ShapeVisitor, StringShape, TimestampShape } from '@punchcard/shape';
+import { BinaryShape, BoolShape, DynamicShape, IntegerShape, Meta, NeverShape, NumberShape, RecordShape, Shape, ShapeVisitor, StringShape, TimestampShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
@@ -10,6 +10,9 @@ import { AnySchema, BinarySchema, BoolSchema, IntegerSchema, NothingSchema, Numb
  * Transforms a Shape into its corresponding JSON Schema representation.
  */
 export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema, undefined> {
+  public neverShape(shape: NeverShape, context: undefined): JsonSchema {
+    throw new Error("JSON schema does not support never types");
+  }
   public functionShape(shape: FunctionShape<FunctionArgs, Shape>): JsonSchema {
     throw new Error("JSON schema does not support function types");
   }

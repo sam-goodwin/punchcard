@@ -47,9 +47,12 @@ export namespace RecordMembers {
  * @typeparam M record members (key-value pairs of shapes)
  * @typeparam I instance type of this Record (the value type)
  */
-export class RecordShape<M extends RecordMembers = any, FQN extends string = string> extends Shape {
+export class RecordShape<M extends RecordMembers = RecordMembers, FQN extends string | undefined = string | undefined> extends Shape {
   public readonly Kind: 'recordShape' = 'recordShape';
 
+  /**
+   * Globally unique identifier of this record type.
+   */
   public readonly FQN: FQN;
 
   [key: string]: any;
@@ -101,12 +104,7 @@ export type RecordValues<M extends RecordMembers> = {
   [m in RequiredKeys<M>]-?: Value.Of<Pointer.Resolve<M[m]>>;
 };
 
-export interface RecordType<M extends RecordMembers = any, FQN extends string = string> extends RecordShape<M, FQN> {
-  /**
-   * Globally unique identifier of this record type.
-   */
-  readonly FQN: FQN;
-
+export interface RecordType<M extends RecordMembers = any, FQN extends string | undefined = string> extends RecordShape<M, FQN> {
   /**
    * Constructor takes values for each member.
    */
@@ -170,10 +168,15 @@ export interface RecordType<M extends RecordMembers = any, FQN extends string = 
  * @param members key-value pairs of members and their shape (type).
  */
 // export function Record<T extends RecordMembers = any>(members: T): RecordType<T>;
-export function Record<FQN extends string, T extends RecordMembers = any>(fqn: FQN, members: T): RecordType<T, FQN> {
+export function Record<FQN extends string, T extends RecordMembers = any>(members: T): RecordType<T, undefined>;
+export function Record<FQN extends string, T extends RecordMembers = any>(fqn: FQN, members: T): RecordType<T, FQN>;
+
+export function Record<T extends RecordMembers>(a: any, b?: any) {
+  const FQN = typeof a === 'string' ? a : undefined;
+  const members = typeof b === 'undefined' ? a : b;
 // export function Record<T extends RecordMembers = any>(members: T): RecordType<T> {
   class NewType {
-    public static readonly FQN: FQN = fqn;
+    public static readonly FQN: string | undefined = FQN;
 
     public static Extend<FQN extends string, M extends RecordMembers>(fqn: FQN, members: RowLacks<M, keyof T>): Extend<T, FQN, M> {
       return Extend(this as any, fqn, members) as any;
@@ -192,7 +195,7 @@ export function Record<FQN extends string, T extends RecordMembers = any>(fqn: F
     }
   }
 
-  const shape = new RecordShape<T>(members, {});
+  const shape = new RecordShape<T, any>(members, {});
   Object.assign(NewType, shape);
   (NewType as any).visit = shape.visit.bind(NewType);
   (NewType as any).apply = shape.apply.bind(NewType);

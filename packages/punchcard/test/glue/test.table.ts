@@ -9,11 +9,11 @@ import { Build } from '../../lib/core/build';
 // tslint:disable-next-line: ordered-imports
 import { bigint, tinyint, smallint, char, varchar, float, double, DataType } from '@punchcard/shape-hive';
 
-class Struct extends Record({
+class Struct extends Record('Struct', {
   a: integer
 }) {}
 
-class MyTable extends Record({
+class MyTable extends Record('MyTable', {
   boolean: bool,
   binary,
   str: string,

@@ -1,6 +1,6 @@
 import { array, optional, Record, string } from '@punchcard/shape';
-import { VExpression } from '../syntax';
-import { VTL } from '../types';
+import { VExpression } from '../expression';
+import { VTL } from '../vtl';
 
 /**
  * @see https://docs.aws.amazon.com/appsync/latest/devguide/resolver-context-reference.html#aws-appsync-resolver-context-reference-identity

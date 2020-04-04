@@ -1,5 +1,5 @@
 import { ArrayShape, BinaryShape, BoolShape, MapShape, NumericShape, Pointer, RecordShape, RecordType, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
-import { type, VBool, VInteger, VList, VNumber, VObject, VString } from '../types';
+import { VBool, VInteger, VList, VNumber, VObject, VString } from '../vtl-object';
 
 export class $DynamoDBUtil {
   /**
@@ -10,7 +10,7 @@ export class $DynamoDBUtil {
    *
    * @param object value to convert to its DynamoDB encoding
    */
-  public toDynamoDB<T extends VObject>(object: T): VObject.Of<ToDynamoDBJson<T[typeof type]>> {
+  public toDynamoDB<T extends VObject>(object: T): VObject.Of<ToDynamoDBJson<VObject.TypeOf<T>>> {
     throw new Error('todo');
   }
 
@@ -28,7 +28,7 @@ export class $DynamoDBUtil {
     throw new Error('todo');
   }
 
-  public toNumber<N extends VInteger | VNumber>(number: N): VObject.Of<ToDynamoDBJson<N[typeof type]>> {
+  public toNumber<N extends VInteger | VNumber>(number: N): VObject.Of<ToDynamoDBJson<VObject.TypeOf<N>>> {
     throw new Error('todo');
   }
 

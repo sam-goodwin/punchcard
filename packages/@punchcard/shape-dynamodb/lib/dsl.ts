@@ -46,6 +46,9 @@ export namespace DSL {
     functionShape: (() => {
       throw new Error(`functionShape is not valid on a DynamoDB DSL`);
     }) as any,
+    neverShape: (() => {
+      throw new Error(`neverShape is not valid on a DynamoDB DSL`);
+    }) as any,
     nothingShape: (shape: NothingShape, expression: ExpressionNode<any>): Object<NothingShape> => {
       return new Object(shape, expression);
     },

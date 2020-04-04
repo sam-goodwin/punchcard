@@ -1,15 +1,6 @@
-import { Shape } from '@punchcard/shape';
-import { ResolverImpl } from './syntax/resolver';
-import { TraitImplIndex } from './trait';
+import { TypeSpec, TypeSystem } from './type-system';
 
-/**
- *
- */
-export interface ResolverFieldImpls {
-  [fieldName: string]: ResolverImpl<{}, Shape>;
-}
-
-export class ApiFragment<I extends TraitImplIndex = {}> {
+export class ApiFragment<I extends TypeSystem = any> {
   constructor(public readonly Types: I) {}
 
   // Can't figure out how to do this miultiplication over a tuple of arbitrary arity.
@@ -54,41 +45,49 @@ export class ApiFragment<I extends TraitImplIndex = {}> {
     I & F1['Types'] & F2['Types'] & F3['Types'] & F4['Types']
   >;
 
+  public include<
+    F1 extends ApiFragment,
+    F2 extends ApiFragment,
+    F3 extends ApiFragment,
+    F4 extends ApiFragment,
+    F5 extends ApiFragment,
+  >(
+    f1: F1,
+    f2: F2,
+    f3: F3,
+    f4: F4,
+    f5: F5
+  ): ApiFragment<
+    I & F1['Types'] & F2['Types'] & F3['Types'] & F4['Types'] & F5['Types']
+  >;
+
   /**
    * Coalesce this fragment with a collection of other fragments.
    */
   public include<F extends ApiFragment[]>(
     ...fragments: F
   ): ApiFragment {
-    const implIndex: TraitImplIndex = {};
-    const query = {};
-    const mutation = {};
+    const implIndex: TypeSystem = {};
     for (const fragment of fragments) {
-      for (const [fqn, impl] of Object.entries(fragment.Types)) {
-        const prev = implIndex[fqn];
-        const i = (impl as Resolvers);
+      for (const typeSpec of Object.values(fragment.Types) as TypeSpec[]) {
+        const prev = implIndex[typeSpec.type.FQN];
         if (prev !== undefined) {
-          implIndex[fqn] = {
-            type: i.type,
-            fields,
-            impl: (self: any) => {
-              const a = prev.impl(self);
-              const b = i.fields(self);
-              return {
-                ...a,
-                ...b
-              };
+          implIndex[typeSpec.type.FQN] = {
+            type: typeSpec.type,
+            fields: {
+              ...prev.fields,
+              ...typeSpec.fields
+            },
+            resolvers: {
+              ...prev.resolvers,
+              ...typeSpec.resolvers
             }
           };
         } else {
-          implIndex[fqn] = i;
+          implIndex[typeSpec.type.fqn] = typeSpec;
         }
       }
     }
-    return new ApiFragment({
-      types: implIndex,
-      mutation,
-      query
-    });
+    return new ApiFragment(implIndex);
   }
 }

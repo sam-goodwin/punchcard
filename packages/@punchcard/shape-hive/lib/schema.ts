@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Trait } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 
 import { KeysOfType } from 'typelevel-ts';
@@ -62,10 +62,13 @@ export function schema<T extends RecordShape<any>>(shape: T): Columns<T> {
 }
 
 export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
+  public neverShape(shape: NeverShape, context: null): glue.Type {
+    throw new Error('Never shape is not supported by Hive');
+  }
   public static readonly instance = new SchemaVisitor();
 
   public functionShape(shape: FunctionShape<FunctionArgs, Shape>): glue.Type {
-    throw new Error('Function shape kis not supported by Hive');
+    throw new Error('Function shape is not supported by Hive');
   }
   public nothingShape(shape: NothingShape, context: null): glue.Type {
     throw new Error(`Nothing Shape is not supported by Glue.`);

@@ -1,6 +1,3 @@
-import { Shape } from '@punchcard/shape';
-import { Frame } from '../intepreter/frame';
-
 export class VExpression {
   public static text(text: string) {
     return new VExpression(text);

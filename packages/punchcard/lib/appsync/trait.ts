@@ -1,8 +1,10 @@
 
-import { Pointer, RecordMembers, RecordShape, ShapeGuards } from '@punchcard/shape';
+import { RecordMembers, RecordShape } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
 import { ApiFragment } from './fragment';
-import { VObject } from './types/object';
+import { TypeSystem } from './type-system';
+import { VTL } from './vtl';
+import { VObject } from './vtl-object';
 
 /**
  * Defines a Trait for some type.
@@ -10,7 +12,7 @@ import { VObject } from './types/object';
  * @param type to define the trait for - must be a Record.
  * @param fields new fields to associate with the type.
  */
-export function Trait<T extends RecordShape, F extends RecordMembers>(
+export function Trait<T extends RecordShape<any, string>, F extends RecordMembers>(
   type: T,
   fields: F
 ): TraitClass<T, F> {
@@ -24,7 +26,7 @@ export function Trait<T extends RecordShape, F extends RecordMembers>(
   };
 }
 
-export interface TraitClass<T extends RecordShape, F extends RecordMembers> {
+export interface TraitClass<T extends RecordShape<any, string>, F extends RecordMembers> {
   readonly type: T;
   readonly fields: F
 
@@ -34,13 +36,13 @@ export interface TraitClass<T extends RecordShape, F extends RecordMembers> {
 /**
  * A Trait Fragment
  */
-export class TraitFragment<T extends RecordShape, F extends RecordMembers> extends ApiFragment<{
+export class TraitFragment<T extends RecordShape<any, string>, F extends RecordMembers> extends ApiFragment<{
   [fqn in T['FQN']]: {
     type: T;
-    fields: F;
-    impl: TraitImpl<T, F>;
+    fields: F & T['Members'];
+    resolvers: TraitImpl<T, F>;
   };
-}> {
+} & TypeSystem.Collect<F>> {
   constructor(
     public readonly type: T,
     public readonly fields: F,
@@ -62,27 +64,10 @@ export class TraitFragment<T extends RecordShape, F extends RecordMembers> exten
 export type TraitImpl<T extends RecordShape, F extends RecordMembers> = {
   [f in keyof F]: F[f] extends FunctionShape<infer Args, infer Returns> ?
     // if it's a Function type, expect a function taking those args and returning an object
-    (
-      args: {
-        [arg in keyof Args]: VObject.Of<Args[arg]>;
-      },
-      self: VObject.Of<Pointer.Resolve<T>> // self is passed as the last argument so it can be easily ignored in favor of `this`
-    ) => Generator<unknown, VObject.Of<Returns>> :
+    (args: {
+      [arg in keyof Args]: VObject.Of<Args[arg]>;
+    }, self: VObject.Of<T>) => VTL<VObject.Of<Returns>> :
     // no args if it is not a Function type
-    (
-      self: VObject.Of<T> // self is passed as the last argument so it can be easily ignored in favor of `this`
-    ) => Generator<unknown, VObject.Of<F[f]>>
+    (self: VObject.Of<T>) => VTL<VObject.Of<F[f]>>
 } & ThisType<VObject.Of<T>> // make the value of self also available as `this`. (optional syntactic sugar).
 ;
-
-/**
- * A map from a type's FQN to its field-level resolvers.
- */
-export type TraitImplIndex = {
-  [fqn in string]: {
-    type: RecordShape<{}, fqn>;
-    fields: RecordMembers;
-    impl: TraitImpl<RecordShape<{}, fqn>, {}>;
-  };
-};
-

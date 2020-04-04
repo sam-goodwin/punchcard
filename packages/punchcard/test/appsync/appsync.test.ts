@@ -2,10 +2,11 @@ import 'jest';
 
 import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape, timestamp } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $context, $else, $if, VBool, VObject, VString } from '../../lib/appsync';
+import { $else, $if } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { Trait } from '../../lib/appsync/trait';
 import { ID, VList, VNothing, VTL } from '../../lib/appsync/types';
+import { VNever } from '../../lib/appsync/types/never';
 import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
 import { Scope } from '../../lib/core/construct';
@@ -97,13 +98,13 @@ export class CreatePostTrait extends Trait(Mutation, {
    * Function documentation goes here.
    */
   createPost: VFunction({
-    args: { title: string, content: string },
+    args: { title: string, content: string, category: string },
     returns: Post
   }),
 }) {}
 
 export class RelatedPostsTrait extends Trait(Post, {
-  post: array(Post)
+  relatedPosts: array(Post)
 }) {}
 
 /**
@@ -150,30 +151,34 @@ export const PostApi = (scope: Scope) => {
 
   const getPost = new GetPostTrait({
     *getPost({id}) {
-      return yield* postStore.get({id});
+      return yield* postStore.get({
+        id
+      });
     }
   });
 
   const createPost = new CreatePostTrait({
-    *createPost(input) {
+    *createPost(input, self) {
       const id = yield* $util.autoId();
       const timestamp = yield* $util.time.nowISO8601();
 
-      const i: VNothing = yield* $if(input.title.isEmpty(), () =>
-        $util.error(VTL.string`Title must be non empty: ${id}`)
-      );
+      yield* $if(input.title.isEmpty(), function*() {
+        const msg = yield* VTL.string`Title must be non empty: ${input.title}`;
+        yield* $util.error(msg);
+      });
 
       const post = yield* postStore.put({
         id,
         title: input.title,
+        category: input.category,
         content: input.content,
-        category: id,
         timestamp
       });
 
       return post;
     }
   });
+
 
   // const relatedPostIndex = postStore.globalIndex({
   //   indexName: 'related-posts',
@@ -183,23 +188,25 @@ export const PostApi = (scope: Scope) => {
   //   }
   // });
 
-  // const relatedPosts = new RelatedPostsTrait({
-  //   *post() {
-  //     return (yield* getPostFn.invoke(this.id)) as any;
-  //   }
-  // });
+  const relatedPosts = new RelatedPostsTrait({
+    *relatedPosts(self) {
+      throw new Error('not implemented');
+      // return (yield* getPostFn.invoke(this.id)) as any;
+    }
+  });
 
   return {
     getPost,
     createPost,
     postStore,
+    relatedPosts
   };
 };
 
 const app = new App();
 const stack = app.stack('stack');
 
-const {createPost, getPost, postStore } = PostApi(stack);
+const {createPost, getPost, postStore, relatedPosts } = PostApi(stack);
 
 const {createUser, userStore, getUser } = UserApi(stack, {
   postStore
@@ -208,35 +215,20 @@ const {createUser, userStore, getUser } = UserApi(stack, {
 export type Static<T> = T;
 export interface MyApi extends Static<typeof MyApi> {}
 
-
 // instantiate an API with that type system
 const MyApi = new Api(stack, 'MyApi', {
   name: 'MyApi',
   // root of query starts at the `Query` type
-  query: Query,
+  query: 'Query',
   // root of mutation starts at the `Mutation` type
-  mutation: Mutation,
+  mutation: 'Mutation',
   // concatenate all the fragments into a single type system
   types: createUser
     .include(getPost)
     .include(getUser)
     .include(createPost)
+    .include(relatedPosts)
 });
 
-export function doStuffWithApi(api: MyApi) {
-}
 
-// const {Post, graphql} = PostApi(stack);
-// export class Post extends Post.Record {}
-
-// it('should', () => {
-//   const a = Build.resolve(postApi.resource);
-//   // const record = foldFree(identity)(stmt => {
-//   //   if (StatementGuards.isCall(stmt)) {
-//   //     console.log(VInterpreter.render(stmt.request));
-//   //   }
-//   //   return null as any;
-//   // }, a);
-//   // console.log(record);
-//   // console.log(VInterpreter.render(record));
-// });
+export function doStuffWithApi(api: MyApi) {}

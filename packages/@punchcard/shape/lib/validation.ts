@@ -2,7 +2,7 @@ import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
 import { Meta } from './metadata';
 import { Trait } from './metadata';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape } from './record';
 import { Shape } from './shape';
 import { Value } from './value';
@@ -35,6 +35,9 @@ export namespace Validator {
   }
 
   class Visitor implements ShapeVisitor<Validator<any>[], string> {
+    public neverShape(shape: NeverShape, context: string): Validator<any>[] {
+      return [];
+    }
     public functionShape(shape: FunctionShape<FunctionArgs, Shape>): Validator<any>[] {
       return [];
     }

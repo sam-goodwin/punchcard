@@ -1,9 +1,14 @@
+import type * as cdk from '@aws-cdk/core';
+import type { DeliveryStream as DeliveryStreamConstruct } from '@punchcard/constructs';
+
 import AWS = require('aws-sdk');
 
 import { Mapper, Shape, Value } from '@punchcard/shape';
+import { DataType } from '@punchcard/shape-hive';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
+import { Duration } from '../core/duration';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import * as Kinesis from '../kinesis';
@@ -14,12 +19,6 @@ import { Compression } from '../util/compression';
 import { Client } from './client';
 import { FirehoseEvent, FirehoseResponse, FirehoseResponseRecord, ValidationResult } from './event';
 import { Objects } from './objects';
-
-import { DataType } from '@punchcard/shape-hive';
-
-import type * as cdk from '@aws-cdk/core';
-import type { DeliveryStream as DeliveryStreamConstruct } from '@punchcard/constructs';
-import { Duration } from '../core/duration';
 
 export type DeliveryStreamProps<T extends Shape> = DeliveryStreamDirectPut<T> | DeliveryStreamFromKinesis<T>;
 

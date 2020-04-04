@@ -236,8 +236,8 @@ function velocityTemplate<S extends Shape>(
       } else if (typeof mapping === 'object') {
         template += `"${name}": {\n`;
         Object.keys(mapping).forEach((childName, i) => {
-          const childShape = (shape.Members[childName]).Shape;
-          walk(childShape, childName, (mapping as any)[childName], depth + 1);
+          const childShape = shape.Members[childName];
+          walk(childShape as any, childName, (mapping as any)[childName], depth + 1);
           if (i + 1 < Object.keys(mapping).length) {
             template += ',\n';
           } else {
@@ -248,7 +248,7 @@ function velocityTemplate<S extends Shape>(
         throw new Error(`unexpected type when generating velocity template: ${typeof mapping}`);
       }
     } else {
-      const field = shape.Members[name].Shape;
+      const field = shape.Members[name];
       let path: string;
       if (ShapeGuards.isStringShape(field) || ShapeGuards.isTimestampShape(field)) {
         path = `"$inputRoot.${name}"`;

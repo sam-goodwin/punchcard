@@ -62,18 +62,6 @@ export namespace AttributeValue {
     M: {
       [m in keyof RecordMembers.Natural<T>]: AttributeValue.Of<RecordMembers.Natural<T>[m]>;
     }
-    // M: {
-    //   /**
-    //    * Write each member and their documentation to the structure.
-    //    * Write them all as '?' for now.
-    //    */
-    //   [M in keyof T]+?: AttributeValue.Of<Shape.Resolve<T[M]>>;
-    // } & {
-    //   /**
-    //    * Remove '?' from required properties.
-    //    */
-    //   [M in RequiredKeys<T>]-?: AttributeValue.Of<T[M]>;
-    // };
   }
   export interface NumberValue {
     N: string;

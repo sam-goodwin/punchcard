@@ -159,17 +159,8 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     throw new Error('todo');
   }
 
-  public putF(value: VObject.Of<DataType>): StatementF<VObject.Of<DataType>> {
-    throw new Error('todo');
-  }
-
   public get(key: KeyGraphQLRepr<DataType, Key>): VTL<VObject.Of<DataType>> {
     throw new Error('todo');
-  }
-
-  public getF(key: KeyGraphQLRepr<DataType, Key>): StatementF<VObject.Of<DataType>> {
-    throw new Error('todo');
-    // return call(this, );
   }
 
   /**

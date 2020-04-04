@@ -1,6 +1,6 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
-import { FunctionShape } from './function';
-import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
+import { FunctionArgs, FunctionShape } from './function';
+import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
 import { RecordShape } from './record';
 import { Shape } from './shape';
 
@@ -45,8 +45,8 @@ export namespace ShapeGuards {
       throw new Error(`${a} is not of type: BoolShape`);
     }
   };
-  export const isFunctionShape = (a: any): a is FunctionShape<{}, Shape> => isShape(a) && a.Kind === 'boolShape';
-  export const assertFunctionShape = (a: any): asserts a is FunctionShape<{}, Shape> => {
+  export const isFunctionShape = (a: any): a is FunctionShape<FunctionArgs, Shape> => isShape(a) && a.Kind === 'boolShape';
+  export const assertFunctionShape = (a: any): asserts a is FunctionShape<FunctionArgs, Shape> => {
     if (!isFunctionShape(a)) {
       throw new Error(`${a} is not of type: FunctionShape`);
     }
@@ -62,6 +62,12 @@ export namespace ShapeGuards {
   export const assertMapShape = (a: any): asserts a is MapShape<any> => {
     if (!isMapShape(a)) {
       throw new Error(`${a} is not of type: MapShape`);
+    }
+  };
+  export const isNeverShape = (a: any): a is NeverShape => isShape(a) && a.Kind === 'neverShape';
+  export const assertNeverShape = (a: any): asserts a is NeverShape => {
+    if (!isNeverShape(a)) {
+      throw new Error(`${a} is not of type: NeverShape`);
     }
   };
   // numeric

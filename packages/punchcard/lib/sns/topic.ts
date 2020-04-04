@@ -15,7 +15,7 @@ import { Notifications } from './notifications';
 import type * as sns from '@aws-cdk/aws-sns';
 import type * as cdk from '@aws-cdk/core';
 
-export interface TopicProps<T extends Shape.Like = AnyShape> {
+export interface TopicProps<T extends Shape = AnyShape> {
   /**
    * Shape of data in the topic.
    *

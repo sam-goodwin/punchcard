@@ -284,7 +284,7 @@ export interface IndexClientProps<T extends RecordShape<any>, K extends DDB.KeyO
 /**
  * Client to Query and Scan a DynamoDB Index.
  */
-export class IndexClient<T extends RecordShape<any>, K extends DDB.KeyOf<T>> extends BaseClient<T, K> {
+export class IndexClient<T extends RecordShape, K extends DDB.KeyOf<T>> extends BaseClient<T, K> {
   constructor(config: IndexClientProps<T, K>) {
     super(config);
   }

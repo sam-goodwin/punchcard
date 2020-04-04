@@ -1,12 +1,8 @@
 import { bool, never, string } from '@punchcard/shape';
-import { VExpression } from '../syntax/expression';
-import { set, StatementF } from '../syntax/statement';
-import { VTL } from '../types';
-import { VBool } from '../types/bool';
-import { VNever } from '../types/never';
-import { VNothing } from '../types/nothing';
-import { expr, VObject } from '../types/object';
-import { VString } from '../types/string';
+import { VExpression } from '../expression';
+import { set } from '../statement';
+import { VTL } from '../vtl';
+import { VBool, VNever, VNothing, VObject, VString } from '../vtl-object';
 import { $DynamoDBUtil as DynamoDBUtil } from './dynamodb';
 import { $ListUtil as ListUtil } from './list';
 import { TimeUtil } from './time';
@@ -15,31 +11,22 @@ export class Util {
   public validate(condition: VBool, message: VString | string, errorType?: VString | string): VTL<VNever> {
     throw new Error('todo');
   }
-  public validateF(condition: VBool, message: VString | string, errorType?: VString | string): StatementF<VNothing> {
-    return null as any;
-  }
 
   public *autoId(): VTL<VString> {
     // return yield new Statements.Set(value, id);
     return yield* set(new VString(string, new VExpression('$util.autoId()')));
   }
 
-  public matches(regex: RegExp | string): StatementF<VBool> {
+  public matches(regex: RegExp | string): VTL<VBool> {
     throw new Error('todo');
   }
 
   public *error(message: VString): VTL<VNever> {
-    return yield* set(new VNever(never, new VExpression(frame => {
-
-    })));
+    return yield* set(new VNever(never, new VExpression(() => `$util.error(${message[expr].visit()})`)));
   }
 
   public isNull(value: VObject): VBool {
-    return new VBool(bool, new VExpression((frame) => {
-      frame.print(`$util.isNull(`);
-      value[expr].visit(frame);
-      frame.print(')');
-    }));
+    return new VBool(bool, new VExpression(() => `$util.isNull(${value[expr].visit()})`));
   }
 
   public readonly dynamodb = new DynamoDBUtil();

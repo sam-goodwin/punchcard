@@ -23,7 +23,7 @@ export const L = λ;
 export class ExecutorService {
   constructor(private readonly props: ExecutorServiceProps = {}) {}
 
-  public spawn<T extends Shape.Like, U extends Shape.Like, D extends Dependency<any> = any>(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handler: (event: Value.Of<Shape.Resolve<T>>, clients: Client<D>, context: any) => Promise<Value.Of<Shape.Resolve<U>>>): Function<T, U, D> {
+  public spawn<T extends Shape, U extends Shape, D extends Dependency<any> = any>(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handler: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<Value.Of<U>>): Function<T, U, D> {
     return new Function<T, U, D>(scope, id, this.applyDefaultProps(props), handler);
   }
 

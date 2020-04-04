@@ -1,6 +1,6 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape} from './record';
 import { Shape } from './shape';
 import { Value } from './value';
@@ -41,6 +41,9 @@ export namespace HashCode {
   }
 
   export class Visitor implements ShapeVisitor<HashCode<any>> {
+    public neverShape(shape: NeverShape, context: undefined): HashCode<any> {
+      return _ => { throw new Error(`should never attempt to compute a hash code of never`); };
+    }
     // todo: is this the logic we want?
     public functionShape(shape: FunctionShape<FunctionArgs, Shape>): HashCode<any> {
       return _ => 0;
