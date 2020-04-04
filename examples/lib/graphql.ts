@@ -82,12 +82,15 @@ class PostStore extends DynamoDB.Table.NewType({
 
 /*
 This is a component function. It creates cloud resources and implements
-the API "Traits" we defined above.e
+the API "Traits" we defined above.
 
-Punchcard thinks of the GraphQL type system like a DOM. It's a big graph
-with types connected by fields. A component, then, is simply a function
-that creates constructs and implements "API Fragments" which are then
-assembled into a full GraphQL API specification.
+A component is a lot like a functional React UI component which takes in some
+props, configures some state and renders some HTML nodes. Except, instead
+of a DOM, it's a GraphQL API, and instead of UI state, we're creating and
+connecting to cloud resources such as DynamoDB Tables and Lambda Functions.
+
+This composition model is designed to scale to a React-like ecosystem for 
+Cloud APIs and Applications.
 */
 export const PostApi = (
   scope: Scope,
