@@ -6,7 +6,12 @@ import { ID, Trait, $util, Api, ApiFragment } from 'punchcard/lib/appsync';
 import { Scope } from 'punchcard/lib/core/construct';
 import { VFunction } from '@punchcard/shape/lib/function';
 
-// root of the Query graph
+/*
+schema {
+  Query: Query,
+  Mutation: Mutation
+}
+*/
 class Query extends Record('Query', {}) {}
 class Mutation extends Record('Mutation', {}) {}
 
