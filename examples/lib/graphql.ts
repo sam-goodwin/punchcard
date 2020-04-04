@@ -20,6 +20,7 @@ type Post {
   id: ID!
   title: string!
   content: string!
+  tags: [string!]!
 }
 */
 class Post extends Record('Post', {
@@ -33,6 +34,7 @@ class Post extends Record('Post', {
 input PostInput {
   title: string!
   content: string!
+  tags: [string!]!
 }
 */
 class PostInput extends Post.Omit('PostInput', [
@@ -40,7 +42,7 @@ class PostInput extends Post.Omit('PostInput', [
 ]) {}
 
 /*
-These "Traits" are like interfaces in TypeScript.
+"Traits" are like interfaces in TypeScript.
 
 interface PostQueryAPI {
   getPost: (id: ID) => Post
@@ -115,19 +117,17 @@ export const PostApi = (
   // impl PostMutationAPI on Mutation (adds the `addPost` resolver function to the root of the API)
   const postMutationAPI = new PostMutationAPI(Mutation, {
     *addPost({input}) {
-      // generate an auto id from within VTL
       const id = yield* $util.autoId();
 
-      // call DDB PutItem
-      return yield* postStore.put({
+      const post = yield* postStore.put({
         id,
-        title: input.title,
-        content: input.content,
-        tags: input.tags
+        ...input
       });
+
+      return post;
     }
   });
-
+  
   // impl RelatedPostsAPI on Post (adds a `relatedPosts` resolver)
   const relatedPostsApi = new RelatedPostsAPI(Post, {
     *relatedPosts({tags}) {
@@ -169,7 +169,7 @@ const {
   relatedPostsApi
 } = PostApi(stack);
 
-// Configure the API
+// Configure the API - generates schema and AppSync config (VTL, Resolvers, IAM Roles, etc.).
 const MyApi = new Api(stack, 'MyApi', {
   name: 'MyApi',
   // merge our API fragments into one type-system
