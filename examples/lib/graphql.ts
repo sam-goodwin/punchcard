@@ -86,7 +86,8 @@ the API "Traits" we defined above.e
 
 Punchcard thinks of the GraphQL type system like a DOM. It's a big graph
 with types connected by fields. A component, then, is simply a function
-that returns "API Components".
+that creates constructs and implements "API Fragments" which are then
+assembled into a full GraphQL API specification.
 */
 export const PostApi = (
   scope: Scope,
