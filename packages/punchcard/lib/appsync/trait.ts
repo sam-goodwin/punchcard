@@ -1,4 +1,3 @@
-
 import { RecordMembers, RecordShape } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
 import { ApiFragment } from './fragment';
@@ -7,9 +6,29 @@ import { VTL } from './vtl';
 import { VObject } from './vtl-object';
 
 /**
+ * Helper for extending static interfaces.
+ *
+ * ```ts
+ * const a = 'a';
+ * interface A extends Static<typeof a> {}
+ * ```
+ */
+export type Static<T> = T;
+
+/**
+ * Represents the implementation of a trait.
+ *
+ * @typeparam Target type the implementation is bound to
+ * @typeparam Trait interface that is implemented
+ */
+export interface Impl<
+  Target extends RecordShape<{}, string>,
+  Trait extends TraitClass<{}>
+> extends TraitFragment<Target, Trait['fields']> {}
+
+/**
  * Defines a Trait for some type.
  *
- * @param type to define the trait for - must be a Record.
  * @param fields new fields to associate with the type.
  */
 export function Trait<F extends RecordMembers = RecordMembers>(

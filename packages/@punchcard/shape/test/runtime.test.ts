@@ -1,6 +1,6 @@
 import 'jest';
 
-import { any, array, bool, dsl, Equals, HashCode, HashSet, map, number, optional, Record, set, string, Value} from '../lib';
+import { any, array, bool, Equals, HashCode, HashSet, map, number, optional, Record, set, string, Value} from '../lib';
 
 // tslint:disable: member-access
 class Nested extends Record('Nested', {
@@ -33,8 +33,6 @@ class MyType extends Record('MyType', {
   map: map(string),
   complexMap: map(Nested),
 }) {
-  public static readonly DSL = dsl(MyType);
-
   public getId() {
     return this.id || 'default';
   }

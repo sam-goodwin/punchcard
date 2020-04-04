@@ -98,7 +98,7 @@ Lambda.schedule(stack, 'Caller', {
         item.any.as(integer).greaterThanOrEqual(1),
         item.any.as(array(integer)).equals([1]),
         item.any.as(array(integer))[0].lessThanOrEqual(1),
-        item.any.as(Shape.of(Struct)).equals(new Struct({
+        item.any.as(Struct).equals(new Struct({
           key: 'value',
           number: 1
         })))

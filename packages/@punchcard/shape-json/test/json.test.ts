@@ -1,6 +1,6 @@
 import 'jest';
 
-import { bool, dsl, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, Optional, optional, Pattern, Record, string } from '@punchcard/shape';
+import { bool, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, Optional, optional, Pattern, Record, string } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import { Json } from '../lib';
@@ -42,9 +42,7 @@ class MyType extends Record('MyType', {
 
   null: nothing,
   optional: optional(string)
-}) {
-  public static readonly DSL = dsl(MyType);
-}
+}) {}
 
 const mapper = Json.mapper(MyType);
 

@@ -4,7 +4,7 @@ import { array, boolean, integer, nothing, number, optional, Pointer, Record, Re
 import { VFunction } from '@punchcard/shape/lib/function';
 import { $else, $if, ID, VTL, vtl } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
-import { Trait, TraitClass } from '../../lib/appsync/trait';
+import { Impl, Static, Trait, TraitFragment } from '../../lib/appsync/trait';
 import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
 import { Build } from '../../lib/core/build';
@@ -37,6 +37,9 @@ export class UserStore extends DynamoDB.Table.NewType({
  * @typeparam T type to bind this trait to.
  */
 export const GetUserTrait = Trait({
+  /**
+   * Get User by ID.
+   */
   getUser: VFunction({
     args: { id: ID },
     returns: User
@@ -105,8 +108,7 @@ export const RelatedPostsTrait = Trait({
 });
 
 /**
- * User API component - implements the query, mutations and field
- * resolvers for Users.
+ * User API component - implements the query, mutation resolvers for Users.
  *
  * @param scope in which to install the component
  * @param props api to add UserAPI to
@@ -176,7 +178,6 @@ export const PostApi = (scope: Scope) => {
     }
   });
 
-
   // const relatedPostIndex = postStore.globalIndex({
   //   indexName: 'related-posts',
   //   key: {
@@ -209,7 +210,7 @@ const {createUser, userStore, getUser } = UserApi(stack, {
   postStore
 });
 
-export type Static<T> = T;
+
 export interface MyApi extends Static<typeof MyApi> {}
 
 // instantiate an API with that type system

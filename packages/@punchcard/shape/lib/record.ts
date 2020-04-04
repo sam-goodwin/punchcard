@@ -145,14 +145,33 @@ export interface RecordType<M extends RecordMembers = any, FQN extends string | 
    *   b: string
    * }) {}
    *
-   * class B extends A.Pick(['a']) {}
-   * B.members.a;
-   * B.members.b; // <- compile-time error
+   * class B extends A.Pick(['b']) {}
+   * B.members.b;
+   * B.members.a; // <- compile-time error
    * ```
    *
    * @param members array of members to select
    */
-  Pick<FQN2 extends string, M2 extends (keyof M)[]>(fqn: FQN2, members: M2): Pick<M, FQN2, AssertIsKey<M, ArrayToTuple<M2>>>;
+  Pick<FQN2 extends string, M2 extends (keyof M)[]>(fqn: FQN2, members: M2): PickRecord<M, FQN2, M2>;
+
+  /**
+   * Omit members from a `Record` to create a new `RecordType`.
+   *
+   * Example:
+   * ```ts
+   * class A extends Record({
+   *   a: string,
+   *   b: string
+   * }) {}
+   *
+   * class B extends A.Omit(['a']) {}
+   * B.members.b;
+   * B.members.a; // <- compile-time error
+   * ```
+   *
+   * @param members array of members to select
+   */
+  Omit<FQN2 extends string, M2 extends (keyof M)[]>(fqn: FQN2, members: M2): OmitRecord<M, FQN2, M2>;
 }
 
 /**
@@ -178,12 +197,25 @@ export function Record<T extends RecordMembers>(a: any, b?: any) {
   class NewType {
     public static readonly FQN: string | undefined = FQN;
 
-    public static Extend<FQN extends string, M extends RecordMembers>(fqn: FQN, members: RowLacks<M, keyof T>): Extend<T, FQN, M> {
+    public static Extend<FQN extends string, M extends RecordMembers>(
+      fqn: FQN,
+      members: RowLacks<M, keyof T>
+    ): Extend<T, FQN, M> {
       return Extend(this as any, fqn, members) as any;
     }
 
-    public static Pick<FQN extends string, M extends (keyof T)[]>(fqn: FQN, members: M): Pick<T, FQN, AssertIsKey<T, ArrayToTuple<M>>> {
-      return Pick(this as any, fqn, members);
+    public static Pick<FQN extends string, M extends (keyof T)[]>(
+      fqn: FQN,
+      select: M
+    ): PickRecord<T, FQN, M> {
+      return Pick(members, fqn, select);
+    }
+
+    public static Omit<FQN extends string, M extends (keyof T)[]>(
+      fqn: FQN,
+      select: M
+    ): OmitRecord<T, FQN, M> {
+      return Omit(members, fqn, select) as any;
     }
 
     constructor(values: {
@@ -252,6 +284,16 @@ export function Extend<
  */
 export type Extend<T extends RecordMembers, FQN extends string, M extends RecordMembers> = RecordType<Compact<T & M>, FQN>;
 
+
+/**
+ * Picks members from a `Record` to create a new `RecordType`.
+ */
+export type PickRecord<T extends RecordMembers, FQN extends string, K extends (keyof T)[]> =
+  RecordType<
+    Pick<T, Extract<K[keyof K], number>>,
+    FQN
+  >;
+
 /**
  * Pick members from a `Record` to create a new `RecordType`.
  *
@@ -267,13 +309,17 @@ export type Extend<T extends RecordMembers, FQN extends string, M extends Record
  * B.members.b; // <- compile-time error
  * ```
  *
- * @param type to select from
+ * @param fields to select from
  * @param select array of members to select
  */
-export function Pick<T extends RecordType, FQN extends string, P extends (keyof T['Members'])[]>(type: T, fqn: FQN, select: P): Pick<T['Members'], FQN, AssertIsKey<T['Members'], ArrayToTuple<P>>> {
+export function Pick<T extends RecordMembers, FQN extends string, M extends (keyof T)[]>(
+  fields: T,
+  fqn: FQN,
+  select: M
+): PickRecord<T, FQN, M> {
   const members: any = {};
   for (const key of select) {
-    members[key] = type.Members[key];
+    members[key] = fields[key];
     if (members[key] === undefined) {
       throw new Error(`attempted to select non-existent member: ${key}`);
     }
@@ -282,8 +328,44 @@ export function Pick<T extends RecordType, FQN extends string, P extends (keyof 
 }
 
 /**
- * Picks members from a `Record` to create a new `RecordType`.
+ * Omits members from a `Record` to create a new `RecordType`
  */
-export type Pick<T extends RecordMembers, FQN extends string, K extends keyof T> = RecordType<{
-  [M in K]: T[M];
-}, FQN>;
+export type OmitRecord<T extends RecordMembers, FQN extends string, K extends (keyof T)[]> =
+  RecordType<
+    Omit<T, Extract<K[keyof K], number>>,
+    FQN
+  >;
+
+/**
+ * Pick members from a `Record` to create a new `RecordType`.
+ *
+ * Example:
+ * ```ts
+ * class A extends Record({
+ *   a: string,
+ *   b: string
+ * }) {}
+ *
+ * class B extends Pick(A, ['a']) {}
+ * B.members.a;
+ * B.members.b; // <- compile-time error
+ * ```
+ *
+ * @param fields to select from
+ * @param select array of members to select
+ */
+export function Omit<T extends RecordMembers, FQN extends string, M extends (keyof T)[]>(
+  fields: T,
+  fqn: FQN,
+  select: M
+): OmitRecord<T, FQN, M> {
+  const members: any = {};
+  for (const key of Object.keys(fields).filter(f => select.find(s => f === s))) {
+    members[key] = fields[key];
+    if (members[key] === undefined) {
+      throw new Error(`attempted to select non-existent member: ${key}`);
+    }
+  }
+  return Record(fqn, members) as any;
+}
+

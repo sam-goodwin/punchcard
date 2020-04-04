@@ -1,5 +1,4 @@
 export * from './collection';
-export * from './dsl';
 export * from './equals';
 export * from './guards';
 export * from './hash-code';

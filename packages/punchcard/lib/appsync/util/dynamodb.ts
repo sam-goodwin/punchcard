@@ -37,7 +37,7 @@ export class $DynamoDBUtil {
   }
 
   public toStringSet(value: VList<VString>): VObject.Of<RecordType<{
-    SS: ArrayShape<StringShape>
+    SS: ArrayShape<StringShape>;
   }>> {
     throw new Error('todo');
   }

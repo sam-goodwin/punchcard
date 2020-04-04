@@ -171,25 +171,30 @@ export class Api<
           let template: string[] = [];
 
           let i = 0;
-          const id = () => i += 1;
+          const id = () => (i += 1).toString(10);
 
           // create a FQN for the <type>.<field>
           const fieldFQN = `${typeName}_${fieldName}`.replace(/[_A-Za-z][_0-9A-Za-z]/g, '_');
 
-          let returns: any = undefined;
+          let returns: VObject | undefined;
           while (!(next = generator.next(returns)).done) {
             const stmt = next.value;
             if (StatementGuards.isSet(stmt)) {
-              const name = stmt.id || id().toString(10);
-              template.push(`#set($${name} = ${VObject.exprOf(stmt.value).visit()})`);
-              returns 
+              const name = stmt.id || id();
+              template.push(`#set($context.stash.${name} = ${VObject.exprOf(stmt.value).visit()})`);
+
+              // return a reference to the set value
+              returns = VObject.clone(stmt.value, new VExpression(`$context.stash.${name}`));
             } else if (StatementGuards.isCall(stmt)) {
+              const name = id();
               template.push(VObject.exprOf(stmt.request).visit());
               const requestMappingTemplate = template.join('\n');
               template = [
                 VObject.exprOf(stmt.response).visit(),
-                ``
+                `#set($context.stash.${name} = $context.prev.result)`
               ];
+              // return a reference to the previou s result
+              returns = VObject.clone(stmt.response, new VExpression(`$context.stash.${name}`));
               const responseMappingTemplate = template.join('\n');
               template = [];
 
