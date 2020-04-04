@@ -2,13 +2,12 @@ import 'jest';
 
 import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape, timestamp } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $else, $if } from '../../lib/appsync';
+import { $else, $if, ID, VTL, vtl } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
-import { Trait } from '../../lib/appsync/trait';
-import { ID, VList, VNothing, VTL } from '../../lib/appsync/types';
-import { VNever } from '../../lib/appsync/types/never';
+import { Trait, TraitClass } from '../../lib/appsync/trait';
 import { $util } from '../../lib/appsync/util';
 import { App } from '../../lib/core';
+import { Build } from '../../lib/core/build';
 import { Scope } from '../../lib/core/construct';
 import DynamoDB = require('../../lib/dynamodb');
 
@@ -37,26 +36,24 @@ export class UserStore extends DynamoDB.Table.NewType({
  *
  * @typeparam T type to bind this trait to.
  */
-export class GetUserTrait extends Trait(Query, {
+export const GetUserTrait = Trait({
   getUser: VFunction({
     args: { id: ID },
     returns: User
   })
-}) {}
+});
 
 /**
- * Trait for mutating Users.
- *
- * Attachable/generic to any type, T.
+ * Trait for creating Users.
  *
  * @typeparam T type to bind this trait to.
  */
-export class CreateUserTrait extends Trait(Mutation, {
+export const CreateUserTrait = Trait({
   createUser: VFunction({
     args: { alias: string },
     returns: User
   })
-}) {}
+});
 
 /**
  * A Post of some content in some category
@@ -82,18 +79,18 @@ export class PostStore extends DynamoDB.Table.NewType({
 /**
  * A user record exposes a feed of `Post`.
  */
-export class FeedTrait extends Trait(User, {
+export const FeedTrait = Trait({
   feed: array(Post)
-}) {}
+});
 
-export class GetPostTrait extends Trait(Query, {
+export const GetPostTrait = Trait({
   getPost: VFunction({
     args: { id: ID, },
     returns: Post
   })
-}) {}
+});
 
-export class CreatePostTrait extends Trait(Mutation, {
+export const CreatePostTrait = Trait({
   /**
    * Function documentation goes here.
    */
@@ -101,11 +98,11 @@ export class CreatePostTrait extends Trait(Mutation, {
     args: { title: string, content: string, category: string },
     returns: Post
   }),
-}) {}
+});
 
-export class RelatedPostsTrait extends Trait(Post, {
+export const RelatedPostsTrait = Trait({
   relatedPosts: array(Post)
-}) {}
+});
 
 /**
  * User API component - implements the query, mutations and field
@@ -123,7 +120,7 @@ export const UserApi = (
 ) => {
   const userStore = props.userStore || new UserStore(scope, 'UserStore');
 
-  const createUser = new CreateUserTrait({
+  const createUser = new CreateUserTrait(Mutation, {
     *createUser({alias}) {
       return yield* userStore.put({
         id: yield* $util.autoId(),
@@ -132,7 +129,7 @@ export const UserApi = (
     }
   });
 
-  const getUser = new GetUserTrait({
+  const getUser = new GetUserTrait(Query, {
     *getUser({id}) {
       return yield* userStore.get({id});
     }
@@ -149,7 +146,7 @@ export const PostApi = (scope: Scope) => {
   // const postStore = new PostStore(scope, 'PostStore');
   const postStore = new PostStore(scope, 'PostStore');
 
-  const getPost = new GetPostTrait({
+  const getPost = new GetPostTrait(Query, {
     *getPost({id}) {
       return yield* postStore.get({
         id
@@ -157,13 +154,13 @@ export const PostApi = (scope: Scope) => {
     }
   });
 
-  const createPost = new CreatePostTrait({
+  const createPost = new CreatePostTrait(Mutation, {
     *createPost(input, self) {
       const id = yield* $util.autoId();
       const timestamp = yield* $util.time.nowISO8601();
 
       yield* $if(input.title.isEmpty(), function*() {
-        const msg = yield* VTL.string`Title must be non empty: ${input.title}`;
+        const msg = yield* vtl(string)`Title must be non empty: ${input.title}`;
         yield* $util.error(msg);
       });
 
@@ -188,7 +185,7 @@ export const PostApi = (scope: Scope) => {
   //   }
   // });
 
-  const relatedPosts = new RelatedPostsTrait({
+  const relatedPosts = new RelatedPostsTrait(Post, {
     *relatedPosts(self) {
       throw new Error('not implemented');
       // return (yield* getPostFn.invoke(this.id)) as any;
@@ -199,7 +196,7 @@ export const PostApi = (scope: Scope) => {
     getPost,
     createPost,
     postStore,
-    relatedPosts
+    relatedPosts,
   };
 };
 
@@ -230,5 +227,8 @@ const MyApi = new Api(stack, 'MyApi', {
     .include(relatedPosts)
 });
 
-
 export function doStuffWithApi(api: MyApi) {}
+
+it('should generate schema', () => {
+  Build.resolve(MyApi.resource);
+});

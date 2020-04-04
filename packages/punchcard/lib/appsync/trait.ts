@@ -12,25 +12,25 @@ import { VObject } from './vtl-object';
  * @param type to define the trait for - must be a Record.
  * @param fields new fields to associate with the type.
  */
-export function Trait<T extends RecordShape<any, string>, F extends RecordMembers>(
-  type: T,
+export function Trait<F extends RecordMembers = RecordMembers>(
+  // type: T,
   fields: F
-): TraitClass<T, F> {
-  return class extends TraitFragment<T, F>  {
-    public static readonly type: T = type;
+): TraitClass<F> {
+  return class NewType<T extends RecordShape<any, string>> extends TraitFragment<T, F>  {
+    // public static readonly type: T = type;
     public static readonly fields: F = fields;
 
-    constructor(impl: TraitImpl<T, F>) {
+    constructor(type: T, impl: TraitImpl<T, F>) {
       super(type, fields, impl);
     }
-  };
+  } as any;
 }
 
-export interface TraitClass<T extends RecordShape<any, string>, F extends RecordMembers> {
-  readonly type: T;
+export interface TraitClass<F extends RecordMembers> {
+  // readonly type: T;
   readonly fields: F
 
-  new (impl: TraitImpl<T, F>): TraitFragment<T, F>
+  new<T extends RecordShape<any, string>>(type: T, impl: TraitImpl<T, F>): TraitFragment<T, F>
 }
 
 /**

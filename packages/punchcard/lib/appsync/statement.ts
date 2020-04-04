@@ -15,7 +15,7 @@ export type Statement<A = any> =
   | CallFunction<A>
   | IfBranch<A>
   | SetVariable<A>
-  ;
+;
 
 export namespace Statement {
   export const Tag = Symbol.for('appsync.Statement.Tag');

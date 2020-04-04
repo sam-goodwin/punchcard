@@ -1,8 +1,7 @@
 import 'jest';
 
 import { Record } from '@punchcard/shape';
-import { $util, VInterpreter, VNumber, VString, VTL } from '../../lib/appsync';
-import { $if } from '../../lib/appsync/syntax/if';
+import { $util, VString, VTL } from '../../lib/appsync';
 
 class A extends Record({}) {}
 

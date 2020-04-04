@@ -2,7 +2,7 @@ import { number as numberShape, string as stringShape } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { VExpression } from './expression';
 import { set, Statement } from './statement';
-import { Visitor, VNumber, VObject, VString } from './vtl-object';
+import { VFloat, Visitor, VObject, VString } from './vtl-object';
 
 /**
  * Represents a Velocity Template program.
@@ -29,46 +29,38 @@ VObject.clone = function clone<T extends VObject>(t: T, expr: VExpression): T {
  * GraphQL.string`${mustBeAGraphQLType}`;
  * ```
  */
-export type ExpressionTemplate<T extends Shape> = <Args extends (VObject)[]>(template: TemplateStringsArray,...args: Args) => VObject.Of<T>;
+export type ExpressionTemplate<T extends Shape> = <Args extends (VObject)[]>(template: TemplateStringsArray,...args: Args) => VTL<VObject.Of<T>>;
+
+/**
+ * Evaluate a VTL template as an instance of some shape.
+ *
+ * The VTL expression must be valid on the RHS of a #set operation.
+ *
+ * ```ts
+ * const str = vtl(string)`hello`;
+ * ```
+ *
+ * Translates to:
+ * ```
+ * #set($var1 = "hello")
+ * ```
+ *
+ * @param type what type to treat the assigned variable
+ */
+export function vtl<T extends Shape>(type: T): ExpressionTemplate<T> {
+  return function*(template, ...args) {
+    return yield* set(VObject.of(type,  VExpression.concat(...template.map((str, i) => new VExpression(() =>
+      `${str}${i < args.length ? VObject.exprOf(args[i]).visit() : ''}`
+    )))));
+  };
+}
 
 export namespace VTL {
-  /**
-   * Evaluate a string template as a shape.
-   *
-   * ```ts
-   * const str = GraphQL.template(string)`hello`;
-   *
-   * // short-hand
-   * const str = GraphQL.$(string)`hello`;
-   * ```
-   *
-   * @param type
-   */
-  export function typed<T extends Shape>(type: T): ExpressionTemplate<T> {
-    return (template, ...args) => {
-      return VObject.of(type,  VExpression.concat(...template.map((str, i) => new VExpression(() =>
-        `${str}${i < args.length ? VObject.exprOf(args[i]).visit() : ''}`
-      ))));
-    };
+  export function *string(s: string): VTL<VString> {
+    return yield* set(VObject.of(stringShape, new VExpression(`"${s}"`)));
   }
 
-  export function string<Args extends VObject[]>(template: TemplateStringsArray,...args: Args): VTL<VString>;
-  export function string(s: string): VTL<VString>;
-  export function *string(...args: any[]): VTL<VString> {
-    if (typeof args[0] === 'string') {
-      return yield* set(VObject.of(stringShape, new VExpression(`"${args[0]}"`)));
-    } else {
-      return yield* set((VTL.typed(stringShape) as any)(...args));
-    }
-  }
-
-  export function number<Args extends (VObject)[]>(template: TemplateStringsArray,...args: Args): VNumber;
-  export function number(n: number): VNumber;
-  export function number(...args: any[]): VNumber {
-    if (typeof args[0] === 'number') {
-      return VObject.of(numberShape, new VExpression(args[0].toString(10)));
-    } else {
-      return (VTL.typed(numberShape) as any)(...args);
-    }
+  export function *number(n: number): VTL<VFloat> {
+    return yield* set(VObject.of(numberShape, new VExpression(n.toString(10))));
   }
 }

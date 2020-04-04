@@ -8,11 +8,10 @@ import { Json } from '@punchcard/shape-json';
 
 import { any, AnyShape, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, Mapper, MapperFactory, MapShape, NeverShape, NothingShape, NumberShape, Pointer, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Value } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
-import { VExpression } from '../appsync/syntax/expression';
-import { $if } from '../appsync/syntax/if';
-import { call, StatementF } from '../appsync/syntax/statement';
-import { VTL } from '../appsync/types';
-import { expr, type, VObject } from '../appsync/types/object';
+import { VExpression } from '../appsync';
+import { call } from '../appsync/statement';
+import { VTL } from '../appsync/vtl';
+import { VObject } from '../appsync/vtl-object';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -153,8 +152,6 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
 
     // default to JSON serialization
     this.mapperFactory = (props.mapper || Json.mapper) as MapperFactory<Json.Of<T>>;
-    // this.requestMapper = mapperFactory(props.request || any);
-    // this.responseMapper = mapperFactory(props.response || any);
     this.dependencies = props.depends;
 
     this.resource = CDK.chain(({lambda}) => Scope.resolve(scope).chain(scope => (props.functionProps || Build.empty).map(functionProps => {
@@ -212,22 +209,17 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
   }
 
 
-  public invoke(request: VObject.Of<T>): VTL  <VObject.Of<U>> {
-    // todo
-    throw new Error('not implemented');
-  }
-
-  public invokeF(request: VObject.Of<T>): StatementF<VObject.Of<U>> {
+  public invoke(request: VObject.Of<T>): VTL<VObject.Of<U>> {
     const requestShape = Pointer.resolve(this.request);
     const responseShape = Pointer.resolve(this.response);
 
     const requestObject: VObject.Of<T> =
       VObject.isObject(request) ?
         request as any :
-        VTL.of(requestShape, requestShape.visit(new ToVExpressionVisitor() as any, request))
+        VObject.of(requestShape, requestShape.visit(new ToVExpressionVisitor() as any, request))
     ;
 
-    const response: VObject.Of<U> = VTL.of(
+    const response: VObject.Of<U> = VObject.of(
       Pointer.resolve(this.response),
       VExpression.text('$ctx.prev.result'),
     ) as VObject.Of<U>;
@@ -337,7 +329,7 @@ function toJson(obj: VObject.Like<any>): VExpression {
   if (VObject.isObject(obj)) {
     return VExpression.concat(
       VExpression.text('$util.toJson('),
-      obj[expr],
+      VObject.exprOf(obj),
       VExpression.text(')')
     );
   } else {
@@ -359,7 +351,7 @@ class ToVExpressionVisitor implements ShapeVisitor<VExpression, VObject.Like<Sha
   public arrayShape(shape: ArrayShape<any>, obj: VObject.Like<Shape>): VExpression {
     if (Array.isArray(obj)) {
       const items = [new VExpression('[')]
-        .concat((obj as VObject[]).map(o => o[type].visit(this, o)) as VExpression[])
+        .concat((obj as VObject[]).map(o => VObject.typeOf(o).visit(this, o)) as VExpression[])
         .concat(new VExpression(']'));
 
       return VExpression.concat(...items);
@@ -368,10 +360,10 @@ class ToVExpressionVisitor implements ShapeVisitor<VExpression, VObject.Like<Sha
     }
   }
   public binaryShape(shape: BinaryShape, obj: VObject.Like<Shape>): VExpression {
-    return obj[expr];
+    return VObject.exprOf(obj);
   }
   public boolShape(shape: BoolShape, obj: VObject.Like<Shape>): VExpression {
-    return obj[expr];
+    return VObject.exprOf(obj);
   }
   public recordShape(shape: RecordShape<any>, obj: VObject.Like<Shape>): VExpression {
     if (VObject.isObject(obj)) {
@@ -401,7 +393,7 @@ class ToVExpressionVisitor implements ShapeVisitor<VExpression, VObject.Like<Sha
     throw new Error(`Shape is not supported by dynamic shapes`);
   }
   public integerShape(shape: IntegerShape, obj: VObject.Like<Shape>): VExpression {
-    return obj[expr];
+    return VObject.exprOf(obj);
   }
   public mapShape(shape: MapShape<any>, obj: VObject.Like<Shape>): VExpression {
     throw new Error("Method not implemented.");
@@ -410,12 +402,12 @@ class ToVExpressionVisitor implements ShapeVisitor<VExpression, VObject.Like<Sha
     return VExpression.text('null');
   }
   public numberShape(shape: NumberShape, obj: VObject.Like<Shape>): VExpression {
-    return obj[expr];
+    return VObject.exprOf(obj);
   }
   public setShape(shape: SetShape<any>, obj: VObject.Like<Shape>): VExpression {
     if (Array.isArray(obj)) {
       const items = [new VExpression('[')]
-        .concat((obj as VObject[]).map(o => o[type].visit(this, o)) as VExpression[])
+        .concat((obj as VObject[]).map(o => VObject.typeOf(o).visit(this, o)) as VExpression[])
         .concat(new VExpression(']'));
 
       return VExpression.concat(...items);
@@ -426,14 +418,14 @@ class ToVExpressionVisitor implements ShapeVisitor<VExpression, VObject.Like<Sha
   public stringShape(shape: StringShape, obj: VObject.Like<Shape>): VExpression {
     return VExpression.concat(
       VExpression.text('"'),
-      obj[expr],
+      VObject.exprOf(obj),
       VExpression.text('"')
     );
   }
   public timestampShape(shape: TimestampShape, obj: VObject.Like<Shape>): VExpression {
     return VExpression.concat(
       VExpression.text('"'),
-      obj[expr],
+      VObject.exprOf(obj),
       VExpression.text('"')
     );
   }

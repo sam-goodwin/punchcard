@@ -5,8 +5,7 @@ import type * as iam from '@aws-cdk/aws-iam';
 
 import { RecordShape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { StatementF } from '../appsync/syntax/statement';
-import { VObject, VTL } from '../appsync/types';
+import { VObject, VTL } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';

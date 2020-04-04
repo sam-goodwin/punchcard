@@ -47,7 +47,7 @@ export namespace VObject {
     T extends BoolShape ? VBool :
     T extends DynamicShape<any> ? VAny :
     T extends IntegerShape ? VInteger :
-    T extends NumberShape ? VNumber :
+    T extends NumberShape ? VFloat :
     T extends StringShape ? VString :
     T extends TimestampShape ? VTimestamp :
 
@@ -88,7 +88,7 @@ export const ID = string.apply(IDTrait);
 export class VAny extends VObject<AnyShape> {}
 export class VUnknown extends VObject<UnknownShape> {}
 export class VInteger extends VObject<IntegerShape> {}
-export class VNumber extends VObject<NumberShape> {}
+export class VFloat extends VObject<NumberShape> {}
 export class VNothing extends VObject<NothingShape> {}
 export class VNever extends VObject<NeverShape> {}
 export class VBinary extends VObject<BinaryShape> {}
@@ -181,9 +181,9 @@ export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public nothingShape(shape: NothingShape, expr: VExpression): VNothing {
     throw new VNothing(shape, expr);
   }
-  public numberShape(shape: NumberShape, expr: VExpression): VNumber {
+  public numberShape(shape: NumberShape, expr: VExpression): VFloat {
     // tslint:disable-next-line: no-construct
-    return new VNumber(shape, expr);
+    return new VFloat(shape, expr);
   }
   public setShape(shape: SetShape<Shape>, expr: VExpression): VSet<VObject> {
     return new VSet(shape, expr);

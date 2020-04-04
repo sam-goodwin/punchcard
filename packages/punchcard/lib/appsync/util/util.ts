@@ -22,11 +22,11 @@ export class Util {
   }
 
   public *error(message: VString): VTL<VNever> {
-    return yield* set(new VNever(never, new VExpression(() => `$util.error(${message[expr].visit()})`)));
+    return yield* set(new VNever(never, new VExpression(() => `$util.error(${VObject.exprOf(message).visit()})`)));
   }
 
   public isNull(value: VObject): VBool {
-    return new VBool(bool, new VExpression(() => `$util.isNull(${value[expr].visit()})`));
+    return new VBool(bool, new VExpression(() => `$util.isNull(${VObject.exprOf(value).visit()})`));
   }
 
   public readonly dynamodb = new DynamoDBUtil();

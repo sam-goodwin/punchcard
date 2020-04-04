@@ -3,7 +3,7 @@ import 'jest';
 import { integer, string } from '@punchcard/shape';
 import { App } from '../../lib/core';
 
-import { ID, VInterpreter, VObject } from '../../lib/appsync';
+import { ID, VObject } from '../../lib/appsync';
 import Lambda = require('../../lib/lambda');
 
 // const sam = VObject.string('Sam');

@@ -42,8 +42,6 @@ export class Api<
   T extends TypeSystem,
   Q extends keyof T | undefined,
   M extends keyof T | undefined
-  // Q extends RecordShape<RecordMembers, Extract<keyof T, string>> | undefined,
-  // M extends RecordShape<RecordMembers, Extract<keyof T, string>> | undefined,
 > extends Construct implements Resource<appsync.GraphQLApi> {
   public readonly resource: Build<appsync.GraphQLApi>;
 
@@ -178,15 +176,21 @@ export class Api<
           // create a FQN for the <type>.<field>
           const fieldFQN = `${typeName}_${fieldName}`.replace(/[_A-Za-z][_0-9A-Za-z]/g, '_');
 
-          while (!(next = generator.next()).done) {
+          let returns: any = undefined;
+          while (!(next = generator.next(returns)).done) {
             const stmt = next.value;
             if (StatementGuards.isSet(stmt)) {
               const name = stmt.id || id().toString(10);
               template.push(`#set($${name} = ${VObject.exprOf(stmt.value).visit()})`);
+              returns 
             } else if (StatementGuards.isCall(stmt)) {
               template.push(VObject.exprOf(stmt.request).visit());
               const requestMappingTemplate = template.join('\n');
-              const responseMappingTemplate = VObject.exprOf(stmt.response).visit();
+              template = [
+                VObject.exprOf(stmt.response).visit(),
+                ``
+              ];
+              const responseMappingTemplate = template.join('\n');
               template = [];
 
               const dataSourceProps = Build.resolve(stmt.dataSourcePRops);
@@ -208,12 +212,15 @@ export class Api<
               throw new Error(`unknown statement: ${next}`);
             }
           }
+          if (next !== undefined) {
+            // non-void return type
+          }
 
           new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {
             apiId: api.apiId,
             typeName,
             fieldName,
-            kind: 'PIPELINE', // always pipeline
+            kind: 'PIPELINE', // always pipeline cuz we cool like that
             pipelineConfig: {
               functions
             },
