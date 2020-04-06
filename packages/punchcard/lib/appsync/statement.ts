@@ -1,6 +1,6 @@
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Build } from '../core/build';
-import { DataSourceProps } from './data-source';
+import { DataSourceBindCallback } from './data-source';
 import { VTL } from './vtl';
 import { VBool, VObject } from './vtl-object';
 
@@ -50,18 +50,18 @@ export class CallFunction<T = VObject> {
   readonly [Statement.Type]: T;
 
   constructor(
-    public readonly dataSourcePRops: Build<DataSourceProps>,
+    public readonly dataSourceProps: Build<DataSourceBindCallback>,
     public readonly request: VObject,
-    public readonly response: T,
+    public readonly responseType: Shape
   ) {}
 }
 
-export function *call<T extends Shape, U extends VObject>(
-  resolverFunction: Build<any>,
+export function *call<T extends Shape, U extends Shape>(
+  dataSourceProps: Build<DataSourceBindCallback>,
   request: VObject.Of<T>,
-  response: U
-): VTL<U> {
-  return (yield new CallFunction(resolverFunction, request, response)) as U;
+  responseType: U
+): VTL<VObject.Of<U>> {
+  return (yield new CallFunction(dataSourceProps, request, responseType)) as VObject.Of<U>;
 }
 
 /**

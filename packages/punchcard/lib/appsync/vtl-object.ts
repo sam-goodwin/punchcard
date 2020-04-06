@@ -1,8 +1,9 @@
-import { AnyShape, BinaryShape, bool, integer, NeverShape, NothingShape, ShapeVisitor, UnknownShape } from '@punchcard/shape';
+import { AnyShape, BinaryShape, bool, integer, NeverShape, NothingShape, ShapeGuards, ShapeVisitor, UnknownShape, Value } from '@punchcard/shape';
 import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShape, Pointer, RecordShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
 import { string, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { VExpression } from './expression';
+import { $util } from './util';
 
 const type = Symbol.for('GraphQL.Type');
 const expr = Symbol.for('GraphQL.Expression');
@@ -24,6 +25,10 @@ export class VObject<T extends Shape = Shape> {
   constructor(_type: T, _expr: VExpression) {
     this[type] = _type;
     this[expr] = _expr;
+  }
+
+  public toJson(): VString {
+    return new VString(string, new VExpression(() => `$util.toJson(${VObject.exprOf(this)})`));
   }
 }
 
@@ -60,7 +65,7 @@ export namespace VObject {
    * Like meaning that is either an expression, or a collection
    * of expressions that share the structure of the target type.
    */
-  export type Like<T extends Shape> = VObject.Of<T> | (
+  export type Like<T extends Shape> = Value.Of<T> | VObject.Of<T> | (
     T extends RecordShape<infer M> ? {
       [m in keyof M]: Like<Pointer.Resolve<M[m]>>;
     } :
@@ -69,7 +74,7 @@ export namespace VObject {
     T extends MapShape<infer I> ? {
       [key: string]: Like<I>;
     } :
-    VObject.Of<T>
+    VObject.Of<T> | Value.Of<T>
   );
 }
 
@@ -195,4 +200,46 @@ export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public timestampShape(shape: TimestampShape, expr: VExpression): VTimestamp {
     return new VTimestamp(shape, expr);
   }
+}
+
+export function toJsonStringExpression<T extends Shape>(shape: T, obj: VObject.Like<T>): VExpression {
+  if (VObject.isObject(obj)) {
+    return VObject.exprOf(obj.toJson());
+  }
+
+  if (obj === undefined) {
+    return VExpression.text('null');
+  } else if (typeof obj === 'string' && ShapeGuards.isStringShape(shape)) {
+    return VExpression.text(`"${obj}"`);
+  } else if (typeof obj === 'number' && ShapeGuards.isNumericShape(shape)) {
+    return VExpression.text((obj as number).toString(10));
+  } else if ((obj as any) instanceof Date && ShapeGuards.isTimestampShape(shape)) {
+    // todo: custom serialization formats?
+    return VExpression.text((obj as Date).toISOString());
+  } else if (Array.isArray(obj) && (ShapeGuards.isSetShape(shape) || ShapeGuards.isArrayShape(shape))) {
+    return VExpression.concat(
+      VExpression.text('['),
+      ...(obj as VObject.Like<Shape>[]).map(o => toJsonStringExpression(shape.Items, obj)),
+      VExpression.text(']'),
+    );
+  } else if (ShapeGuards.isRecordShape(shape)) {
+    const members = Object.entries(shape.Members);
+    return VExpression.concat(
+      VExpression.text('{'),
+      ...(members.map(([memberName, memberShape], i) => VExpression.concat(
+        VExpression.text(`"${memberName}":`),
+        toJsonStringExpression(memberShape, (obj as any)[memberName])
+      ))),
+      VExpression.text('{'));
+  } else if (ShapeGuards.isMapShape(shape)) {
+    const members = Object.entries(obj as { [key: string]: VObject.Like<Shape>; });
+    return VExpression.concat(
+      VExpression.text('{'),
+      ...(members.map(([memberName, memberValue], i) => VExpression.concat(
+        VExpression.text(`"${memberName}":`),
+        toJsonStringExpression(shape.Items, memberValue)
+      ))),
+      VExpression.text('{'));
+  }
+  throw new Error(`${shape.Kind} is not supported by JSON`);
 }

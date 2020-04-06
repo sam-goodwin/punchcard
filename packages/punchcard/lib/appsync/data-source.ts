@@ -1,4 +1,5 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
+import type * as cdk from '@aws-cdk/core';
 
 export enum DataSourceType {
   AMAZON_DYNAMODB = 'AMAZON_DYNAMODB',
@@ -13,3 +14,6 @@ export interface DataSourceProps extends Omit<appsync.CfnDataSourceProps,
   | 'apiId'
   | 'name'
 > {}
+
+
+export type DataSourceBindCallback = (scope: cdk.Construct, id: string) => DataSourceProps;

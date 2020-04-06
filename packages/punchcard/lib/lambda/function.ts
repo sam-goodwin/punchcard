@@ -1,17 +1,16 @@
 import AWS = require('aws-sdk');
 
-import type * as appsync from '@aws-cdk/aws-appsync';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as lambda from '@aws-cdk/aws-lambda';
+import type * as cdk from '@aws-cdk/core';
 
 import { Json } from '@punchcard/shape-json';
 
 import { any, AnyShape, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, Mapper, MapperFactory, MapShape, NeverShape, NothingShape, NumberShape, Pointer, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Value } from '@punchcard/shape';
-import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
-import { VExpression } from '../appsync';
+import { DataSourceType, VExpression } from '../appsync';
 import { call } from '../appsync/statement';
 import { VTL } from '../appsync/vtl';
-import { VObject } from '../appsync/vtl-object';
+import { toJsonStringExpression, VObject } from '../appsync/vtl-object';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -208,49 +207,55 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
     });
   }
 
+  /**
+   * Invoke this function from within an AWS AppSync Resolver.
+   *
+   * ```ts
+   * class A extends Record({
+   *   key: string
+   * }) {}
+   *
+   * const myFunction: Lambda.Function<typeof A, StringShape>;
+   * const obj: VObject.Of<typeof A>;
+   *
+   * // option 1 - pass a VObject that represents a reference to an A
+   * const response: VString = yield* myFunction.invoke(obj)
+   *
+   * // option 2 - pass in an object that is the same structure
+   * const id = yield* $util.autoId();
+   * const response: VString =  yield* myFunction.invoke({
+   *   key: id
+   * });
+   * ```
+   *
+   * @param request VTL object for the request
+   * @param props optional props to customize the Lambda data source.
+   */
+  public invoke(request: VObject.Of<T>, props?: Function.DataSourceProps): VTL<VObject.Of<U>> {
+    const requestShape: T = Pointer.resolve(this.request);
+    const responseShape: U = Pointer.resolve(this.response);
 
-  public invoke(request: VObject.Of<T>): VTL<VObject.Of<U>> {
-    const requestShape = Pointer.resolve(this.request);
-    const responseShape = Pointer.resolve(this.response);
-
-    const requestObject: VObject.Of<T> =
-      VObject.isObject(request) ?
-        request as any :
-        VObject.of(requestShape, requestShape.visit(new ToVExpressionVisitor() as any, request))
+    const requestObject: VObject.Of<T> = VObject.isObject(request) ?
+      request as VObject.Of<T>:
+      VObject.of(requestShape, toJsonStringExpression(requestShape, request))
     ;
 
-    const response: VObject.Of<U> = VObject.of(
-      Pointer.resolve(this.response),
-      VExpression.text('$ctx.prev.result'),
-    ) as VObject.Of<U>;
+    const dataSourceProps = Build.concat(
+      CDK,
+      this.resource,
+      props?.serviceRole || Build.of(undefined)
+    ).map(([cdk, fn, serviceRole]) => (scope: cdk.Construct, id: string) => ({
+      type: DataSourceType.AWS_LAMBDA,
+      lambdaConfig: {
+        lambdaFunctionArn: fn.functionArn
+      },
+      description: props?.description,
+      serviceRoleArn: serviceRole?.roleArn || new cdk.iam.Role(scope, `${id}:Role`, {
+        assumedBy: new cdk.iam.ServicePrincipal('appsync')
+      }).roleArn,
+    }));
 
-    return call(null as any, requestObject, response) ;
-  }
-
-  /**
-   * Build an AppSync Lambda Data Source to this Function.
-   *
-   * @param id unique id of the data source.
-   * @param props api and an optionally specific service role.
-   */
-  private dataSource(id: string, props: {
-    api: Build<appsync.GraphQLApi>;
-    serviceRole?: Build<iam.Role | undefined>;
-  }): Build<appsync.LambdaDataSource> {
-    return Build
-      .concat(
-        CDK,
-        this.resource,
-        props.api,
-        props.serviceRole || Build.of(undefined))
-      .map(([{appsync}, fn, api, serviceRole]) =>
-        new appsync.LambdaDataSource(fn, id, {
-          api,
-          lambdaFunction: fn,
-          name: id,
-          description: 'TODO: do a nicer description like: `Function<${this.request}, ${this.response}>`',
-          serviceRole
-        }));
+    return call(dataSourceProps, requestObject, responseShape) ;
   }
 
   /**
@@ -277,6 +282,11 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
 }
 
 export namespace Function {
+  export interface DataSourceProps {
+    description?: string;
+    serviceRole?: Build<iam.IRole>
+  }
+
   /**
    * Client for invoking a Lambda Function
    */
@@ -324,109 +334,3 @@ export namespace Function {
   }
 }
 
-
-function toJson(obj: VObject.Like<any>): VExpression {
-  if (VObject.isObject(obj)) {
-    return VExpression.concat(
-      VExpression.text('$util.toJson('),
-      VObject.exprOf(obj),
-      VExpression.text(')')
-    );
-  } else {
-    return null as any;
-  }
-}
-
-/**
- * Transforms a VObject.Like to a VExpression so that it may be written to the output.
- */
-class ToVExpressionVisitor implements ShapeVisitor<VExpression, VObject.Like<Shape>> {
-  neverShape(shape: NeverShape, context: VObject<Shape>): VExpression {
-    throw new Error("Method not implemented.");
-  }
-  functionShape(shape: FunctionShape<FunctionArgs, Shape>): VExpression {
-    throw new Error("Method not implemented.");
-  }
-
-  public arrayShape(shape: ArrayShape<any>, obj: VObject.Like<Shape>): VExpression {
-    if (Array.isArray(obj)) {
-      const items = [new VExpression('[')]
-        .concat((obj as VObject[]).map(o => VObject.typeOf(o).visit(this, o)) as VExpression[])
-        .concat(new VExpression(']'));
-
-      return VExpression.concat(...items);
-    } else {
-      throw new Error(`expected an array, but got: ${obj}`);
-    }
-  }
-  public binaryShape(shape: BinaryShape, obj: VObject.Like<Shape>): VExpression {
-    return VObject.exprOf(obj);
-  }
-  public boolShape(shape: BoolShape, obj: VObject.Like<Shape>): VExpression {
-    return VObject.exprOf(obj);
-  }
-  public recordShape(shape: RecordShape<any>, obj: VObject.Like<Shape>): VExpression {
-    if (VObject.isObject(obj)) {
-      return toJson(obj);
-    } else {
-      const members = Object.entries((obj as Record<string, VObject.Like<Shape>>));
-
-      return VExpression.concat(
-        VExpression.text('{'),
-        ...members.map(([name, obj], i) => {
-          return VExpression.concat(
-            VExpression.text('"'),
-            VExpression.text(name),
-            VExpression.text('":'),
-            shape.Members[name].visit(this, obj),
-            VExpression.text(i < members.length ? ',' : '')
-          );
-        }),
-        VExpression.text('}')
-      );
-    }
-  }
-  public dynamicShape(shape: DynamicShape<any>, obj: VObject.Like<Shape>): VExpression {
-    if (VObject.isObject(obj)) {
-      return toJson(obj);
-    }
-    throw new Error(`Shape is not supported by dynamic shapes`);
-  }
-  public integerShape(shape: IntegerShape, obj: VObject.Like<Shape>): VExpression {
-    return VObject.exprOf(obj);
-  }
-  public mapShape(shape: MapShape<any>, obj: VObject.Like<Shape>): VExpression {
-    throw new Error("Method not implemented.");
-  }
-  public nothingShape(shape: NothingShape, obj: VObject.Like<Shape>): VExpression {
-    return VExpression.text('null');
-  }
-  public numberShape(shape: NumberShape, obj: VObject.Like<Shape>): VExpression {
-    return VObject.exprOf(obj);
-  }
-  public setShape(shape: SetShape<any>, obj: VObject.Like<Shape>): VExpression {
-    if (Array.isArray(obj)) {
-      const items = [new VExpression('[')]
-        .concat((obj as VObject[]).map(o => VObject.typeOf(o).visit(this, o)) as VExpression[])
-        .concat(new VExpression(']'));
-
-      return VExpression.concat(...items);
-    } else {
-      throw new Error(`expected an array, but got: ${obj}`);
-    }
-  }
-  public stringShape(shape: StringShape, obj: VObject.Like<Shape>): VExpression {
-    return VExpression.concat(
-      VExpression.text('"'),
-      VObject.exprOf(obj),
-      VExpression.text('"')
-    );
-  }
-  public timestampShape(shape: TimestampShape, obj: VObject.Like<Shape>): VExpression {
-    return VExpression.concat(
-      VExpression.text('"'),
-      VObject.exprOf(obj),
-      VExpression.text('"')
-    );
-  }
-}

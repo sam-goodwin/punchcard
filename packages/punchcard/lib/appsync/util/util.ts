@@ -2,7 +2,7 @@ import { bool, never, string } from '@punchcard/shape';
 import { VExpression } from '../expression';
 import { set } from '../statement';
 import { VTL } from '../vtl';
-import { VBool, VNever, VNothing, VObject, VString } from '../vtl-object';
+import { VBool, VNever, VObject, VString } from '../vtl-object';
 import { $DynamoDBUtil as DynamoDBUtil } from './dynamodb';
 import { $ListUtil as ListUtil } from './list';
 import { TimeUtil } from './time';

@@ -98,7 +98,7 @@ export const CreatePostTrait = Trait({
    * Function documentation goes here.
    */
   createPost: VFunction({
-    args: { title: string, content: string, category: string },
+    args: { title: string, content: string },
     returns: Post
   }),
 });
@@ -169,9 +169,9 @@ export const PostApi = (scope: Scope) => {
       const post = yield* postStore.put({
         id,
         title: input.title,
-        category: input.category,
         content: input.content,
-        timestamp
+        timestamp,
+        category: 'category'
       });
 
       return post;

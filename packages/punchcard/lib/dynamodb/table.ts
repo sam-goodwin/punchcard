@@ -2,10 +2,11 @@ import AWS = require('aws-sdk');
 
 import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
+import type * as cdk from '@aws-cdk/core';
 
-import { RecordShape } from '@punchcard/shape';
+import { Record, RecordShape, string } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { VObject, VTL } from '../appsync';
+import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, toJsonStringExpression, VExpression, VObject, VTL } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -14,6 +15,7 @@ import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
+import { toAttributeValue } from './v-attribute-value';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
@@ -127,6 +129,20 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
    */
   public readonly key: Key;
 
+  private _keyShape: RecordShape;
+  private get keyShape() {
+    if (!this._keyShape) {
+      const keyMembers: any = {
+        [this.key.partition]: this.dataType.Members[this.key.partition as any]
+      };
+      if (this.key.sort) {
+        keyMembers[this.key.sort] = this.dataType.Members[this.key.sort as any];
+      }
+      this._keyShape = Record(keyMembers);
+    }
+    return this._keyShape;
+  }
+
   constructor(scope: Scope, id: string, props: TableProps<DataType, Key>) {
     super(scope, id);
 
@@ -154,12 +170,48 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     }));
   }
 
+
   public put(value: VObject.Like<DataType>): VTL<VObject.Of<DataType>> {
     throw new Error('todo');
   }
 
-  public get(key: KeyGraphQLRepr<DataType, Key>): VTL<VObject.Of<DataType>> {
-    throw new Error('todo');
+  public get(key: KeyGraphQLRepr<DataType, Key>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
+    class GetItemRequest extends Record({
+      version: string,
+      operation: string,
+      key: this.keyShape
+    }) {}
+    const request = VObject.of(GetItemRequest, toJsonStringExpression(GetItemRequest, {
+      version: '2017-02-28',
+      operation: 'GetItem',
+      key: toAttributeValue(this.keyShape, key)
+    }));
+
+    return call(this.dataSourceProps(props), request, this.dataType);
+  }
+
+  /**
+   * Return a
+   * @param props
+   */
+  private dataSourceProps(props?: Table.DataSourceProps): Build<DataSourceBindCallback> {
+    return Build.concat(
+      CDK,
+      this.resource,
+      props?.serviceRole || Build.of(undefined)
+    ).map(([cdk, table, serviceRole]) => (scope: cdk.Construct, id: string) => ({
+      type: DataSourceType.AWS_LAMBDA,
+      dynamoDbConfig: {
+        awsRegion: table.stack.region,
+        tableName: table.tableName,
+        useCallerCredentials: props?.useCallerCredentials
+      },
+      description: props?.description,
+      // TODO: are we sure we want to auto-create an IAM Role?
+      serviceRoleArn: serviceRole?.roleArn || new cdk.iam.Role(scope, `${id}:Role`, {
+        assumedBy: new cdk.iam.ServicePrincipal('appsync')
+      }).roleArn
+    }));
   }
 
   /**
@@ -259,6 +311,15 @@ export type KeyGraphQLRepr<DataType extends RecordShape, K extends DDB.KeyOf<Dat
 };
 
 export namespace Table {
+  export interface DataSourceProps {
+    description?: string;
+    serviceRole?: Build<iam.IRole>;
+    /**
+     * @default - false
+     */
+    useCallerCredentials?: boolean;
+  }
+
   export function NewType<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>>(
     input: {
       data: DataType,

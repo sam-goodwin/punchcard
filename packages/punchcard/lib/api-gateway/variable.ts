@@ -115,7 +115,7 @@ export const $context = {
 
 export const $stageVariables = dynamicVariable(name => stringMapping(`$stageVariables.${name}`));
 
-export const $util = {
+export const $utilDeprecated = {
   escapeJavaScript: (mapping: StringMapping): StringMapping => {
     return stringMapping(`$util.escapeJavaScript(${mapping.path})`);
   },

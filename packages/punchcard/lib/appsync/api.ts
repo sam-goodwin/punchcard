@@ -82,6 +82,7 @@ export class Api<
           produce: () => blocks.join('\n')
         }),
       });
+      const dataSources = new core.Construct(api, '_DataSources');
 
       const seenDataTypes = new Set<string>();
       const seenInputTypes = new Set<string>();
@@ -201,15 +202,14 @@ export class Api<
               template.push(VObject.exprOf(stmt.request).visit());
               const requestMappingTemplate = template.join('\n');
               template = [
-                VObject.exprOf(stmt.response).visit(),
                 `#set($context.stash.${name} = $context.prev.result)`
               ];
               // return a reference to the previou s result
-              returns = VObject.clone(stmt.response, new VExpression(`$context.stash.${name}`));
+              returns = VObject.of(stmt.responseType, new VExpression(`$context.stash.${name}`));
               const responseMappingTemplate = template.join('\n');
               template = [];
 
-              const dataSourceProps = Build.resolve(stmt.dataSourcePRops);
+              const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, name);
               const dataSource = new appsync.CfnDataSource(scope, `DataSource(${fieldFQN})`, {
                 ...dataSourceProps,
                 apiId: api.apiId,
