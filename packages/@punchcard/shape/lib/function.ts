@@ -10,7 +10,7 @@ export interface FunctionShapeProps<Args extends FunctionArgs, Returns extends S
 }
 
 export class FunctionShape<Args extends FunctionArgs, Returns extends Shape> extends Shape {
-  public readonly Kind: 'functionShape';
+  public readonly Kind: 'functionShape' = 'functionShape';
   public readonly FQN: string;
 
   constructor(

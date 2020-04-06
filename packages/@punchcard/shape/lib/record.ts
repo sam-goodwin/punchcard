@@ -1,7 +1,7 @@
 import { Metadata } from './metadata';
 import { Pointer } from './pointer';
 import { Shape } from './shape';
-import { ArrayToTuple, AssertIsKey, RequiredKeys } from './util';
+import { RequiredKeys } from './util';
 import { Value } from './value';
 
 import { Compact, RowLacks } from 'typelevel-ts';
@@ -59,9 +59,11 @@ export class RecordShape<M extends RecordMembers = RecordMembers, FQN extends st
 
   constructor(
     public readonly Members: M,
-    public readonly Metadata: Metadata
+    public readonly Metadata: Metadata,
+    FQN?: FQN,
   ) {
     super();
+    this.FQN = FQN!;
   }
 
   public getMetadata(): any[] {
@@ -227,7 +229,7 @@ export function Record<T extends RecordMembers>(a: any, b?: any) {
     }
   }
 
-  const shape = new RecordShape<T, any>(members, {});
+  const shape = new RecordShape<T, any>(members, {}, FQN);
   Object.assign(NewType, shape);
   (NewType as any).visit = shape.visit.bind(NewType);
   (NewType as any).apply = shape.apply.bind(NewType);
@@ -290,7 +292,7 @@ export type Extend<T extends RecordMembers, FQN extends string, M extends Record
  */
 export type PickRecord<T extends RecordMembers, FQN extends string, K extends (keyof T)[]> =
   RecordType<
-    Pick<T, Extract<K[keyof K], number>>,
+    Pick<T, Extract<K[keyof K], string>>,
     FQN
   >;
 
@@ -332,7 +334,7 @@ export function Pick<T extends RecordMembers, FQN extends string, M extends (key
  */
 export type OmitRecord<T extends RecordMembers, FQN extends string, K extends (keyof T)[]> =
   RecordType<
-    Omit<T, Extract<K[keyof K], number>>,
+    Omit<T, Extract<K[keyof K], string>>,
     FQN
   >;
 

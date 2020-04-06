@@ -35,7 +35,7 @@ export function Trait<F extends RecordMembers = RecordMembers>(
   // type: T,
   fields: F
 ): TraitClass<F> {
-  return class NewType<T extends RecordShape<any, string>> extends TraitFragment<T, F>  {
+  return class Fragment<T extends RecordShape<any, string>> extends TraitFragment<T, F>  {
     // public static readonly type: T = type;
     public static readonly fields: F = fields;
 
@@ -65,13 +65,13 @@ export class TraitFragment<T extends RecordShape<any, string>, F extends RecordM
   constructor(
     public readonly type: T,
     public readonly fields: F,
-    public readonly impl: TraitImpl<T, F>
+    public readonly resolvers: TraitImpl<T, F>
   ) {
     super({
       [type.FQN]: {
         type,
         fields,
-        impl
+        resolvers
       }
     } as any);
   }

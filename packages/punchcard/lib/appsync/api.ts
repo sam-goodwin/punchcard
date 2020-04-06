@@ -46,6 +46,7 @@ export class Api<
   public readonly resource: Build<appsync.GraphQLApi>;
 
   public readonly Types: {
+    // eumerate through to clean up the type siganture ("Compaction").
     [t in keyof T]: {
       [k in keyof T[t]]: T[t][k]
     };
@@ -58,8 +59,14 @@ export class Api<
   constructor(scope: Scope, id: string, props: ApiProps<T, Q, M>) {
     super(scope, id);
     this.Types = props.types.Types;
-    this.QueryFQN = props.query!;
-    this.MutationFQN = props.mutation!;
+    if (props.query !== undefined) {
+      this.QueryFQN = props.query;
+      this.QueryType = this.Types[props.query!].type as any;
+    }
+    if (props.mutation !== undefined) {
+      this.MutationFQN = props.mutation;
+      this.MutationType = this.Types[props.mutation!].type as any;
+    }
 
     this.resource = Build.concat(
       CDK,
@@ -71,7 +78,9 @@ export class Api<
       const api = new appsync.GraphQLApi(scope, id, {
         ...buildProps,
         name: props.name,
-        schemaDefinition: core.Token.asString(() => blocks.join('\n')),
+        schemaDefinition: core.Lazy.stringValue({
+          produce: () => blocks.join('\n')
+        }),
       });
 
       const seenDataTypes = new Set<string>();
@@ -155,15 +164,17 @@ export class Api<
       function interpretResolverPipeline(typeSpec: TypeSpec) {
         const typeName = typeSpec.type.FQN;
         const self = VObject.of(typeSpec.type, new VExpression('$context.source'));
+        // console.log(typeSpec);
         for (const [fieldName, fieldShape] of Object.entries(typeSpec.resolvers)) {
           let generator: VTL<VObject>;
           if (ShapeGuards.isFunctionShape(fieldShape)) {
             const args = Object.entries(fieldShape.args).map(([argName, argShape]) => ({
               [argName]: VObject.of(argShape, new VExpression(`$context.arguments.${argName}`))
             })).reduce((a, b) => ({...a, ...b}));
-            generator = ((typeSpec.resolvers as any)[fieldName] as (args: any) => VTL<VObject>).bind(self)(args);
+            console.log(args);
+            generator = ((typeSpec.resolvers as any)[fieldName] as (...args: any[]) => VTL<VObject>).bind(self)(args, self);
           } else {
-            generator = ((typeSpec.resolvers as any)[fieldName] as () => VTL<VObject>).bind(self)();
+            generator = ((typeSpec.resolvers as any)[fieldName] as (...args: any[]) => VTL<VObject>).bind(self)(self);
           }
 
           const functions: string[] = [];
@@ -213,12 +224,14 @@ export class Api<
                 dataSourceName: dataSource.name,
                 functionVersion: '2018-05-29',
               });
+
+              functions.push(functionConfiguration.name);
             } else {
               throw new Error(`unknown statement: ${next}`);
             }
           }
           if (next !== undefined) {
-            // non-void return type
+            template.push(VObject.exprOf(next.value as VObject).visit());
           }
 
           new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {
@@ -229,7 +242,7 @@ export class Api<
             pipelineConfig: {
               functions
             },
-            // cachingConfig
+            responseMappingTemplate: template.join('\n')
           });
         }
       }
@@ -265,6 +278,11 @@ function getTypeAnnotation(shape: Shape): string {
       return 'Float';
     } else if (ShapeGuards.isIntegerShape(shape)) {
       return 'Int';
+    } else if (ShapeGuards.isRecordShape(shape)) {
+      if (shape.FQN === undefined) {
+        throw new Error(`Only records wit a FQN are supported as types in Graphql. class A extends Record('FQN', { .. }) {}`);
+      }
+      return shape.FQN!;
     } else {
       throw new Error(`shape type ${shape.FQN} is not supported by GraphQL`);
     }

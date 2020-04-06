@@ -45,7 +45,7 @@ export namespace ShapeGuards {
       throw new Error(`${a} is not of type: BoolShape`);
     }
   };
-  export const isFunctionShape = (a: any): a is FunctionShape<FunctionArgs, Shape> => isShape(a) && a.Kind === 'boolShape';
+  export const isFunctionShape = (a: any): a is FunctionShape<FunctionArgs, Shape> => isShape(a) && a.Kind === 'functionShape';
   export const assertFunctionShape = (a: any): asserts a is FunctionShape<FunctionArgs, Shape> => {
     if (!isFunctionShape(a)) {
       throw new Error(`${a} is not of type: FunctionShape`);

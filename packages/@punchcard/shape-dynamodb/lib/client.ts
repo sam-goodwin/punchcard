@@ -300,7 +300,7 @@ export namespace DDB {
 
   export type HashKey<T> = keyof T;
   export type SortKey<T> = [keyof T, keyof T];
-  export interface KeyOf<T extends RecordShape<any>> {
+  export interface KeyOf<T extends RecordShape> {
     partition: keyof T['Members'];
     sort?: keyof T['Members'] | undefined;
   }

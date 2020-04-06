@@ -2,7 +2,7 @@ import 'jest';
 
 import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, string, StringShape, timestamp } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $else, $if, ID, VTL, vtl } from '../../lib/appsync';
+import { $else, $if, ApiFragment, ID, VTL, vtl } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { Impl, Static, Trait, TraitFragment } from '../../lib/appsync/trait';
 import { $util } from '../../lib/appsync/util';
@@ -186,30 +186,28 @@ export const PostApi = (scope: Scope) => {
   //   }
   // });
 
-  const relatedPosts = new RelatedPostsTrait(Post, {
-    *relatedPosts(self) {
-      throw new Error('not implemented');
-      // return (yield* getPostFn.invoke(this.id)) as any;
-    }
-  });
+  // const relatedPosts = new RelatedPostsTrait(Post, {
+  //   *relatedPosts(self) {
+  //     throw new Error('not implemented');
+  //     // return (yield* getPostFn.invoke(this.id)) as any;
+  //   }
+  // });
 
   return {
     getPost,
     createPost,
     postStore,
-    relatedPosts,
   };
 };
 
 const app = new App();
 const stack = app.stack('stack');
 
-const {createPost, getPost, postStore, relatedPosts } = PostApi(stack);
+const {createPost, getPost, postStore } = PostApi(stack);
 
 const {createUser, userStore, getUser } = UserApi(stack, {
   postStore
 });
-
 
 export interface MyApi extends Static<typeof MyApi> {}
 
@@ -221,11 +219,12 @@ const MyApi = new Api(stack, 'MyApi', {
   // root of mutation starts at the `Mutation` type
   mutation: 'Mutation',
   // concatenate all the fragments into a single type system
-  types: createUser
-    .include(getPost)
-    .include(getUser)
-    .include(createPost)
-    .include(relatedPosts)
+  types: ApiFragment.join(
+    createUser,
+    getPost,
+    getUser,
+    createPost,
+  )
 });
 
 export function doStuffWithApi(api: MyApi) {}

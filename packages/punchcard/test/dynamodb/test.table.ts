@@ -236,13 +236,14 @@ describe('gloal secondary index', () => {
 
     class DataProjection extends Data.Pick('DataProjection', ['a', 'b', 'c']) {}
 
+    const proj = table.projectTo(DataProjection);
+
     const successfulProjection = table
       .projectTo(DataProjection)
       .globalIndex({
         indexName: 'name',
         key: {
-          partition: 'a',
-          sort: 'c'
+          partition: 'a'
         }
       });
 
