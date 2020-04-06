@@ -8,7 +8,7 @@ import { Construct, Scope } from '../core/construct';
 import { Resource } from '../core/resource';
 import { VExpression } from './expression';
 import { ApiFragment } from './fragment';
-import { StatementGuards } from './statement';
+import { Statement, StatementGuards } from './statement';
 import { TypeSpec, TypeSystem } from './type-system';
 import { VTL } from './vtl';
 import { VObject } from './vtl-object';
@@ -94,6 +94,7 @@ export class Api<
         parseType(this.MutationType!);
       }
 
+      console.log(blocks.join('\n'));
       return api;
 
       function parseType(shape: Shape): void {
@@ -121,24 +122,21 @@ export class Api<
       }
 
       function generateTypeSignature(typeSpec: TypeSpec) {
-        const fieldShapes = Object.entries(typeSpec.fields).concat(Object.entries(typeSpec.type.Members));
+        const fieldShapes = Object.entries(typeSpec.fields);
 
         const fields = fieldShapes.map(([fieldName, fieldShape]) => {
           if (ShapeGuards.isFunctionShape(fieldShape)) {
             parseType(fieldShape.returns);
 
             const args = Object.entries(fieldShape.args);
-            return `${fieldName}(${`${args.map(([argName, argShape], i) => {
-              let typeAnnotation = `${getTypeAnnotation(argShape)}`;
-              const trailingComma = i < args.length ? ',' : '';
+            return `  ${fieldName}(${`${args.map(([argName, argShape]) => {
+              const typeAnnotation = getTypeAnnotation(argShape);
               if (ShapeGuards.isRecordShape(argShape)) {
                 // generate an Input type for records
                 generateInputTypeSignature(argShape);
-                // implement a convention where all Input types are suffixed with 'Input'
-                typeAnnotation += 'Input';
               }
-              return `  ${argName}: ${typeAnnotation}${trailingComma}`;
-            })}`}): ${getTypeAnnotation(fieldShape.returns)}`;
+              return `${argName}: ${typeAnnotation}`;
+            }).join(',')}`}): ${getTypeAnnotation(fieldShape.returns)}`;
           } else {
             return `  ${fieldName}: ${getTypeAnnotation(fieldShape)}`;
           }
@@ -152,7 +150,7 @@ export class Api<
           return;
         }
         seenInputTypes.add(shape.FQN!);
-        const inputSpec = `input ${shape.FQN}Input {\n${Object.entries(shape.Members).map(([fieldName, fieldShape]) => {
+        const inputSpec = `input ${shape.FQN} {\n${Object.entries(shape.Members).map(([fieldName, fieldShape]) => {
           if (!isScalar(fieldShape)) {
             throw new Error(`Input type ${shape.FQN} contains non-scalar type ${fieldShape.FQN} for field ${fieldName}`);
           }
@@ -165,21 +163,19 @@ export class Api<
       function interpretResolverPipeline(typeSpec: TypeSpec) {
         const typeName = typeSpec.type.FQN;
         const self = VObject.of(typeSpec.type, new VExpression('$context.source'));
-        // console.log(typeSpec);
-        for (const [fieldName, fieldShape] of Object.entries(typeSpec.resolvers)) {
+        for (const [fieldName, resolver] of Object.entries(typeSpec.resolvers)) {
+          const fieldShape = typeSpec.fields[fieldName];
           let generator: VTL<VObject>;
           if (ShapeGuards.isFunctionShape(fieldShape)) {
             const args = Object.entries(fieldShape.args).map(([argName, argShape]) => ({
               [argName]: VObject.of(argShape, new VExpression(`$context.arguments.${argName}`))
             })).reduce((a, b) => ({...a, ...b}));
-            console.log(args);
-            generator = ((typeSpec.resolvers as any)[fieldName] as (...args: any[]) => VTL<VObject>).bind(self)(args, self);
+            generator = resolver.bind(self)(args, self);
           } else {
-            generator = ((typeSpec.resolvers as any)[fieldName] as (...args: any[]) => VTL<VObject>).bind(self)(self);
+            generator = resolver.bind(self)(self);
           }
 
           const functions: string[] = [];
-          let next = generator.next();
           let template: string[] = [];
 
           let i = 0;
@@ -188,6 +184,7 @@ export class Api<
           // create a FQN for the <type>.<field>
           const fieldFQN = `${typeName}_${fieldName}`.replace(/[_A-Za-z][_0-9A-Za-z]/g, '_');
 
+          let next: IteratorResult<Statement<VObject | void>, any>;
           let returns: VObject | undefined;
           while (!(next = generator.next(returns)).done) {
             const stmt = next.value;
@@ -201,15 +198,15 @@ export class Api<
               const name = id();
               template.push(VObject.exprOf(stmt.request).visit());
               const requestMappingTemplate = template.join('\n');
-              template = [
-                `#set($context.stash.${name} = $context.prev.result)`
-              ];
               // return a reference to the previou s result
               returns = VObject.of(stmt.responseType, new VExpression(`$context.stash.${name}`));
-              const responseMappingTemplate = template.join('\n');
+              const responseMappingTemplate = `#set($context.stash.${name} = $context.prev.result)\n`;
+
+              console.log(template.join('\n'));
+              // clear template state
               template = [];
 
-              const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, name);
+              const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, fieldFQN);
               const dataSource = new appsync.CfnDataSource(scope, `DataSource(${fieldFQN})`, {
                 ...dataSourceProps,
                 apiId: api.apiId,
@@ -227,10 +224,10 @@ export class Api<
 
               functions.push(functionConfiguration.name);
             } else {
-              throw new Error(`unknown statement: ${next}`);
+              throw new Error(`unknown statement: ${next.value}`);
             }
           }
-          if (next !== undefined) {
+          if (next.value !== undefined) {
             template.push(VObject.exprOf(next.value as VObject).visit());
           }
 

@@ -3,7 +3,6 @@ import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShap
 import { string, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { VExpression } from './expression';
-import { $util } from './util';
 
 const type = Symbol.for('GraphQL.Type');
 const expr = Symbol.for('GraphQL.Expression');
@@ -43,9 +42,9 @@ export namespace VObject {
 
   export type Of<T extends Shape> =
     T extends RecordShape<infer M> ? VRecord<{
-      [m in keyof M]: Of<Pointer.Resolve<M[m]>>;
+      [m in keyof M]: Of<M[m]>;
     }> & {
-      [m in keyof M]: Of<Pointer.Resolve<M[m]>>;
+      [m in keyof M]: Of<M[m]>;
     } :
     T extends ArrayShape<infer I> ? VList<VObject.Of<I>> :
     T extends MapShape<any> ? never : // maps are not supported in GraphQL
@@ -139,7 +138,14 @@ export class VSet<T extends VObject = VObject> extends VObject<SetShape<VObject.
 
 export class VRecord<M extends VRecord.Members = {}> extends VObject<RecordShape<{
   [m in keyof M]: M[m][typeof type];
-}>> {}
+}>> {
+  constructor(type: RecordShape<any, any>, expr: VExpression) {
+    super(type, expr);
+    for (const [name, shape] of Object.entries(type.Members) as [string, Shape][]) {
+      (this as any)[name] = VObject.of(shape, expr.dot(name));
+    }
+  }
+}
 export namespace VRecord {
   export type GetMembers<R extends VRecord> = R extends VRecord<infer M> ? M : any;
   export interface Members {
@@ -237,7 +243,8 @@ export function toJsonStringExpression<T extends Shape>(shape: T, obj: VObject.L
       VExpression.text('{'),
       ...(members.map(([memberName, memberValue], i) => VExpression.concat(
         VExpression.text(`"${memberName}":`),
-        toJsonStringExpression(shape.Items, memberValue)
+        toJsonStringExpression(shape.Items, memberValue),
+        VExpression.text(i < members.length - 1 ? ',' : '')
       ))),
       VExpression.text('{'));
   }

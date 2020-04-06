@@ -129,7 +129,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
    */
   public readonly key: Key;
 
-  private _keyShape: RecordShape;
+  private _keyShape: RecordShape; // cache
   private get keyShape() {
     if (!this._keyShape) {
       const keyMembers: any = {
@@ -141,6 +141,17 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       this._keyShape = Record(keyMembers);
     }
     return this._keyShape;
+  }
+
+  private _attributeValuesShape: RecordShape; // cache
+  private get attributeValuesShape() {
+    if (!this._attributeValuesShape) {
+      const keyShape = this.keyShape;
+      const attributeValues = this.dataType.Members;
+      Object.keys(keyShape.Members).forEach(k => delete attributeValues[k]);
+      this._attributeValuesShape = Record(attributeValues);
+    }
+    return this._attributeValuesShape;
   }
 
   constructor(scope: Scope, id: string, props: TableProps<DataType, Key>) {
@@ -170,21 +181,34 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     }));
   }
 
-
-  public put(value: VObject.Like<DataType>): VTL<VObject.Of<DataType>> {
-    throw new Error('todo');
-  }
-
   public get(key: KeyGraphQLRepr<DataType, Key>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
-    class GetItemRequest extends Record({
+    const GetItemRequest = Record({
       version: string,
       operation: string,
       key: this.keyShape
-    }) {}
+    });
     const request = VObject.of(GetItemRequest, toJsonStringExpression(GetItemRequest, {
       version: '2017-02-28',
       operation: 'GetItem',
       key: toAttributeValue(this.keyShape, key)
+    }));
+
+    return call(this.dataSourceProps(props), request, this.dataType);
+  }
+
+  public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
+    // TODO: address redundancy between this and `get`.
+    const PutItemRequest = Record({
+      version: string,
+      operation: string,
+      key: this.keyShape,
+      attributeValues: this.attributeValuesShape
+    });
+    const request = VObject.of(PutItemRequest, toJsonStringExpression(PutItemRequest, {
+      version: '2017-02-28',
+      operation: 'PutItem',
+      key: toAttributeValue(this.keyShape, value),
+      attributeValues: toAttributeValue(this.attributeValuesShape, value)
     }));
 
     return call(this.dataSourceProps(props), request, this.dataType);

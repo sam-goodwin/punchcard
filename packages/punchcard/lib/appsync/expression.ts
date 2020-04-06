@@ -1,10 +1,14 @@
+import { VObject } from "./vtl-object";
+
 export class VExpression {
   public static text(text: string) {
     return new VExpression(text);
   }
 
-  public static concat(...expressions: VExpression[]) {
-    return new VExpression(() => expressions.map(e => e.visit()).join(''));
+  public static concat(...expressions: (VExpression | VObject)[]) {
+    return new VExpression(() => expressions
+      .map(e => VObject.isObject(e) ? VObject.exprOf(e) : e)
+      .map(e => e.visit()).join(''));
   }
 
   constructor(private readonly print: string | (() => string)) {}

@@ -149,9 +149,9 @@ export const PostApi = (scope: Scope) => {
   const postStore = new PostStore(scope, 'PostStore');
 
   const getPost = new GetPostTrait(Query, {
-    *getPost({id}) {
+    *getPost(args) {
       return yield* postStore.get({
-        id
+        id: args.id
       });
     }
   });
@@ -161,10 +161,10 @@ export const PostApi = (scope: Scope) => {
       const id = yield* $util.autoId();
       const timestamp = yield* $util.time.nowISO8601();
 
-      yield* $if(input.title.isEmpty(), function*() {
-        const msg = yield* vtl(string)`Title must be non empty: ${input.title}`;
-        yield* $util.error(msg);
-      });
+      // yield* $if(input.title.isEmpty(), function*() {
+      //   const msg = yield* vtl(string)`Title must be non empty: ${input.title}`;
+      //   yield* $util.error(msg);
+      // });
 
       const post = yield* postStore.put({
         id,
@@ -227,8 +227,16 @@ const MyApi = new Api(stack, 'MyApi', {
   )
 });
 
+import assert = require('@aws-cdk/assert');
+import cdk = require('@aws-cdk/core');
+
 export function doStuffWithApi(api: MyApi) {}
 
+const api = Build.resolve(MyApi.resource);
+const _stack = Build.resolve(stack);
+
 it('should generate schema', () => {
-  Build.resolve(MyApi.resource);
+  assert.expect(_stack).toMatch({
+    a: 1
+  });
 });

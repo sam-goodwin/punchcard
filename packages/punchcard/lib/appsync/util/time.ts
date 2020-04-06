@@ -1,18 +1,25 @@
+import { integer, string, timestamp } from '@punchcard/shape';
+import { VExpression } from '../expression';
+import { set } from '../statement';
 import { VTL } from '../vtl';
-import { VInteger, VString, VTimestamp } from '../vtl-object';
+import { VInteger, VObject, VString, VTimestamp } from '../vtl-object';
 
 export class TimeUtil {
-  public nowISO8601(): VTL<VTimestamp> {
-    throw new Error('not implemented');
+  public *nowISO8601(): VTL<VTimestamp> {
+    return yield* set(new VTimestamp(timestamp, new VExpression('$util.time.nowISO8601()')));
   }
-  public nowEpochSeconds() : VTL<VInteger> {
-    throw new Error('not implemented');
+  public *nowEpochSeconds() : VTL<VInteger> {
+    return yield* set(new VInteger(integer, new VExpression('$util.time.nowISO8601()')));
   }
-  public nowEpochMilliSeconds() : VTL<VInteger> {
-    throw new Error('not implemented');
+  public *nowEpochMilliSeconds() : VTL<VInteger> {
+    return yield* set(new VInteger(integer, new VExpression('$util.time.nowEpochMilliSeconds()')));
   }
-  public nowFormatted(format: VString) : VTL<VTimestamp> {
-    throw new Error('not implemented');
+  public *nowFormatted(format: VString) : VTL<VString> {
+    return yield* set(new VString(string, VExpression.concat(
+      VExpression.text('$util.time.nowFormatted('),
+      format,
+      VExpression.text(')')
+    )));
   }
   // public parseFormattedToEpochMilliSeconds(VString, VString) : VTL<VInteger> {
 

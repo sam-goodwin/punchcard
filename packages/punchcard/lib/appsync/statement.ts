@@ -34,7 +34,7 @@ export namespace StatementGuards {
   }
 
   export function isSet(a: any): a is SetVariable<VObject> {
-    return a[Statement.Tag] === 'stash';
+    return a[Statement.Tag] === 'set';
   }
 
   export function isIf(a: any): a is IfBranch<VObject | void> {
