@@ -1,7 +1,7 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
 import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
-import { RecordShape, RecordMembers } from './record';
+import { RecordMembers, RecordShape } from './record';
 import { Shape } from './shape';
 
 export namespace ShapeGuards {

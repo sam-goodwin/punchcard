@@ -94,7 +94,7 @@ export class Api<
         parseType(this.MutationType!);
       }
 
-      console.log(blocks.join('\n'));
+      // console.log(blocks.join('\n'));
       return api;
 
       function parseType(shape: Shape): void {
@@ -178,11 +178,13 @@ export class Api<
           const functions: string[] = [];
           let template: string[] = [];
 
+          let inc = 0;
           let i = 0;
           const id = () => 'var' + (i += 1).toString(10);
 
           // create a FQN for the <type>.<field>
-          const fieldFQN = `${typeName}_${fieldName}`.replace(/[_A-Za-z][_0-9A-Za-z]/g, '_');
+          const fieldFQN = `${typeName}_${fieldName}`.replace(/[^_0-9A-Za-z]/g, '_');
+          console.log('fieldFqn', fieldFQN);
 
           let next: IteratorResult<Statement<VObject | void>, any>;
           let returns: VObject | undefined;
@@ -202,20 +204,21 @@ export class Api<
               returns = VObject.of(stmt.responseType, new VExpression(`$context.stash.${name}`));
               const responseMappingTemplate = `#set($context.stash.${name} = $context.prev.result)\n`;
 
-              console.log(template.join('\n'));
+              // console.log(template.join('\n'));
               // clear template state
               template = [];
 
+              const stageName = `${fieldFQN}${inc += 1}`;
               const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, fieldFQN);
               const dataSource = new appsync.CfnDataSource(scope, `DataSource(${fieldFQN})`, {
                 ...dataSourceProps,
                 apiId: api.apiId,
-                name: fieldFQN,
+                name: stageName,
               });
 
               const functionConfiguration = new appsync.CfnFunctionConfiguration(scope, `Function(${fieldFQN})`, {
                 apiId: api.apiId,
-                name: fieldFQN,
+                name: stageName,
                 requestMappingTemplate,
                 responseMappingTemplate,
                 dataSourceName: dataSource.name,
@@ -228,7 +231,11 @@ export class Api<
             }
           }
           if (next.value !== undefined) {
-            template.push(VObject.exprOf(next.value as VObject).visit({indentSpaces: 0}).text);
+            template.push(VExpression.concat(
+              VExpression.text('$util.toJson('),
+              VObject.exprOf(next.value as VObject),
+              VExpression.text(')'
+            )).visit({indentSpaces: 0}).text);
           }
 
           new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {
