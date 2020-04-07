@@ -42,8 +42,8 @@ export class Api<
   T extends TypeSystem,
   Q extends keyof T | undefined,
   M extends keyof T | undefined
-> extends Construct implements Resource<appsync.GraphQLApi> {
-  public readonly resource: Build<appsync.GraphQLApi>;
+> extends Construct implements Resource<appsync.CfnGraphQLApi> {
+  public readonly resource: Build<appsync.CfnGraphQLApi>;
 
   public readonly Types: {
     // eumerate through to clean up the type siganture ("Compaction").
@@ -72,16 +72,41 @@ export class Api<
       CDK,
       Scope.resolve(scope),
       props.overrideProps || Build.of(undefined)
-    ).map(([{appsync, core}, scope, buildProps]) => {
-      const blocks: string[] = [generateSchemaHeader(this)];
+    ).map(([{appsync, core, iam}, scope, buildProps]) => {
+      const blocks: string[] = [];
 
-      const api = new appsync.GraphQLApi(scope, id, {
-        ...buildProps,
+      scope = new core.Construct(scope, id);
+
+      const cwRole = new iam.Role(scope, 'CloudWatchRole', {
+        assumedBy: new iam.ServicePrincipal('appsync')
+      });
+      cwRole.addToPolicy(new iam.PolicyStatement({
+        actions: [
+          'logs:CreateLogGroup',
+          'logs:CreateLogStream',
+          'logs:PutLogEvents',
+          'logs:DescribeLogStreams'
+        ],
+        resources: [
+          'arn:aws:logs:*:*:*'
+        ]
+      }));
+      const api = new appsync.CfnGraphQLApi(scope, 'Api', {
         name: props.name,
-        schemaDefinition: core.Lazy.stringValue({
-          produce: () => blocks.join('\n')
+        authenticationType: 'AWS_IAM',
+        logConfig: {
+          cloudWatchLogsRoleArn: cwRole.roleArn,
+          fieldLogLevel: 'ALL',
+        }
+      });
+
+      const schema = new appsync.CfnGraphQLSchema(scope, 'Schema', {
+        apiId: api.attrApiId,
+        definition: core.Lazy.stringValue({
+          produce: () => blocks.concat(generateSchemaHeader(this)).join('\n')
         }),
       });
+
       const dataSources = new core.Construct(api, '_DataSources');
 
       const seenDataTypes = new Set<string>();
@@ -94,7 +119,6 @@ export class Api<
         parseType(this.MutationType!);
       }
 
-      // console.log(blocks.join('\n'));
       return api;
 
       function parseType(shape: Shape): void {
@@ -154,8 +178,8 @@ export class Api<
           if (!isScalar(fieldShape)) {
             throw new Error(`Input type ${shape.FQN} contains non-scalar type ${fieldShape.FQN} for field ${fieldName}`);
           }
-          return `${fieldName}: ${getTypeAnnotation(shape)}`;
-        }).join('\n')}}`;
+          return `  ${fieldName}: ${getTypeAnnotation(fieldShape)}`;
+        }).join('\n')}\n}`;
 
         blocks.push(inputSpec);
       }
@@ -175,7 +199,7 @@ export class Api<
             generator = resolver.bind(self)(self);
           }
 
-          const functions: string[] = [];
+          const functions: appsync.CfnFunctionConfiguration[] = [];
           let template: string[] = [];
 
           let inc = 0;
@@ -184,7 +208,6 @@ export class Api<
 
           // create a FQN for the <type>.<field>
           const fieldFQN = `${typeName}_${fieldName}`.replace(/[^_0-9A-Za-z]/g, '_');
-          console.log('fieldFqn', fieldFQN);
 
           let next: IteratorResult<Statement<VObject | void>, any>;
           let returns: VObject | undefined;
@@ -202,9 +225,8 @@ export class Api<
               const requestMappingTemplate = template.join('\n');
               // return a reference to the previou s result
               returns = VObject.of(stmt.responseType, new VExpression(`$context.stash.${name}`));
-              const responseMappingTemplate = `#set($context.stash.${name} = $context.prev.result)\n`;
+              const responseMappingTemplate = `#set($context.stash.${name} = $context.result){}\n`;
 
-              // console.log(template.join('\n'));
               // clear template state
               template = [];
 
@@ -212,20 +234,19 @@ export class Api<
               const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, fieldFQN);
               const dataSource = new appsync.CfnDataSource(scope, `DataSource(${fieldFQN})`, {
                 ...dataSourceProps,
-                apiId: api.apiId,
+                apiId: api.attrApiId,
                 name: stageName,
               });
 
               const functionConfiguration = new appsync.CfnFunctionConfiguration(scope, `Function(${fieldFQN})`, {
-                apiId: api.apiId,
+                apiId: api.attrApiId,
                 name: stageName,
                 requestMappingTemplate,
                 responseMappingTemplate,
-                dataSourceName: dataSource.name,
+                dataSourceName: dataSource.attrName,
                 functionVersion: '2018-05-29',
               });
-
-              functions.push(functionConfiguration.name);
+              functions.push(functionConfiguration);
             } else {
               throw new Error(`unknown statement: ${next.value}`);
             }
@@ -238,16 +259,18 @@ export class Api<
             )).visit({indentSpaces: 0}).text);
           }
 
-          new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {
-            apiId: api.apiId,
+          const cfnResolver =new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {
+            apiId: api.attrApiId,
             typeName,
             fieldName,
             kind: 'PIPELINE', // always pipeline cuz we cool like that
             pipelineConfig: {
-              functions
+              functions: functions.map(f => f.attrFunctionId)
             },
+            requestMappingTemplate: '#set($init = 0){}', ////
             responseMappingTemplate: template.join('\n')
           });
+          cfnResolver.addDependsOn(schema);
         }
       }
     });
@@ -255,8 +278,8 @@ export class Api<
 }
 
 const generateSchemaHeader = (api: Api<any, any, any>) => `schema {
-  ${api.QueryType ? `Query: ${api.QueryType!.FQN}${api.MutationType ? ',' : ''}` : ''}
-  ${api.MutationType ? `Mutation: ${api.MutationType!.FQN}` : ''}
+  ${api.QueryType ? `query: ${api.QueryType!.FQN}${api.MutationType ? ',' : ''}` : ''}
+  ${api.MutationType ? `mutation: ${api.MutationType!.FQN}` : ''}
 }`;
 
 // gets the GraphQL type annotaiton syntax for a Shape

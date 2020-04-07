@@ -37,7 +37,7 @@ export interface IndexProps<SourceTable extends Table<any, any>, Projection exte
 /**
  * Represents an Index of a DynamoDB Table
  */
-export class Index<SourceTable extends Table<any, any>, Projection extends RecordShape, Key extends DDB.KeyOf<Projection>> {
+export class Index<SourceTable extends Table<RecordShape, any>, Projection extends RecordShape, Key extends DDB.KeyOf<Projection>> {
   /**
    * Source Table of this Index.
    */
@@ -168,7 +168,7 @@ export namespace Index {
   export type Of<SourceTable extends Table<any, any>, Projection extends RecordShape, Key extends DDB.KeyOf<Projection>>
     = Index<
         SourceTable,
-        Table.Data<SourceTable>['members'] extends Projection['Members'] ? Projection : never,
+        Table.Data<SourceTable>['Members'] extends Projection['Members'] ? Projection : never,
         Key>;
 
   export interface GlobalProps<Projection extends RecordShape, Key extends DDB.KeyOf<Projection>> {

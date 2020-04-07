@@ -69,21 +69,3 @@ Lambda.schedule(stack, 'MyFunction', {
 queue.messages().forEach(stack, 'ForEachMessage', {}, async (msg) => {
   console.log(`received message with key '${msg.key}' and count ${msg.count}`);
 });
-
-
-
-
-/* Static stuff
-everything that runs when you can require('./index');
-
-DynamoDB.Table
-*/
-
-/* Build-time stuff
-CDK/bundling/etc.
-*/
-
-/* Run-time stuff
-implementation
-*/
-

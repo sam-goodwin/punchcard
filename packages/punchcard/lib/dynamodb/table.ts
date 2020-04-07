@@ -193,10 +193,10 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       key: toAttributeValueExpression(this.keyShape, key)
     }));
 
-    return call(this.dataSourceProps(props), request, this.dataType);
+    return call(this.dataSourceProps((table, role) => table.grantReadData(role), props), request, this.dataType);
   }
 
-  public *put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
+  public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
     // TODO: address redundancy between this and `get`.
     const PutItemRequest = Record({
       version: string,
@@ -212,31 +212,35 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       attributeValues: toAttributeValueExpression(this.attributeValuesShape, value)
     }));
 
-    return yield* call(this.dataSourceProps(props), request, this.dataType);
+    return call(this.dataSourceProps((table, role) => table.grantWriteData(role), props), request, this.dataType);
   }
 
   /**
    * Return an AppSync DataSource for this Table.
    * @param props
    */
-  private dataSourceProps(props?: Table.DataSourceProps): Build<DataSourceBindCallback> {
+  private dataSourceProps(grant: (table: dynamodb.Table, role: iam.IRole) => void, props?: Table.DataSourceProps): Build<DataSourceBindCallback> {
     return Build.concat(
       CDK,
       this.resource,
       props?.serviceRole || Build.of(undefined)
-    ).map(([cdk, table, serviceRole]) => (scope: cdk.Construct, id: string) => ({
-      type: DataSourceType.AWS_LAMBDA,
-      dynamoDbConfig: {
-        awsRegion: table.stack.region,
-        tableName: table.tableName,
-        useCallerCredentials: props?.useCallerCredentials
-      },
-      description: props?.description,
-      // TODO: are we sure we want to auto-create an IAM Role?
-      serviceRoleArn: serviceRole?.roleArn || new cdk.iam.Role(scope, `${id}:Role`, {
+    ).map(([cdk, table, serviceRole]) => (scope: cdk.Construct, id: string) => {
+      const role = serviceRole || new cdk.iam.Role(scope, `${id}:Role`, {
         assumedBy: new cdk.iam.ServicePrincipal('appsync')
-      }).roleArn
-    }));
+      });
+      grant(table, role);
+      return {
+        type: DataSourceType.AMAZON_DYNAMODB,
+        dynamoDbConfig: {
+          awsRegion: table.stack.region,
+          tableName: table.tableName,
+          useCallerCredentials: props?.useCallerCredentials
+        },
+        description: props?.description,
+        // TODO: are we sure we want to auto-create an IAM Role?
+        serviceRoleArn: role.roleArn
+      };
+    });
   }
 
   /**

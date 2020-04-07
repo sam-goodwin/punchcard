@@ -235,25 +235,36 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
     const requestShape: T = Pointer.resolve(this.request);
     const responseShape: U = Pointer.resolve(this.response);
 
-    const requestObject: VObject.Of<T> = VObject.isObject(request) ?
-      request as VObject.Of<T>:
-      VObject.of(requestShape, VExpression.json(request))
-    ;
+    const requestObject = VObject.of(requestShape, VExpression.json({
+      version: '2017-02-28',
+      operation: 'Invoke',
+      payload: VObject.isObject(request) ?
+        VExpression.concat(
+          VExpression.text('$util.toJson('),
+          VObject.exprOf(request),
+          VExpression.text(')')
+        ) :
+        VExpression.json(request),
+    }));
 
     const dataSourceProps = Build.concat(
       CDK,
       this.resource,
       props?.serviceRole || Build.of(undefined)
-    ).map(([cdk, fn, serviceRole]) => (scope: cdk.Construct, id: string) => ({
-      type: DataSourceType.AWS_LAMBDA,
-      lambdaConfig: {
-        lambdaFunctionArn: fn.functionArn
-      },
-      description: props?.description,
-      serviceRoleArn: serviceRole?.roleArn || new cdk.iam.Role(scope, `${id}:Role`, {
+    ).map(([cdk, fn, serviceRole]) => (scope: cdk.Construct, id: string) => {
+      const role = serviceRole || new cdk.iam.Role(scope, `${id}:Role`, {
         assumedBy: new cdk.iam.ServicePrincipal('appsync')
-      }).roleArn,
-    }));
+      });
+      fn.grantInvoke(role);
+      return {
+        type: DataSourceType.AWS_LAMBDA,
+        lambdaConfig: {
+          lambdaFunctionArn: fn.functionArn
+        },
+        description: props?.description,
+        serviceRoleArn: role.roleArn,
+      };
+    });
 
     return call(dataSourceProps, requestObject, responseShape) ;
   }

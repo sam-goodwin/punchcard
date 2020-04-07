@@ -45,9 +45,7 @@ class UserGameScore extends Record({
   version: integer
 }) {}
 
-namespace UserGameScore {
-  export class Key extends UserGameScore.Pick(['userId', 'gameTitle']) {}
-}
+export class UserGameScoreKey extends UserGameScore.Pick(['userId', 'gameTitle']) {}
 /**
  * DynamoDB Table storing the User-Game statistics. 
  */
@@ -100,7 +98,7 @@ const submitScore = new Lambda.Function(stack, 'SubmitScore', {
    */
   depends: UserScores.readWriteAccess()
 }, async (request, highScores) => {
-  const key = new UserGameScore.Key({
+  const key = new UserGameScoreKey({
     userId: request.userId,
     gameTitle: request.gameTitle
   });

@@ -8,7 +8,7 @@ import { Mapper } from './mapper';
 import { Update } from './update';
 import { Writer } from './writer';
 
-export interface BaseClientProps<T extends RecordShape<any>, K extends DDB.KeyOf<T>> {
+export interface BaseClientProps<T extends RecordShape, K extends DDB.KeyOf<T>> {
   /**
    * Record typr of the table's properties.
    */
@@ -158,9 +158,9 @@ export class BaseClient<T extends RecordShape<any>, K extends DDB.KeyOf<T>> {
   }
 }
 
-export interface TableClientProps<T extends RecordShape<any>, K extends DDB.KeyOf<T>> extends Omit<BaseClientProps<T, K>, 'indexName'> {}
+export interface TableClientProps<T extends RecordShape, K extends DDB.KeyOf<T>> extends Omit<BaseClientProps<T, K>, 'indexName'> {}
 
-export class TableClient<T extends RecordShape<any>, K extends DDB.KeyOf<T>> extends BaseClient<T, K> {
+export class TableClient<T extends RecordShape, K extends DDB.KeyOf<T>> extends BaseClient<T, K> {
   constructor(config: TableClientProps<T, K>)  {
     super(config);
   }
@@ -317,12 +317,12 @@ export namespace DDB {
   export type HashKeyName<K> = K extends { partition: infer H; } ? H : never;
 
   export type HashKeyValue<T extends RecordShape<any>, K extends KeyOf<T>> = Value.Of<HashKeyShape<T, K>>;
-  export type HashKeyShape<T extends RecordShape<any>, K extends KeyOf<T>> = T['Members'][AssertIsKey<T['Members'], HashKeyName<K>>];
+  export type HashKeyShape<T extends RecordShape<any>, K extends KeyOf<T>> = T['Members'][HashKeyName<K>];
 
   export type SortKeyName<K> = K extends { sort?: infer S; } ? S : undefined;
 
   export type SortKeyValue<T extends RecordShape<any>, K extends KeyOf<T>> = Value.Of<SortKeyShape<T, K>>;
-  export type SortKeyShape<T extends RecordShape<any>, K extends KeyOf<T>> = T['Members'][AssertIsKey<T['Members'], SortKeyName<K>>];
+  export type SortKeyShape<T extends RecordShape<any>, K extends KeyOf<T>> = T['Members'][SortKeyName<K>];
 
   export type QueryCondition<T extends RecordShape<any>, K extends KeyOf<T>> =
     SortKeyName<K> extends undefined ? {

@@ -1,7 +1,6 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
 import { array, string, integer, Record, any, Shape, Minimum } from '@punchcard/shape';
-import { CDK } from 'punchcard/lib/core/cdk';
 import { ID, Trait, $util, Api, ApiFragment } from 'punchcard/lib/appsync';
 import { Scope } from 'punchcard/lib/core/construct';
 import { VFunction } from '@punchcard/shape/lib/function';
@@ -31,17 +30,6 @@ class Post extends Record('Post', {
 }) {}
 
 /*
-input PostInput {
-  title: string!
-  content: string!
-  tags: [string!]!
-}
-*/
-class PostInput extends Post.Omit('PostInput', [
-  'id'
-]) {}
-
-/*
 "Traits" are like interfaces in TypeScript.
 
 interface PostQueryAPI {
@@ -59,7 +47,7 @@ const PostQueryAPI = Trait({
 });
 const PostMutationAPI = Trait({
   addPost: VFunction({
-    args: { input: PostInput },
+    args: { title: string, content: string, tags: array(string) },
     returns: Post
   })
 })
@@ -120,7 +108,7 @@ export const PostApi = (
 
   // impl PostMutationAPI on Mutation (adds the `addPost` resolver function to the root of the API)
   const postMutationAPI = new PostMutationAPI(Mutation, {
-    *addPost({input}) {
+    *addPost(input) {
       const id = yield* $util.autoId();
 
       const post = yield* postStore.put({
@@ -164,7 +152,7 @@ export const PostApi = (
 
 // create a new App
 export const app = new Core.App();
-const stack = app.stack('invoke-function');
+const stack = app.stack('graphql');
 
 // instantiate our API component 
 const {

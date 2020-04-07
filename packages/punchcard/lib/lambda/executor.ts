@@ -1,10 +1,9 @@
 import { Shape, Value } from '@punchcard/shape';
-import { Integration, LambdaIntegration, Resource } from '../api-gateway';
 import * as CloudWatch from '../cloudwatch';
 import { Build } from '../core/build';
 import { Client } from '../core/client';
 import { Dependency } from '../core/dependency';
-import { Function, FunctionOverrideProps, FunctionProps } from './function';
+import { Function, FunctionProps } from './function';
 import { schedule, ScheduleProps } from './schedule';
 
 import * as cdk from '@aws-cdk/core';
@@ -45,22 +44,5 @@ export class ExecutorService {
       ...this.props,
       ...props
     };
-  }
-
-  public apiIntegration<D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: {
-    depends: D;
-  }): Integration<D> {
-    const handler = this.spawn(scope, id, {
-      depends: props.depends
-    }, async (event: any, runtimeContext: Client<D>) => {
-      const resourceId = event.__resourceId; // TODO: we implicitly know this field exists - magic field. see ../api-gateway/resource.ts
-      const resource: Resource = integration.findResource(resourceId);
-      if (!resource) {
-        throw new Error(`could not resolve resource handler for resourceId: ${resourceId}`);
-      }
-      return await resource.handle(event, runtimeContext);
-    });
-    const integration = new LambdaIntegration(handler);
-    return integration;
   }
 }

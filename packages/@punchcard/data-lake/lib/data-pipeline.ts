@@ -2,18 +2,18 @@ import type { Database } from '@aws-cdk/aws-glue';
 import type { Construct } from '@aws-cdk/core';
 
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
-import { RecordType, Value } from '@punchcard/shape';
+import { RecordShape, Value } from '@punchcard/shape';
 import { Glue, Kinesis, S3 } from 'punchcard';
 import { Build } from 'punchcard/lib/core/build';
 import { CDK } from 'punchcard/lib/core/cdk';
 import { Period, PT1M } from './period';
 import { Schema } from './schema';
 
-export interface DataPipelineProps<C extends RecordType, TS extends keyof C> {
+export interface DataPipelineProps<C extends RecordShape, TS extends keyof C['Members']> {
   database: Build<Database>;
   schema: Schema<C, TS>;
 }
-export class DataPipeline<T extends RecordType, TS extends keyof T> {
+export class DataPipeline<T extends RecordShape, TS extends keyof T['Members']> {
   public readonly bucket: S3.Bucket;
   public readonly stream: Kinesis.Stream<T>;
   public readonly table: Glue.Table<T, Period.PT1M>;
