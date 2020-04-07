@@ -10,7 +10,7 @@ import { any, AnyShape, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, 
 import { DataSourceType, VExpression } from '../appsync';
 import { call } from '../appsync/statement';
 import { VTL } from '../appsync/vtl';
-import { toJsonStringExpression, VObject } from '../appsync/vtl-object';
+import { VObject } from '../appsync/vtl-object';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
@@ -231,13 +231,13 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
    * @param request VTL object for the request
    * @param props optional props to customize the Lambda data source.
    */
-  public invoke(request: VObject.Of<T>, props?: Function.DataSourceProps): VTL<VObject.Of<U>> {
+  public invoke(request: VObject.Like<T>, props?: Function.DataSourceProps): VTL<VObject.Of<U>> {
     const requestShape: T = Pointer.resolve(this.request);
     const responseShape: U = Pointer.resolve(this.response);
 
     const requestObject: VObject.Of<T> = VObject.isObject(request) ?
       request as VObject.Of<T>:
-      VObject.of(requestShape, toJsonStringExpression(requestShape, request))
+      VObject.of(requestShape, VExpression.json(request))
     ;
 
     const dataSourceProps = Build.concat(

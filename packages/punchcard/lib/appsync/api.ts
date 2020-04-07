@@ -179,7 +179,7 @@ export class Api<
           let template: string[] = [];
 
           let i = 0;
-          const id = () => (i += 1).toString(10);
+          const id = () => 'var' + (i += 1).toString(10);
 
           // create a FQN for the <type>.<field>
           const fieldFQN = `${typeName}_${fieldName}`.replace(/[_A-Za-z][_0-9A-Za-z]/g, '_');
@@ -190,13 +190,13 @@ export class Api<
             const stmt = next.value;
             if (StatementGuards.isSet(stmt)) {
               const name = stmt.id || id();
-              template.push(`#set($context.stash.${name} = ${VObject.exprOf(stmt.value).visit()})`);
+              template.push(`#set($context.stash.${name} = ${VObject.exprOf(stmt.value).visit({indentSpaces: 0}).text})`);
 
               // return a reference to the set value
               returns = VObject.clone(stmt.value, new VExpression(`$context.stash.${name}`));
             } else if (StatementGuards.isCall(stmt)) {
               const name = id();
-              template.push(VObject.exprOf(stmt.request).visit());
+              template.push(VObject.exprOf(stmt.request).visit({indentSpaces: 0}).text);
               const requestMappingTemplate = template.join('\n');
               // return a reference to the previou s result
               returns = VObject.of(stmt.responseType, new VExpression(`$context.stash.${name}`));
@@ -228,7 +228,7 @@ export class Api<
             }
           }
           if (next.value !== undefined) {
-            template.push(VObject.exprOf(next.value as VObject).visit());
+            template.push(VObject.exprOf(next.value as VObject).visit({indentSpaces: 0}).text);
           }
 
           new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {

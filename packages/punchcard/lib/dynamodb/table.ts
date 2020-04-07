@@ -6,7 +6,7 @@ import type * as cdk from '@aws-cdk/core';
 
 import { Record, RecordShape, string } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, toJsonStringExpression, VExpression, VObject, VTL } from '../appsync';
+import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VTL } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -15,7 +15,7 @@ import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
-import { toAttributeValue } from './v-attribute-value';
+import { toAttributeValue, toAttributeValueExpression } from './v-attribute-value';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
@@ -187,16 +187,16 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       operation: string,
       key: this.keyShape
     });
-    const request = VObject.of(GetItemRequest, toJsonStringExpression(GetItemRequest, {
+    const request = VObject.of(GetItemRequest, VExpression.json({
       version: '2017-02-28',
       operation: 'GetItem',
-      key: toAttributeValue(this.keyShape, key)
+      key: toAttributeValueExpression(this.keyShape, key)
     }));
 
     return call(this.dataSourceProps(props), request, this.dataType);
   }
 
-  public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
+  public *put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
     // TODO: address redundancy between this and `get`.
     const PutItemRequest = Record({
       version: string,
@@ -204,18 +204,19 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       key: this.keyShape,
       attributeValues: this.attributeValuesShape
     });
-    const request = VObject.of(PutItemRequest, toJsonStringExpression(PutItemRequest, {
+
+    const request = VObject.of(PutItemRequest, VExpression.json({
       version: '2017-02-28',
       operation: 'PutItem',
-      key: toAttributeValue(this.keyShape, value),
-      attributeValues: toAttributeValue(this.attributeValuesShape, value)
+      key: toAttributeValueExpression(this.keyShape, value),
+      attributeValues: toAttributeValueExpression(this.attributeValuesShape, value)
     }));
 
-    return call(this.dataSourceProps(props), request, this.dataType);
+    return yield* call(this.dataSourceProps(props), request, this.dataType);
   }
 
   /**
-   * Return a
+   * Return an AppSync DataSource for this Table.
    * @param props
    */
   private dataSourceProps(props?: Table.DataSourceProps): Build<DataSourceBindCallback> {

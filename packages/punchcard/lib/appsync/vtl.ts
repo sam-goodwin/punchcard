@@ -49,8 +49,8 @@ export type ExpressionTemplate<T extends Shape> = <Args extends (VObject)[]>(tem
  */
 export function vtl<T extends Shape>(type: T): ExpressionTemplate<T> {
   return function*(template, ...args) {
-    return yield* set(VObject.of(type,  VExpression.concat(...template.map((str, i) => new VExpression(() =>
-      `${str}${i < args.length ? VObject.exprOf(args[i]).visit() : ''}`
+    return yield* set(VObject.of(type,  VExpression.concat(...template.map((str, i) => new VExpression(ctx =>
+      `${str}${i < args.length ? VObject.exprOf(args[i]).visit(ctx) : ''}`
     )))));
   };
 }
