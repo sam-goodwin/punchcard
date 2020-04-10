@@ -1,6 +1,6 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
-import { Meta, Shape, ShapeGuards } from '@punchcard/shape';
+import { Meta, nothing, number, Shape, ShapeGuards } from '@punchcard/shape';
 import { RecordShape } from '@punchcard/shape/lib/record';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
@@ -8,7 +8,7 @@ import { Construct, Scope } from '../core/construct';
 import { Resource } from '../core/resource';
 import { VExpression } from './expression';
 import { ApiFragment } from './fragment';
-import { Statement, StatementGuards } from './statement';
+import { ElseBranch, IfBranch, isElseBranch, isIfBranch, Statement, StatementGuards } from './statement';
 import { TypeSpec, TypeSystem } from './type-system';
 import { VTL } from './vtl';
 import { VObject } from './vtl-object';
@@ -202,18 +202,142 @@ export class Api<
           const functions: appsync.CfnFunctionConfiguration[] = [];
           let template: string[] = [];
 
-          let inc = 0;
-          let i = 0;
-          const id = () => 'var' + (i += 1).toString(10);
+          let stageCount = 0;
+          const id = (() => {
+            const inc: {
+              [key: string]: number;
+            } = {};
+
+            return (prefix: string = 'var') => {
+              const i = inc[prefix];
+              if (i === undefined) {
+                inc[prefix] = 0;
+              }
+              return `${prefix}${(inc[prefix] += 1).toString(10)}`;
+            };
+          })();
 
           // create a FQN for the <type>.<field>
           const fieldFQN = `${typeName}_${fieldName}`.replace(/[^_0-9A-Za-z]/g, '_');
 
           let next: IteratorResult<Statement<VObject | void>, any>;
           let returns: VObject | undefined;
+
           while (!(next = generator.next(returns)).done) {
             const stmt = next.value;
-            if (StatementGuards.isSet(stmt)) {
+            if (StatementGuards.isIf(stmt)) {
+              const ifResult = `$context.stash.${id()}`;
+              const {expr, returnType} = parseIf(stmt, ifResult);
+              const txt = expr.visit({indentSpaces: 0}).text;
+              template.push(txt);
+              returns = VObject.of(returnType, VExpression.text(ifResult));
+
+              function parseIf(branch: IfBranch<VObject | void>, callback: string): {
+                expr: VExpression;
+                returnType: Shape;
+               } {
+                const elseIfBranches: IfBranch<VObject | void>[] = [];
+                let elseBranch: ElseBranch<VObject | void> | undefined;
+
+                let b: IfBranch<VObject | void> | ElseBranch<VObject | void> | undefined = branch.elseBranch;
+                while (b !== undefined) {
+                  if (isIfBranch(b)) {
+                    elseIfBranches.push(b);
+                    b = b.elseBranch!;
+                  } else {
+                    elseBranch = b;
+                    break;
+                  }
+                }
+
+                // callback ID for the return
+                const localCallback = `$${id('local')}`; // local varible
+
+                const _if = parseBlock(stmt.then(), localCallback);
+                const _elseIfs = elseIfBranches.map(b => {
+                  const e = parseBlock(b.then(), localCallback);
+                  return {
+                    expr: VExpression.concat(
+                      '#elseif(', b.condition, ')',
+                      VExpression.block(e.expr)
+                    ),
+                    returnType: e.returnType
+                  };
+                });
+                const _else = elseBranch ? parseBlock(elseBranch.then(), localCallback) : undefined;
+                const returnTypes: Shape[] = [
+                  _if.returnType,
+                  ..._elseIfs.map(_ => _.returnType),
+                  _else?.returnType
+                ].filter(_ => _ !== undefined) as Shape[];
+
+                // generate a name for the return value
+                return {
+                  expr: VExpression.concat(
+                    '#if(', stmt.condition, ')',
+                    VExpression.block(_if.expr),
+                    ...(_elseIfs.map(_ => _.expr)),
+                    ...(_else ? [
+                      '#{else}', VExpression.block(_else.expr),
+                    ] : []),
+                    '#end',
+                    VExpression.line(),
+                    `#set(${callback} = ${localCallback})`
+                  ),
+                  returnType: returnTypes ? returnTypes[0] : nothing
+                };
+              }
+
+              function parseBlock(
+                block: VTL<VObject | void>,
+                callback: string,
+              ): {
+                expr: VExpression;
+                returnType?: Shape;
+               } {
+                const expressions: VExpression[] = [];
+                let it: IteratorResult<Statement<VObject | void>, any> | undefined;
+                let ret: VObject | undefined;
+                let returnType: Shape | undefined;
+                try {
+                  while ((it = block.next(ret)).done === false) {
+                    const stmt = it.value;
+                    if (StatementGuards.isSet(stmt)) {
+                      // we set things locally from within function blocks
+                      const name = stmt.id || id();
+                      expressions.push(VExpression.concat(`#set($${name} = `, stmt.value, ')'));
+                      // return a reference to the set value
+                      ret = VObject.clone(stmt.value, new VExpression(`$${name}`));
+                    } else if (StatementGuards.isIf(stmt)) {
+                      const {expr, returnType} = parseIf(stmt, callback);
+                      expressions.push(expr);
+                      ret = VObject.of(returnType, new VExpression(`$${callback}`));
+                    } else if (StatementGuards.isCall(stmt)) {
+                      throw new Error(`Calls to services are not supported within an If branch.`);
+                    } else {
+                      throw new Error(`unsupported syntax within an If: ${stmt}`);
+                    }
+                  }
+                } catch (err) {
+                  if (VObject.isObject(err)) {
+                    returnType = VObject.typeOf(err);
+                    expressions.push(VObject.exprOf(err));
+                  } else {
+                    throw err;
+                  }
+                }
+                if (it && it!.value !== undefined) {
+                  expressions.push(VExpression.concat(
+                    `#set(${callback} = `, it!.value, ')')
+                  );
+                }
+                // what to do with the return?
+                return {
+                  expr: VExpression.concat(...expressions),
+                  returnType
+                };
+              }
+            } else if (StatementGuards.isSet(stmt)) {
               const name = stmt.id || id();
               template.push(`#set($context.stash.${name} = ${VObject.exprOf(stmt.value).visit({indentSpaces: 0}).text})`);
 
@@ -223,6 +347,7 @@ export class Api<
               const name = id();
               template.push(VObject.exprOf(stmt.request).visit({indentSpaces: 0}).text);
               const requestMappingTemplate = template.join('\n');
+              console.log(requestMappingTemplate);
               // return a reference to the previou s result
               returns = VObject.of(stmt.responseType, new VExpression(`$context.stash.${name}`));
               const responseMappingTemplate = `#set($context.stash.${name} = $context.result){}\n`;
@@ -230,7 +355,7 @@ export class Api<
               // clear template state
               template = [];
 
-              const stageName = `${fieldFQN}${inc += 1}`;
+              const stageName = `${fieldFQN}${stageCount += 1}`;
               const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, fieldFQN);
               const dataSource = new appsync.CfnDataSource(scope, `DataSource(${fieldFQN})`, {
                 ...dataSourceProps,

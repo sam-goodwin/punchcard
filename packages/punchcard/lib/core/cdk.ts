@@ -44,6 +44,7 @@ export class CloudDevelopmentKit {
   public readonly appsync: typeof import('@aws-cdk/aws-appsync') = require('@aws-cdk/aws-appsync');
   public readonly apigateway: typeof import('@aws-cdk/aws-apigateway') = require('@aws-cdk/aws-apigateway');
   public readonly core: typeof import('@aws-cdk/core') = require('@aws-cdk/core');
+  public readonly cognito: typeof import('@aws-cdk/aws-cognito') = require('@aws-cdk/aws-cognito');
   public readonly cloudwatch: typeof import('@aws-cdk/aws-cloudwatch') = require('@aws-cdk/aws-cloudwatch');
   public readonly dynamodb: typeof import('@aws-cdk/aws-dynamodb') = require('@aws-cdk/aws-dynamodb');
   public readonly events: typeof import('@aws-cdk/aws-events') = require('@aws-cdk/aws-events');

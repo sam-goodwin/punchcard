@@ -87,6 +87,7 @@ export function *set<T extends VObject>(value: T, id?: string): VTL<T> {
 export class IfBranch<T> {
   readonly [Statement.Tag]: 'if' = 'if';
   readonly [Statement.Type]: T;
+  readonly branchType: 'if' = 'if';
 
   constructor(
     public readonly condition: VBool,
@@ -96,5 +97,14 @@ export class IfBranch<T> {
 }
 
 export class ElseBranch<T> {
+  public readonly branchType: 'else' = 'else';
   constructor(public readonly then: () => VTL<T>) {}
+}
+
+export function isIfBranch(a: any): a is IfBranch<VObject | void> {
+  return a.branchType === 'if';
+}
+
+export function isElseBranch(a: any): a is ElseBranch<VObject | void> {
+  return a.branchType === 'else';
 }

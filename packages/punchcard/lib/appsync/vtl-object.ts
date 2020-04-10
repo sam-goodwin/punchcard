@@ -154,7 +154,6 @@ export namespace VRecord {
   export type Class<T extends VRecord = any> = (new(members: VRecord.GetMembers<T>) => T);
 }
 
-
 export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public static defaultInstance = new Visitor();
 
@@ -162,7 +161,7 @@ export class Visitor implements ShapeVisitor<VObject, VExpression> {
     throw new Error("Method not implemented.");
   }
   public neverShape(shape: NeverShape, context: VExpression): VObject<Shape> {
-    throw new Error("Method not implemented.");
+    return new VNever(shape, context);
   }
   public arrayShape(shape: ArrayShape<any>, expr: VExpression): VList {
     return new VList(shape, expr);

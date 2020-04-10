@@ -1,6 +1,6 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { ShapeGuards } from './guards';
-import { Apply, Meta, Trait } from './metadata';
+import { Apply, Meta, Metadata, Trait } from './metadata';
 import { BinaryShape, BoolShape, IntegerShape, NumberShape, PrimitiveShapes, StringShape, TimestampShape } from './primitive';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
@@ -24,8 +24,8 @@ export abstract class Shape {
     return visitor[this.Kind](this as any, context) as T;
   }
 
-  public apply<T extends Trait<this, any>>(trait: T): Apply<this, Trait.GetData<T>> {
-    return Meta.apply(this, trait[Trait.Data]);
+  public apply<T extends Shape, Data extends Metadata>(trait: Trait<this extends T ? T : never, Data>): Apply<this, Data> {
+    return Meta.apply(this, trait[Trait.Data]!) as Apply<this, Data>;
   }
 }
 export namespace Shape {

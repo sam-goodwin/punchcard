@@ -133,9 +133,12 @@ export interface Trait<T, D> {
 }
 export namespace Trait {
   export const Data = Symbol.for('@punchcard/shape.Trait.Data');
-  export const Target = Symbol.for('@punchcard/shape.Trait.Target');
+  export type Data = typeof Data;
 
-  export type GetTarget<T extends Trait<any, any>> = T extends Trait<infer T2, any> ? T2 : never;
+  export const Target = Symbol.for('@punchcard/shape.Trait.Target');
+  export type Target = typeof Target;
+
+  export type GetTarget<T extends Trait<any, any>> = T[Trait.Target];
   export type GetData<T extends Trait<any, any>> = T extends Trait<any, infer D> ? D : never;
 }
 

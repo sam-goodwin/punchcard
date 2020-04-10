@@ -6,7 +6,7 @@ import { Shape } from './shape';
  *
  * TODO: should Optional be exposed a Shape instead of a Trait, i.e. `OptionalShape<T>`?
  */
-export const Optional: Trait<any, IsOptional> = {
+export const Optional: Trait<Shape, IsOptional> = {
   [Trait.Data]: {
     nullable: true
   }
@@ -26,7 +26,8 @@ export function isOptional(a: any) {
  * @param shapeOrRecord a Shape or a Record to transform as optional
  */
 export function optional<T extends Shape>(shape: T): Apply<T, IsOptional> {
-  return shape.apply(Optional);
+  // shape.apply(Optional);
+  return shape.apply(Optional as any);
 }
 
 export function Description<D extends string>(description: D): Trait<any, { description: D }> {

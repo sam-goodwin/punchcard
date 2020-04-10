@@ -6,16 +6,6 @@ import { VTL } from './vtl';
 import { VObject } from './vtl-object';
 
 /**
- * Helper for extending static interfaces.
- *
- * ```ts
- * const a = 'a';
- * interface A extends Static<typeof a> {}
- * ```
- */
-export type Static<T> = T;
-
-/**
  * Represents the implementation of a trait.
  *
  * @typeparam Target type the implementation is bound to

@@ -1,4 +1,4 @@
-import { number as numberShape, string as stringShape } from '@punchcard/shape';
+import { number as numberShape, ShapeGuards, string as stringShape } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { VExpression } from './expression';
 import { set, Statement } from './statement';
@@ -49,10 +49,22 @@ export type ExpressionTemplate<T extends Shape> = <Args extends (VObject)[]>(tem
  */
 export function vtl<T extends Shape>(type: T): ExpressionTemplate<T> {
   return function*(template, ...args) {
-    return yield* set(VObject.of(type,  VExpression.concat(...template.map((str, i) => new VExpression(ctx =>
-      `${str}${i < args.length ? VObject.exprOf(args[i]).visit(ctx) : ''}`
-    )))));
+    return yield* set(VObject.of(type,  VExpression.concat(
+      quotes(type),
+      ...template.map((str, i) => new VExpression(ctx =>
+        `${str}${i < args.length ? VObject.exprOf(args[i]).visit(ctx).text : ''}`
+      )),
+      quotes(type)
+    )));
   };
+}
+
+function quotes(type: Shape): string {
+  return needsQuotes(type) ? '"' : '';
+}
+
+function needsQuotes(type: Shape): boolean {
+  return ShapeGuards.isStringShape(type) || ShapeGuards.isBinaryShape(type) || ShapeGuards.isTimestampShape(type);
 }
 
 export namespace VTL {

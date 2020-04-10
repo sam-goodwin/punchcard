@@ -3,6 +3,16 @@ import { Shape } from './shape';
 
 import { KeysOfType } from 'typelevel-ts';
 
+/**
+ * Helper for extending static interfaces.
+ *
+ * ```ts
+ * const a = 'a';
+ * interface A extends Static<typeof a> {}
+ * ```
+ */
+export type Static<T> = T;
+
 export type ArrayToTuple<A extends any[]> = A[keyof A];
 export type AssertIsKey<T, K> = K extends keyof T ? K : never;
 export type AssertIsMetadata<T> = T extends Metadata ? T : never;

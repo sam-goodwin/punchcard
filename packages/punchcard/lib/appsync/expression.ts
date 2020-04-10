@@ -47,38 +47,38 @@ export class VExpression {
       return VExpression.text(`"${(literal as any).toISOString()}"`);
     } else if (Array.isArray(literal)) {
       return VExpression.concat(
-        VExpression.text('['),
+        '[',
         VExpression.indent(),
         VExpression.line(),
 
         ...literal.map((item, i) => VExpression.concat(
           VExpression.json(item),
           i < literal.length - 1 ?
-            VExpression.concat(VExpression.text(','), VExpression.line()) :
-            VExpression.text('')
+            VExpression.concat(',', VExpression.line()) :
+            ''
         )),
 
         VExpression.unindent(),
         VExpression.line(),
-        VExpression.text(']'),
+        ']',
       );
     } else if (typeof literal === 'object') {
       const members: [string, VExpressionLiteral][] = Object.entries(literal as any);
       return VExpression.concat(
-        VExpression.text('{'),
+        '{',
         VExpression.indent(),
         VExpression.line(),
 
         ...members.map(([name, value], i) => VExpression.concat(
-          VExpression.text(`"${name}": `),
+          `"${name}": `,
           VExpression.json(value),
           i < members.length - 1 ?
-            VExpression.concat(VExpression.text(','), VExpression.line()) :
-            VExpression.text('')
+            VExpression.concat(',', VExpression.line()) :
+            ''
         )),
         VExpression.unindent(),
         VExpression.line(),
-        VExpression.text('}'),
+        '}',
       );
     }
 
@@ -100,6 +100,16 @@ export class VExpression {
     });
   }
 
+  public static block(expr: VExpression) {
+    return VExpression.concat(
+      VExpression.indent(),
+      VExpression.line(),
+      expr,
+      VExpression.unindent(),
+      VExpression.line()
+    );
+  }
+
   public static line(): VExpression {
     return new VExpression(ctx => ({
       text: `\n${Array(ctx.indentSpaces).map(_ => ' ').join(' ')}`,
@@ -112,16 +122,20 @@ export class VExpression {
 
   public readonly [isExpr]: true = true;
 
-  public static concat(...expressions: (VExpression | VObject)[]) {
+  public static concat(...expressions: (VExpression | VObject | string)[]) {
     return new VExpression((ctx) => {
       const tokens: string[] = [];
       for (const expr of expressions) {
-        const e = VObject.isObject(expr) ? VObject.exprOf(expr) : expr;
-        const result = e.visit(ctx);
-        if (result.context !== undefined) {
-          ctx = result.context;
+        if (typeof expr === 'string') {
+          tokens.push(expr);
+        } else {
+          const e = VObject.isObject(expr) ? VObject.exprOf(expr) : expr;
+          const result = e.visit(ctx);
+          if (result.context !== undefined) {
+            ctx = result.context;
+          }
+          tokens.push(result.text);
         }
-        tokens.push(result.text);
       }
       return tokens.join('');
     });
