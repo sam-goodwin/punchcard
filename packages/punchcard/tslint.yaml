@@ -9,6 +9,7 @@ rules:
     max-line-length: false
     no-empty-interface: false
     no-empty: false
+    max-line-length: [true, 100]
 
     # Due to VSCode syntax highlighting we're unlikely to do this wrong, and it gets annoying
     # when trying to construct literal Fn::Sub() arguments.

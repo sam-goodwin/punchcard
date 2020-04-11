@@ -58,7 +58,7 @@ export interface HandlerProps<T extends Shape = AnyShape, U extends Shape = AnyS
    *
    * Each client will have a chance to grant permissions to the function and environment variables.
    */
-  depends?: D;
+  depends?: D | ((it?: undefined) => D);
 }
 
 export interface FunctionProps<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined>
@@ -135,8 +135,19 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
   public readonly request: Pointer<T>;
   public readonly response: Pointer<U>;
 
-  private readonly dependencies?: D;
+  private readonly depends?: D | ((it?: undefined) => D);
+
   private readonly mapperFactory: MapperFactory<Json.Of<T>>;
+
+  private _dependencies: D;
+  private get dependencies(): D {
+    if (this._dependencies) {
+      this._dependencies = (this.depends as any).install ?
+        this.depends as D :
+        (this.depends as () => D)();
+    }
+    return this._dependencies;
+  }
 
   constructor(
     scope: Scope,
@@ -151,7 +162,7 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
 
     // default to JSON serialization
     this.mapperFactory = (props.mapper || Json.mapper) as MapperFactory<Json.Of<T>>;
-    this.dependencies = props.depends;
+    this.depends = props.depends;
 
     this.resource = CDK.chain(({lambda}) => Scope.resolve(scope).chain(scope => (props.functionProps || Build.empty).map(functionProps => {
       const lambdaFunction: lambda.Function = new lambda.Function(scope, id, {

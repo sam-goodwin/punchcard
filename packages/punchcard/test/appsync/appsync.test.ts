@@ -11,6 +11,9 @@ import { Build } from '../../lib/core/build';
 import { Scope } from '../../lib/core/construct';
 import DynamoDB = require('../../lib/dynamodb');
 import Lambda = require('../../lib/lambda');
+import { UserPool } from '../../lib/cognito/user-pool';
+import { TriggerFunction } from '../../lib/cognito/triggers/trigger-function';
+
 
 // root of query interface
 export class Query extends Record('Query', {}) {}
@@ -164,11 +167,9 @@ export const PostApi = (scope: Scope) => {
 
       const title = yield* $if(input.title.isEmpty(), function*() {
         throw $util.unauthorized();
-      }, $elseIf(input.content.isNotEmpty(), function*() {
-        return input.title;
       }, $else(function*() {
         return input.title;
-      })));
+      }));
 
       const post = yield* postStore.put({
         id,
@@ -212,9 +213,26 @@ export const PostApi = (scope: Scope) => {
 const app = new App();
 const stack = app.stack('stack');
 
+const authFlow = new TriggerFunction(stack, 'AuthFlow', {
+  depends: () => postStore.readAccess(),
+  
+}, {
+  // async preSignUp(event, postStore) {
+  //   return {
+
+  //   }
+  // }
+});
+
+const pool = new UserPool(stack, 'UserPool', {
+  triggers: [
+    authFlow
+  ]
+});
+
 const {createPost, getPost, postStore, relatedPosts } = PostApi(stack);
 
-const {createUser, userStore, getUser } = UserApi(stack, {
+const {createUser, getUser } = UserApi(stack, {
   postStore
 });
 
