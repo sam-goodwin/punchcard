@@ -369,7 +369,7 @@ export namespace Table {
    *
    * Unavailable methods: `put`, `putBatch`, `delete`, `update`.
    */
-  export interface ReadOnly<A extends RecordShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
+  export interface ReadOnly<A extends RecordShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'batchPut' | 'delete' | 'update'> {}
 
   /**
    * A DynamoDB Table with write-only permissions.

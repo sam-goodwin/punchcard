@@ -2,11 +2,12 @@ import { Dependency } from '../../core/dependency';
 import { TriggerHandler } from './trigger-function';
 import { TriggerRequest } from './trigger-request';
 import { TriggerSource } from './trigger-source';
+import { RecordShape } from '@punchcard/shape';
 
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html
  */
-export interface SignUpTriggers<D extends Dependency<any>> {
+export interface SignUpTriggers<A extends RecordShape, D extends Dependency<any>> {
   /**
    * The pre sign-up Lambda function is triggered just before Amazon Cognito signs up a
    * new user. It allows you to perform custom validation to accept or deny the registration
@@ -19,8 +20,9 @@ export interface SignUpTriggers<D extends Dependency<any>> {
    */
   preSignUp?: TriggerHandler<
     TriggerSource.PreSignUp,
-    PreSignUpRequest,
+    PreSignUpRequest<A>,
     PreSignUpResponse,
+    A,
     D
   >;
   /**
@@ -34,8 +36,9 @@ export interface SignUpTriggers<D extends Dependency<any>> {
    */
   postConfirmation?: TriggerHandler<
     TriggerSource.PostConfirmation,
-    PostConfirmationRequest,
+    PostConfirmationRequest<A>,
     PostConfirmationResponse,
+    A,
     D
   >;
   /**
@@ -52,13 +55,14 @@ export interface SignUpTriggers<D extends Dependency<any>> {
    */
   userMigration?: TriggerHandler<
     TriggerSource.UserMigration,
-    UserMigrationRequest,
+    UserMigrationRequest<A>,
     UserMigrationResponse,
+    A,
     D
   >;
 }
 
-export interface PreSignUpRequest extends TriggerRequest {
+export interface PreSignUpRequest<A extends RecordShape> extends TriggerRequest<A> {
   /**
    * One or more key-value pairs that you can provide as custom input to the Lambda function that
    * you specify for the pre sign-up trigger. You can pass this data to your Lambda function by using
@@ -84,7 +88,7 @@ export interface PreSignUpResponse {
   /**
    * Set to true to auto-confirm the user, or false otherwise.
    */
-  autoConfirmUser: boolean;
+  autoConfirmUser?: boolean;
   /**
    * Set to `true` to set as verified the email of a user who is signing up, or `false` otherwise.
    * If `autoVerifyEmail` is set to true, the email attribute must have a valid, non-null value.
@@ -96,7 +100,7 @@ export interface PreSignUpResponse {
    *
    * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-attributes.html#user-pool-settings-aliases
    */
-  autoVerifyEmail: boolean;
+  autoVerifyEmail?: boolean;
   /**
    * Set to `true` to set as verified the phone number of a user who is signing up, or `false` otherwise.
    * If `autoVerifyPhone` is set to `true`, the `phone_number` attribute must have a valid, non-null value.
@@ -109,7 +113,7 @@ export interface PreSignUpResponse {
    *
    * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-attributes.html#user-pool-settings-aliases
    */
-  autoVerifyPhone: boolean;
+  autoVerifyPhone?: boolean;
 }
 
 /**
@@ -119,7 +123,7 @@ export interface PreSignUpResponse {
  *
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-post-confirmation.html
  */
-export interface PostConfirmationRequest extends TriggerRequest {
+export interface PostConfirmationRequest<A extends RecordShape> extends TriggerRequest<A> {
   /**
    * One or more key-value pairs that you can provide as custom input to the
    * Lambda function that you specify for the post confirmation trigger. You
@@ -143,7 +147,7 @@ export interface PostConfirmationResponse {}
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-migrate-user.html
  */
-export interface UserMigrationRequest extends TriggerRequest {
+export interface UserMigrationRequest<A extends RecordShape> extends TriggerRequest<A> {
   /**
    * The username entered by the user.
    */

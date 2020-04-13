@@ -1,6 +1,6 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
-import { Meta, nothing, number, Shape, ShapeGuards } from '@punchcard/shape';
+import { Meta, nothing, number, Shape, ShapeGuards, string } from '@punchcard/shape';
 import { RecordShape } from '@punchcard/shape/lib/record';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
@@ -8,10 +8,12 @@ import { Construct, Scope } from '../core/construct';
 import { Resource } from '../core/resource';
 import { VExpression } from './expression';
 import { ApiFragment } from './fragment';
-import { ElseBranch, IfBranch, isElseBranch, isIfBranch, Statement, StatementGuards } from './statement';
+import { ElseBranch, IfBranch, isIfBranch, Statement, StatementGuards } from './statement';
 import { TypeSpec, TypeSystem } from './type-system';
 import { VTL } from './vtl';
 import { VObject } from './vtl-object';
+import { UserPool } from '../cognito/user-pool';
+import { Root } from './root';
 
 export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
   | 'name'
@@ -21,13 +23,16 @@ export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
 
 export interface ApiProps<
   T extends TypeSystem,
-  Q extends keyof T | undefined = undefined,
-  M extends keyof T | undefined = undefined
+  Q extends keyof T = 'Root.Query',
+  M extends keyof T = 'Root.Mutation',
+  S extends keyof T = 'Root.Subscription',
 > {
   types: ApiFragment<T>;
   query?: Q;
   mutation?: M;
+  subscription?: S;
   name: string;
+  userPool: UserPool<any, any>;
   overrideProps?: Build<OverrideApiProps>;
 }
 
@@ -40,8 +45,9 @@ export interface ApiProps<
  */
 export class Api<
   T extends TypeSystem,
-  Q extends keyof T | undefined,
-  M extends keyof T | undefined
+  Q extends keyof T,
+  M extends keyof T,
+  S extends keyof T,
 > extends Construct implements Resource<appsync.CfnGraphQLApi> {
   public readonly resource: Build<appsync.CfnGraphQLApi>;
 
@@ -52,21 +58,22 @@ export class Api<
     };
   };
   public readonly QueryFQN: Q;
-  public readonly QueryType: Q extends keyof T ? T[Q]['type'] : undefined;
+  public readonly QuerySpec: Q extends keyof T ? T[Q] : undefined;
   public readonly MutationFQN: M;
-  public readonly MutationType: M extends keyof T ? T[M]['type'] : undefined;
+  public readonly MutationSpec: M extends keyof T ? T[M] : undefined;
+  public readonly SubscriptionFQN: S;
+  public readonly SubscriptionSpec: S extends keyof T ? T[S] : undefined;
 
-  constructor(scope: Scope, id: string, props: ApiProps<T, Q, M>) {
+  constructor(scope: Scope, id: string, props: ApiProps<T, Q, M, S>) {
     super(scope, id);
     this.Types = props.types.Types;
-    if (props.query !== undefined) {
-      this.QueryFQN = props.query;
-      this.QueryType = this.Types[props.query!].type as any;
-    }
-    if (props.mutation !== undefined) {
-      this.MutationFQN = props.mutation;
-      this.MutationType = this.Types[props.mutation!].type as any;
-    }
+
+    this.QueryFQN = props.query || Root.Query.FQN as Q;
+    this.QuerySpec = this.Types[this.QueryFQN] as any;
+    this.MutationFQN = props.mutation || Root.Mutation.FQN as M;
+    this.MutationSpec = this.Types[this.MutationFQN] as any;
+    this.SubscriptionFQN = props.subscription || Root.Subscription.FQN as S;
+    this.SubscriptionSpec = this.Types[this.SubscriptionFQN] as any;
 
     this.resource = Build.concat(
       CDK,
@@ -103,7 +110,11 @@ export class Api<
       const schema = new appsync.CfnGraphQLSchema(scope, 'Schema', {
         apiId: api.attrApiId,
         definition: core.Lazy.stringValue({
-          produce: () => blocks.concat(generateSchemaHeader(this)).join('\n')
+          produce: () => {
+            const schema = blocks.concat(generateSchemaHeader(this)).join('\n');
+            console.log(schema);
+            return schema;
+          }
         }),
       });
 
@@ -112,11 +123,14 @@ export class Api<
       const seenDataTypes = new Set<string>();
       const seenInputTypes = new Set<string>();
 
-      if (this.QueryType) {
-        parseType(this.QueryType!);
+      if (isUseful(this.QuerySpec)) {
+        parseType(this.QuerySpec.type);
       }
-      if (this.MutationType) {
-        parseType(this.MutationType!);
+      if (isUseful(this.MutationSpec)) {
+        parseType(this.MutationSpec.type);
+      }
+      if (isUseful(this.SubscriptionSpec)) {
+        parseType(this.SubscriptionSpec.type);
       }
 
       return api;
@@ -140,15 +154,17 @@ export class Api<
           if (typeSpec === undefined) {
             throw new Error(`could not find type ${shape.FQN} in the TypeIndex`);
           }
-          generateTypeSignature(typeSpec);
-          interpretResolverPipeline(typeSpec);
+          const directives = interpretResolverPipeline(typeSpec);
+          console.log('directives', directives);
+          generateTypeSignature(typeSpec, directives);
         }
       }
 
-      function generateTypeSignature(typeSpec: TypeSpec) {
+      function generateTypeSignature(typeSpec: TypeSpec, directives: Directives) {
         const fieldShapes = Object.entries(typeSpec.fields);
 
         const fields = fieldShapes.map(([fieldName, fieldShape]) => {
+          const fieldDirectives = (directives[fieldName] || []).join('\n    ');
           if (ShapeGuards.isFunctionShape(fieldShape)) {
             parseType(fieldShape.returns);
 
@@ -160,7 +176,7 @@ export class Api<
                 generateInputTypeSignature(argShape);
               }
               return `${argName}: ${typeAnnotation}`;
-            }).join(',')}`}): ${getTypeAnnotation(fieldShape.returns)}`;
+            }).join(',')}`}): ${getTypeAnnotation(fieldShape.returns)}${fieldDirectives ? `\n    ${fieldDirectives}` : ''}`;
           } else {
             return `  ${fieldName}: ${getTypeAnnotation(fieldShape)}`;
           }
@@ -184,7 +200,8 @@ export class Api<
         blocks.push(inputSpec);
       }
 
-      function interpretResolverPipeline(typeSpec: TypeSpec) {
+      function interpretResolverPipeline(typeSpec: TypeSpec): Directives {
+        const directives: Directives = {};
         const typeName = typeSpec.type.FQN;
         const self = VObject.of(typeSpec.type, new VExpression('$context.source'));
         for (const [fieldName, resolver] of Object.entries(typeSpec.resolvers)) {
@@ -225,7 +242,12 @@ export class Api<
 
           while (!(next = generator.next(returns)).done) {
             const stmt = next.value;
-            if (StatementGuards.isIf(stmt)) {
+            if (StatementGuards.isDirective(stmt)) {
+              if (!directives[fieldName]) {
+                directives[fieldName] = [];
+              }
+              directives[fieldName]?.push(...stmt.directives);
+            } else if (StatementGuards.isIf(stmt)) {
               const ifResult = `$context.stash.${id()}`;
               const {expr, returnType} = parseIf(stmt, ifResult);
               const txt = expr.visit({indentSpaces: 0}).text;
@@ -397,18 +419,30 @@ export class Api<
           });
           cfnResolver.addDependsOn(schema);
         }
+        return directives;
       }
     });
   }
 }
 
-const generateSchemaHeader = (api: Api<any, any, any>) => `schema {
-  ${api.QueryType ? `query: ${api.QueryType!.FQN}${api.MutationType ? ',' : ''}` : ''}
-  ${api.MutationType ? `mutation: ${api.MutationType!.FQN}` : ''}
+type Directives = {
+  [field in string]?: string[]; // directives
+};
+
+const generateSchemaHeader = (api: Api<any, any, any, any>) => `schema {
+  ${[
+    isUseful(api.QuerySpec) ? `query: ${api.QuerySpec.type.FQN}` : undefined,
+    isUseful(api.MutationSpec) ? `mutation: ${api.MutationSpec.type.FQN}` : undefined,
+    isUseful(api.SubscriptionSpec) ? `subscription: ${api.SubscriptionSpec.type.FQN}` : undefined,
+  ].filter(_ => _ !== undefined).join(',\n  ')}
 }`;
 
+const isUseful = (spec?: TypeSpec): spec is TypeSpec => {
+  return spec !== undefined && Object.keys(spec.fields).length > 0;
+};
+
 // gets the GraphQL type annotaiton syntax for a Shape
-function getTypeAnnotation(shape: Shape): string {
+function getTypeAnnotation(shape: Shape, directives?: string[]): string {
   const {graphqlType, isNullable} = Meta.get(shape, ['graphqlType', 'isNullable']);
 
   return `${getTypeName()}${isNullable === true ? '' : '!'}`;

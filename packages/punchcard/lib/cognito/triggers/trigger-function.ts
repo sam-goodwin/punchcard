@@ -1,6 +1,6 @@
 import type * as cognito from '@aws-cdk/aws-cognito';
 
-import { AnyShape, any } from '@punchcard/shape';
+import { AnyShape, any, RecordShape } from '@punchcard/shape';
 import { Client } from '../../core';
 import { Scope } from '../../core/construct';
 import { Dependency } from '../../core/dependency';
@@ -15,24 +15,31 @@ import { CustomMessageTriggers } from './custom-message';
 
 export type TriggerHandler<
   Source extends TriggerSource,
-  Request extends TriggerRequest,
+  Request extends TriggerRequest<A>,
   Response,
+  A extends RecordShape,
   D extends Dependency<any>
 > = (event: TriggerEvent<Request, Source>, client: Client<D>) => Promise<Response>;
 
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools-working-with-aws-lambda-triggers.html
  */
-export interface TriggerHandlers<D extends Dependency<any>> extends
-  CustomAuthenticationTriggers<D>,
-  AuthenticationTriggers<D>,
-  SignUpTriggers<D>,
-  CustomMessageTriggers<D> {}
+export interface TriggerHandlers<A extends RecordShape, D extends Dependency<any>> extends
+  CustomAuthenticationTriggers<A, D>,
+  AuthenticationTriggers<A, D>,
+  SignUpTriggers<A, D>,
+  CustomMessageTriggers<A, D> {}
 
 export interface TriggerFunctionProps<D extends Dependency<any>> extends Omit<Lambda.FunctionProps<AnyShape, AnyShape, D>, 'request' | 'response'> {
 }
-export class TriggerFunction<D extends Dependency<any>> extends Lambda.Function<AnyShape, AnyShape, D> {
-  constructor(scope: Scope, id: string, props: TriggerFunctionProps<D>, public readonly handlers: TriggerHandlers<D>) {
+export class TriggerFunction<A extends RecordShape, D extends Dependency<any>> extends Lambda.Function<AnyShape, AnyShape, D> {
+  constructor(
+    scope: Scope,
+    id: string,
+    props: TriggerFunctionProps<D>,
+    public readonly attributes: A,
+    public readonly handlers: TriggerHandlers<A, D>
+  ) {
     super(scope, id, props, async (event: TriggerEvent, client: Client<D>) => {
       const handler = findHander(event);
 
@@ -49,7 +56,7 @@ export class TriggerFunction<D extends Dependency<any>> extends Lambda.Function<
     });
 
     const cache: {
-      [S in TriggerSource]?: TriggerHandler<S, TriggerRequest, {}, D>;
+      [S in TriggerSource]?: TriggerHandler<S, TriggerRequest<A>, {}, A, D>;
     } = {};
 
     function findHander(event: TriggerEvent) {
@@ -59,7 +66,7 @@ export class TriggerFunction<D extends Dependency<any>> extends Lambda.Function<
       return cache[event.triggerSource];
     }
 
-    function resolve(event: TriggerEvent): TriggerHandler<any, any, any, D> {
+    function resolve(event: TriggerEvent): TriggerHandler<any, any, any, A, D> {
       // signup
       if (handlers.preSignUp && TriggerSource.isPreSignUp(event.triggerSource)) {
         return handlers.preSignUp;

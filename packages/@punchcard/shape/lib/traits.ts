@@ -11,6 +11,8 @@ export const Optional: Trait<Shape, IsOptional> = {
     nullable: true
   }
 };
+export type Optional<T extends Shape> = Apply<T, IsOptional>;
+
 export type IsOptional = {
   nullable: true
 };
@@ -25,7 +27,7 @@ export function isOptional(a: any) {
  *
  * @param shapeOrRecord a Shape or a Record to transform as optional
  */
-export function optional<T extends Shape>(shape: T): Apply<T, IsOptional> {
+export function optional<T extends Shape>(shape: T): Optional<T> {
   // shape.apply(Optional);
   return shape.apply(Optional as any);
 }

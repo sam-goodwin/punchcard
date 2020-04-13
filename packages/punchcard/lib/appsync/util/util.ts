@@ -2,7 +2,7 @@ import { bool, never, string } from '@punchcard/shape';
 import { VExpression } from '../expression';
 import { set } from '../statement';
 import { VTL } from '../vtl';
-import { VBool, VNever, VObject, VString } from '../vtl-object';
+import { VBool, VNever, VObject, VString, VNothing } from '../vtl-object';
 import { $DynamoDBUtil as DynamoDBUtil } from './dynamodb';
 import { $ListUtil as ListUtil } from './list';
 import { TimeUtil } from './time';
@@ -27,6 +27,10 @@ export class Util {
     return new VNever(never, new VExpression('$util.unauthorized()'));
   }
 
+  public *throwUnauthorized(): VTL<VNever> {
+    throw this.unauthorized();
+  }
+
   public error(message: VString | string, errorType: VString | string, data: VObject, errorInfo: VObject): VNever;
   public error(message: VString | string, errorType: VString | string, data: VObject): VNever;
   public error(message: VString | string, errorType: VString | string): VNever;
@@ -42,6 +46,10 @@ export class Util {
 
   public isNull(value: VObject): VBool {
     return new VBool(bool, new VExpression((ctx) => `$util.isNull(${VObject.exprOf(value).visit(ctx).text})`));
+  }
+
+  public isNotNull(value: VObject): VBool {
+    return new VBool(bool, new VExpression((ctx) => `!$util.isNull(${VObject.exprOf(value).visit(ctx).text})`));
   }
 
   public readonly dynamodb = new DynamoDBUtil();

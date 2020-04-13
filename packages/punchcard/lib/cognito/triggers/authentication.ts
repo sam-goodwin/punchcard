@@ -2,12 +2,13 @@ import { TriggerRequest } from './trigger-request';
 import { Dependency } from '../../core/dependency';
 import { TriggerHandler } from './trigger-function';
 import { TriggerSource } from './trigger-source';
+import { RecordShape } from '@punchcard/shape';
 
 
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html
  */
-export interface AuthenticationTriggers<D extends Dependency<any>> {
+export interface AuthenticationTriggers<A extends RecordShape, D extends Dependency<any>> {
   /**
    * Amazon Cognito invokes this trigger when a user attempts to sign in, allowing
    * custom validation to accept or deny the authentication request.
@@ -21,8 +22,9 @@ export interface AuthenticationTriggers<D extends Dependency<any>> {
    */
   preAuthentication?: TriggerHandler<
     TriggerSource.Authentication.PreAuthentication,
-    PreAuthenticationRequest,
+    PreAuthenticationRequest<A>,
     PreAuthenticationResponse,
+    A,
     D
   >;
   /**
@@ -33,19 +35,44 @@ export interface AuthenticationTriggers<D extends Dependency<any>> {
    */
   postAuthentication?: TriggerHandler<
     TriggerSource.Authentication.PostAuthentication,
-    PostAuthenticationRequest,
+    PostAuthenticationRequest<A>,
     PostAuthenticationResponse,
+    A,
     D
   >;
 
   /**
-   * A pre-token-generation AWS Lambda trigger.
+   * Amazon Cognito invokes this trigger before token generation allowing you to customize
+   * identity token claims.
+   *
+   * This Lambda trigger allows you to customize an identity token before it is generated.
+   * You can use this trigger to add new claims, update claims, or suppress claims in the
+   * identity token. To use this feature, you can associate a Lambda function from the Amazon
+   * Cognito User Pools console or by updating your user pool through the AWS CLI.
+   *
+   * There are some claims which cannot be modified:
+   * - `acr`
+   * - `amr`
+   * - `aud`
+   * - `auth_time`
+   * - `azp`
+   * - `exp`
+   * - `iat`
+   * - `identities`
+   * - `iss`
+   * - `sub`
+   * - `token_use`
+   * - `nonce`
+   * - `at_hash`
+   * - `cognito:username`.
+   *
    * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-token-generation.html
    */
   preTokenGeneration?: TriggerHandler<
     TriggerSource.TokenGeneration,
-    PostAuthenticationRequest,
-    PostAuthenticationResponse,
+    PreTokenGenerationRequest<A>,
+    PreTokenGenerationResponse,
+    A,
     D
   >;
 }
@@ -53,7 +80,7 @@ export interface AuthenticationTriggers<D extends Dependency<any>> {
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-authentication.html
  */
-export interface PreAuthenticationRequest extends TriggerRequest {
+export interface PreAuthenticationRequest<A extends RecordShape> extends TriggerRequest<A> {
   /**
    * This boolean is populated when `PreventUserExistenceErrors` is set to `ENABLED`
    * for your User Pool client.
@@ -73,14 +100,46 @@ export interface PreAuthenticationRequest extends TriggerRequest {
 }
 
 /**
+ * In the response, you can set `autoConfirmUser` to `true` if you want to auto-confirm the user.
+ *
+ * You can set `autoVerifyEmail` to `true` to auto-verify the user's email. You can set `autoVerifyPhone`
+ * to `true` to auto-verify the user's phone number.
+ *
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-authentication.html
  */
-export interface PreAuthenticationResponse {}
+export interface PreAuthenticationResponse {
+  /**
+   * Set to `true` to auto-confirm the user, or `false` otherwise.
+   */
+  autoConfirmUser?: boolean;
+  /**
+   * Set to `true` to set as verified the email of a user who is signing up, or `false` otherwise.
+   * If `autoVerifyEmail` is set to `true`, the email attribute must have a valid, non-null value.
+   * Otherwise an error will occur and the user will not be able to complete sign-up.
+   * 
+   * If the email attribute is selected as an alias, an alias will be created for the user's email
+   * when autoVerifyEmail is set. If an alias with that email already exists, the alias will be moved
+   * to the new user and the previous user's email will be marked as unverified. For more information,
+   * see [Overview of Aliases](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-attributes.html#user-pool-settings-aliases).
+   */
+  autoVerifyEmail?: boolean;
+  /**
+   * Set to `true` to set as verified the phone number of a user who is signing up, or `false` otherwise.
+   * If `autoVerifyPhone` is set to `true`, the `phone_number` attribute must have a valid, non-null value.
+   * Otherwise an error will occur and the user will not be able to complete sign-up.
+   * 
+   * If the `phone_number` attribute is selected as an alias, an alias will be created for the user's phone
+   * number when autoVerifyPhone is set. If an alias with that phone number already exists, the alias will
+   * be moved to the new user and the previous user's phone number will be marked as unverified. For more
+   * information, [Overview of Aliases](https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-settings-attributes.html#user-pool-settings-aliases).
+   */
+  autoVerifyPhone?: boolean;
+}
 
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-post-authentication.html
  */
-export interface PostAuthenticationRequest extends TriggerRequest {
+export interface PostAuthenticationRequest<A extends RecordShape> extends TriggerRequest<A> {
   /**
    * This flag indicates if the user has signed in on a new device. It is set only if the
    * remembered devices value of the user pool is set to `Always` or `User Opt-In`.
@@ -101,7 +160,7 @@ export interface PostAuthenticationRequest extends TriggerRequest {
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-post-authentication.html
  */
-export interface PostAuthenticationResponse {}
+export type PostAuthenticationResponse = void;
 
 export interface GroupConfiguraion {
   /**
@@ -121,7 +180,7 @@ export interface GroupConfiguraion {
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-token-generation.html
  */
-export interface PreTokenGenerationRequest extends TriggerRequest {
+export interface PreTokenGenerationRequest<A extends RecordShape> extends TriggerRequest<A> {
   /**
    * The input object containing the current group configuration.
    */
@@ -147,7 +206,7 @@ export interface PreTokenGenerationResponse {
      * A map of one or more key-value pairs of claims to add or override.
      * For group related claims, use `groupOverrideDetails` instead.
      */
-    claimsToAddOrOverride: {
+    claimsToAddOrOverride?: {
       [key: string]: string;
     };
     /**
@@ -155,7 +214,7 @@ export interface PreTokenGenerationResponse {
      * 
      * *If a value is both suppressed and replaced, then it will be suppressed.*
      */
-    claimsToSuppress: string[];
+    claimsToSuppress?: string[];
   };
   /**
    * The output object containing the current group configuration.

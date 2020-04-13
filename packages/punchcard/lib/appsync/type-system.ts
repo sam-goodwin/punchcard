@@ -13,6 +13,10 @@ export interface TypeSpec {
  */
 export type TypeSystem = {
   [fqn in string]: TypeSpec
+} & {
+  'Mutation': TypeSpec;
+  'Query': TypeSpec;
+  'Subscription': TypeSpec;
 };
 
 export namespace TypeSystem {

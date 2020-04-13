@@ -8,6 +8,7 @@ import { VFloat, Visitor, VObject, VString } from './vtl-object';
  * Represents a Velocity Template program.
  */
 export type VTL<T> = Generator<Statement<VObject | void>, T>;
+export type ConstrainedVTL<S extends Statement<VObject | void>, T> = Generator<S, T>;
 
 declare module './vtl-object' {
   namespace VObject {

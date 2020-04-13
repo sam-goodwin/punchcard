@@ -26,6 +26,22 @@ export class VObject<T extends Shape = Shape> {
     this[expr] = _expr;
   }
 
+  public notEquals(other: this | Value.Of<T>): VBool {
+    return new VBool(bool, VExpression.concat(
+      this,
+      '!=',
+      VObject.isObject(other) ? other : VExpression.json(other)
+    ));
+  }
+
+  public equals(other: this | Value.Of<T>): VBool {
+    return new VBool(bool, VExpression.concat(
+      this,
+      '==',
+      VObject.isObject(other) ? other : VExpression.json(other)
+    ));
+  } 
+
   public toJson(): VString {
     return new VString(string, new VExpression(ctx => `$util.toJson(${VObject.exprOf(this).visit(ctx)})`));
   }
@@ -47,7 +63,8 @@ export namespace VObject {
       [m in keyof M]: Of<M[m]>;
     } :
     T extends ArrayShape<infer I> ? VList<VObject.Of<I>> :
-    T extends MapShape<any> ? never : // maps are not supported in GraphQL
+    T extends SetShape<infer I> ? VSet<VObject.Of<I>> :
+    T extends MapShape<infer I> ? VMap<VObject.Of<I>> : // maps are not supported in GraphQL
     T extends BoolShape ? VBool :
     T extends DynamicShape<any> ? VAny :
     T extends IntegerShape ? VInteger :
@@ -99,13 +116,44 @@ export class VBinary extends VObject<BinaryShape> {}
 
 export class VBool extends VObject<BoolShape> {
   public static not(a: VBool): VBool {
-    return new VBool(bool, VObject.exprOf(a).prepend('!'));
+    return new VBool(bool, VExpression.concat('!', a));
   }
+
+  public static and(...bs: VBool[]): VBool {
+    return VBool.operator('&&', bs);
+  }
+
+  public static or(...bs: VBool[]): VBool {
+    return VBool.operator('||', bs);
+  }
+
+  private static operator(op: '&&' | '||', xs: VBool[]): VBool {
+    return new VBool(bool, VExpression.concat(
+      '(',
+      ...xs
+        .map((x, i) => i === 0 ? [x] : [op, x])
+        .reduce((a, b) => a.concat(b)),
+      ')'
+    ))
+  }
+
+  public not(): VBool {
+    return VBool.not(this);
+  }
+
+  public and(x: VBool, ...xs: VBool[]): VBool {
+    return VBool.and(this, x, ...xs);
+  }
+
+  public or(x: VBool, ...xs: VBool[]): VBool {
+    return VBool.or(this, x, ...xs);
+  }
+
 }
 
 export class VString extends VObject<StringShape> {
   public toUpperCase(): VString {
-    return new VString(VObject.typeOf(this), VObject.exprOf(this).dot('toUpperCase()'));
+    return new VString(VObject.typeOf(this), VExpression.concat(this, '.toUpperCase()'));
   }
 
   public isNotEmpty(): VBool {
@@ -113,11 +161,11 @@ export class VString extends VObject<StringShape> {
   }
 
   public isEmpty(): VBool {
-    return new VBool(bool, VObject.exprOf(this).dot('isEmpty()'));
+    return new VBool(bool, VExpression.concat(this, '.isEmpty()'));
   }
 
   public size(): VInteger {
-    return new VInteger(integer, VObject.exprOf(this).dot('size()'));
+    return new VInteger(integer, VExpression.concat(this, '.size()'));
   }
 }
 
@@ -129,10 +177,24 @@ export class VList<T extends VObject = VObject> extends VObject<ArrayShape<VObje
   }
 }
 
-
 export class VSet<T extends VObject = VObject> extends VObject<SetShape<VObject.TypeOf<T>>> {
   constructor(shape: SetShape<VObject.TypeOf<T>>, expression: VExpression) {
     super(shape, expression);
+  }
+}
+
+export class VMap<T extends VObject = VObject> extends VObject<MapShape<VObject.TypeOf<T>>> {
+  constructor(shape: MapShape<VObject.TypeOf<T>>, expression: VExpression) {
+    super(shape, expression);
+  }
+
+  public get(key: string | VString): T {
+    return VObject.of(this[type].Items, VExpression.concat(
+      this,
+      '.get(',
+      key,
+      ')'
+    )) as any as T;
   }
 }
 
@@ -142,7 +204,7 @@ export class VRecord<M extends VRecord.Members = {}> extends VObject<RecordShape
   constructor(type: RecordShape<any, any>, expr: VExpression) {
     super(type, expr);
     for (const [name, shape] of Object.entries(type.Members) as [string, Shape][]) {
-      (this as any)[name] = VObject.of(shape, expr.dot(name));
+      (this as any)[name] = VObject.of(shape, VExpression.concat(expr, '.', name));
     }
   }
 }

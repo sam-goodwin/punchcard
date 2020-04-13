@@ -161,16 +161,4 @@ export class VExpression {
       } : text;
     }
   }
-
-  public dot(text: string): VExpression {
-    return new VExpression((ctx) => `${this.visit(ctx).text}.${text}`);
-  }
-
-  public prepend(text: string): VExpression {
-    return new VExpression((ctx) => `${text}${this.visit(ctx).text}`);
-  }
-
-  public surround(left: string, right: string = ''): VExpression {
-    return new VExpression((ctx) => `${left}${this.visit(ctx).text}${right}`);
-  }
 }

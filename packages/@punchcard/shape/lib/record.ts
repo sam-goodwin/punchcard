@@ -106,7 +106,7 @@ export type RecordValues<M extends RecordMembers> = {
   [m in RequiredKeys<M>]-?: Value.Of<Pointer.Resolve<M[m]>>;
 };
 
-export interface RecordType<M extends RecordMembers = any, FQN extends string | undefined = string> extends RecordShape<M, FQN> {
+export interface RecordType<M extends RecordMembers = RecordMembers, FQN extends string | undefined = string | undefined> extends RecordShape<M, FQN> {
   /**
    * Constructor takes values for each member.
    */
@@ -288,7 +288,7 @@ export function Extend<
   return Record(fqn!, {
     ...type.Members,
     ...members
-  });
+  }) as any;
 }
 
 /**

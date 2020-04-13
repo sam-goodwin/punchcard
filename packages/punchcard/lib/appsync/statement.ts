@@ -2,7 +2,7 @@ import { Shape } from '@punchcard/shape/lib/shape';
 import { Build } from '../core/build';
 import { DataSourceBindCallback } from './data-source';
 import { VTL } from './vtl';
-import { VBool, VObject } from './vtl-object';
+import { VBool, VObject, VNothing } from './vtl-object';
 
 /**
  * A piece of logic executed by AppSync with Velocity Templates.
@@ -12,6 +12,7 @@ import { VBool, VObject } from './vtl-object';
  * @see https://docs.aws.amazon.com/appsync/latest/devguide/pipeline-resolvers.html
  */
 export type Statement<A = any> =
+  | Directive<A>
   | CallFunction<A>
   | IfBranch<A>
   | SetVariable<A>
@@ -32,14 +33,28 @@ export namespace StatementGuards {
   export function isCall(a: any): a is CallFunction<VObject> {
     return a[Statement.Tag] === 'call';
   }
-
-  export function isSet(a: any): a is SetVariable<VObject> {
-    return a[Statement.Tag] === 'set';
+  export function isDirective(a: any): a is Directive {
+    return a[Statement.Tag] === 'directive';
   }
-
   export function isIf(a: any): a is IfBranch<VObject | void> {
     return a[Statement.Tag] === 'if';
   }
+  export function isSet(a: any): a is SetVariable<VObject> {
+    return a[Statement.Tag] === 'set';
+  }
+}
+
+export class Directive<T = VNothing> {
+  readonly [Statement.Tag]: 'directive' = 'directive';
+  readonly [Statement.Type]: T;
+
+  constructor(
+    public readonly directives: string[]
+  ) {}
+}
+
+export function *directive(...directives: string[]): VTL<VNothing> {
+  return (yield new Directive(directives)) as any;
 }
 
 /**

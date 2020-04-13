@@ -1,6 +1,7 @@
-import { Static, string, StringShape, Trait } from '@punchcard/shape';
+import { Static, string, Trait, timestamp } from '@punchcard/shape';
+import { AttributeShape } from './attributes';
 
-export function userPoolAttribute<Name extends string>(userPoolAttributeName: Name): Trait<StringShape, {
+export function userPoolAttribute<Name extends string>(userPoolAttributeName: Name): Trait<AttributeShape, {
   userPoolAttributeName: Name;
 }> {
   return {
@@ -10,7 +11,7 @@ export function userPoolAttribute<Name extends string>(userPoolAttributeName: Na
   };
 }
 
-export const birthdate = string.apply(userPoolAttribute('birthdate'));
+export const birthdate = timestamp.apply(userPoolAttribute('birthdate'));
 export const email = string.apply(userPoolAttribute('email'));
 export const family_name = string.apply(userPoolAttribute('family_name'));
 export const gender = string.apply(userPoolAttribute('gender'));

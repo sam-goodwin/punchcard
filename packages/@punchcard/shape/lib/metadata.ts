@@ -114,7 +114,7 @@ export type Apply<T, D> =
  */
 export interface Decorated<T, D> {
   [Decorated.Type]?: T;
-  [Decorated.Data]?: D
+  [Decorated.Data]: D
 }
 export namespace Decorated {
   export const Data = Symbol.for('@punchcard/shape.Decorated.Data');

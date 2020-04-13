@@ -1,5 +1,6 @@
 import { RecordShape, Shape, ShapeGuards } from '@punchcard/shape';
 import { TypeSpec, TypeSystem } from './type-system';
+import { Root } from './root';
 
 export class ApiFragment<I extends TypeSystem = any> {
   public static join<F1 extends ApiFragment>(
@@ -61,7 +62,23 @@ export class ApiFragment<I extends TypeSystem = any> {
   >;
 
   public static join<F extends ApiFragment[]>(...fragments: F): ApiFragment {
-    return new ApiFragment({}).include(...fragments);
+    return new ApiFragment({
+      [Root.Mutation.FQN]: {
+        type: Root.Mutation,
+        fields: {},
+        resolvers: {}
+      },
+      [Root.Query.FQN]: {
+        type: Root.Query,
+        fields: {},
+        resolvers: {}
+      },
+      [Root.Subscription.FQN]: {
+        type: Root.Subscription,
+        fields: {},
+        resolvers: {}
+      }
+    }).include(...fragments);
   }
 
   constructor(public readonly Types: I) {}
@@ -139,13 +156,13 @@ export class ApiFragment<I extends TypeSystem = any> {
   public include<F extends ApiFragment[]>(
     ...fragments: F
   ): ApiFragment {
-    const implIndex: TypeSystem = {};
+    const implIndex: TypeSystem = {} as any;
     for (const fragment of fragments) {
       for (const typeSpec of Object.values(fragment.Types) as TypeSpec[]) {
         Object
           .values(typeSpec.fields)
           .map(getTypes)
-          .reduce((a, b) => a.concat(b))
+          .reduce((a, b) => a.concat(b), [])
           .forEach(shape => merge({
             type: shape,
             fields: shape.Members,

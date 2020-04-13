@@ -2,8 +2,9 @@ import { Dependency } from '../../core/dependency';
 import { TriggerRequest } from './trigger-request';
 import { TriggerSource } from './trigger-source';
 import { TriggerHandler } from './trigger-function';
+import { RecordShape } from '@punchcard/shape';
 
-export interface CustomMessageTriggers<D extends Dependency<any>> {
+export interface CustomMessageTriggers<A extends RecordShape, D extends Dependency<any>> {
   /**
    * Amazon Cognito invokes this trigger before sending an email or phone verification
    * message or a multi-factor authentication (MFA) code, allowing you to customize
@@ -21,13 +22,18 @@ export interface CustomMessageTriggers<D extends Dependency<any>> {
    * 
    * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-custom-message.html
    */
-  customMessage?: TriggerHandler<TriggerSource.CustomMessage, CustomMessageRequest, CustomMessageResponse, D>;
+  customMessage?: TriggerHandler<
+    TriggerSource.CustomMessage,
+    CustomMessageRequest<A>,
+    CustomMessageResponse,
+    A,
+    D>;
 }
 
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-custom-message.html
  */
-export interface CustomMessageRequest extends TriggerRequest {
+export interface CustomMessageRequest<A extends RecordShape> extends TriggerRequest<A> {
   /**
    * A string for you to use as the placeholder for the verification code in the custom message.
    */
