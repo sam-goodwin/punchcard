@@ -18,4 +18,4 @@ export interface CustomAttributes {
 
 export type RequiredAttributes = {
   [k in keyof StandardClaims]?: boolean;
-}
+};

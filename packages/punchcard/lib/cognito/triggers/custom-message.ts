@@ -1,8 +1,8 @@
+import { RecordShape } from '@punchcard/shape';
 import { Dependency } from '../../core/dependency';
+import { TriggerHandler } from './trigger-function';
 import { TriggerRequest } from './trigger-request';
 import { TriggerSource } from './trigger-source';
-import { TriggerHandler } from './trigger-function';
-import { RecordShape } from '@punchcard/shape';
 
 export interface CustomMessageTriggers<A extends RecordShape, D extends Dependency<any>> {
   /**
@@ -19,7 +19,7 @@ export interface CustomMessageTriggers<A extends RecordShape, D extends Dependen
    * A custom message Lambda function with the `CustomMessage_AdminCreateUser` trigger
    * returns a user name and verification code and so the request must include both
    * `request.usernameParameter` and `request.codeParameter`.
-   * 
+   *
    * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-custom-message.html
    */
   customMessage?: TriggerHandler<
@@ -55,7 +55,7 @@ export interface CustomMessageRequest<A extends RecordShape> extends TriggerRequ
    * - ResendConfirmationCode
    * - SignUp
    * - UpdateUserAttributes
-   * 
+   *
    * @see https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_AdminResetUserPassword.html
    * @see https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_AdminRespondToAuthChallenge.html
    * @see https://docs.aws.amazon.com/cognito-user-identity-pools/latest/APIReference/API_AdminUpdateUserAttributes.html

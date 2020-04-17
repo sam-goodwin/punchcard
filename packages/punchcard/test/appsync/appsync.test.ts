@@ -2,19 +2,21 @@ import 'jest';
 
 import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, Static, string, StringShape, timestamp, Value } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $else, $elseIf, $if, ApiFragment, ID, VTL, vtl } from '../../lib/appsync';
+import { $appsync, $else, $if, ID } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
-import { Impl, Trait, TraitFragment } from '../../lib/appsync/trait';
-import { $util } from '../../lib/appsync/util';
-import { App, Dependency } from '../../lib/core';
+import { ApiFragment } from '../../lib/appsync/api/api-fragment';
+import { CachingBehavior, CachingInstanceType } from '../../lib/appsync/api/caching';
+import { Mutation } from '../../lib/appsync/api/mutation';
+import { Query } from '../../lib/appsync/api/query';
+import { Subscription } from '../../lib/appsync/api/subscription';
+import { Trait } from '../../lib/appsync/api/trait';
+import { $util } from '../../lib/appsync/lang/util';
+import { UserPool } from '../../lib/cognito/user-pool';
+import { App } from '../../lib/core';
 import { Build } from '../../lib/core/build';
 import { Scope } from '../../lib/core/construct';
 import DynamoDB = require('../../lib/dynamodb');
 import Lambda = require('../../lib/lambda');
-import { UserPool } from '../../lib/cognito/user-pool';
-
-import { $auth } from '../../lib/appsync/auth';
-import { Mutation, Query, Subscription } from '../../lib/appsync/root';
 
 export class User extends Record('User', {
   id: ID,
@@ -29,9 +31,7 @@ export class UserStore extends DynamoDB.Table.NewType({
 }) {}
 
 /**
- * Trait for querying Users.
- *
- * Attachable/generic to any type, T.
+ * Query for getting Users.
  *
  * @typeparam T type to bind this trait to.
  */
@@ -46,9 +46,7 @@ export const GetUserTrait = Query({
 });
 
 /**
- * Trait for creating Users.
- *
- * @typeparam T type to bind this trait to.
+ * Mutation for creating Users.
  */
 export const CreateUserTrait = Mutation({
   createUser: VFunction({
@@ -92,7 +90,7 @@ export const GetPostTrait = Query({
   })
 });
 
-export const CreatePostTrait = Mutation({
+export const PostMutations = Mutation({
   /**
    * Function documentation goes here.
    */
@@ -103,13 +101,22 @@ export const CreatePostTrait = Mutation({
     },
     returns: Post
   }),
+
+  updatePost: VFunction({
+    args: {
+      id: ID,
+      title: optional(string),
+      content: optional(string)
+    },
+    returns: Post
+  }),
 });
 
 export const RelatedPostsTrait = Trait({
   relatedPosts: array(Post)
 });
 
-export const NewPost = Subscription({
+export const PostSubscriptions = Subscription({
   newPost: Post
 });
 
@@ -129,17 +136,37 @@ export const UserApi = (
   const userStore = props.userStore || new UserStore(scope, 'UserStore');
 
   const createUser = new CreateUserTrait({
-    *createUser({alias}) {
-      return yield* userStore.put({
-        id: yield* $util.autoId(),
-        alias,
-      });
+    createUser: {
+      auth: {
+        aws_cognito_user_pools: {
+          groups: ['Writer']
+        }
+      },
+      *resolve({alias}) {
+        return yield* userStore.put({
+          id: yield* $util.autoId(),
+          alias,
+        });
+      }
     }
   });
 
   const getUser = new GetUserTrait({
-    *getUser({id}) {
-      return yield* userStore.get({id});
+    getUser: {
+      auth: {
+        aws_cognito_user_pools: {
+          groups: ['Reader']
+        }
+      },
+      cache: {
+        ttl: 60,
+        keys: [
+          'id'
+        ]
+      },
+      *resolve({id}) {
+        return yield* userStore.get({id});
+      }
     }
   });
 
@@ -154,57 +181,107 @@ export const PostApi = (scope: Scope) => {
   // const postStore = new PostStore(scope, 'PostStore');
   const postStore = new PostStore(scope, 'PostStore');
 
-  const getPost = new GetPostTrait({
-    *getPost(args) {
-      return yield* postStore.get({
-        id: args.id
-      });
-    }
-  });
-
-  const createPost = new CreatePostTrait({
-    *createPost(input) {
-      yield* $auth.allow({
-        aws_iam: true,
-        aws_api_key: true,
-        aws_cognito_user_pools: {
-          groups: ['Writer']
-        }
-      });
-
-      const id = yield* $util.autoId();
-      const timestamp = yield* $util.time.nowISO8601();
-
-      const title = yield* $if(input.title.isEmpty(), function*() {
-        throw $util.error('title cannot be empty');
-      }, $else(function*() {
-        return input.title;
-      }));
-
-      const post = yield* postStore.put({
-        id,
-        title,
-        content: input.content,
-        timestamp,
-        channel: 'category'
-      });
-
-      return post;
-    }
-  });
-
-  const newPost = new NewPost({
-    *newPost() {
-      yield* $auth.allow({
+  const postQueries = new GetPostTrait({
+    getPost: {
+      auth: {
         aws_cognito_user_pools: {
           groups: [
-            'Admin'
+            'Write'
           ]
-        },
-        aws_api_key: true
-      });
+        }
+      },
+      cache: {
+        keys: [
+          'id'
+        ],
+        ttl: 60
+      },
+      *resolve(args) {
+        return yield* postStore.get({
+          id: args.id
+        });
+      }
+    }
+  });
 
-      return null as any;
+  const postMutations = new PostMutations({
+    createPost: {
+      auth: {
+        aws_cognito_user_pools: {
+          groups: [
+            'Write'
+          ]
+        }
+      },
+
+      *resolve(input) {
+        const id = yield* $util.autoId();
+        const timestamp = yield* $util.time.nowISO8601();
+
+        const title = yield* $if(input.title.isEmpty(), function*() {
+          throw $util.error('title cannot be empty');
+        }, $else(function*() {
+          return input.title;
+        }));
+
+        const post = yield* postStore.put({
+          id,
+          title,
+          content: input.content,
+          timestamp,
+          channel: 'category'
+        });
+
+        return post;
+      }
+    },
+
+    updatePost: {
+      auth: {
+        aws_cognito_user_pools: {
+          groups: [
+            'Write'
+          ]
+        }
+      },
+
+      *resolve(input) {
+        return yield* (postStore as any).update({
+          id: input.id
+        }, {
+          filter: (item: any) =>
+            item.title.equals($util.defaultIfNull(input.title, '')),
+
+          *actions(item: any) {
+            yield* item.version.increment();
+
+            yield* $if($util.isNotNull(input.title), () => item.title.set(input.title));
+
+            yield* $if($util.isNotNull(input.content), function*() {
+              yield* item.content.set(input.content);
+            });
+          }
+        });
+      }
+    }
+  });
+
+  const postSubscriptions = new PostSubscriptions({
+    newPost: {
+      auth: {
+        aws_cognito_user_pools: {
+          groups: [
+            'Reader'
+          ],
+        }
+      },
+      subscribe: [
+        postMutations.subscription('createPost'),
+        postMutations.subscription('updatePost')
+      ],
+      // *resolve() {
+      //   //
+      // }
     }
   });
 
@@ -217,19 +294,30 @@ export const PostApi = (scope: Scope) => {
   // });
 
   const relatedPosts = new RelatedPostsTrait(Post, {
-    *relatedPosts(self) {
-      return yield* getRelatedPosts.invoke(this.id);
+    relatedPosts: {
+      auth: {
+        aws_cognito_user_pools: {
+          groups: [
+            'Reader'
+          ]
+        }
+      },
+      *resolve() {
+        return yield* getRelatedPosts.invoke(this.id);
+      }
     }
   });
 
   const getRelatedPosts = new Lambda.Function(scope, 'GetRelatedPosts', {
     request: string,
     response: array(Post)
-  }, async (request) => [] as any);
+  }, async (request) => [
+    // todo
+  ] as any);
 
   return {
-    getPost,
-    createPost,
+    postQueries,
+    postMutations,
     postStore,
     relatedPosts
   };
@@ -252,7 +340,7 @@ const userPool = new UserPool(stack, 'UserPool', {
   },
 });
 
-const {createPost, getPost, postStore, relatedPosts } = PostApi(stack);
+const {postMutations, postQueries, postStore, relatedPosts } = PostApi(stack);
 
 const {createUser, getUser, userStore } = UserApi(stack, {
   postStore
@@ -265,16 +353,36 @@ const MyApi = new Api(stack, 'MyApi', {
   name: 'MyApi',
   // authorize with this user pool
   userPool,
-  types: ApiFragment.join(
+  types: ApiFragment.concat(
     createUser,
-    getPost,
+    postMutations,
+    postQueries,
     getUser,
-    createPost,
     relatedPosts
-  )
+  ),
+  subscribe: {
+    addedPost: [
+      postMutations.subscription('createPost')
+    ]
+  },
+  caching: {
+    instanceType: CachingInstanceType.T2_SMALL,
+    behavior: CachingBehavior.PER_RESOLVER_CACHING,
+    ttl: 60,
+    resolvers: {
+      Query: {
+        getPost: {
+          keys: [
+            'id',
+          ]
+        }
+      }
+    }
+  }
 });
 
 import assert = require('@aws-cdk/assert');
+
 
 Build.resolve(MyApi.resource);
 const _stack = Build.resolve(stack);

@@ -1,4 +1,3 @@
-import { Shape, ShapeGuards } from "@punchcard/shape";
 import { VObject } from "./vtl-object";
 
 export interface VExpressionContext {

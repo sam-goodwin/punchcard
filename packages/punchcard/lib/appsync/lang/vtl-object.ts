@@ -40,7 +40,7 @@ export class VObject<T extends Shape = Shape> {
       '==',
       VObject.isObject(other) ? other : VExpression.json(other)
     ));
-  } 
+  }
 
   public toJson(): VString {
     return new VString(string, new VExpression(ctx => `$util.toJson(${VObject.exprOf(this).visit(ctx)})`));
@@ -73,7 +73,7 @@ export namespace VObject {
     T extends TimestampShape ? VTimestamp :
 
     VObject<T>
-    ;
+  ;
 
   /**
    * Object that is "like" a VObject for some Shape.
@@ -134,7 +134,7 @@ export class VBool extends VObject<BoolShape> {
         .map((x, i) => i === 0 ? [x] : [op, x])
         .reduce((a, b) => a.concat(b)),
       ')'
-    ))
+    ));
   }
 
   public not(): VBool {
@@ -148,7 +148,6 @@ export class VBool extends VObject<BoolShape> {
   public or(x: VBool, ...xs: VBool[]): VBool {
     return VBool.or(this, x, ...xs);
   }
-
 }
 
 export class VString extends VObject<StringShape> {

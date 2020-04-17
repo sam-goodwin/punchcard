@@ -1,8 +1,8 @@
 import { bool, never, string } from '@punchcard/shape';
 import { VExpression } from '../expression';
-import { set } from '../statement';
+import { setVariable } from '../statement';
 import { VTL } from '../vtl';
-import { VBool, VNever, VObject, VString, VNothing } from '../vtl-object';
+import { VBool, VNever, VObject, VString } from '../vtl-object';
 import { $DynamoDBUtil as DynamoDBUtil } from './dynamodb';
 import { $ListUtil as ListUtil } from './list';
 import { TimeUtil } from './time';
@@ -16,7 +16,7 @@ export class Util {
 
   public *autoId(): VTL<VString> {
     // return yield new Statements.Set(value, id);
-    return yield* set(new VString(string, new VExpression('$util.autoId()')));
+    return yield* setVariable(new VString(string, new VExpression('$util.autoId()')));
   }
 
   public matches(regex: RegExp | string): VTL<VBool> {
@@ -50,6 +50,10 @@ export class Util {
 
   public isNotNull(value: VObject): VBool {
     return new VBool(bool, new VExpression((ctx) => `!$util.isNull(${VObject.exprOf(value).visit(ctx).text})`));
+  }
+
+  public defaultIfNull<T extends VObject>(type: T, defaultValue: VObject.Like<VObject.TypeOf<T>>): T {
+
   }
 
   public readonly dynamodb = new DynamoDBUtil();

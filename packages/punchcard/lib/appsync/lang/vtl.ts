@@ -1,13 +1,13 @@
 import { number as numberShape, ShapeGuards, string as stringShape } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { VExpression } from './expression';
-import { set, Statement } from './statement';
+import { setVariable, Statement } from './statement';
 import { VFloat, Visitor, VObject, VString } from './vtl-object';
 
 /**
  * Represents a Velocity Template program.
  */
-export type VTL<T> = Generator<Statement<VObject | void>, T>;
+export type VTL<T> = Generator<Statement<VObject | void> | never, T>;
 export type ConstrainedVTL<S extends Statement<VObject | void>, T> = Generator<S, T>;
 
 declare module './vtl-object' {
@@ -50,7 +50,7 @@ export type ExpressionTemplate<T extends Shape> = <Args extends (VObject)[]>(tem
  */
 export function vtl<T extends Shape>(type: T): ExpressionTemplate<T> {
   return function*(template, ...args) {
-    return yield* set(VObject.of(type,  VExpression.concat(
+    return yield* setVariable(VObject.of(type,  VExpression.concat(
       quotes(type),
       ...template.map((str, i) => new VExpression(ctx =>
         `${str}${i < args.length ? VObject.exprOf(args[i]).visit(ctx).text : ''}`
@@ -70,10 +70,10 @@ function needsQuotes(type: Shape): boolean {
 
 export namespace VTL {
   export function *string(s: string): VTL<VString> {
-    return yield* set(VObject.of(stringShape, new VExpression(`"${s}"`)));
+    return yield* setVariable(VObject.of(stringShape, new VExpression(`"${s}"`)));
   }
 
   export function *number(n: number): VTL<VFloat> {
-    return yield* set(VObject.of(numberShape, new VExpression(n.toString(10))));
+    return yield* setVariable(VObject.of(numberShape, new VExpression(n.toString(10))));
   }
 }

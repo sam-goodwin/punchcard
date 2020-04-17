@@ -1,19 +1,24 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
-import { Meta, nothing, number, Shape, ShapeGuards, string } from '@punchcard/shape';
+import { Meta, nothing, Shape, ShapeGuards, string } from '@punchcard/shape';
 import { RecordShape } from '@punchcard/shape/lib/record';
+import { UserPool } from '../cognito/user-pool';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
 import { Resource } from '../core/resource';
-import { VExpression } from './expression';
-import { ApiFragment } from './fragment';
-import { ElseBranch, IfBranch, isIfBranch, Statement, StatementGuards } from './statement';
-import { TypeSpec, TypeSystem } from './type-system';
-import { VTL } from './vtl';
-import { VObject } from './vtl-object';
-import { UserPool } from '../cognito/user-pool';
-import { Root } from './root';
+import { ApiFragment } from './api/api-fragment';
+import { FullRequestCachingConfiguration, PerResolverCachingConfiguration } from './api/caching';
+import { MutationRoot } from './api/mutation';
+import { QueryRoot } from './api/query';
+import { SubscriptionRoot } from './api/subscription';
+import { TypeSpec, TypeSystem } from './api/type-system';
+import { VExpression } from './lang/expression';
+import { ElseBranch, IfBranch, isIfBranch, Statement, StatementGuards } from './lang/statement';
+import { VTL } from './lang/vtl';
+import { VObject } from './lang/vtl-object';
+
+import { Subscriptions } from './lang';
 
 export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
   | 'name'
@@ -22,18 +27,18 @@ export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
 > {}
 
 export interface ApiProps<
-  T extends TypeSystem,
-  Q extends keyof T = 'Root.Query',
-  M extends keyof T = 'Root.Mutation',
-  S extends keyof T = 'Root.Subscription',
+  T extends TypeSystem
 > {
-  types: ApiFragment<T>;
-  query?: Q;
-  mutation?: M;
-  subscription?: S;
-  name: string;
-  userPool: UserPool<any, any>;
-  overrideProps?: Build<OverrideApiProps>;
+  readonly types: ApiFragment<T>;
+  readonly subscribe: {
+    [subscriptionName in keyof T[SubscriptionRoot.FQN]['resolvers']]?: (
+      Subscriptions<T[SubscriptionRoot.FQN]['type']>
+    )[];
+  };
+  readonly caching?: PerResolverCachingConfiguration<T> | FullRequestCachingConfiguration;
+  readonly name: string;
+  readonly userPool: UserPool<any, any>;
+  readonly overrideProps?: Build<OverrideApiProps>;
 }
 
 /**
@@ -64,15 +69,15 @@ export class Api<
   public readonly SubscriptionFQN: S;
   public readonly SubscriptionSpec: S extends keyof T ? T[S] : undefined;
 
-  constructor(scope: Scope, id: string, props: ApiProps<T, Q, M, S>) {
+  constructor(scope: Scope, id: string, props: ApiProps<T>) {
     super(scope, id);
     this.Types = props.types.Types;
 
-    this.QueryFQN = props.query || Root.Query.FQN as Q;
+    this.QueryFQN = QueryRoot.FQN as Q;
     this.QuerySpec = this.Types[this.QueryFQN] as any;
-    this.MutationFQN = props.mutation || Root.Mutation.FQN as M;
+    this.MutationFQN = MutationRoot.FQN as M;
     this.MutationSpec = this.Types[this.MutationFQN] as any;
-    this.SubscriptionFQN = props.subscription || Root.Subscription.FQN as S;
+    this.SubscriptionFQN = SubscriptionRoot.FQN as S;
     this.SubscriptionSpec = this.Types[this.SubscriptionFQN] as any;
 
     this.resource = Build.concat(

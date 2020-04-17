@@ -1,11 +1,12 @@
 import { ArrayShape, RecordMembers, RecordShape } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
+import { SubscriptionImpl } from './subscription';
 import { TraitImpl } from './trait';
 
 export interface TypeSpec {
   type: RecordShape<{}, string>;
   fields: RecordMembers;
-  resolvers: TraitImpl<RecordShape<{}, string>, {}>;
+  resolvers: TraitImpl<RecordShape<{}, string>, {}> | SubscriptionImpl<{}>;
 }
 
 /**
@@ -13,13 +14,15 @@ export interface TypeSpec {
  */
 export type TypeSystem = {
   [fqn in string]: TypeSpec
-} & {
-  'Mutation': TypeSpec;
-  'Query': TypeSpec;
-  'Subscription': TypeSpec;
 };
 
 export namespace TypeSystem {
+  export type DefaultTypes = {
+    'Mutation': TypeSpec;
+    'Query': TypeSpec;
+    'Subscription': TypeSpec;
+  };
+
   // extracts any types that should be indexed by traversing RecordMembers and finding all RecordShapes.
   type ExtractTypes<F extends RecordMembers> =
     | Extract<F[keyof F], RecordShape<any, any>>

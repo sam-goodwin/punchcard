@@ -1,9 +1,9 @@
-import { VTL } from './vtl';
-import { VString, VNothing } from './vtl-object';
-import { $context } from './context';
+import { $context } from '../lang/context';
+import { directive } from '../lang/statement';
+import { $else, $elseIf, $if } from './syntax';
 import { $util } from './util/util';
-import { $if, $else, $elseIf } from './syntax';
-import { directive } from './statement';
+import { VTL } from './vtl';
+import { VNothing, VString } from './vtl-object';
 
 export namespace $auth {
   export enum Mode {
@@ -35,12 +35,12 @@ export namespace $auth {
       } else {
         return `@${name}(cognito_groups: ["${value.groups.join('","')}"])`;
       }
-    }))
+    }));
   }
 
   export function *mode(): VTL<VString> {
     return yield* $if($util.isNull($context.identity), function*() {
-      return yield* $if($context.identity.cognitoIdentityPoolId.isNotEmpty(), () => 
+      return yield* $if($context.identity.cognitoIdentityPoolId.isNotEmpty(), () =>
         VTL.string(Mode.AMAZON_COGNITO_USER_POOLS)
       , $elseIf($context.identity.accountId.isNotEmpty(), () =>
         VTL.string(Mode.AWS_IAM)

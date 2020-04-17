@@ -8,9 +8,9 @@ import { Json } from '@punchcard/shape-json';
 
 import { any, AnyShape, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, Mapper, MapperFactory, MapShape, NeverShape, NothingShape, NumberShape, Pointer, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Value } from '@punchcard/shape';
 import { DataSourceType, VExpression } from '../appsync';
-import { call } from '../appsync/statement';
-import { VTL } from '../appsync/vtl';
-import { VObject } from '../appsync/vtl-object';
+import { call } from '../appsync/lang/statement';
+import { VTL } from '../appsync/lang/vtl';
+import { VObject } from '../appsync/lang/vtl-object';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';

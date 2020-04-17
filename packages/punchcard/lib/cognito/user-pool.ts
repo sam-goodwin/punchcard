@@ -1,17 +1,17 @@
 import type * as cognito from '@aws-cdk/aws-cognito';
 
-import { Meta, Shape, ShapeGuards, string, array, RecordType, Optional, Extend, RecordShape} from '@punchcard/shape';
+import { Meta, Optional, RecordShape, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
 import { Resource } from '../core/resource';
 
-import { CustomAttributes, RequiredAttributes } from './attributes';
-import { TriggerFunctionProps, TriggerFunction, TriggerHandlers } from './triggers/trigger-function';
 import { Dependency } from '../core/dependency';
-import { AuthenticationTriggers, PreTokenGenerationResponse } from './triggers/authentication';
+import { CustomAttributes, RequiredAttributes } from './attributes';
 import { StandardClaims } from './standard-claims';
-import { SignUpTriggers, CustomMessageTriggers, CustomAuthenticationTriggers } from './triggers';
+import { CustomAuthenticationTriggers, CustomMessageTriggers, SignUpTriggers } from './triggers';
+import { AuthenticationTriggers } from './triggers/authentication';
+import { TriggerFunction, TriggerFunctionProps, TriggerHandlers } from './triggers/trigger-function';
 
 export interface UserPoolProps<R extends RequiredAttributes = {}, C extends CustomAttributes = {}> {
   buildProps?: Build<cognito.UserPoolProps>;
@@ -43,7 +43,7 @@ export class UserPool<R extends RequiredAttributes, C extends CustomAttributes> 
       for (const fn of this.triggers || []) {
         for (const triggerName of Object.keys(fn.handlers) as (keyof cognito.UserPoolTriggers)[]) {
           if (lambdaTriggers[triggerName] === undefined) {
-            lambdaTriggers[triggerName] = Build.resolve(fn.resource)
+            lambdaTriggers[triggerName] = Build.resolve(fn.resource);
           } else {
             console.warn(`ignoring duplicate trigger: ${triggerName}`);
           }
@@ -107,7 +107,7 @@ export class UserPool<R extends RequiredAttributes, C extends CustomAttributes> 
    * @param scope to create constructs udner
    * @param id id of this lambda function
    * @param props trigger function properties
-   * @param handlers 
+   * @param handlers
    */
   public onAuthentication<D extends Dependency<any>>(
     scope: Scope,

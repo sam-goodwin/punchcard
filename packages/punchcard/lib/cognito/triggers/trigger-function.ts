@@ -1,17 +1,17 @@
 import type * as cognito from '@aws-cdk/aws-cognito';
 
-import { AnyShape, any, RecordShape } from '@punchcard/shape';
+import { any, AnyShape, RecordShape } from '@punchcard/shape';
 import { Client } from '../../core';
 import { Scope } from '../../core/construct';
 import { Dependency } from '../../core/dependency';
 import Lambda = require('../../lambda');
-import { TriggerSource } from './trigger-source';
-import { TriggerRequest } from './trigger-request';
-import { TriggerEvent } from './trigger-event';
-import { CustomAuthenticationTriggers } from './custom-authentication';
 import { AuthenticationTriggers } from './authentication';
-import { SignUpTriggers } from './sign-up';
+import { CustomAuthenticationTriggers } from './custom-authentication';
 import { CustomMessageTriggers } from './custom-message';
+import { SignUpTriggers } from './sign-up';
+import { TriggerEvent } from './trigger-event';
+import { TriggerRequest } from './trigger-request';
+import { TriggerSource } from './trigger-source';
 
 export type TriggerHandler<
   Source extends TriggerSource,
@@ -75,7 +75,7 @@ export class TriggerFunction<A extends RecordShape, D extends Dependency<any>> e
       } else if (handlers.userMigration && TriggerSource.isUserMigration(event.triggerSource)) {
         return handlers.userMigration;
       }
-      
+
       // authentication
       if (handlers.preAuthentication && event.triggerSource === TriggerSource.Authentication.PreAuthentication) {
         return handlers.preAuthentication;

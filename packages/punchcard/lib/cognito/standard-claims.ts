@@ -1,4 +1,4 @@
-import { Static, string, Trait, timestamp } from '@punchcard/shape';
+import { Static, string, timestamp, Trait } from '@punchcard/shape';
 import { AttributeShape } from './attributes';
 
 export function userPoolAttribute<Name extends string>(userPoolAttributeName: Name): Trait<AttributeShape, {

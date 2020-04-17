@@ -1,25 +1,33 @@
 import { RecordShape, Shape, ShapeGuards } from '@punchcard/shape';
+import { MutationRoot } from './mutation';
+import { QueryRoot } from './query';
+import { SubscriptionRoot } from './subscription';
 import { TypeSpec, TypeSystem } from './type-system';
-import { Root } from './root';
 
-export class ApiFragment<I extends TypeSystem = any> {
-  public static join<F1 extends ApiFragment>(
+type DefaultTypes = {
+  'Mutation': TypeSpec;
+  'Query': TypeSpec;
+  'Subscription': TypeSpec;
+};
+
+export class ApiFragment<I extends TypeSystem = DefaultTypes> {
+  public static concat<F1 extends ApiFragment>(
     fragment: F1
   ): ApiFragment<
-    F1['Types']
+    F1['Types'] & DefaultTypes
   >;
 
-  public static join<
+  public static concat<
     F1 extends ApiFragment,
     F2 extends ApiFragment,
   >(
     f1: F1,
     f2: F2,
   ): ApiFragment<
-    F1['Types'] & F2['Types']
+    F1['Types'] & F2['Types'] & DefaultTypes
   >;
 
-  public static join<
+  public static concat<
     F1 extends ApiFragment,
     F2 extends ApiFragment,
     F3 extends ApiFragment,
@@ -28,10 +36,10 @@ export class ApiFragment<I extends TypeSystem = any> {
     f2: F2,
     f3: F3,
   ): ApiFragment<
-    F1['Types'] & F2['Types'] & F3['Types']
+    F1['Types'] & F2['Types'] & F3['Types'] & DefaultTypes
   >;
 
-  public static join<
+  public static concat<
     F1 extends ApiFragment,
     F2 extends ApiFragment,
     F3 extends ApiFragment,
@@ -42,10 +50,10 @@ export class ApiFragment<I extends TypeSystem = any> {
     f3: F3,
     f4: F4,
   ): ApiFragment<
-    F1['Types'] & F2['Types'] & F3['Types'] & F4['Types']
+    F1['Types'] & F2['Types'] & F3['Types'] & F4['Types'] & DefaultTypes
   >;
 
-  public static join<
+  public static concat<
     F1 extends ApiFragment,
     F2 extends ApiFragment,
     F3 extends ApiFragment,
@@ -58,30 +66,50 @@ export class ApiFragment<I extends TypeSystem = any> {
     f4: F4,
     F5: F5,
   ): ApiFragment<
-    F1['Types'] & F2['Types'] & F3['Types'] & F4['Types'] & F5['Types']
+    F1['Types'] & F2['Types'] & F3['Types'] & F4['Types'] & F5['Types'] & DefaultTypes
   >;
 
-  public static join<F extends ApiFragment[]>(...fragments: F): ApiFragment {
+  public static concat<F extends ApiFragment[]>(...fragments: F): ApiFragment {
     return new ApiFragment({
-      [Root.Mutation.FQN]: {
-        type: Root.Mutation,
+      [MutationRoot.FQN]: {
+        type: MutationRoot,
         fields: {},
         resolvers: {}
       },
-      [Root.Query.FQN]: {
-        type: Root.Query,
+      [QueryRoot.FQN]: {
+        type: QueryRoot,
         fields: {},
         resolvers: {}
       },
-      [Root.Subscription.FQN]: {
-        type: Root.Subscription,
+      [SubscriptionRoot.FQN]: {
+        type: SubscriptionRoot,
         fields: {},
         resolvers: {}
       }
     }).include(...fragments);
   }
 
-  constructor(public readonly Types: I) {}
+  public readonly Types: I;
+
+  constructor(types: I) {
+    const _types = types as any;
+
+    emptyDefault(QueryRoot);
+    emptyDefault(MutationRoot);
+    emptyDefault(SubscriptionRoot);
+
+    this.Types = _types;
+
+    function emptyDefault<T extends RecordShape<any, string>>(type: T) {
+      if (_types[type.FQN] === undefined) {
+        _types[type.FQN] = {
+          type,
+          fields: {},
+          resolvers: {}
+        };
+      }
+    }
+  }
 
   // Can't figure out how to do this miultiplication over a tuple of arbitrary arity.
   // for now, we permutate it a bunch of times - should not impact the developer experience.
@@ -110,7 +138,7 @@ export class ApiFragment<I extends TypeSystem = any> {
     f2: F2,
     f3: F3,
   ): ApiFragment<
-    I & F1['Types'] & F2['Types'] & F3['Types']
+    I & F1['Types'] & F2['Types'] & F3['Types'] & DefaultTypes
   >;
 
   public include<
@@ -124,7 +152,7 @@ export class ApiFragment<I extends TypeSystem = any> {
     f3: F3,
     f4: F4
   ): ApiFragment<
-    I & F1['Types'] & F2['Types'] & F3['Types'] & F4['Types']
+    I & F1['Types'] & F2['Types'] & F3['Types'] & F4['Types'] & DefaultTypes
   >;
 
   public include<
@@ -140,7 +168,7 @@ export class ApiFragment<I extends TypeSystem = any> {
     f4: F4,
     f5: F5
   ): ApiFragment<
-    I & F1['Types'] & F2['Types'] & F3['Types'] & F4['Types'] & F5['Types']
+    I & F1['Types'] & F2['Types'] & F3['Types'] & F4['Types'] & F5['Types'] & DefaultTypes
   >;
 
   /**
@@ -207,6 +235,6 @@ export class ApiFragment<I extends TypeSystem = any> {
       }
     }
 
-    return new ApiFragment(implIndex);
+    return new ApiFragment(implIndex) as any;
   }
 }

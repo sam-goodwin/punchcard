@@ -1,5 +1,6 @@
 export * from './collection';
 export * from './equals';
+export * from './function';
 export * from './guards';
 export * from './hash-code';
 export * from './hash-set';

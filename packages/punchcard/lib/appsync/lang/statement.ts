@@ -1,8 +1,8 @@
 import { Shape } from '@punchcard/shape/lib/shape';
-import { Build } from '../core/build';
-import { DataSourceBindCallback } from './data-source';
+import { Build } from '../../core/build';
+import { DataSourceBindCallback } from '../data-source';
 import { VTL } from './vtl';
-import { VBool, VObject, VNothing } from './vtl-object';
+import { VBool, VNothing, VObject } from './vtl-object';
 
 /**
  * A piece of logic executed by AppSync with Velocity Templates.
@@ -92,7 +92,7 @@ export class SetVariable<T = VObject> {
   ) {}
 }
 
-export function *set<T extends VObject>(value: T, id?: string): VTL<T> {
+export function *setVariable<T extends VObject>(value: T, id?: string): VTL<T> {
   return (yield new SetVariable(value, id)) as T;
 }
 

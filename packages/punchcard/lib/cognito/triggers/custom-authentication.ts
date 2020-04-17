@@ -1,13 +1,13 @@
-import { Dependency } from '../../core/dependency';
-import { TriggerRequest } from './trigger-request';
-import { TriggerHandler } from './trigger-function';
-import { TriggerSource } from './trigger-source';
 import { RecordShape } from '@punchcard/shape';
+import { Dependency } from '../../core/dependency';
+import { TriggerHandler } from './trigger-function';
+import { TriggerRequest } from './trigger-request';
+import { TriggerSource } from './trigger-source';
 
 /**
  * Amazon Cognito user pools also enable custom authentication flows, which can help you
  * create a challenge/response-based authentication model using AWS Lambda triggers.
- * 
+ *
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html#amazon-cognito-user-pools-custom-authentication-flow
  */
 export interface CustomAuthenticationTriggers<A extends RecordShape, D extends Dependency<any>> {
@@ -96,7 +96,7 @@ export interface ChallengeResult {
 
 /**
  * Common properties in Auth Challenge requests.
- * 
+ *
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html#amazon-cognito-user-pools-custom-authentication-flow
  */
 interface BaseAuthChallengeRequest<A extends RecordShape> extends TriggerRequest<A> {

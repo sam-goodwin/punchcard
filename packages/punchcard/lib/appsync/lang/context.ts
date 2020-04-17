@@ -1,9 +1,9 @@
-import { array, optional, Record, string, map } from '@punchcard/shape';
+import { array, optional, Record, string } from '@punchcard/shape';
+import { StandardClaims } from '../../cognito/standard-claims';
 import { VExpression } from './expression';
-import { VObject, VString, VList } from './vtl-object';
+import { VList, VObject, VString } from './vtl-object';
 
 import './vtl';
-import { StandardClaims } from '../cognito/standard-claims';
 
 /**
  * An object that contains information about the caller.
@@ -66,7 +66,7 @@ export class Identity extends Record({
    * user principal. We recommend that you use `cognitoIdentityId` if you’re using AWS IAM
    * authorization with credentials vended from Amazon Cognito identity pools.
    */
-  username: string, 
+  username: string,
 }) {}
 
 export namespace $context {
@@ -90,5 +90,5 @@ export namespace $context {
     ...(Object.entries(StandardClaims)
       .map(([name, shape]) => ({[name]: VObject.of(shape, new VExpression(`$context.identity.claims.get("${name}")`))}))
       .reduce((a, b) => ({...a, ...b})))
-  } as Claims
+  } as Claims;
 }

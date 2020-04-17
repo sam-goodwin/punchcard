@@ -1,8 +1,8 @@
-import { TriggerRequest } from './trigger-request';
+import { RecordShape } from '@punchcard/shape';
 import { Dependency } from '../../core/dependency';
 import { TriggerHandler } from './trigger-function';
+import { TriggerRequest } from './trigger-request';
 import { TriggerSource } from './trigger-source';
-import { RecordShape } from '@punchcard/shape';
 
 
 /**
@@ -17,7 +17,7 @@ export interface AuthenticationTriggers<A extends RecordShape, D extends Depende
    *
    * The request includes validation data from the client which comes from the `ClientMetadata`
    * values passed to the user pool `InitiateAuth` and `AdminInitiateAuth` API methods.
-   * 
+   *
    * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-authentication.html
    */
   preAuthentication?: TriggerHandler<
@@ -116,7 +116,7 @@ export interface PreAuthenticationResponse {
    * Set to `true` to set as verified the email of a user who is signing up, or `false` otherwise.
    * If `autoVerifyEmail` is set to `true`, the email attribute must have a valid, non-null value.
    * Otherwise an error will occur and the user will not be able to complete sign-up.
-   * 
+   *
    * If the email attribute is selected as an alias, an alias will be created for the user's email
    * when autoVerifyEmail is set. If an alias with that email already exists, the alias will be moved
    * to the new user and the previous user's email will be marked as unverified. For more information,
@@ -127,7 +127,7 @@ export interface PreAuthenticationResponse {
    * Set to `true` to set as verified the phone number of a user who is signing up, or `false` otherwise.
    * If `autoVerifyPhone` is set to `true`, the `phone_number` attribute must have a valid, non-null value.
    * Otherwise an error will occur and the user will not be able to complete sign-up.
-   * 
+   *
    * If the `phone_number` attribute is selected as an alias, an alias will be created for the user's phone
    * number when autoVerifyPhone is set. If an alias with that phone number already exists, the alias will
    * be moved to the new user and the previous user's phone number will be marked as unverified. For more
@@ -211,7 +211,7 @@ export interface PreTokenGenerationResponse {
     };
     /**
      * A list that contains claims to be suppressed from the identity token.
-     * 
+     *
      * *If a value is both suppressed and replaced, then it will be suppressed.*
      */
     claimsToSuppress?: string[];
