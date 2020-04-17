@@ -1,7 +1,5 @@
 import { RecordShape, Shape, ShapeGuards } from '@punchcard/shape';
-import { MutationRoot } from './mutation';
-import { QueryRoot } from './query';
-import { SubscriptionRoot } from './subscription';
+import { MutationRoot, QueryRoot, SubscriptionRoot } from './root';
 import { TypeSpec, TypeSystem } from './type-system';
 
 type DefaultTypes = {

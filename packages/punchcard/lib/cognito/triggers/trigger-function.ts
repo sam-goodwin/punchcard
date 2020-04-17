@@ -1,6 +1,4 @@
-import type * as cognito from '@aws-cdk/aws-cognito';
-
-import { any, AnyShape, RecordShape } from '@punchcard/shape';
+import { AnyShape, RecordShape } from '@punchcard/shape';
 import { Client } from '../../core';
 import { Scope } from '../../core/construct';
 import { Dependency } from '../../core/dependency';
@@ -30,9 +28,13 @@ export interface TriggerHandlers<A extends RecordShape, D extends Dependency<any
   SignUpTriggers<A, D>,
   CustomMessageTriggers<A, D> {}
 
-export interface TriggerFunctionProps<D extends Dependency<any>> extends Omit<Lambda.FunctionProps<AnyShape, AnyShape, D>, 'request' | 'response'> {
-}
-export class TriggerFunction<A extends RecordShape, D extends Dependency<any>> extends Lambda.Function<AnyShape, AnyShape, D> {
+export interface TriggerFunctionProps<
+  D extends Dependency<any>> extends Omit<Lambda.FunctionProps<AnyShape, AnyShape, D>, 'request' | 'response'
+> {}
+export class TriggerFunction<
+  A extends RecordShape,
+  D extends Dependency<any>
+> extends Lambda.Function<AnyShape, AnyShape, D> {
   constructor(
     scope: Scope,
     id: string,

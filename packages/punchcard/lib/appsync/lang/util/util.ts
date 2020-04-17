@@ -52,8 +52,8 @@ export class Util {
     return new VBool(bool, new VExpression((ctx) => `!$util.isNull(${VObject.exprOf(value).visit(ctx).text})`));
   }
 
-  public defaultIfNull<T extends VObject>(type: T, defaultValue: VObject.Like<VObject.TypeOf<T>>): T {
-
+  public defaultIfNull<T extends VObject>(obj: T, defaultValue: VObject.Like<VObject.TypeOf<T>>): T {
+    return VObject.clone(obj, new VExpression((ctx) => `$util.defaultIfNull(${VObject.exprOf(obj).visit(ctx).text})`));
   }
 
   public readonly dynamodb = new DynamoDBUtil();

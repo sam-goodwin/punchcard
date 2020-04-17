@@ -1,6 +1,6 @@
 import { RecordMembers } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
-import { MutationRoot } from '../api/mutation';
+import { MutationRoot } from '../api/root';
 import { TraitFragment } from '../api/trait';
 import { $auth } from './auth';
 import { Subscribe } from './subscription';

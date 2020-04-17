@@ -1,18 +1,11 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
 import { array, string, integer, Record, any, Shape, Minimum } from '@punchcard/shape';
-import { ID, Trait, $util, Api, ApiFragment } from 'punchcard/lib/appsync';
+import { ID, Api, Trait, Query, Mutation, Subscription } from 'punchcard/lib/appsync';
 import { Scope } from 'punchcard/lib/core/construct';
 import { VFunction } from '@punchcard/shape/lib/function';
-
-/*
-schema {
-  Query: Query,
-  Mutation: Mutation
-}
-*/
-class Query extends Record('Query', {}) {}
-class Mutation extends Record('Mutation', {}) {}
+import { ApiFragment } from 'punchcard/lib/appsync/api/api-fragment';
+import { $util } from 'punchcard/lib/appsync/lang/util/util';
 
 /*
 type Post {
@@ -36,21 +29,22 @@ interface PostQueryAPI {
   getPost: (id: ID) => Post
 }
 
-They don't have an implementation until you instantiate
-them from within a component. 
+They don't have an implementation until you instantiate them. 
 */
-const PostQueryAPI = Trait({
+const PostQueryAPI = Query({
   getPost: VFunction({
     args: { id: ID },
     returns: Post
   }),
 });
-const PostMutationAPI = Trait({
+
+const PostMutationAPI = Mutation({
   addPost: VFunction({
     args: { title: string, content: string, tags: array(string) },
     returns: Post
   })
-})
+});
+
 const RelatedPostsAPI = Trait({
   relatedPosts: VFunction({
     args: {
@@ -93,37 +87,43 @@ export const PostApi = (
   const postStore = props.postStore || new PostStore(scope, 'PostStore');
 
   // impl PostQueryAPI on Query (adds the `getPost` resolver function to the root of the API)
-  const postQueryApi = new PostQueryAPI(Query, {
-    *getPost({id}) {
-      // this generator function represents AWS AppSync's resolver pipeline
-      // you use yield* to issue commands that translate to Velocity Templates
-      // and AppSync Resolvers/Functions/DataSources.
-
-      // here, we make a call to DynamoDB GetItem and return the result as JSON
-      return yield * postStore.get({
-        id
-      });
+  const postQueryApi = new PostQueryAPI({
+    getPost: {
+      *resolve({id}) {
+        // this generator function represents AWS AppSync's resolver pipeline
+        // you use yield* to issue commands that translate to Velocity Templates
+        // and AppSync Resolvers/Functions/DataSources.
+  
+        // here, we make a call to DynamoDB GetItem and return the result as JSON
+        return yield * postStore.get({
+          id
+        });
+      }
     }
   });
 
   // impl PostMutationAPI on Mutation (adds the `addPost` resolver function to the root of the API)
-  const postMutationAPI = new PostMutationAPI(Mutation, {
-    *addPost(input) {
-      const id = yield* $util.autoId();
-
-      const post = yield* postStore.put({
-        id,
-        ...input
-      });
-
-      return post;
+  const postMutationAPI = new PostMutationAPI({
+    addPost: {
+      *resolve(input) {
+        const id = yield* $util.autoId();
+  
+        const post = yield* postStore.put({
+          id,
+          ...input
+        });
+  
+        return post;
+      }
     }
   });
   
   // impl RelatedPostsAPI on Post (adds a `relatedPosts` resolver)
   const relatedPostsApi = new RelatedPostsAPI(Post, {
-    *relatedPosts({tags}) {
-      return yield* fn.invoke(tags);
+    relatedPosts: {
+      *resolve({tags}) {
+        return yield* fn.invoke(tags);
+      }
     }
   });
 
@@ -165,17 +165,12 @@ const {
 const MyApi = new Api(stack, 'MyApi', {
   name: 'MyApi',
   // merge our API fragments into one type-system
-  types: ApiFragment.join(
+  types: ApiFragment.concat(
     postMutationAPI,
     postQueryApi,
     relatedPostsApi
   ),
-
-  // specify the FQN (fully-qualified name) of the type
-  // that is the root of the Query API
-  query: 'Query',
-
-  // same for mutations
-  mutation: 'Mutation'
+  subscribe: [],
+  userPool: null as any
 });
 

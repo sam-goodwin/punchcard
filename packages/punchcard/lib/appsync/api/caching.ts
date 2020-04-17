@@ -1,3 +1,4 @@
+import { Shape } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
 import { TypeSystem } from './type-system';
 
@@ -75,10 +76,16 @@ export interface BaseCachingConfiguration {
   readonly ttl: number;
 }
 
+export function isFullRequestCachingConfiguration(a: any): a is PerResolverCachingConfiguration<TypeSystem> {
+  return a.behavior === CachingBehavior.PER_RESOLVER_CACHING;
+}
 export interface FullRequestCachingConfiguration extends BaseCachingConfiguration {
   readonly behavior: CachingBehavior.FULL_REQUEST_CACHING;
 }
 
+export function isPerResolverCachingConfiguration(a: any): a is PerResolverCachingConfiguration<TypeSystem> {
+  return a.behavior === CachingBehavior.PER_RESOLVER_CACHING;
+}
 export interface PerResolverCachingConfiguration<T extends TypeSystem> extends BaseCachingConfiguration {
   readonly behavior: CachingBehavior.PER_RESOLVER_CACHING;
   /**
@@ -103,4 +110,19 @@ export interface PerResolverCachingConfiguration<T extends TypeSystem> extends B
       }
     }
   }
+}
+
+export interface CacheMetadata<T extends Shape> {
+  readonly cache?: {
+    readonly ttl: number;
+    /**
+     * Keys to cache on.
+     *
+     * Can include arguments and keys from `$context.identity`
+     */
+    readonly keys: (T extends FunctionShape<infer Args, any> ?
+      keyof Args | CachingKeys :
+      CachingKeys
+    )[];
+  },
 }

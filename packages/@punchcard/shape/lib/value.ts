@@ -3,6 +3,7 @@ import { FunctionShape } from './function';
 import { HashSet } from './hash-set';
 import { Decorated } from './metadata';
 import { AnyShape, BinaryShape, BoolShape, NothingShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
+import { RecordMembers, RecordShape} from './record';
 import { IsOptional } from './traits';
 
 export namespace Value {
@@ -35,4 +36,16 @@ export namespace Value {
     T extends { [Value.Tag]: infer V } ? V :
     never
     ;
+}
+
+export namespace Structure {
+  export type Of<T> = T extends { [Decorated.Data]: IsOptional; } ? undefined | _Of<T> : _Of<T>;
+
+  type _Of<T> =
+    // use the instance type if this type can be constructed (for class A extends Record({}) {})
+    T extends RecordShape ? {
+      [m in keyof RecordMembers.Natural<T['Members']>]: Of<RecordMembers.Natural<T['Members']>[m]>;
+    } :
+    Value.Of<T>
+  ;
 }

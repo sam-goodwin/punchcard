@@ -2,23 +2,23 @@ import type * as appsync from '@aws-cdk/aws-appsync';
 
 import { Meta, nothing, Shape, ShapeGuards, string } from '@punchcard/shape';
 import { RecordShape } from '@punchcard/shape/lib/record';
-import { UserPool } from '../cognito/user-pool';
-import { Build } from '../core/build';
-import { CDK } from '../core/cdk';
-import { Construct, Scope } from '../core/construct';
-import { Resource } from '../core/resource';
-import { ApiFragment } from './api/api-fragment';
-import { FullRequestCachingConfiguration, PerResolverCachingConfiguration } from './api/caching';
-import { MutationRoot } from './api/mutation';
-import { QueryRoot } from './api/query';
-import { SubscriptionRoot } from './api/subscription';
-import { TypeSpec, TypeSystem } from './api/type-system';
-import { VExpression } from './lang/expression';
-import { ElseBranch, IfBranch, isIfBranch, Statement, StatementGuards } from './lang/statement';
-import { VTL } from './lang/vtl';
-import { VObject } from './lang/vtl-object';
-
-import { Subscriptions } from './lang';
+import { UserPool } from '../../cognito/user-pool';
+import { Build } from '../../core/build';
+import { CDK } from '../../core/cdk';
+import { Construct, Scope } from '../../core/construct';
+import { Resource } from '../../core/resource';
+import { Subscriptions, toAuthDirectives } from '../lang';
+import { VExpression } from '../lang/expression';
+import { ElseBranch, IfBranch, isIfBranch, Statement, StatementGuards } from '../lang/statement';
+import { VTL } from '../lang/vtl';
+import { VObject } from '../lang/vtl-object';
+import { ApiFragment } from './api-fragment';
+import { AuthMetadata } from './auth';
+import { CacheMetadata, FullRequestCachingConfiguration, isPerResolverCachingConfiguration, PerResolverCachingConfiguration } from './caching';
+import { FieldResolver } from './resolver';
+import { MutationRoot, QueryRoot, SubscriptionRoot } from './root';
+import { SubscribeMetadata } from './subscription';
+import { TypeSpec, TypeSystem } from './type-system';
 
 export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
   | 'name'
@@ -79,6 +79,7 @@ export class Api<
     this.MutationSpec = this.Types[this.MutationFQN] as any;
     this.SubscriptionFQN = SubscriptionRoot.FQN as S;
     this.SubscriptionSpec = this.Types[this.SubscriptionFQN] as any;
+    console.log(this);
 
     this.resource = Build.concat(
       CDK,
@@ -111,6 +112,14 @@ export class Api<
           fieldLogLevel: 'ALL',
         }
       });
+      const apiCache: appsync.CfnApiCache | undefined = props.caching ? new appsync.CfnApiCache(scope, 'ApiCache', {
+        apiId: api.attrApiId,
+        apiCachingBehavior: props.caching.behavior,
+        atRestEncryptionEnabled: props.caching.atRestEncryptionEnabled,
+        transitEncryptionEnabled: props.caching.transitEncryptionEnabled,
+        ttl: props.caching.ttl,
+        type: props.caching.instanceType,
+      }) : undefined;
 
       const schema = new appsync.CfnGraphQLSchema(scope, 'Schema', {
         apiId: api.attrApiId,
@@ -167,7 +176,6 @@ export class Api<
 
       function generateTypeSignature(typeSpec: TypeSpec, directives: Directives) {
         const fieldShapes = Object.entries(typeSpec.fields);
-
         const fields = fieldShapes.map(([fieldName, fieldShape]) => {
           const fieldDirectives = (directives[fieldName] || []).join('\n    ');
           if (ShapeGuards.isFunctionShape(fieldShape)) {
@@ -183,7 +191,7 @@ export class Api<
               return `${argName}: ${typeAnnotation}`;
             }).join(',')}`}): ${getTypeAnnotation(fieldShape.returns)}${fieldDirectives ? `\n    ${fieldDirectives}` : ''}`;
           } else {
-            return `  ${fieldName}: ${getTypeAnnotation(fieldShape)}`;
+            return `  ${fieldName}: ${getTypeAnnotation(fieldShape)}${fieldDirectives ? `\n    ${fieldDirectives}` : ''}`;
           }
         }).join('\n');
 
@@ -208,17 +216,31 @@ export class Api<
       function interpretResolverPipeline(typeSpec: TypeSpec): Directives {
         const directives: Directives = {};
         const typeName = typeSpec.type.FQN;
+        const selfType = typeSpec.type;
         const self = VObject.of(typeSpec.type, new VExpression('$context.source'));
-        for (const [fieldName, resolver] of Object.entries(typeSpec.resolvers)) {
+        for (const [fieldName, resolver] of Object.entries(typeSpec.resolvers) as [string, FieldResolver<any, any, any>][]) {
+          directives[fieldName] = [];
+          const {auth, cache, subscribe} = resolver as Partial<AuthMetadata & CacheMetadata<Shape> & SubscribeMetadata<Shape>>;
+          if (auth !== undefined) {
+            directives[fieldName]!.push(...toAuthDirectives(auth!));
+          }
+          if (subscribe !== undefined) {
+            directives[fieldName]!.push(`@aws_subscribe(${(Array.isArray(subscribe) ? subscribe : [subscribe]).map(s => `"${s.field}"`).join(',')})`);
+          }
           const fieldShape = typeSpec.fields[fieldName];
-          let generator: VTL<VObject>;
+          let generator: VTL<VObject | void> = undefined as any;
           if (ShapeGuards.isFunctionShape(fieldShape)) {
             const args = Object.entries(fieldShape.args).map(([argName, argShape]) => ({
               [argName]: VObject.of(argShape, new VExpression(`$context.arguments.${argName}`))
             })).reduce((a, b) => ({...a, ...b}));
-            generator = resolver.bind(self)(args, self);
-          } else {
-            generator = resolver.bind(self)(self);
+            if (resolver.resolve) {
+              generator = resolver.resolve.bind(self)(args as any, self);
+            }
+          } else if (resolver.resolve) {
+            generator = (resolver as any).resolve.bind(self)(self);
+          }
+          if (generator === undefined) {
+            generator = (function*() {})();
           }
 
           const functions: appsync.CfnFunctionConfiguration[] = [];
@@ -419,8 +441,38 @@ export class Api<
             pipelineConfig: {
               functions: functions.map(f => f.attrFunctionId)
             },
-            requestMappingTemplate: '#set($init = 0){}', ////
-            responseMappingTemplate: template.join('\n')
+            requestMappingTemplate: '#set($init = 0){}',
+            responseMappingTemplate: template.join('\n'),
+            cachingConfig: (() => {
+              let cachingConfig: appsync.CfnResolver.CachingConfigProperty | undefined;
+              if (apiCache) {
+                if (cache !== undefined) {
+                  cachingConfig = {
+                    cachingKeys: cache.keys,
+                    ttl: cache.ttl
+                  };
+                }
+                if (props.caching && isPerResolverCachingConfiguration(props.caching)) {
+                  // override the resolver level caching with one overriden by the API root.
+                  const cache: any = (props.caching.resolvers?.[selfType.FQN] as any)?.[fieldName];
+                  if (cache !== undefined) {
+                    cachingConfig = {
+                      cachingKeys: cache.keys,
+                      ttl: cache.ttl
+                    };
+                  }
+                }
+              }
+              if (cachingConfig !== undefined) {
+                return {
+                  ...cachingConfig,
+                  cachingKeys: cachingConfig.cachingKeys?.map((k: string) =>
+                    k.startsWith('$context.identity') ? k : `$context.arguments.${k}`
+                  )
+                };
+              }
+              return undefined;
+            })()
           });
           cfnResolver.addDependsOn(schema);
         }

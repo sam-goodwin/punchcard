@@ -1,15 +1,23 @@
-import { Record, RecordMembers } from '@punchcard/shape';
+import { RecordMembers } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
 import { Subscribe } from '../lang';
-import { Trait, TraitFragment, TraitImpl } from './trait';
+import { AuthMetadata } from './auth';
+import { FieldResolver } from './resolver';
+import { MutationRoot } from './root';
+import { Trait, TraitFragment } from './trait';
+
+export type MutationTraitClass<F extends RecordMembers> = (
+  new(impl: MutationTraitImpl<F>) => MutationTraitFragment<F>
+);
 
 export function Mutation<F extends RecordMembers = RecordMembers>(fields: F): MutationTraitClass<F> {
-  return Trait(fields, MutationRoot);
-}
-
-export class MutationRoot extends Record('Mutation', {}) {}
-export namespace MutationRoot {
-  export type FQN = typeof MutationRoot.FQN;
+  return class extends Trait(MutationRoot, fields) {
+    public subscription<Field extends keyof F>(
+      field: Field
+    ): F[Field] extends FunctionShape<any, infer Ret> ? Subscribe<Ret> : Subscribe<F[Field]> {
+      return new Subscribe(field as any, this.type) as any;
+    }
+  } as any;
 }
 
 export class MutationTraitFragment<F extends RecordMembers> extends TraitFragment<typeof MutationRoot, F> {
@@ -20,7 +28,11 @@ export class MutationTraitFragment<F extends RecordMembers> extends TraitFragmen
   }
 }
 
-export type MutationTraitClass<F extends RecordMembers> = (
-  new(impl: TraitImpl<typeof MutationRoot, F>) => MutationTraitFragment<F>
-);
-
+export type MutationTraitImpl<
+  Fields extends RecordMembers
+> = {
+  [f in keyof Fields]:
+    AuthMetadata &
+    FieldResolver<typeof MutationRoot, Fields[f], true>
+  ;
+};

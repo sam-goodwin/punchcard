@@ -6,7 +6,7 @@ import { TraitImpl } from './trait';
 export interface TypeSpec {
   type: RecordShape<{}, string>;
   fields: RecordMembers;
-  resolvers: TraitImpl<RecordShape<{}, string>, {}> | SubscriptionImpl<{}>;
+  resolvers: TraitImpl<RecordShape<{}, string>, {}, boolean>;
 }
 
 /**

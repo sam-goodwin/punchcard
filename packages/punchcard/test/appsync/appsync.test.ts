@@ -102,14 +102,14 @@ export const PostMutations = Mutation({
     returns: Post
   }),
 
-  updatePost: VFunction({
-    args: {
-      id: ID,
-      title: optional(string),
-      content: optional(string)
-    },
-    returns: Post
-  }),
+  // updatePost: VFunction({
+  //   args: {
+  //     id: ID,
+  //     title: optional(string),
+  //     content: optional(string)
+  //   },
+  //   returns: Post
+  // }),
 });
 
 export const RelatedPostsTrait = Trait({
@@ -236,34 +236,34 @@ export const PostApi = (scope: Scope) => {
       }
     },
 
-    updatePost: {
-      auth: {
-        aws_cognito_user_pools: {
-          groups: [
-            'Write'
-          ]
-        }
-      },
+    // updatePost: {
+    //   auth: {
+    //     aws_cognito_user_pools: {
+    //       groups: [
+    //         'Write'
+    //       ]
+    //     }
+    //   },
 
-      *resolve(input) {
-        return yield* (postStore as any).update({
-          id: input.id
-        }, {
-          filter: (item: any) =>
-            item.title.equals($util.defaultIfNull(input.title, '')),
+    //   *resolve(input) {
+    //     return yield* (postStore as any).update({
+    //       id: input.id
+    //     }, {
+    //       filter: (item: any) =>
+    //         item.title.equals($util.defaultIfNull(input.title, '')),
 
-          *actions(item: any) {
-            yield* item.version.increment();
+    //       *actions(item: any) {
+    //         yield* item.version.increment();
 
-            yield* $if($util.isNotNull(input.title), () => item.title.set(input.title));
+    //         yield* $if($util.isNotNull(input.title), () => item.title.set(input.title));
 
-            yield* $if($util.isNotNull(input.content), function*() {
-              yield* item.content.set(input.content);
-            });
-          }
-        });
-      }
-    }
+    //         yield* $if($util.isNotNull(input.content), function*() {
+    //           yield* item.content.set(input.content);
+    //         });
+    //       }
+    //     });
+    //   }
+    // }
   });
 
   const postSubscriptions = new PostSubscriptions({
@@ -276,12 +276,8 @@ export const PostApi = (scope: Scope) => {
         }
       },
       subscribe: [
-        postMutations.subscription('createPost'),
-        postMutations.subscription('updatePost')
+        postMutations.subscription('createPost')
       ],
-      // *resolve() {
-      //   //
-      // }
     }
   });
 
@@ -316,10 +312,13 @@ export const PostApi = (scope: Scope) => {
   ] as any);
 
   return {
-    postQueries,
-    postMutations,
     postStore,
-    relatedPosts
+    postApi: ApiFragment.concat(
+      postQueries,
+      postMutations,
+      relatedPosts,
+      postSubscriptions
+    )
   };
 };
 
@@ -340,9 +339,9 @@ const userPool = new UserPool(stack, 'UserPool', {
   },
 });
 
-const {postMutations, postQueries, postStore, relatedPosts } = PostApi(stack);
+const { postApi, postStore } = PostApi(stack);
 
-const {createUser, getUser, userStore } = UserApi(stack, {
+const { createUser, getUser, userStore } = UserApi(stack, {
   postStore
 });
 
@@ -355,25 +354,24 @@ const MyApi = new Api(stack, 'MyApi', {
   userPool,
   types: ApiFragment.concat(
     createUser,
-    postMutations,
-    postQueries,
     getUser,
-    relatedPosts
+    postApi
   ),
-  subscribe: {
-    addedPost: [
-      postMutations.subscription('createPost')
-    ]
-  },
+  subscribe: {},
+  // subscribe: {
+  //   addedPost: [
+  //     postMutations.subscription('createPost')
+  //   ]
+  // },
   caching: {
-    instanceType: CachingInstanceType.T2_SMALL,
     behavior: CachingBehavior.PER_RESOLVER_CACHING,
+    instanceType: CachingInstanceType.T2_SMALL,
     ttl: 60,
     resolvers: {
       Query: {
         getPost: {
           keys: [
-            'id',
+            'id'
           ]
         }
       }
