@@ -3,6 +3,7 @@ import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShap
 import { string, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { VExpression } from './expression';
+import { VTL } from './vtl';
 
 const type = Symbol.for('GraphQL.Type');
 const expr = Symbol.for('GraphQL.Expression');
@@ -174,6 +175,8 @@ export class VList<T extends VObject = VObject> extends VObject<ArrayShape<VObje
   constructor(shape: ArrayShape<VObject.TypeOf<T>>, expression: VExpression) {
     super(shape, expression);
   }
+
+  public *add(value: VObject.Like<VObject.TypeOf<T>>): VTL<void> {}
 }
 
 export class VSet<T extends VObject = VObject> extends VObject<SetShape<VObject.TypeOf<T>>> {
@@ -194,6 +197,10 @@ export class VMap<T extends VObject = VObject> extends VObject<MapShape<VObject.
       key,
       ')'
     )) as any as T;
+  }
+
+  public *put(key: string | VString, value: VObject.Like<VObject.TypeOf<T>>): VTL<void> {
+
   }
 }
 

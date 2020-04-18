@@ -1,7 +1,7 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, integer, Record, any, Shape, Minimum } from '@punchcard/shape';
-import { ID, Api, Trait, Query, Mutation, Subscription } from 'punchcard/lib/appsync';
+import { array, string, Record } from '@punchcard/shape';
+import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType } from 'punchcard/lib/appsync';
 import { Scope } from 'punchcard/lib/core/construct';
 import { VFunction } from '@punchcard/shape/lib/function';
 import { ApiFragment } from 'punchcard/lib/appsync/api/api-fragment';
@@ -38,7 +38,7 @@ const PostQueryAPI = Query({
   }),
 });
 
-const PostMutationAPI = Mutation({
+const PostMutationApi = Mutation({
   addPost: VFunction({
     args: { title: string, content: string, tags: array(string) },
     returns: Post
@@ -52,6 +52,10 @@ const RelatedPostsAPI = Trait({
     },
     returns: array(Post)
   })
+});
+
+const PostSubscriptionsApi = Subscription({
+  newPost: Post
 });
 
 // Create a class for our DDB table for storing posts
@@ -89,6 +93,12 @@ export const PostApi = (
   // impl PostQueryAPI on Query (adds the `getPost` resolver function to the root of the API)
   const postQueryApi = new PostQueryAPI({
     getPost: {
+      cache: {
+        keys: [
+          'id'
+        ],
+        ttl: 60
+      },
       *resolve({id}) {
         // this generator function represents AWS AppSync's resolver pipeline
         // you use yield* to issue commands that translate to Velocity Templates
@@ -103,7 +113,7 @@ export const PostApi = (
   });
 
   // impl PostMutationAPI on Mutation (adds the `addPost` resolver function to the root of the API)
-  const postMutationAPI = new PostMutationAPI({
+  const postMutationApi = new PostMutationApi({
     addPost: {
       *resolve(input) {
         const id = yield* $util.autoId();
@@ -117,6 +127,14 @@ export const PostApi = (
       }
     }
   });
+
+  const postSubscriptionsApi = new PostSubscriptionsApi({
+    newPost: {
+      subscribe: [
+        postMutationApi.subscription('addPost')
+      ],
+    }
+  })
   
   // impl RelatedPostsAPI on Post (adds a `relatedPosts` resolver)
   const relatedPostsApi = new RelatedPostsAPI(Post, {
@@ -143,10 +161,11 @@ export const PostApi = (
 
   // export thee API implementations
   return {
-    postStore,
+    postMutationApi,
     postQueryApi,
-    postMutationAPI,
-    relatedPostsApi
+    postStore,
+    postSubscriptionsApi,
+    relatedPostsApi,
   }
 }
 
@@ -155,22 +174,24 @@ export const app = new Core.App();
 const stack = app.stack('graphql');
 
 // instantiate our API component 
-const {
-  postMutationAPI,
-  postQueryApi,
-  relatedPostsApi
-} = PostApi(stack);
+const api = PostApi(stack);
 
 // Configure the API - generates schema and AppSync config (VTL, Resolvers, IAM Roles, etc.).
 const MyApi = new Api(stack, 'MyApi', {
   name: 'MyApi',
+  subscribe: {},
   // merge our API fragments into one type-system
   types: ApiFragment.concat(
-    postMutationAPI,
-    postQueryApi,
-    relatedPostsApi
+    api.postMutationApi,
+    api.postQueryApi,
+    api.relatedPostsApi,
+    api.postSubscriptionsApi
   ),
-  subscribe: [],
-  userPool: null as any
+  userPool: null as any,
+  caching: {
+    behavior: CachingBehavior.PER_RESOLVER_CACHING,
+    instanceType: CachingInstanceType.T2_SMALL,
+    ttl: 60,
+  }
 });
 

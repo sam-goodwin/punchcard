@@ -29,15 +29,13 @@ export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
 export interface ApiProps<
   T extends TypeSystem
 > {
-  readonly types: ApiFragment<T>;
-  readonly subscribe: {
-    [subscriptionName in keyof T[SubscriptionRoot.FQN]['resolvers']]?: (
-      Subscriptions<T[SubscriptionRoot.FQN]['type']>
-    )[];
-  };
-  readonly caching?: PerResolverCachingConfiguration<T> | FullRequestCachingConfiguration;
   readonly name: string;
   readonly userPool: UserPool<any, any>;
+  readonly types: ApiFragment<T>;
+  readonly caching?: PerResolverCachingConfiguration<T> | FullRequestCachingConfiguration;
+  readonly subscribe?: {
+    [subscriptionName in keyof T[SubscriptionRoot.FQN]['resolvers']]?: Subscriptions<T[SubscriptionRoot.FQN]['type']>[];
+  };
   readonly overrideProps?: Build<OverrideApiProps>;
 }
 
@@ -225,7 +223,7 @@ export class Api<
             directives[fieldName]!.push(...toAuthDirectives(auth!));
           }
           if (subscribe !== undefined) {
-            directives[fieldName]!.push(`@aws_subscribe(${(Array.isArray(subscribe) ? subscribe : [subscribe]).map(s => `"${s.field}"`).join(',')})`);
+            directives[fieldName]!.push(`@aws_subscribe(mutations:[${(Array.isArray(subscribe) ? subscribe : [subscribe]).map(s => `"${s.field}"`).join(',')}])`);
           }
           const fieldShape = typeSpec.fields[fieldName];
           let generator: VTL<VObject | void> = undefined as any;
@@ -433,7 +431,9 @@ export class Api<
             )).visit({indentSpaces: 0}).text);
           }
 
-          const cfnResolver =new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {
+          const responseTemplate = template.join('\n');
+
+          const cfnResolver = new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {
             apiId: api.attrApiId,
             typeName,
             fieldName,
@@ -441,8 +441,8 @@ export class Api<
             pipelineConfig: {
               functions: functions.map(f => f.attrFunctionId)
             },
-            requestMappingTemplate: '#set($init = 0){}',
-            responseMappingTemplate: template.join('\n'),
+            requestMappingTemplate: responseTemplate || '{}',
+            responseMappingTemplate: responseTemplate || '{}',
             cachingConfig: (() => {
               let cachingConfig: appsync.CfnResolver.CachingConfigProperty | undefined;
               if (apiCache) {

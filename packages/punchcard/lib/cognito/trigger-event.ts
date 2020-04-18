@@ -1,6 +1,6 @@
+import { RecordShape } from '@punchcard/shape';
 import { TriggerRequest } from './trigger-request';
 import { TriggerSource } from './trigger-source';
-import { RecordShape } from '@punchcard/shape';
 
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools-working-with-aws-lambda-triggers.html#cognito-user-pools-lambda-trigger-sample-event-parameter-shared

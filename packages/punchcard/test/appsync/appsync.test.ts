@@ -66,7 +66,8 @@ export class Post extends Record('Post', {
   title: string,
   content: string,
   channel: string,
-  timestamp
+  timestamp,
+  tags: array(string)
 }) {}
 
 export class PostStore extends DynamoDB.Table.NewType({
@@ -97,19 +98,19 @@ export const PostMutations = Mutation({
   createPost: VFunction({
     args: {
       title: string,
-      content: string
+      content: string,
     },
     returns: Post
   }),
 
-  // updatePost: VFunction({
-  //   args: {
-  //     id: ID,
-  //     title: optional(string),
-  //     content: optional(string)
-  //   },
-  //   returns: Post
-  // }),
+  updatePost: VFunction({
+    args: {
+      id: ID,
+      title: optional(string),
+      content: optional(string)
+    },
+    returns: Post
+  }),
 });
 
 export const RelatedPostsTrait = Trait({
@@ -229,41 +230,49 @@ export const PostApi = (scope: Scope) => {
           title,
           content: input.content,
           timestamp,
-          channel: 'category'
+          channel: 'category',
+          tags: []
         });
 
         return post;
       }
     },
 
-    // updatePost: {
-    //   auth: {
-    //     aws_cognito_user_pools: {
-    //       groups: [
-    //         'Write'
-    //       ]
-    //     }
-    //   },
+    updatePost: {
+      auth: {
+        aws_cognito_user_pools: {
+          groups: [
+            'Write'
+          ]
+        }
+      },
 
-    //   *resolve(input) {
-    //     return yield* (postStore as any).update({
-    //       id: input.id
-    //     }, {
-    //       filter: (item: any) =>
-    //         item.title.equals($util.defaultIfNull(input.title, '')),
+      *resolve(input) {
+        return yield* postStore.update({
+          key: {
+            id: input.id
+          },
+          *if(item) {
+            return item.id.isDefined();
+          },
+          *actions(item) {
+            yield* item.tags.push('tag');
+            yield* item.tags.push([
+              'tag',
+              input.id
+            ]);
+            yield* item.tags.push(item.tags);
 
-    //       *actions(item: any) {
-    //         yield* item.version.increment();
-
-    //         yield* $if($util.isNotNull(input.title), () => item.title.set(input.title));
-
-    //         yield* $if($util.isNotNull(input.content), function*() {
-    //           yield* item.content.set(input.content);
-    //         });
-    //       }
-    //     });
-    //   }
-    // }
+            yield* $if($util.isNotNull(input.title), () =>
+              item.content.set(input.content)
+            );
+            yield* $if($util.isNotNull(input.content), () =>
+              item.content.set(input.content)
+            );
+          },
+        });
+      }
+    }
   });
 
   const postSubscriptions = new PostSubscriptions({
@@ -357,12 +366,6 @@ const MyApi = new Api(stack, 'MyApi', {
     getUser,
     postApi
   ),
-  subscribe: {},
-  // subscribe: {
-  //   addedPost: [
-  //     postMutations.subscription('createPost')
-  //   ]
-  // },
   caching: {
     behavior: CachingBehavior.PER_RESOLVER_CACHING,
     instanceType: CachingInstanceType.T2_SMALL,

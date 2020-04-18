@@ -4,14 +4,15 @@ import { Meta, Optional, RecordShape, RecordType, Shape, ShapeGuards } from '@pu
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
-import { Resource } from '../core/resource';
-
 import { Dependency } from '../core/dependency';
+import { Resource } from '../core/resource';
 import { CustomAttributes, RequiredAttributes } from './attributes';
+import { AuthenticationTriggers } from './authentication';
+import { CustomAuthenticationTriggers } from './custom-authentication';
+import { CustomMessageTriggers } from './custom-message';
+import { SignUpTriggers } from './sign-up';
 import { StandardClaims } from './standard-claims';
-import { CustomAuthenticationTriggers, CustomMessageTriggers, SignUpTriggers } from './triggers';
-import { AuthenticationTriggers } from './triggers/authentication';
-import { TriggerFunction, TriggerFunctionProps, TriggerHandlers } from './triggers/trigger-function';
+import { TriggerFunction, TriggerFunctionProps, TriggerHandlers } from './trigger-function';
 
 export interface UserPoolProps<R extends RequiredAttributes = {}, C extends CustomAttributes = {}> {
   buildProps?: Build<cognito.UserPoolProps>;

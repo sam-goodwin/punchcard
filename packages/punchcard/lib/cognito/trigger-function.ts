@@ -1,8 +1,8 @@
 import { AnyShape, RecordShape } from '@punchcard/shape';
-import { Client } from '../../core';
-import { Scope } from '../../core/construct';
-import { Dependency } from '../../core/dependency';
-import Lambda = require('../../lambda');
+import { Client } from '../core';
+import { Scope } from '../core/construct';
+import { Dependency } from '../core/dependency';
+import Lambda = require('../lambda');
 import { AuthenticationTriggers } from './authentication';
 import { CustomAuthenticationTriggers } from './custom-authentication';
 import { CustomMessageTriggers } from './custom-message';

@@ -1,8 +1,8 @@
-import { Dependency } from '../../core/dependency';
+import { RecordShape } from '@punchcard/shape';
+import { Dependency } from '../core/dependency';
 import { TriggerHandler } from './trigger-function';
 import { TriggerRequest } from './trigger-request';
 import { TriggerSource } from './trigger-source';
-import { RecordShape } from '@punchcard/shape';
 
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html
@@ -15,7 +15,7 @@ export interface SignUpTriggers<A extends RecordShape, D extends Dependency<any>
    *
    * The request includes validation data from the client which comes from the `ValidationData`
    * values passed to the user pool `SignUp` and `AdminCreateUser` API methods.
-   * 
+   *
    * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-sign-up.html
    */
   preSignUp?: TriggerHandler<

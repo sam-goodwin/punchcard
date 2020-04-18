@@ -1,5 +1,5 @@
 import { RecordShape } from '@punchcard/shape';
-import { Dependency } from '../../core/dependency';
+import { Dependency } from '../core/dependency';
 import { TriggerHandler } from './trigger-function';
 import { TriggerRequest } from './trigger-request';
 import { TriggerSource } from './trigger-source';

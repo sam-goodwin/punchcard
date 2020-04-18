@@ -201,7 +201,11 @@ export namespace DSL {
 
   export class FunctionCall<T extends Shape> extends ExpressionNode<T> {
     public [SubNodeType] = 'function-call';
-    constructor(public readonly name: string, public readonly returnType: T, public readonly parameters: ExpressionNode<any>[]) {
+    constructor(
+      public readonly name: string,
+      public readonly returnType: T,
+      public readonly parameters: ExpressionNode<any>[]
+    ) {
       super(returnType);
     }
 

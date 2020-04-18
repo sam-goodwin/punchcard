@@ -4,9 +4,9 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { Record, RecordShape, string } from '@punchcard/shape';
+import { any, array, map, Record, RecordShape, Shape, string, integer } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VTL } from '../appsync';
+import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VTL, vtl, VString } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -16,6 +16,7 @@ import { Run } from '../core/run';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 import { toAttributeValue, toAttributeValueExpression } from './v-attribute-value';
+import { Filter, Update } from './vtl-dsl';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
@@ -196,6 +197,95 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     return call(this.dataSourceProps((table, role) => table.grantReadData(role), props), request, this.dataType);
   }
 
+  public *update(request: Update.Request<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
+    if (request.if) {
+      // ifExpr = yield* request.if(Filter.of(this.dataType,  ).)
+    }
+    const fields: any = {};
+    for (const [name, field] of Object.entries(this.dataType.Members)) {
+      fields[name] = Update.of(field, new Update.Expr.Reference(undefined, field, name));
+    }
+
+
+    const setStatements = yield* vtl(array(string))`[]`;
+    const expressionNames = yield* vtl(map(string))`{}`;
+    const expressionValues = yield* vtl(map(any))`{}`;
+
+    const names: {
+      [name: string]: string;
+    } = {};
+    const valueIds = new Map();
+
+    const generator = request.actions(fields);
+    let next: IteratorResult<any, any>;
+    let returns: any;
+
+    const newId = (() => {
+      let i = 0;
+      return (prefix?: string) => `${prefix || ''}var${i += 1}`;
+    })();
+
+
+    while (!(next = generator.next(returns)).done) {
+      const stmt = next.value;
+      if (Update.Statement.isAddExpressionName(stmt)) {
+        const id = newId();
+        returns = id;
+        const ref = yield* renderExpression(stmt.expr);
+        // yield* expressionNames.put(id, stmt.expr);
+      } else if (Update.Statement.isAddExpressionValue(stmt)) {
+        const id = newId();
+        returns = id;
+        yield* expressionValues.put(id, toAttributeValue(stmt.type, stmt.value));
+      } else if (Update.Statement.isAddSetAction(stmt)) {
+        returns = undefined;
+        yield* setStatements.add(stmt.action);
+      }
+    }
+
+    function *renderExpression(expr: Update.Expr<Shape>): Generator<any, string> {
+      if (Update.Expr.isReference(expr)) {
+        if (expr.target) {
+          return `${yield* renderExpression(expr.target.expr)}.${yield* addName(expr.id)}`;
+        } else {
+          return yield* addName(expr.id);
+        }
+      } else if (Update.Expr.isGetListItem(expr)) {
+        if (!valueIds.has(expr.index)) {
+          // cache r
+          const id = newId();
+          valueIds.set(expr.index, id);
+          yield* expressionValues.put(id, toAttributeValue(integer, expr.index));
+        }
+        return `${yield* renderExpression(expr.list.expr)}[${valueIds.get(expr.index)}]`;
+      } else if (Update.Expr.isGetMapItem(expr)) {
+        if (!valueIds.has(expr.key)) {
+          // cache r
+          const id = newId();
+          valueIds.set(expr.key, id);
+          yield* expressionValues.put(id, toAttributeValue(integer, expr.key));
+        }
+        return `${yield* renderExpression(expr.map.expr)}.${valueIds.get(expr.index)}`;
+      }
+
+      return '';
+    }
+
+    function *addName(name: string): Generator<any, string> {
+      if (!names[name]) {
+        const id = newId();
+        names[name] = id;
+        yield* expressionNames.put(name, id);
+      }
+      return names[name];
+    }
+
+    function *addValue<T extends Shape>(type: T, value: VObject.Like<T>): VTL<void> {
+
+    }
+  }
+
+
   public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
     // TODO: address redundancy between this and `get`.
     const PutItemRequest = Record({
@@ -340,6 +430,13 @@ export type KeyGraphQLRepr<DataType extends RecordShape, K extends DDB.KeyOf<Dat
 };
 
 export namespace Table {
+  type FilterExpressionItem<DataType extends RecordShape> = {
+    [field in keyof DataType['Members']]: field;
+  };
+  export interface GetItemF<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> {
+    if?: (item: any) => any;
+  }
+
   export interface DataSourceProps {
     description?: string;
     serviceRole?: Build<iam.IRole>;
