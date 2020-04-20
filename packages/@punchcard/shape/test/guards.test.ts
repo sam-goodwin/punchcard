@@ -1,5 +1,5 @@
 import 'jest';
-import { any, binary, number, Record, Shape, string, timestamp, unknown } from '../lib';
+import { any, binary, integer, isOptional, literal, nothing, number, optional, Record, Shape, string, timestamp, union, unknown } from '../lib';
 import { array, map, set } from '../lib/collection';
 import { ShapeGuards } from '../lib/guards';
 
@@ -57,6 +57,22 @@ test('isMapShape', () => {
   expect(ShapeGuards.isMapShape(map(string))).toBe(true);
   expect(ShapeGuards.isMapShape(array(string))).toBe(false);
   expect(ShapeGuards.isMapShape(string)).toBe(false);
+});
+test('isUnionShape', () => {
+  expect(ShapeGuards.isUnionShape(union(string, integer))).toBe(true);
+  expect(ShapeGuards.isUnionShape(string)).toBe(false);
+});
+test('isOptional', () => {
+  expect(isOptional(integer)).toBe(false);
+  expect(isOptional(union(string, integer))).toBe(false);
+  expect(isOptional(union(nothing, integer))).toBe(true);
+  expect(isOptional(optional(integer))).toBe(true);
+});
+test('isLiteral', () => {
+  expect(ShapeGuards.isLiteralShape(literal(integer, 1))).toBe(true);
+  expect(ShapeGuards.isLiteralShape(literal(1))).toBe(true);
+  expect(ShapeGuards.isLiteralShape(literal('a'))).toBe(true);
+  expect(ShapeGuards.isLiteralShape(integer)).toBe(false);
 });
 
 class MyClass extends Record('MyClass', {

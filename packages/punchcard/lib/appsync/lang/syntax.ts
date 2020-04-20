@@ -33,7 +33,7 @@ export function $if<T extends VObject | void>(
     then: () => Generator<any, any>,
     Else?: IfBranch<any> | ElseBranch<any>
   ) => new IfBranch(condition, then, Else);
-  (g as any).else = (then: () => Generator<any, any>) => new ElseBranch(then)
+  (g as any).else = (then: () => Generator<any, any>) => new ElseBranch(then);
 
   return g as any;
 }

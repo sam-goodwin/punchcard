@@ -1,10 +1,13 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
+import { IsInstance } from './is-instance';
+import { LiteralShape } from './literal';
 import { Meta } from './metadata';
 import { Trait } from './metadata';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape } from './record';
 import { Shape } from './shape';
+import { UnionShape } from './union';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
 
@@ -35,6 +38,30 @@ export namespace Validator {
   }
 
   class Visitor implements ShapeVisitor<Validator<any>[], string> {
+    public unionShape(shape: UnionShape<Shape[]>, context: string): Validator<any>[] {
+      const isTypes = shape.Items.map(item => [IsInstance.of(item), Validator.of(item)] as const);
+      return [(item: any, path: string) => {
+        for (const [isType, validator] of isTypes) {
+          if (isType(item)) {
+            return validator(item, path);
+          }
+        }
+        return [];
+      }];
+    }
+    public literalShape(shape: LiteralShape<Shape, any>, context: string): Validator<any>[] {
+      const isType = IsInstance.of(shape.Type, {
+        deep: true
+      });
+      return [((value: any, path: string) => {
+        if (!isType(value)) {
+          return [
+            new Error(`expected literal value: ${shape.Value}, got ${value}, at: ${path}`)
+          ];
+        }
+        return [];
+      })];
+    }
     public neverShape(shape: NeverShape, context: string): Validator<any>[] {
       return [];
     }

@@ -1,9 +1,9 @@
 import 'jest';
 
-import { any, binary, nothing, number, Optional, optional, Record, string } from '@punchcard/shape';
+import { any, binary, integer, nothing, number, NumberShape, optional, Record, string, StringShape, union } from '@punchcard/shape';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
-import { JsonSchema, NumberSchema } from '../lib';
+import { JsonSchema, NumberSchema, OneOf } from '../lib';
 
 // tslint:disable: member-access
 class Nested extends Record('Nested', {
@@ -18,13 +18,13 @@ class MyType extends Record('MyType', {
     .apply(MaxLength(1))
     .apply(MinLength(0))
     .apply(Pattern('.*'))
-    ,
+  ,
 
   count: number
     .apply(Maximum(1))
     .apply(Minimum(1, true))
     .apply(MultipleOf(2))
-    ,
+  ,
 
   nested: Nested,
   array: array(string),
@@ -32,11 +32,13 @@ class MyType extends Record('MyType', {
   set: set(string),
   complexSet: set(Nested),
   map: map(string),
-  complexMap: map(Nested)
-    .apply(Optional),
+  complexMap: optional(map(Nested)),
+  optionalUnion: union(nothing, string),
+  stringOrNumber: union(string, number),
 
   binary: binary
-    .apply(MaxLength(1)),
+    .apply(MaxLength(1))
+  ,
 
   any,
 
@@ -64,9 +66,9 @@ it('should render JSON schema', () => {
       'set',
       'complexSet',
       'map',
+      'stringOrNumber',
       'binary',
-      'any',
-      'nothing'
+      'any'
     ],
     properties: {
       id: {
@@ -109,6 +111,16 @@ it('should render JSON schema', () => {
           }
         },
         uniqueItems: false
+      },
+      optionalUnion: {
+        type: 'string'
+      },
+      stringOrNumber: {
+        oneOf: [{
+          type: 'string'
+        }, {
+          type: 'number'
+        }]
       },
       set: {
         type: 'array',
@@ -210,6 +222,10 @@ it('should render JSON schema', () => {
         },
         uniqueItems?: false
       },
+      optionalUnion: {
+        type: 'string'
+      },
+      stringOrNumber: OneOf<[StringShape, NumberShape]>,
       set: {
         type: 'array',
         items: {

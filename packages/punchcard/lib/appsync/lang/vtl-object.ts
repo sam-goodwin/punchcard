@@ -1,9 +1,10 @@
-import { AnyShape, BinaryShape, bool, integer, NeverShape, NothingShape, ShapeGuards, ShapeVisitor, UnknownShape, Value } from '@punchcard/shape';
+import { any, AnyShape, array, binary, BinaryShape, bool, boolean, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, NumericShape, ShapeGuards, ShapeVisitor, timestamp, unknown, UnknownShape, Value } from '@punchcard/shape';
 import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShape, Pointer, RecordShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
 import { string, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
+import { UnionShape } from '@punchcard/shape/lib/union';
 import { VExpression } from './expression';
-import { VTL } from './vtl';
+import { VTL, vtl } from './vtl';
 
 const type = Symbol.for('GraphQL.Type');
 const expr = Symbol.for('GraphQL.Expression');
@@ -28,7 +29,7 @@ export class VObject<T extends Shape = Shape> {
   }
 
   public notEquals(other: this | Value.Of<T>): VBool {
-    return new VBool(bool, VExpression.concat(
+    return new VBool(VExpression.concat(
       this,
       '!=',
       VObject.isObject(other) ? other : VExpression.json(other)
@@ -36,7 +37,7 @@ export class VObject<T extends Shape = Shape> {
   }
 
   public equals(other: this | Value.Of<T>): VBool {
-    return new VBool(bool, VExpression.concat(
+    return new VBool(VExpression.concat(
       this,
       '==',
       VObject.isObject(other) ? other : VExpression.json(other)
@@ -44,11 +45,18 @@ export class VObject<T extends Shape = Shape> {
   }
 
   public toJson(): VString {
-    return new VString(string, new VExpression(ctx => `$util.toJson(${VObject.exprOf(this).visit(ctx)})`));
+    return new VString(new VExpression(ctx => `$util.toJson(${VObject.exprOf(this).visit(ctx)})`));
   }
 }
 
 export namespace VObject {
+  export function NewType<T extends Shape>(type: T): new(expr: VExpression) => VObject<T> {
+    return class extends VObject<T> {
+      constructor(expr: VExpression) {
+        super(type, expr);
+      }
+    };
+  }
   export type TypeOf<T extends VObject> = T[typeof type];
 
   export function isObject(a: any): a is VObject {
@@ -63,7 +71,7 @@ export namespace VObject {
     }> & {
       [m in keyof M]: Of<M[m]>;
     } :
-    T extends ArrayShape<infer I> ? VList<VObject.Of<I>> :
+    T extends ArrayShape<infer I> ? VList<I> :
     T extends SetShape<infer I> ? VSet<VObject.Of<I>> :
     T extends MapShape<infer I> ? VMap<VObject.Of<I>> : // maps are not supported in GraphQL
     T extends BoolShape ? VBool :
@@ -72,6 +80,7 @@ export namespace VObject {
     T extends NumberShape ? VFloat :
     T extends StringShape ? VString :
     T extends TimestampShape ? VTimestamp :
+    T extends UnionShape<infer U> ? VUnion<T> :
 
     VObject<T>
   ;
@@ -107,17 +116,28 @@ export const IDTrait: {
 
 export const ID = string.apply(IDTrait);
 
-export class VAny extends VObject<AnyShape> {}
-export class VUnknown extends VObject<UnknownShape> {}
-export class VInteger extends VObject<IntegerShape> {}
-export class VFloat extends VObject<NumberShape> {}
-export class VNothing extends VObject<NothingShape> {}
-export class VNever extends VObject<NeverShape> {}
-export class VBinary extends VObject<BinaryShape> {}
+export class VAny extends VObject.NewType(any) {}
+export class VUnknown extends VObject.NewType(unknown) {}
 
-export class VBool extends VObject<BoolShape> {
+const VNumeric = <N extends NumericShape>(type: N) => class extends VObject.NewType(type) {
+  public toString(): VString {
+    return new VString(VExpression.concat(
+      '"',
+      this,
+      '"',
+    ));
+  }
+};
+
+export class VInteger extends VNumeric<IntegerShape>(integer) {}
+export class VFloat extends VNumeric<NumberShape>(number) {}
+export class VNothing extends VObject.NewType(nothing) {}
+export class VNever extends VObject.NewType(never) {}
+export class VBinary extends VObject.NewType(binary) {}
+
+export class VBool extends VObject.NewType(boolean) {
   public static not(a: VBool): VBool {
-    return new VBool(bool, VExpression.concat('!', a));
+    return new VBool(VExpression.concat('!', a));
   }
 
   public static and(...bs: VBool[]): VBool {
@@ -129,7 +149,7 @@ export class VBool extends VObject<BoolShape> {
   }
 
   private static operator(op: '&&' | '||', xs: VBool[]): VBool {
-    return new VBool(bool, VExpression.concat(
+    return new VBool(VExpression.concat(
       '(',
       ...xs
         .map((x, i) => i === 0 ? [x] : [op, x])
@@ -151,9 +171,9 @@ export class VBool extends VObject<BoolShape> {
   }
 }
 
-export class VString extends VObject<StringShape> {
+export class VString extends VObject.NewType(string) {
   public toUpperCase(): VString {
-    return new VString(VObject.typeOf(this), VExpression.concat(this, '.toUpperCase()'));
+    return new VString(VExpression.concat(this, '.toUpperCase()'));
   }
 
   public isNotEmpty(): VBool {
@@ -161,22 +181,22 @@ export class VString extends VObject<StringShape> {
   }
 
   public isEmpty(): VBool {
-    return new VBool(bool, VExpression.concat(this, '.isEmpty()'));
+    return new VBool(VExpression.concat(this, '.isEmpty()'));
   }
 
   public size(): VInteger {
-    return new VInteger(integer, VExpression.concat(this, '.size()'));
+    return new VInteger(VExpression.concat(this, '.size()'));
   }
 }
 
-export class VTimestamp extends VObject<TimestampShape> {}
+export class VTimestamp extends VObject.NewType(timestamp) {}
 
-export class VList<T extends VObject = VObject> extends VObject<ArrayShape<VObject.TypeOf<T>>> {
-  constructor(shape: ArrayShape<VObject.TypeOf<T>>, expression: VExpression) {
-    super(shape, expression);
+export class VList<T extends Shape = Shape> extends VObject<ArrayShape<T>> {
+  constructor(shape: T, expression: VExpression) {
+    super(array(shape), expression);
   }
 
-  public *add(value: VObject.Like<VObject.TypeOf<T>>): VTL<void> {}
+  public *add(value: VObject.Like<T>): VTL<void> {}
 }
 
 export class VSet<T extends VObject = VObject> extends VObject<SetShape<VObject.TypeOf<T>>> {
@@ -199,8 +219,8 @@ export class VMap<T extends VObject = VObject> extends VObject<MapShape<VObject.
     )) as any as T;
   }
 
-  public *put(key: string | VString, value: VObject.Like<VObject.TypeOf<T>>): VTL<void> {
-
+  public *put(key: string | VString, value: VObject.Of<VObject.TypeOf<T>>): VTL<void> {
+    yield* vtl(nothing)`$util.qr(${this}.put(${key}, ${value}))`;
   }
 }
 
@@ -222,55 +242,67 @@ export namespace VRecord {
   export type Class<T extends VRecord = any> = (new(members: VRecord.GetMembers<T>) => T);
 }
 
+export class VUnion<U extends UnionShape<Shape[]>> extends VObject<U> {
+  constructor(type: U, expr: VExpression) {
+    super(type, expr);
+  }
+}
+
 export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public static defaultInstance = new Visitor();
+  public unionShape(shape: UnionShape<Shape[]>, expr: VExpression): VObject<Shape> {
+    throw new Error("Method not implemented.");
+  }
+  public literalShape(shape: LiteralShape<Shape, any>, expr: VExpression): VObject<Shape> {
+    return shape.Type.visit(this, expr);
+  }
 
   public functionShape(shape: FunctionShape<FunctionArgs, Shape>): VObject<Shape> {
     throw new Error("Method not implemented.");
   }
-  public neverShape(shape: NeverShape, context: VExpression): VObject<Shape> {
-    return new VNever(shape, context);
+  public neverShape(shape: NeverShape, expr: VExpression): VObject<Shape> {
+    return new VNever(expr);
   }
   public arrayShape(shape: ArrayShape<any>, expr: VExpression): VList {
-    return new VList(shape, expr);
+    return new VList(shape.Items, expr);
   }
   public binaryShape(shape: BinaryShape, expr: VExpression): VBinary {
-    return new VBinary(shape, expr);
+    return new VBinary(expr);
   }
   public boolShape(shape: BoolShape, expr: VExpression): VBool {
-    return new VBool(shape, expr);
+    return new VBool(expr);
   }
   public recordShape(shape: RecordShape<any>, expr: VExpression): VRecord {
     return new VRecord(shape, expr);
   }
   public dynamicShape(shape: DynamicShape<any>, expr: VExpression): VAny | VUnknown {
     if (shape.Tag === 'any') {
-      return new VAny(shape as AnyShape, expr);
+      return new VAny(expr);
     } else {
-      return new VUnknown(shape as UnknownShape, expr);
+      return new VUnknown(expr);
     }
   }
   public integerShape(shape: IntegerShape, expr: VExpression): VInteger {
-    return new VInteger(shape, expr);
+    return new VInteger(expr);
   }
   public mapShape(shape: MapShape<Shape>, expr: VExpression): never {
     throw new Error(`map is not supported by GraphQL`);
   }
   public nothingShape(shape: NothingShape, expr: VExpression): VNothing {
-    throw new VNothing(shape, expr);
+    throw new VNothing(expr);
   }
   public numberShape(shape: NumberShape, expr: VExpression): VFloat {
     // tslint:disable-next-line: no-construct
-    return new VFloat(shape, expr);
+    return new VFloat(expr);
   }
   public setShape(shape: SetShape<Shape>, expr: VExpression): VSet<VObject> {
     return new VSet(shape, expr);
   }
   public stringShape(shape: StringShape, expr: VExpression): VString {
     // tslint:disable-next-line: no-construct
-    return new VString(shape, expr);
+    return new VString(expr);
   }
   public timestampShape(shape: TimestampShape, expr: VExpression): VTimestamp {
-    return new VTimestamp(shape, expr);
+    return new VTimestamp(expr);
   }
 }

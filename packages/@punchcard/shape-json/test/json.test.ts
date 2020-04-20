@@ -1,6 +1,6 @@
 import 'jest';
 
-import { bool, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, Optional, optional, Pattern, Record, string } from '@punchcard/shape';
+import { bool, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, optional, Pattern, Record, string, union } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import { Json } from '../lib';
@@ -11,8 +11,7 @@ class Nested extends Record('Nested', {
   /**
    * A docs.
    */
-  a: string
-    .apply(Optional)
+  a: optional(string)
 }) {}
 class MyType extends Record('MyType', {
   /**
@@ -39,6 +38,7 @@ class MyType extends Record('MyType', {
   complexSet: set(Nested),
   map: map(string),
   complexMap: map(Nested),
+  union: union(string, number),
 
   null: nothing,
   optional: optional(string)
@@ -58,12 +58,13 @@ const jsonRepr = {
   map: {
     a: 'map'
   },
+  union: 1,
   complexMap: {
     key: {
       a: 'complexMap'
     }
   },
-  null: null
+  null: undefined
 };
 
 const runtimeRepr = new MyType({
@@ -78,12 +79,13 @@ const runtimeRepr = new MyType({
   map: {
     a: 'map'
   },
+  union: 1,
   complexMap: {
     key: new Nested({
       a: 'complexMap'
     })
   },
-  null: null
+  null: undefined
 });
 
 test('should read shape from json', () => {

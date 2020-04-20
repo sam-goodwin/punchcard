@@ -1,6 +1,6 @@
 import 'jest';
 
-import { any, array, bool, Equals, HashCode, HashSet, map, number, optional, Record, set, string, Value} from '../lib';
+import { any, array, bool, Equals, HashCode, HashSet, map, number, optional, Record, set, string, Value } from '../lib';
 
 // tslint:disable: member-access
 class Nested extends Record('Nested', {
@@ -41,9 +41,7 @@ class MyType extends Record('MyType', {
 // some compile-time checks
 const v: Value.Of<typeof Nested> = new Nested({a: 'a', b: 'b'});
 const vv: Value.Of<typeof Nested> = v;
-
 // tslint:disable: no-unused-expression
-v.b;
 v.a;
 v.a?.length;
 

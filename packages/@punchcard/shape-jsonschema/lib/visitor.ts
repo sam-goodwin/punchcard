@@ -1,4 +1,4 @@
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, Meta, NeverShape, NumberShape, RecordShape, Shape, ShapeVisitor, StringShape, TimestampShape } from '@punchcard/shape';
+import { BinaryShape, BoolShape, DynamicShape, IntegerShape, isOptional, LiteralShape, Meta, NeverShape, NumberShape, RecordShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { ArraySchema, MapSchema, SetSchema } from './collection';
@@ -12,6 +12,18 @@ import { AnySchema, BinarySchema, BoolSchema, IntegerSchema, NothingSchema, Numb
 export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema, undefined> {
   public neverShape(shape: NeverShape, context: undefined): JsonSchema {
     throw new Error("JSON schema does not support never types");
+  }
+  public literalShape(shape: LiteralShape<Shape, any>, context: undefined): JsonSchema {
+    throw new Error("Method not implemented.");
+  }
+  public unionShape(shape: UnionShape<Shape[]>, context: undefined): JsonSchema {
+    const items = shape.Items.filter(i => !ShapeGuards.isNothingShape(i));
+    if(items.length === 1) {
+      return items[0].visit(this, context);
+    }
+    return {
+      oneOf: shape.Items.map(s => s.visit(this, context))
+    } as any;
   }
   public functionShape(shape: FunctionShape<FunctionArgs, Shape>): JsonSchema {
     throw new Error("JSON schema does not support function types");
@@ -95,7 +107,7 @@ export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema, undefined> 
   public recordShape(shape: RecordShape<any>): ObjectSchema<any> {
     const required = (Object.entries(shape.Members) as [string, Shape][])
       .map(([name, member]) => {
-        return (Meta.get(member) as any).nullable === true ? [] : [name];
+        return isOptional(member) ? [] : [name];
       })
       .reduce((a, b) => a.concat(b), []);
 

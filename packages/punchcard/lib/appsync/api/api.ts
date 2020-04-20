@@ -262,7 +262,7 @@ export class Api<
           // create a FQN for the <type>.<field>
           const fieldFQN = `${typeName}_${fieldName}`.replace(/[^_0-9A-Za-z]/g, '_');
 
-          let next: IteratorResult<Statement<VObject | void>, any>;
+          let next: IteratorResult<any, any>;
           let returns: VObject | undefined;
 
           while (!(next = generator.next(returns)).done) {

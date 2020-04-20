@@ -1,4 +1,4 @@
-import { ShapeVisitor, Value } from '@punchcard/shape';
+import { LiteralShape, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
@@ -27,6 +27,18 @@ export namespace JsonPath {
       [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
     } :
     T extends SetShape<infer V> ? JsonPath.Array<V> :
+    T extends UnionShape<infer U> ?
+      U extends 1 ? {
+        [i in Extract<keyof U, number>]: Of<U[i]>
+      }[1] :
+      NothingShape extends Extract<U[Extract<keyof U, number>], NothingShape> ?
+        U['length'] extends 1 ? JsonPath.Object<NothingShape> :
+        U['length'] extends 2 ?
+          Exclude<{
+            [i in Extract<keyof U, number>]: Of<U[i]>;
+          }[Extract<keyof U, number>], JsonPath.Object<NothingShape>> :
+        JsonPath.Union<T> :
+      JsonPath.Union<T> :
 
     T extends { [Tag]: infer Q } ? Q :
 
@@ -141,6 +153,12 @@ export namespace JsonPath {
 
   export class Dynamic<T extends DynamicShape<any | unknown>> extends Object<T> {
     public as<S extends Shape>(shape: S): JsonPath.Of<S> {
+      return shape.visit(visitor as any, this);
+    }
+  }
+
+  export class Union<T extends UnionShape<Shape[]>> extends Object<T> {
+    public as<S extends T['Items'][Extract<keyof T['Items'], number>]>(shape: S): JsonPath.Of<S> {
       return shape.visit(visitor as any, this);
     }
   }
@@ -405,6 +423,18 @@ export namespace JsonPath {
 }
 
 class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
+  public literalShape(shape: LiteralShape<Shape, any>, expr: JsonPath.ExpressionNode<any>): any {
+    return shape.Type.visit(this, expr);
+  }
+  public unionShape(shape: UnionShape<Shape[]>, expr: JsonPath.ExpressionNode<any>): any {
+    const items = shape.Items.filter(i => !ShapeGuards.isNothingShape(i));
+    if (items.length === 1) {
+      return items[0].visit(this, expr);
+    }
+
+    throw new Error("Method not implemented.");
+  }
+
   public neverShape(shape: NeverShape, context: JsonPath.ExpressionNode<any>) {
     throw new Error("NeverShape is not supported by JSON Path");
   }

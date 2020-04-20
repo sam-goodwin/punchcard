@@ -16,7 +16,7 @@ export class Util {
 
   public *autoId(): VTL<VString> {
     // return yield new Statements.Set(value, id);
-    return yield* setVariable(new VString(string, new VExpression('$util.autoId()')));
+    return yield* setVariable(new VString(new VExpression('$util.autoId()')));
   }
 
   public matches(regex: RegExp | string): VTL<VBool> {
@@ -24,7 +24,7 @@ export class Util {
   }
 
   public unauthorized(): VNever {
-    return new VNever(never, new VExpression('$util.unauthorized()'));
+    return new VNever(new VExpression('$util.unauthorized()'));
   }
 
   public *throwUnauthorized(): VTL<VNever> {
@@ -41,15 +41,15 @@ export class Util {
    * @see https://docs.aws.amazon.com/appsync/latest/devguide/resolver-util-reference.html
    */
   public error(message: VString | string, errorType?: VString | string, data?: VObject, errorInfo?: VObject): VNever {
-    return new VNever(never, call('$util.error', [message, errorType, data, errorInfo]));
+    return new VNever(call('$util.error', [message, errorType, data, errorInfo]));
   }
 
   public isNull(value: VObject): VBool {
-    return new VBool(bool, new VExpression((ctx) => `$util.isNull(${VObject.exprOf(value).visit(ctx).text})`));
+    return new VBool(new VExpression((ctx) => `$util.isNull(${VObject.exprOf(value).visit(ctx).text})`));
   }
 
   public isNotNull(value: VObject): VBool {
-    return new VBool(bool, new VExpression((ctx) => `!$util.isNull(${VObject.exprOf(value).visit(ctx).text})`));
+    return new VBool(new VExpression((ctx) => `!$util.isNull(${VObject.exprOf(value).visit(ctx).text})`));
   }
 
   public defaultIfNull<T extends VObject>(obj: T, defaultValue: VObject.Like<VObject.TypeOf<T>>): T {

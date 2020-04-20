@@ -1,6 +1,6 @@
 import 'jest';
 
-import { number, Optional, Record, string } from '@punchcard/shape';
+import { number, optional, Record, string } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import '../lib';
@@ -20,8 +20,7 @@ export class MyType extends Record('MyType', {
    */
   id: string,
 
-  count: number
-    .apply(Optional),
+  count: optional(number),
 
   nested: Nested,
   array: array(string),

@@ -2,7 +2,7 @@ import 'jest';
 
 import sinon = require('sinon');
 
-import { any, array, map, number, Record, string } from '@punchcard/shape';
+import { any, array, map, number, optional, Record, string, union } from '@punchcard/shape';
 import { TableClient } from '../lib/client';
 
 // tslint:disable: member-access
@@ -12,6 +12,8 @@ class Type extends Record('Type', {
   list: array(string),
   dict: map(string),
   dynamic: any,
+  optional: optional(string),
+  union: union(string, number)
 }) {}
 
 const hashTable = new TableClient({
@@ -45,7 +47,9 @@ test('getItem', async () => {
       count: { N: '1' },
       list: { L: [ {S: 'list value'} ] },
       dict: { M: { key: { S: 'string' } } },
-      dynamic: { S: 'value' }
+      dynamic: { S: 'value' },
+      optional: { S: 'optional' },
+      union: { N: '1' }
     }
   });
   const getItem = sinon.fake.returns({ promise: getItemPromise });
@@ -62,7 +66,9 @@ test('getItem', async () => {
     count: 1,
     list: ['list value'],
     dict: { key: 'string' },
-    dynamic: 'value'
+    dynamic: 'value',
+    optional: 'optional',
+    union: 1
   }));
 
   expect(getItem.args[0][0]).toEqual({
@@ -94,7 +100,9 @@ test('put-if', async () => {
     dict: {
       key: 'value'
     },
-    dynamic: 'dynamic-value'
+    dynamic: 'dynamic-value',
+    optional: 'optional',
+    union: 1
   }), {
     if: _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.get('a').equals('value'))
   });
@@ -106,7 +114,9 @@ test('put-if', async () => {
       count: { N: '1' },
       list: { L: [ {S: 'a'}, {S: 'b'} ] },
       dict: { M: { key: { S: 'value' } } },
-      dynamic: { S: 'dynamic-value' }
+      dynamic: { S: 'dynamic-value' },
+      optional: { S: 'optional' },
+      union: { N: '1' }
     },
     ConditionExpression: '((#1=:1 AND #2[0]<=:2) AND #3.#4=:3)',
     ExpressionAttributeNames: {

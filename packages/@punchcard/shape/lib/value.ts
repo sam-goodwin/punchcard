@@ -1,29 +1,31 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionShape } from './function';
 import { HashSet } from './hash-set';
-import { Decorated } from './metadata';
+import { LiteralShape } from './literal';
 import { AnyShape, BinaryShape, BoolShape, NothingShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
 import { RecordMembers, RecordShape} from './record';
-import { IsOptional } from './traits';
+import { UnionShape } from './union';
 
 export namespace Value {
   export type Tag = typeof Tag;
   export const Tag = Symbol.for('@punchcard/shape-runtime.Value.Tag');
 
-  export type Of<T> = T extends { [Decorated.Data]: IsOptional; } ? undefined | _Of<T> : _Of<T>;
-
-  export type _Of<T> =
+  export type Of<T> =
     // use the instance type if this type can be constructed (for class A extends Record({}) {})
     T extends (new (...args: any[]) => infer I) ? I :
     // support overriding the type of a value
     T extends AnyShape ? any :
     T extends BinaryShape ? Buffer :
     T extends BoolShape ? boolean :
-    T extends NothingShape ? undefined | null | void :
+    T extends NothingShape ? undefined :
     T extends NumericShape ? number :
     T extends StringShape ? string :
     T extends TimestampShape ? Date :
     T extends UnknownShape ? unknown :
+    T extends LiteralShape<any, infer V> ? V :
+    T extends UnionShape<infer U> ? {
+      [u in keyof U]: Of<U[u]>
+    }[Extract<keyof U, number>]:
 
     T extends ArrayShape<infer I> ? Of<I>[] :
     T extends MapShape<infer V> ? { [key: string]: Of<V>; } :
@@ -39,9 +41,7 @@ export namespace Value {
 }
 
 export namespace Structure {
-  export type Of<T> = T extends { [Decorated.Data]: IsOptional; } ? undefined | _Of<T> : _Of<T>;
-
-  type _Of<T> =
+  export type Of<T> =
     // use the instance type if this type can be constructed (for class A extends Record({}) {})
     T extends RecordShape ? {
       [m in keyof RecordMembers.Natural<T['Members']>]: Of<RecordMembers.Natural<T['Members']>[m]>;

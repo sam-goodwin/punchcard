@@ -15,5 +15,4 @@ export interface DataSourceProps extends Omit<appsync.CfnDataSourceProps,
   | 'name'
 > {}
 
-
 export type DataSourceBindCallback = (scope: cdk.Construct, id: string) => DataSourceProps;

@@ -95,18 +95,18 @@ export interface PerResolverCachingConfiguration<T extends TypeSystem> extends B
     readonly [FQN in keyof T]?: {
       readonly [field in keyof T[FQN]['resolvers']]?: {
         /**
-         * Caching Key
-         */
-        readonly keys?: (T[FQN]['fields'][field] extends FunctionShape<infer Args, any> ?
-          (keyof Args) | CachingKeys :
-          CachingKeys)[];
-        /**
          * TTL of items in the cache.
          *
          * Maximum: 1
          * Minimum: 3600
          */
         readonly ttl?: number;
+        /**
+         * Caching Key
+         */
+        readonly keys?: (T[FQN]['fields'][field] extends FunctionShape<infer Args, any> ?
+          (keyof Args) | CachingKeys :
+          CachingKeys)[];
       }
     }
   }
@@ -114,6 +114,12 @@ export interface PerResolverCachingConfiguration<T extends TypeSystem> extends B
 
 export interface CacheMetadata<T extends Shape> {
   readonly cache?: {
+    /**
+     * TTL of items in the cache.
+     *
+     * Maximum: 1
+     * Minimum: 3600
+     */
     readonly ttl: number;
     /**
      * Keys to cache on.

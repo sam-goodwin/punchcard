@@ -1,8 +1,11 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
+import { IsInstance } from './is-instance';
+import { LiteralShape } from './literal';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape} from './record';
 import { Shape } from './shape';
+import { UnionShape } from './union';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
 
@@ -41,6 +44,23 @@ export namespace HashCode {
   }
 
   export class Visitor implements ShapeVisitor<HashCode<any>> {
+    public literalShape(shape: LiteralShape<Shape, any>, context: undefined): HashCode<any> {
+      const typeHc = HashCode.of(shape.Type);
+      const hashCode = typeHc(shape.Value);
+      return () => hashCode;
+    }
+    public unionShape(shape: UnionShape<Shape[]>, context: undefined): HashCode<any> {
+      const items = shape.Items.map(item => [IsInstance.of(item), HashCode.of(item)] as const);
+
+      return (a) => {
+        for (const [isItem, itemHashCode] of items) {
+          if (isItem(a)) {
+            return itemHashCode(a);
+          }
+        }
+        throw new Error(`expected one of: ${shape}, but got ${a}`);
+      };
+    }
     public neverShape(shape: NeverShape, context: undefined): HashCode<any> {
       return _ => { throw new Error(`should never attempt to compute a hash code of never`); };
     }

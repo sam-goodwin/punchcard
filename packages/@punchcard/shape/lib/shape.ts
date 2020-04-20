@@ -1,7 +1,5 @@
-import { ArrayShape, MapShape, SetShape } from './collection';
-import { ShapeGuards } from './guards';
 import { Apply, Meta, Metadata, Trait } from './metadata';
-import { BinaryShape, BoolShape, IntegerShape, NumberShape, PrimitiveShapes, StringShape, TimestampShape } from './primitive';
+import { PrimitiveShapes } from './primitive';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
 
@@ -30,22 +28,4 @@ export abstract class Shape {
 }
 export namespace Shape {
   export type Primitive = PrimitiveShapes;
-
-  export type Infer<T> =
-    T extends boolean ? BoolShape :
-    T extends Buffer ? BinaryShape :
-    T extends Date ? TimestampShape :
-    T extends number ? NumberShape :
-    T extends string ? StringShape :
-    T extends bigint ? IntegerShape :
-    T extends (infer I)[] ? ArrayShape<Infer<I>> :
-    T extends Map<string, infer V> ? MapShape<Infer<V>> :
-    T extends Set<infer I> ? SetShape<Infer<I>> :
-    T extends object ? {
-      Members: {
-        [m in keyof T]: Infer<T[m]>;
-      }
-    } & Shape :
-    never
-    ;
 }

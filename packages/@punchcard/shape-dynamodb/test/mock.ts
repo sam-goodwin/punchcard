@@ -33,5 +33,5 @@ export class MyType extends Record('MyType', {
   binaryField: binary,
   binarySet: set(binary),
   anyField: any,
-  unknownField: unknown
+  unknownField: unknown,
 }) {}

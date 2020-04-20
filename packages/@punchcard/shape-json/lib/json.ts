@@ -1,11 +1,12 @@
+import { Equals, isOptional, LiteralShape, UnionShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
+import { IsInstance } from '@punchcard/shape/lib/is-instance';
 import { Mapper, ValidatingMapper } from '@punchcard/shape/lib/mapper';
 import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from '@punchcard/shape/lib/primitive';
 import { RecordMembers, RecordShape, RecordType } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
-import { isOptional } from '@punchcard/shape/lib/traits';
 import { Value } from '@punchcard/shape/lib/value';
 import { ShapeVisitor } from '@punchcard/shape/lib/visitor';
 
@@ -13,6 +14,22 @@ export type Tag = typeof Tag;
 export const Tag = Symbol.for('@punchcard/shape-json.Json.Tag');
 
 export namespace Json {
+  export type From<T extends Shape, V extends Value.Of<T> | any> =
+    T extends ArrayShape<infer I> ? {
+      [i in keyof I]: From<I, V[Extract<keyof V, number>]>
+    }[keyof I][] :
+    T extends SetShape<infer I> ? {
+      [i in keyof I]: From<I, V[Extract<keyof V, number>]>
+    }[keyof I][] :
+    T extends MapShape<infer I> ? Record<string, {
+      [i in keyof I]: From<I, V[string]>
+    }[keyof I]> :
+    T extends RecordShape<infer M> ? {
+      [f in keyof M]: From<M[f], V[f]>
+    } :
+    T extends TimestampShape ? string :
+    V
+  ;
   export type Of<T> =
     T extends RecordShape<infer M> ? {
       [m in keyof RecordMembers.Natural<M>]: Of<RecordMembers.Natural<M>[m]>;
@@ -27,6 +44,12 @@ export namespace Json {
     T extends StringShape ? string :
     T extends TimestampShape ? Date :
     T extends UnknownShape ? unknown :
+    T extends UnionShape<infer I> ? {
+      [i in Extract<keyof I, number>]: Of<I[i]>;
+    }[Extract<keyof I, number>] :
+    T extends LiteralShape<infer L, infer V> ? {
+      [i in keyof L]: From<L, V>;
+    }[keyof L] :
 
     T extends ArrayShape<infer I> ? Of<I>[] :
     T extends MapShape<infer V> ? { [key: string]: Of<V>; } :
@@ -43,13 +66,13 @@ export namespace Json {
     validate?: boolean;
   }
 
-  export function mapper<T>(shape: T & Shape, options: MapperOptions = {}): Mapper<Value.Of<T>, Json.Of<T>> {
+  export function mapper<T extends Shape>(shape: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json.Of<T>> {
     let mapper = (shape as any).visit(options.visitor || new MapperVisitor());
     if (options.validate === true) {
       mapper = ValidatingMapper.of(shape as any, mapper);
     }
 
-    if (isOptional(shape)) {
+    if (isOptional(shape as any)) {
       return {
         read: (v: any) => {
           if (v === undefined || v === null) {
@@ -93,6 +116,52 @@ export namespace Json {
   }
 
   export class MapperVisitor implements ShapeVisitor<Mapper<any, any>> {
+    public literalShape(shape: LiteralShape<Shape, any>, context: undefined): Mapper<any, any> {
+      const valueMapper = shape.Type.visit(this, context) as Mapper<any, any>;
+      const isEqual = Equals.of(shape.Type);
+      const literalValue = valueMapper.write(shape.Value);
+      return {
+        read: (a: any) => {
+          const v = valueMapper.read(a);
+          if (!isEqual(a, shape.Value)) {
+            throw new Error(`expected literal value: ${shape.Value}`);
+          }
+          return shape.Value;
+        },
+        write: () => literalValue
+      };
+    }
+    public unionShape(shape: UnionShape<Shape[]>, context: undefined): Mapper<any, any> {
+      const items = shape.Items.map(item => [
+        IsInstance.of(item, { deep: true }),
+        Json.mapper(item) as Mapper<any, any>
+      ] as const);
+
+      return {
+        read: (a: any) => {
+          for (const [_, mapper] of items) {
+            // TODO: this approach sucks, e.g. timestamps collide with strings ...
+            // TODO: should we encode union types in JSON like how Avro does?
+            // TODO: should probably be a case by case basis, e.g. in GraphQL, we can't introduce extra layers for unions
+            try {
+              return mapper.read(a);
+            } catch (err) {
+              // no-op
+            }
+          }
+          throw new Error(`expected a value of ${shape}, but got: ${a}`);
+        },
+        write: (value: any) => {
+          for (const [isType, mapper] of items) {
+            // TODO: this is expensive
+            if (isType(value)) {
+              return mapper.write(value as any);
+            }
+          }
+          throw new Error(`expected one of union type: ${shape}, but got: ${value}`);
+        }
+      };
+    }
     public neverShape(shape: NeverShape, context: undefined): Mapper<any, any> {
       throw new Error("NeverShape is not supported by JSON");
     }

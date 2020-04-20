@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, DynamicShape, MapShape, NothingShape, NumericShape, RequiredKeys, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, DynamicShape, LiteralShape, MapShape, NothingShape, NumericShape, RequiredKeys, SetShape, Shape, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
 import { RecordMembers, RecordShape} from '@punchcard/shape/lib/record';
 
 // tslint:disable: ban-types
@@ -37,6 +37,12 @@ export namespace AttributeValue {
       never
       :
     T extends RecordShape<infer M> ? Struct<M> :
+    T extends UnionShape<infer I> ? {
+      [i in Extract<keyof I, number>]: Of<I[i]>
+    }[Extract<keyof I, number>] :
+    T extends LiteralShape<infer I> ? {
+      [i in keyof I]: Of<I>
+    }[keyof I] :
     T extends { [Tag]: infer T2 } ? T2 :
     never
     ;

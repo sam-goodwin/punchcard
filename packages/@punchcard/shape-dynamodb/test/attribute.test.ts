@@ -10,7 +10,7 @@ it('should map Shape AST to AttributeValue AST', () => {
   const expected: {
     M: {
       id: AttributeValue.StringValue,
-      count?: AttributeValue.NumberValue,
+      count?: AttributeValue.NothingValue | AttributeValue.NumberValue,
       integer: AttributeValue.NumberValue,
 
       nested: {

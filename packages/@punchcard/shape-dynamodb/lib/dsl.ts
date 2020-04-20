@@ -1,4 +1,4 @@
-import { RecordShape, RecordType, ShapeVisitor, Value } from '@punchcard/shape';
+import { RecordShape, RecordType, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
@@ -23,6 +23,18 @@ export namespace DSL {
     T extends NumericShape ? DSL.Number :
     T extends StringShape ? DSL.String :
     T extends TimestampShape ? DSL.String :
+    T extends UnionShape<infer U> ?
+      U extends 1 ? {
+        [i in Extract<keyof U, number>]: Of<U[i]>
+      }[1] :
+      NothingShape extends Extract<U[Extract<keyof U, number>], NothingShape> ?
+        U['length'] extends 1 ? DSL.Object<NothingShape> :
+        U['length'] extends 2 ?
+          Exclude<{
+            [i in Extract<keyof U, number>]: Of<U[i]>;
+          }[Extract<keyof U, number>], DSL.Object<NothingShape>> :
+        DSL.Union<T> :
+      DSL.Union<T> :
 
     T extends RecordShape<any> ? DSL.Struct<T> :
     T extends MapShape<infer V> ? DSL.Map<V> :
@@ -42,7 +54,21 @@ export namespace DSL {
     return result;
   }
 
+  export function _of<T extends Shape>(shape: T, expr: ExpressionNode<any>): Of<T> {
+    return shape.visit(DslVisitor as any, expr) as Of<T>;
+  }
+
   export const DslVisitor: ShapeVisitor<Node, ExpressionNode<any>> = {
+    literalShape: (shape, expression) => {
+      return shape.Type.visit(DslVisitor as any, expression);
+    },
+    unionShape: (shape, expression) => {
+      const items = shape.Items.filter(i => !ShapeGuards.isNothingShape(i));
+      if (items.length === 1) {
+        return _of(items[0], expression);
+      }
+      return new Union(shape, expression);
+    },
     functionShape: (() => {
       throw new Error(`functionShape is not valid on a DynamoDB DSL`);
     }) as any,
@@ -661,6 +687,12 @@ export namespace DSL {
 
     public set(args: never): never {
       throw new Error('equals is not supported on a dynamic type, you must first cast with `as(shape)`');
+    }
+  }
+
+  export class Union<T extends UnionShape<Shape[]>> extends Object<T> {
+    public as<S extends T['Items'][Extract<keyof T['Items'], number>]>(shape: S): DSL.Of<S> {
+      return shape.visit(DslVisitor as any, this);
     }
   }
 }

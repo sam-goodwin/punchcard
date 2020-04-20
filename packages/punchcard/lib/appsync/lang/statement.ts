@@ -99,7 +99,7 @@ export function *setVariable<T extends VObject>(value: T, id?: string): VTL<T> {
 /**
  * Represents a series of if branches in VTL-land.
  */
-export class IfBranch<T, Stmt = unknown> {
+export class IfBranch<T, Stmt = any> {
   readonly [Statement.Tag]: 'if' = 'if';
   readonly [Statement.Type]: T;
   readonly branchType: 'if' = 'if';
@@ -109,21 +109,11 @@ export class IfBranch<T, Stmt = unknown> {
     public readonly then: () => Generator<Stmt, T>,
     public readonly elseBranch?: IfBranch<T> | ElseBranch<T>
   ) {}
-
-  return(value: any): IteratorResult<unknown, any> {
-    throw new Error("Method not implemented.");
-  }
-  throw(e: any): IteratorResult<unknown, any> {
-    throw new Error("Method not implemented.");
-  }
-  [Symbol.iterator](): Generator<unknown, any, unknown> {
-    return 
-  }
 }
 
 export class ElseBranch<T> {
   public readonly branchType: 'else' = 'else';
-  constructor(public readonly then: () => Generator<unknown, T>) {}
+  constructor(public readonly then: () => Generator<any, T>) {}
 }
 
 export function isIfBranch(a: any): a is IfBranch<VObject | void> {

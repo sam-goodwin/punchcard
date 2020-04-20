@@ -3,6 +3,7 @@ import AWS = require('aws-sdk');
 import { isOptional } from '@punchcard/shape';
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
+import { IsInstance } from '@punchcard/shape/lib/is-instance';
 import { ValidatingMapper } from '@punchcard/shape/lib/mapper';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Value } from '@punchcard/shape/lib/value';
@@ -246,8 +247,41 @@ export namespace Mapper {
             BOOL: b
           })
         };
+      } else if (ShapeGuards.isUnionShape(shape)) {
+        const items = shape.Items.map(item => [IsInstance.of(item, {deep: true}), of(item) as any] as const);
+
+        return {
+          read: (value: any) => {
+            for (const [isType, mapper] of items) {
+              try {
+                return mapper.read(value);
+              } catch (err) {
+                // no-op
+              }
+            }
+            throw new Error(`failed to read DDB union type: ${shape.Items.map(_ => _.Kind).join(',')}, but got ${Object.keys(value).join('')}`);
+          },
+          write: (value: any) => {
+            for (const [isType, mapper] of items) {
+              if (isType(value)) {
+                return mapper.write(value);
+              }
+            }
+            throw new Error(`failed to write DDB union type: ${shape.Items.map(_ => _.Kind).join(',')}, but got ${Object.keys(value).join('')}`);
+          }
+        };
+      } else if (ShapeGuards.isLiteralShape(shape)) {
+        return of(shape.Type);
+      } else if (ShapeGuards.isNothingShape(shape)) {
+        return {
+          read: () => undefined,
+          write: () => ({
+            NULL: true
+          })
+        };
       } else {
-        throw new Error(`Shape ${shape} is not supported by DynamoDB`);
+        console.error(shape);
+        throw new Error(`Shape ${shape.Kind} is not supported by DynamoDB`);
       }
     }
   }

@@ -1,8 +1,11 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
+import { IsInstance } from './is-instance';
+import { LiteralShape } from './literal';
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape } from './record';
 import { Shape } from './shape';
+import { UnionShape } from './union';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
 
@@ -29,6 +32,23 @@ export namespace Equals {
   }
 
   export class Visitor implements ShapeVisitor<Equals<any>> {
+    public literalShape(shape: LiteralShape<Shape, any>, context: undefined): Equals<any> {
+      return Equals.of(shape.Type);
+    }
+    public unionShape(shape: UnionShape<Shape[]>, context: undefined): Equals<any> {
+      const items = shape.Items.map(item => [IsInstance.of(item), Equals.of(item)] as const);
+      return (a, b) => {
+        if (a === b) {
+          return true;
+        }
+        for (const [isType, isEqual] of items) {
+          if (isType(a) && isType(b)) {
+            return isEqual(a, b);
+          }
+        }
+        return false;
+      };
+    }
     public neverShape(shape: NeverShape, context: undefined): Equals<any> {
       return (a, b) => false;
     }

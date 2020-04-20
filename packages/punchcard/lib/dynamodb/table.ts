@@ -4,19 +4,23 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, array, map, Record, RecordShape, Shape, string, integer } from '@punchcard/shape';
+import { any, array, integer, map, Record, RecordShape, Shape, string } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VTL, vtl, VString } from '../appsync';
+import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VString, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
+import { DynamoExpr } from './dsl/dynamo-expr';
+import { DynamoDSL } from './dsl/dynamo-repr';
+import { isAddExpressionName, isAddExpressionValue } from './dsl/filter-expression';
+import { toAttributeValue, toAttributeValueExpression } from './dsl/to-attribute-value';
+import { UpdateRequest } from './dsl/update-request';
+import { isAddSetAction } from './dsl/update-statement';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
-import { toAttributeValue, toAttributeValueExpression } from './v-attribute-value';
-import { Filter, Update } from './vtl-dsl';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
@@ -197,24 +201,22 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     return call(this.dataSourceProps((table, role) => table.grantReadData(role), props), request, this.dataType);
   }
 
-  public *update(request: Update.Request<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
+  public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
     if (request.if) {
       // ifExpr = yield* request.if(Filter.of(this.dataType,  ).)
     }
     const fields: any = {};
     for (const [name, field] of Object.entries(this.dataType.Members)) {
-      fields[name] = Update.of(field, new Update.Expr.Reference(undefined, field, name));
+      fields[name] = DynamoDSL.of(field, new DynamoExpr.Reference(undefined, field, name));
     }
 
-
     const setStatements = yield* vtl(array(string))`[]`;
-    const expressionNames = yield* vtl(map(string))`{}`;
+
+    // map of id -> attribute-value
     const expressionValues = yield* vtl(map(any))`{}`;
 
-    const names: {
-      [name: string]: string;
-    } = {};
-    const valueIds = new Map();
+    // map of name -> id
+    const expressionNames = yield* vtl(map(string))`{}`;
 
     const generator = request.actions(fields);
     let next: IteratorResult<any, any>;
@@ -225,66 +227,59 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       return (prefix?: string) => `${prefix || ''}var${i += 1}`;
     })();
 
-
     while (!(next = generator.next(returns)).done) {
       const stmt = next.value;
-      if (Update.Statement.isAddExpressionName(stmt)) {
+      if (isAddExpressionName(stmt)) {
         const id = newId();
         returns = id;
         const ref = yield* renderExpression(stmt.expr);
         // yield* expressionNames.put(id, stmt.expr);
-      } else if (Update.Statement.isAddExpressionValue(stmt)) {
+      } else if (isAddExpressionValue(stmt)) {
         const id = newId();
         returns = id;
         yield* expressionValues.put(id, toAttributeValue(stmt.type, stmt.value));
-      } else if (Update.Statement.isAddSetAction(stmt)) {
+      } else if (isAddSetAction(stmt)) {
         returns = undefined;
         yield* setStatements.add(stmt.action);
       }
     }
 
-    function *renderExpression(expr: Update.Expr<Shape>): Generator<any, string> {
-      if (Update.Expr.isReference(expr)) {
+    throw new Error('not implemented');
+
+    function *renderExpression(expr: DynamoExpr<Shape>): Generator<any, string> {
+      if (DynamoExpr.isReference(expr)) {
         if (expr.target) {
           return `${yield* renderExpression(expr.target.expr)}.${yield* addName(expr.id)}`;
         } else {
           return yield* addName(expr.id);
         }
-      } else if (Update.Expr.isGetListItem(expr)) {
-        if (!valueIds.has(expr.index)) {
-          // cache r
-          const id = newId();
-          valueIds.set(expr.index, id);
-          yield* expressionValues.put(id, toAttributeValue(integer, expr.index));
-        }
-        return `${yield* renderExpression(expr.list.expr)}[${valueIds.get(expr.index)}]`;
-      } else if (Update.Expr.isGetMapItem(expr)) {
-        if (!valueIds.has(expr.key)) {
-          // cache r
-          const id = newId();
-          valueIds.set(expr.key, id);
-          yield* expressionValues.put(id, toAttributeValue(integer, expr.key));
-        }
-        return `${yield* renderExpression(expr.map.expr)}.${valueIds.get(expr.index)}`;
+      } else if (DynamoExpr.isGetListItem(expr)) {
+        const index = typeof expr.index === 'number' ? yield* VTL.number(expr.index) : expr.index;
+        return `${yield* renderExpression(expr.list.expr)}[${index.toJson}]`;
+      } else if (DynamoExpr.isGetMapItem(expr)) {
+        // if (!expressionValues.has(expr.key)) {
+        //   const id = newId();
+        //   _expressionValues.set(expr.key, id);
+        //   yield* expressionValues.put(id, toAttributeValue(string, expr.key));
+        // }
+        // return `${yield* renderExpression(expr.map.expr)}.${_expressionValues.get(expr.)}`;
       }
 
       return '';
     }
 
-    function *addName(name: string): Generator<any, string> {
-      if (!names[name]) {
-        const id = newId();
-        names[name] = id;
-        yield* expressionNames.put(name, id);
-      }
-      return names[name];
+    function *addName(name: string | VString): Generator<any, string> {
+      const id = newId();
+      yield* expressionNames.put(name, yield* VTL.string(id));
+      return id;
     }
 
-    function *addValue<T extends Shape>(type: T, value: VObject.Like<T>): VTL<void> {
-
+    function *addValue(value: any): Generator<any, string> {
+      const id = newId();
+      yield* expressionValues.put(id, value);
+      return id;
     }
   }
-
 
   public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
     // TODO: address redundancy between this and `get`.

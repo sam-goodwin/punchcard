@@ -7,8 +7,8 @@ import { VFloat, Visitor, VObject, VString } from './vtl-object';
 /**
  * Represents a Velocity Template program.
  */
-export type VTL<T> = Generator<Statement<unknown> | never, T>;
-export type ConstrainedVTL<S extends Statement<unknown>, T> = Generator<S, T>;
+export type VTL<T, Stmt = Statement<any>> = Generator<Stmt, T>;
+export type ConstrainedVTL<S extends Statement<any>, T> = Generator<S, T>;
 
 declare module './vtl-object' {
   namespace VObject {
@@ -30,7 +30,7 @@ VObject.clone = function clone<T extends VObject>(t: T, expr: VExpression): T {
  * GraphQL.string`${mustBeAGraphQLType}`;
  * ```
  */
-export type ExpressionTemplate<T extends Shape> = <Args extends (VObject)[]>(template: TemplateStringsArray,...args: Args) => VTL<VObject.Of<T>>;
+export type ExpressionTemplate<T extends Shape> = <Args extends (VObject | string | number)[]>(template: TemplateStringsArray,...args: Args) => VTL<VObject.Of<T>>;
 
 /**
  * Evaluate a VTL template as an instance of some shape.
@@ -53,7 +53,12 @@ export function vtl<T extends Shape>(type: T): ExpressionTemplate<T> {
     return yield* setVariable(VObject.of(type,  VExpression.concat(
       quotes(type),
       ...template.map((str, i) => new VExpression(ctx =>
-        `${str}${i < args.length ? VObject.exprOf(args[i]).visit(ctx).text : ''}`
+        `${str}${i < args.length ?
+          VObject.isObject(args[i]) ? VObject.exprOf(args[i] as VObject).visit(ctx).text : '' :
+          typeof args[i] === 'string' ? `"${args[i]}"` :
+          typeof args[i] === 'number' ? args[i].toString(19) :
+          ''
+        }`
       )),
       quotes(type)
     )));

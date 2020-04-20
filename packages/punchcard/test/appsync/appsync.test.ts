@@ -121,6 +121,26 @@ export const PostSubscriptions = Subscription({
   newPost: Post
 });
 
+
+export class StringOption extends Record('StringOption', {
+  tag: literal('string-option'),
+  maxLength: optional(integer),
+  minLength: optional(integer)
+}) {}
+
+const i = literal(['a', 'b']);
+const a = literal({
+  a: 'a',
+  b: 'b',
+});
+
+export class NumberOption extends Record('NumberOption', {
+  tag: literal(string, 'number-option'),
+  max: optional(integer),
+  min: optional(integer),
+}) {}
+export const Option = union(StringOption, NumberOption);
+
 /**
  * User API component - implements the query, mutation resolvers for Users.
  *
@@ -219,15 +239,13 @@ export const PostApi = (scope: Scope) => {
         const id = yield* $util.autoId();
         const timestamp = yield* $util.time.nowISO8601();
 
-        const title = yield* $if(input.title.isEmpty(), function*() {
+        yield* $if(input.title.isEmpty(), function*() {
           throw $util.error('title cannot be empty');
-        }, $else(function*() {
-          return input.title;
-        }));
+        });
 
         const post = yield* postStore.put({
           id,
-          title,
+          title: input.title,
           content: input.content,
           timestamp,
           channel: 'category',
@@ -252,8 +270,8 @@ export const PostApi = (scope: Scope) => {
           key: {
             id: input.id
           },
-          *if(item) {
-            return item.id.isDefined();
+          if() {
+            return this.id.isDefined();
           },
           *actions(item) {
             yield* item.tags.push('tag');
@@ -383,6 +401,8 @@ const MyApi = new Api(stack, 'MyApi', {
 });
 
 import assert = require('@aws-cdk/assert');
+import { literal } from '@punchcard/shape/lib/literal';
+import { union, UnionShape } from '@punchcard/shape/lib/union';
 
 
 Build.resolve(MyApi.resource);

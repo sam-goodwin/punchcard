@@ -1,8 +1,10 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
-import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
+import { LiteralShape } from './literal';
+import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
 import { RecordMembers, RecordShape } from './record';
 import { Shape } from './shape';
+import { UnionShape } from './union';
 
 export namespace ShapeGuards {
   export const isDynamicShape = (a: any): a is DynamicShape<unknown> => isShape(a) && a.Kind === 'dynamicShape';
@@ -83,6 +85,18 @@ export namespace ShapeGuards {
       throw new Error(`${a} is not of type: IntegerShape`);
     }
   };
+  export const isLiteralShape = (a: any): a is LiteralShape<Shape, any> => isShape(a) && a.Kind === 'literalShape';
+  export const assertLiteralShape = (a: any): asserts a is LiteralShape<Shape, any> => {
+    if (!isLiteralShape(a)) {
+      throw new Error(`${a} is not of type: LiteralShape`);
+    }
+  };
+  export const isNothingShape = (a: any): a is NothingShape => isShape(a) && a.Kind === 'nothingShape';
+  export const assertNothingShape = (a: any): asserts a is NothingShape => {
+    if (!isNothingShape(a)) {
+      throw new Error(`${a} is not of type: NothingShape`);
+    }
+  };
   export const isNumberShape = (a: any): a is NumberShape => isShape(a) && a.Kind === 'numberShape';
   export const assertNumberShape = (a: any): asserts a is NumberShape => {
     if (!isNumberShape(a)) {
@@ -96,7 +110,7 @@ export namespace ShapeGuards {
       throw new Error(`${a} is not of type: SetShape`);
     }
   };
-  export const isShape = (a: any): a is Shape => a.NodeType === 'shape';
+  export const isShape = (a: any): a is Shape => a && a.NodeType === 'shape';
   export const assertShape = (a: any): asserts a is Shape => {
     if (!isShape(a)) {
       throw new Error(`${a} is not of type: Shape`);
@@ -112,6 +126,12 @@ export namespace ShapeGuards {
   export const assertTimestampShape = (a: any): asserts a is TimestampShape => {
     if (!isTimestampShape(a)) {
       throw new Error(`${a} is not of type: TimestampShape`);
+    }
+  };
+  export const isUnionShape = (a: any): a is UnionShape<Shape[]> => isShape(a) && a.Kind === 'unionShape';
+  export const assertUnionShape = (a: any): asserts a is UnionShape<Shape[]> => {
+    if (!isUnionShape(a)) {
+      throw new Error(`${a} is not of type: UnionShape`);
     }
   };
 

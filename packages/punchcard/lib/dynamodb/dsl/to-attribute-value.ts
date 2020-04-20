@@ -1,5 +1,5 @@
 import { ArrayShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, MapShape, NeverShape, NothingShape, NumberShape, NumericShape, RecordMembers, RecordShape, SetShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape } from '@punchcard/shape';
-import { VExpression, VObject } from '../appsync';
+import { VExpression, VObject } from '../../appsync';
 
 export function toAttributeValue<S extends Shape>(shape: S, obj: VObject.Like<S>): VObject.Like<S> {
   return VObject.of(shape, toAttributeValueExpression(shape, obj, true));
