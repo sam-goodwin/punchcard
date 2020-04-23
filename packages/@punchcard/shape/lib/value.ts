@@ -2,7 +2,7 @@ import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionShape } from './function';
 import { HashSet } from './hash-set';
 import { LiteralShape } from './literal';
-import { AnyShape, BinaryShape, BoolShape, NothingShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
+import { AnyShape, BinaryShape, BoolShape, NothingShape, NumberShape, StringShape, TimestampShape, UnknownShape } from './primitive';
 import { RecordMembers, RecordShape} from './record';
 import { UnionShape } from './union';
 
@@ -18,7 +18,7 @@ export namespace Value {
     T extends BinaryShape ? Buffer :
     T extends BoolShape ? boolean :
     T extends NothingShape ? undefined :
-    T extends NumericShape ? number :
+    T extends NumberShape ? number :
     T extends StringShape ? string :
     T extends TimestampShape ? Date :
     T extends UnknownShape ? unknown :
@@ -29,7 +29,7 @@ export namespace Value {
 
     T extends ArrayShape<infer I> ? Of<I>[] :
     T extends MapShape<infer V> ? { [key: string]: Of<V>; } :
-    T extends SetShape<infer I> ? I extends StringShape | NumericShape | BoolShape ? Set<Of<I>> : HashSet<Of<I>> :
+    T extends SetShape<infer I> ? I extends StringShape | NumberShape | BoolShape ? Set<Of<I>> : HashSet<Of<I>> :
     T extends FunctionShape<infer Args, infer Returns> ? (args: {
       [argName in keyof Args]: Value.Of<Args[argName]>;
     }) => Value.Of<Returns> :

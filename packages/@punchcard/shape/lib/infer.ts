@@ -1,4 +1,4 @@
-import { array, ArrayShape, MapShape, SetShape } from "./collection";
+import { ArrayShape, MapShape, SetShape } from "./collection";
 import { BinaryShape, boolean, BoolShape, IntegerShape, nothing, number, NumberShape, string, StringShape, timestamp, TimestampShape } from "./primitive";
 import { Shape } from "./shape";
 

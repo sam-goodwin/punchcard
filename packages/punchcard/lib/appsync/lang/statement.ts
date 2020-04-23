@@ -99,7 +99,7 @@ export function *setVariable<T extends VObject>(value: T, id?: string): VTL<T> {
 /**
  * Represents a series of if branches in VTL-land.
  */
-export class IfBranch<T, Stmt = any> {
+export class IfBranch<T = any, Stmt = any> {
   readonly [Statement.Tag]: 'if' = 'if';
   readonly [Statement.Type]: T;
   readonly branchType: 'if' = 'if';
@@ -111,7 +111,7 @@ export class IfBranch<T, Stmt = any> {
   ) {}
 }
 
-export class ElseBranch<T> {
+export class ElseBranch<T = any> {
   public readonly branchType: 'else' = 'else';
   constructor(public readonly then: () => Generator<any, T>) {}
 }

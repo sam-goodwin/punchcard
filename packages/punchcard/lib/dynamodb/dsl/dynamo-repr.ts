@@ -46,7 +46,6 @@ export namespace DynamoDSL {
     public *set(value: VObject.Like<T>): UpdateTransaction<void> {
       const id = yield* addExpressionValue(this.type, value);
       yield* addSetAction(`${id} = `);
-      // yield new Statement.AddSetAction(this);
     }
   }
   export class Bool extends Object<BoolShape> {

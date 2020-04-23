@@ -1,3 +1,4 @@
+import { Decorated, Trait } from './metadata';
 import { Shape } from './shape';
 
 export type PrimitiveShapes =
@@ -42,17 +43,30 @@ export class StringShape extends Shape {
   public readonly FQN: 'string' = 'string';
 }
 
-export abstract class NumericShape extends Shape {
+export class NumberShape extends Shape {
   public readonly isNumeric: true = true;
-}
-export class NumberShape extends NumericShape {
   public readonly Kind: 'numberShape' = 'numberShape';
   public readonly FQN: 'number' = 'number';
 }
+export namespace NumberShape {
+  export function type<T extends string>(numberType: T) {
+    return number.apply({
+      [Trait.Data]: {
+        numberType
+      }
+    });
+  }
+  export interface Type<T extends string> {
+    [Trait.Data]: {
+      numberType: T
+    }
+  }
+}
 
-export class IntegerShape extends NumericShape {
-  public readonly Kind: 'integerShape' = 'integerShape';
-  public readonly FQN: 'integer' = 'integer';
+export class IntegerShape extends NumberShape {
+  public readonly [Decorated.Data]? = {
+    numberType: 'integer'
+  } as const;
 }
 
 export class TimestampShape extends Shape {

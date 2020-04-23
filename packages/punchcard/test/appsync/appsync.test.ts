@@ -1,8 +1,8 @@
 import 'jest';
 
-import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, Shape, Static, string, StringShape, timestamp, Value } from '@punchcard/shape';
+import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, RecordType, Shape, Static, string, StringShape, timestamp, Value } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $appsync, $else, $if, ID } from '../../lib/appsync';
+import { $appsync, $else, $if, $var, ID, VFloat } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { ApiFragment } from '../../lib/appsync/api/api-fragment';
 import { CachingBehavior, CachingInstanceType } from '../../lib/appsync/api/caching';
@@ -107,7 +107,8 @@ export const PostMutations = Mutation({
     args: {
       id: ID,
       title: optional(string),
-      content: optional(string)
+      content: optional(string),
+      stringOrNumber: union(string, number)
     },
     returns: Post
   }),
@@ -121,25 +122,58 @@ export const PostSubscriptions = Subscription({
   newPost: Post
 });
 
+type Interface<M extends RecordMembers = RecordMembers> = {
+  members: M;
+} & (new() => any);
+type ImplInterface<M extends RecordMembers> = (
+  <M2 extends RecordMembers>(m2: M2) => RecordType<M & M2>
+);
 
-export class StringOption extends Record('StringOption', {
-  tag: literal('string-option'),
-  maxLength: optional(integer),
-  minLength: optional(integer)
+function Interface<M extends RecordMembers>(members: M): Interface<M> {
+
+}
+function Impl<
+  I1 extends Interface,
+>(i1: I1): ImplInterface<I1['members']>;
+function Impl<
+  I1 extends Interface,
+  I2 extends Interface,
+>(i1: I1, i2: I2): ImplInterface<
+  I1['members'] & I2['members']
+>;
+function Impl<
+  I1 extends Interface,
+  I2 extends Interface,
+  I3 extends Interface,
+>(i1: I1,i2: I2,i3: I3): ImplInterface<
+  I1['members'] & I2['members'] & I3['members']
+>;
+
+class Author extends Record({
+  name: string
+}) {}
+class Color extends Record({
+  color: string
 }) {}
 
-const i = literal(['a', 'b']);
-const a = literal({
-  a: 'a',
-  b: 'b',
-});
-
-export class NumberOption extends Record('NumberOption', {
-  tag: literal(string, 'number-option'),
-  max: optional(integer),
-  min: optional(integer),
+class Book extends Interface({
+  /**
+   * Title of the book.
+   */
+  title: optional(string),
+  author: string
 }) {}
-export const Option = union(StringOption, NumberOption);
+class Bird extends Interface({
+  wings: boolean
+}) {}
+
+class BirdBook extends Impl(Book, Bird)({
+  key: string
+}) {}
+
+class ColoringBook extends Impl(Book)({
+  colors: array(Color)
+}) {}
 
 /**
  * User API component - implements the query, mutation resolvers for Users.
@@ -186,6 +220,10 @@ export const UserApi = (
         ]
       },
       *resolve({id}) {
+        yield* $if(id.isEmpty(), function*() {
+
+        });
+
         return yield* userStore.get({id});
       }
     }
@@ -266,27 +304,30 @@ export const PostApi = (scope: Scope) => {
       },
 
       *resolve(input) {
+        const y = yield* input.content.match(nothing, function*() {
+          throw $util.error('input content must not be null');
+        });
+
+        const i = yield* $var(number);
+
         return yield* postStore.update({
           key: {
             id: input.id
           },
-          if() {
-            return this.id.isDefined();
-          },
+          if: item => item.title.isDefined(),
           *actions(item) {
             yield* item.tags.push('tag');
             yield* item.tags.push([
               'tag',
-              input.id
+              input.id,
             ]);
             yield* item.tags.push(item.tags);
 
-            yield* $if($util.isNotNull(input.title), () =>
-              item.content.set(input.content)
-            );
-            yield* $if($util.isNotNull(input.content), () =>
-              item.content.set(input.content)
-            );
+            yield* input.content.match(string, item.content.set);
+            yield* input.title.match(string, function*(title) {
+              yield * i.set(i.get().minus(1));
+              yield* item.title.set(title);
+            });
           },
         });
       }

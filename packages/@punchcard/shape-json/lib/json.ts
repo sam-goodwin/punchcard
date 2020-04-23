@@ -4,7 +4,7 @@ import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
 import { IsInstance } from '@punchcard/shape/lib/is-instance';
 import { Mapper, ValidatingMapper } from '@punchcard/shape/lib/mapper';
-import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from '@punchcard/shape/lib/primitive';
+import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape, UnknownShape } from '@punchcard/shape/lib/primitive';
 import { RecordMembers, RecordShape, RecordType } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Value } from '@punchcard/shape/lib/value';
@@ -40,7 +40,7 @@ export namespace Json {
     T extends BinaryShape ? string :
     T extends BoolShape ? boolean :
     T extends NothingShape ? undefined | null :
-    T extends NumericShape ? number :
+    T extends NumberShape ? number :
     T extends StringShape ? string :
     T extends TimestampShape ? Date :
     T extends UnknownShape ? unknown :

@@ -1,7 +1,7 @@
 import { RecordShape, RecordType, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
-import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
@@ -20,7 +20,7 @@ export namespace DSL {
     T extends BinaryShape ? DSL.Binary :
     T extends BoolShape ? DSL.Bool :
     T extends DynamicShape<any> ? DSL.Dynamic<T> :
-    T extends NumericShape ? DSL.Number :
+    T extends NumberShape ? DSL.Number :
     T extends StringShape ? DSL.String :
     T extends TimestampShape ? DSL.String :
     T extends UnionShape<infer U> ?
@@ -116,9 +116,6 @@ export namespace DSL {
           return (target as any)[prop];
         }
       });
-    },
-    integerShape: (shape: IntegerShape, expression: ExpressionNode<any>): Number => {
-      return new DSL.Number(expression, shape);
     },
     numberShape: (shape: NumberShape, expression: ExpressionNode<any>): Number => {
       return new DSL.Number(expression, shape);
@@ -502,32 +499,32 @@ export namespace DSL {
   /**
    * Represents a number in a DynamoDB Filter, Query or Update expression.
    */
-  export class Number extends Ord<NumericShape> {
-    constructor(expression: ExpressionNode<NumericShape>, shape?: NumericShape) {
+  export class Number extends Ord<NumberShape> {
+    constructor(expression: ExpressionNode<NumberShape>, shape?: NumberShape) {
       super(shape || number, expression);
     }
 
-    public decrement(value?: Expression<NumericShape>) {
+    public decrement(value?: Expression<NumberShape>) {
       return this.set(this.minus(value === undefined ? 1 : value));
     }
 
-    public increment(value?: Expression<NumericShape>) {
+    public increment(value?: Expression<NumberShape>) {
       return this.set(this.plus(value === undefined ? 1 : value));
     }
 
-    public minus(value: Expression<NumericShape>): Number.Minus {
+    public minus(value: Expression<NumberShape>): Number.Minus {
       return new Number.Minus(this, resolveExpression(this[DataType], value));
     }
 
-    public plus(value: Expression<NumericShape>): Number.Plus {
+    public plus(value: Expression<NumberShape>): Number.Plus {
       return new Number.Plus(this, resolveExpression(this[DataType], value));
     }
   }
   export namespace Number {
-    export class Plus extends Computation<NumericShape> {
+    export class Plus extends Computation<NumberShape> {
       public operator: '+' = '+';
     }
-    export class Minus extends Computation<NumericShape> {
+    export class Minus extends Computation<NumberShape> {
       public operator: '-' = '-';
     }
   }

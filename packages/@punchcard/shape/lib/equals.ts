@@ -189,9 +189,6 @@ export namespace Equals {
     public numberShape(shape: NumberShape): Equals<NumberShape> {
       return (a, b) => a === b;
     }
-    public integerShape(shape: IntegerShape): Equals<IntegerShape> {
-      return (a, b) => a === b;
-    }
     public setShape(shape: SetShape<any>): Equals<SetShape<any>> {
       return ((a: any, b: any) => {
         if (a.size !== b.size) {

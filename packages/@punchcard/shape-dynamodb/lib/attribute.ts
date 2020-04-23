@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, DynamicShape, LiteralShape, MapShape, NothingShape, NumericShape, RequiredKeys, SetShape, Shape, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, DynamicShape, LiteralShape, MapShape, NothingShape, NumberShape, RequiredKeys, SetShape, Shape, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
 import { RecordMembers, RecordShape} from '@punchcard/shape/lib/record';
 
 // tslint:disable: ban-types
@@ -23,7 +23,7 @@ export namespace AttributeValue {
 
   export type Of<T extends Shape> =
     T extends StringShape | TimestampShape ? StringValue :
-    T extends NumericShape ? NumberValue :
+    T extends NumberShape ? NumberValue :
     T extends BoolShape ? Bool :
     T extends BinaryShape ? Binary :
     T extends NothingShape ? NothingValue :
@@ -33,7 +33,7 @@ export namespace AttributeValue {
     T extends SetShape<infer I> ?
       I extends BinaryShape ? AttributeValue.BinarySet :
       I extends StringShape ? AttributeValue.StringSet :
-      I extends NumericShape ? AttributeValue.NumberSet :
+      I extends NumberShape ? AttributeValue.NumberSet :
       never
       :
     T extends RecordShape<infer M> ? Struct<M> :

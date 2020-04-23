@@ -1,4 +1,3 @@
-import { Pointer } from './pointer';
 import { Shape } from './shape';
 
 /**

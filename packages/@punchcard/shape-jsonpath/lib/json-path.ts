@@ -1,7 +1,7 @@
 import { LiteralShape, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
-import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { RecordShape } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Writer } from './writer';
@@ -18,7 +18,7 @@ export namespace JsonPath {
     T extends BinaryShape ? JsonPath.Binary :
     T extends BoolShape ? JsonPath.Bool :
     T extends DynamicShape<any> ? JsonPath.Dynamic<T> :
-    T extends NumericShape ? JsonPath.Number :
+    T extends NumberShape ? JsonPath.Number :
     T extends StringShape ? JsonPath.String :
 
     T extends ArrayShape<infer I> ? JsonPath.Array<I> :

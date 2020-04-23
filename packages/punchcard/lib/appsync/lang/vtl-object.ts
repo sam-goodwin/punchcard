@@ -1,9 +1,12 @@
-import { any, AnyShape, array, binary, BinaryShape, bool, boolean, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, NumericShape, ShapeGuards, ShapeVisitor, timestamp, unknown, UnknownShape, Value } from '@punchcard/shape';
+import { any, AnyShape, array, binary, BinaryShape, bool, boolean, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, ShapeGuards, ShapeVisitor, timestamp, unknown, UnknownShape, Value } from '@punchcard/shape';
 import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShape, Pointer, RecordShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
 import { string, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { UnionShape } from '@punchcard/shape/lib/union';
 import { VExpression } from './expression';
+import { ElseBranch, IfBranch, setVariable } from './statement';
+import { $else, $elseIf, $if } from './syntax';
+import { $util } from './util';
 import { VTL, vtl } from './vtl';
 
 const type = Symbol.for('GraphQL.Type');
@@ -100,6 +103,9 @@ export namespace VObject {
     T extends MapShape<infer I> ? {
       [key: string]: Like<I>;
     } :
+    T extends UnionShape<infer I> ? {
+      [i in Extract<keyof I, number>]: Like<I[i]>;
+    }[Extract<keyof I, number>] :
     VObject.Of<T> | Value.Of<T>
   );
 }
@@ -119,12 +125,16 @@ export const ID = string.apply(IDTrait);
 export class VAny extends VObject.NewType(any) {}
 export class VUnknown extends VObject.NewType(unknown) {}
 
-const VNumeric = <N extends NumericShape>(type: N) => class extends VObject.NewType(type) {
+const VNumeric = <N extends NumberShape>(type: N) => class extends VObject.NewType(type) {
+  public *minus(value: VObject.Like<N>): VTL<this> {
+    return (yield* setVariable(VObject.of(type, VExpression.concat(
+      this, ' - ', VObject.isObject(value) ? value : value.toString(10)
+    )))) as any as this;
+  }
+
   public toString(): VString {
     return new VString(VExpression.concat(
-      '"',
-      this,
-      '"',
+      '"', this, '"',
     ));
   }
 };
@@ -245,6 +255,144 @@ export namespace VRecord {
 export class VUnion<U extends UnionShape<Shape[]>> extends VObject<U> {
   constructor(type: U, expr: VExpression) {
     super(type, expr);
+  }
+
+  public match<T, I extends VUnion.UnionCase<U>>(
+    match: I,
+    then: VUnion.CaseBlock<I, T>
+  ): VUnion.Match<U, T | undefined, I> {
+    return new VUnion.Match(undefined, this, match, then);
+  }
+}
+export namespace VUnion {
+  export type CaseBlock<I extends Shape, T> = (i: VObject.Of<I>) => Generator<any, T>;
+  export type OtherwiseBlock<T> = () => Generator<any, T>;
+  export type UnionCase<U extends UnionShape<Shape[]>> = U['Items'][Extract<keyof U['Items'], number>];
+
+
+  function toCondition(m: Match | Otherwise): VBool {
+    const shape = VObject.typeOf(m.value);
+    const type = $util.typeOf(m.value);
+
+    const s =
+      ShapeGuards.isTimestampShape(shape) ? 'String' :
+      ShapeGuards.isStringShape(shape) ? 'String' :
+      ShapeGuards.isNumberShape(shape) ? 'Number' :
+      ShapeGuards.isNothingShape(shape) ? 'Null' :
+      ShapeGuards.isArrayShape(shape) ? 'List' :
+      ShapeGuards.isSetShape(shape) ? 'List' :
+      ShapeGuards.isBoolShape(shape) ? 'Boolean' :
+      ShapeGuards.isRecordShape(shape) ? 'Map' :
+      ShapeGuards.isMapShape(shape) ? 'Map' :
+      undefined
+    ;
+    if (s === undefined) {
+      throw new Error(`cannot match on type: ${shape.Kind}`);
+    }
+
+    return type.equals(s as string);
+  }
+
+  function parseMatch(m: Match, elseIf: IfBranch | ElseBranch): Generator<any, any> {
+    const assertCondition = toCondition(m);
+    const assertedValue = VObject.of(m.matchType, VObject.exprOf(m.value));
+    return m.parent === undefined ?
+      $if(assertCondition, () => m.block(assertedValue), elseIf) :
+      parseMatch(m.parent, $elseIf(assertCondition, () => m.block(assertedValue), elseIf))
+    ;
+  }
+
+  export class Otherwise<Returns = any> implements Generator<any, Returns> {
+    private _generator: Generator;
+
+    constructor(
+      public readonly parent: Match<any, Returns, any>,
+      public readonly value: VObject<Shape>,
+      public readonly block: VUnion.OtherwiseBlock<Returns>
+    ) {}
+
+    public get generator() {
+      if (!this._generator) {
+        this._generator = this[Symbol.iterator]();
+      }
+      return this._generator;
+    }
+
+    public next(...args: [] | [any]): IteratorResult<any, Returns> {
+      return this.generator.next(...args);
+    }
+    public return(value: Returns): IteratorResult<any, Returns> {
+      return this.generator.return(value);
+    }
+    public throw(e: any): IteratorResult<any, Returns> {
+      return this.generator.throw(e);
+    }
+    public [Symbol.iterator](): Generator<any, Returns, unknown> {
+      return parseMatch(this.parent, $else(this.block));
+    }
+  }
+
+  export class Match<
+    U extends UnionShape<Shape[]> = UnionShape<Shape[]>,
+    Returns = any,
+    Excludes extends UnionCase<U> = UnionCase<U>
+  > implements Generator<any, Returns> {
+    private _generator: Generator<any, Returns>;
+
+    constructor(
+      public readonly parent: Match<U, any, any> | undefined,
+      public readonly value: VObject<Shape>,
+      public readonly matchType: VUnion.UnionCase<U>,
+      public readonly block: VUnion.CaseBlock<any, Returns>
+    ) {}
+
+    public get generator() {
+      if (!this._generator) {
+        this._generator = this[Symbol.iterator]();
+      }
+      return this._generator;
+    }
+
+    public next(...args: [] | [any]): IteratorResult<any, Returns> {
+      return this.generator.next(...args);
+    }
+    public return(value: Returns): IteratorResult<any, Returns> {
+      return this.generator.return(value);
+    }
+    public throw(e: any): IteratorResult<any, Returns> {
+      return this.generator.throw(e);
+    }
+    public [Symbol.iterator](): Generator<any, Returns, unknown> {
+      return parseMatch(this.parent, $elseIf(this.block));
+    }
+
+    public match<
+      T,
+      I extends Exclude<
+        U['Items'][Extract<keyof U['Items'], number>],
+        Exclude<Excludes, never>
+      >
+    >(
+      match: I,
+      then: CaseBlock<I, T>
+    ): Match<
+      U,
+      T | Returns | undefined,
+      I | Excludes
+    > {
+      return new Match(this, this.value, match, then);
+    }
+
+    public otherwise<T>(
+      block: OtherwiseBlock<T>
+    ): VTL<
+      | T
+      | Exclude<Returns, undefined> extends never ?
+        Returns :
+        Exclude<Returns, undefined>
+    > {
+      return null as any;
+    }
   }
 }
 

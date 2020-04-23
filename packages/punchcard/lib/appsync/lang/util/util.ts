@@ -1,4 +1,4 @@
-import { bool, never, string } from '@punchcard/shape';
+import { bool, never, Shape, string } from '@punchcard/shape';
 import { VExpression } from '../expression';
 import { setVariable } from '../statement';
 import { VTL } from '../vtl';
@@ -27,8 +27,15 @@ export class Util {
     return new VNever(new VExpression('$util.unauthorized()'));
   }
 
-  public *throwUnauthorized(): VTL<VNever> {
-    throw this.unauthorized();
+  /**
+   * Returns a String describing the type of the Object. Supported type identifications
+   * are: `Null`, `Number`, `String`, `Map`, `List`, `Boolean`. If a type cannot be
+   * identified, the return type is `Object`.
+   */
+  public typeOf<T extends VObject<Shape>>(obj: T): VString {
+    return new VString(VExpression.concat(
+      '$util.typeOf(', obj, ')'
+    ));
   }
 
   public error(message: VString | string, errorType: VString | string, data: VObject, errorInfo: VObject): VNever;

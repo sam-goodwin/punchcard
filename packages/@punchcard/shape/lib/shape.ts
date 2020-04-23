@@ -1,4 +1,4 @@
-import { Apply, Meta, Metadata, Trait } from './metadata';
+import { Apply, Decorated, Meta, Metadata, Trait } from './metadata';
 import { PrimitiveShapes } from './primitive';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
@@ -17,6 +17,8 @@ export abstract class Shape {
   public abstract readonly FQN: string | undefined;
 
   public abstract readonly Kind: keyof ShapeVisitor;
+
+  public readonly [Decorated.Data]?: {} = {};
 
   public visit<V extends ShapeVisitor<T, C>, T, C>(visitor: V, context: C): T {
     return visitor[this.Kind](this as any, context) as T;
