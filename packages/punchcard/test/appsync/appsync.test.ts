@@ -1,8 +1,8 @@
 import 'jest';
 
-import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, RecordType, Shape, Static, string, StringShape, timestamp, Value } from '@punchcard/shape';
+import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, RecordType, set, Shape, Static, string, StringShape, timestamp, Value } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $appsync, $else, $if, $var, ID, VFloat } from '../../lib/appsync';
+import { $appsync, $else, $if, $var, ID, Impl, Interface, VFloat } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { ApiFragment } from '../../lib/appsync/api/api-fragment';
 import { CachingBehavior, CachingInstanceType } from '../../lib/appsync/api/caching';
@@ -108,7 +108,8 @@ export const PostMutations = Mutation({
       id: ID,
       title: optional(string),
       content: optional(string),
-      stringOrNumber: union(string, number)
+      stringOrNumber: union(string, number),
+      list: array(set(string))
     },
     returns: Post
   }),
@@ -122,33 +123,6 @@ export const PostSubscriptions = Subscription({
   newPost: Post
 });
 
-type Interface<M extends RecordMembers = RecordMembers> = {
-  members: M;
-} & (new() => any);
-type ImplInterface<M extends RecordMembers> = (
-  <M2 extends RecordMembers>(m2: M2) => RecordType<M & M2>
-);
-
-function Interface<M extends RecordMembers>(members: M): Interface<M> {
-
-}
-function Impl<
-  I1 extends Interface,
->(i1: I1): ImplInterface<I1['members']>;
-function Impl<
-  I1 extends Interface,
-  I2 extends Interface,
->(i1: I1, i2: I2): ImplInterface<
-  I1['members'] & I2['members']
->;
-function Impl<
-  I1 extends Interface,
-  I2 extends Interface,
-  I3 extends Interface,
->(i1: I1,i2: I2,i3: I3): ImplInterface<
-  I1['members'] & I2['members'] & I3['members']
->;
-
 class Author extends Record({
   name: string
 }) {}
@@ -156,16 +130,17 @@ class Color extends Record({
   color: string
 }) {}
 
-class Book extends Interface({
+const Book = Interface({
   /**
    * Title of the book.
    */
   title: optional(string),
   author: string
-}) {}
-class Bird extends Interface({
+});
+
+const Bird = Interface({
   wings: boolean
-}) {}
+});
 
 class BirdBook extends Impl(Book, Bird)({
   key: string
@@ -197,10 +172,10 @@ export const UserApi = (
           groups: ['Writer']
         }
       },
-      *resolve({alias}) {
+      *resolve(request) {
         return yield* userStore.put({
           id: yield* $util.autoId(),
-          alias,
+          alias: request.alias,
         });
       }
     }
@@ -219,13 +194,13 @@ export const UserApi = (
           'id'
         ]
       },
-      *resolve({id}) {
-        yield* $if(id.isEmpty(), function*() {
-
-        });
-
-        return yield* userStore.get({id});
-      }
+      resolve: request => userStore.get({
+        id: request.id
+      })
+      // or:
+      // *resolve({id}) {
+      //   return yield* userStore.get({id});
+      // }
     }
   });
 
@@ -255,11 +230,14 @@ export const PostApi = (scope: Scope) => {
         ],
         ttl: 60
       },
-      *resolve(args) {
-        return yield* postStore.get({
-          id: args.id
-        });
-      }
+      // *resolve(args) {
+      //   return yield* postStore.get({
+      //     id: args.id
+      //   });
+      // }
+      resolve: request => postStore.get({
+        id: request.id
+      })
     }
   });
 
@@ -277,11 +255,7 @@ export const PostApi = (scope: Scope) => {
         const id = yield* $util.autoId();
         const timestamp = yield* $util.time.nowISO8601();
 
-        yield* $if(input.title.isEmpty(), function*() {
-          throw $util.error('title cannot be empty');
-        });
-
-        const post = yield* postStore.put({
+        return yield* postStore.put({
           id,
           title: input.title,
           content: input.content,
@@ -289,8 +263,6 @@ export const PostApi = (scope: Scope) => {
           channel: 'category',
           tags: []
         });
-
-        return post;
       }
     },
 
@@ -304,29 +276,20 @@ export const PostApi = (scope: Scope) => {
       },
 
       *resolve(input) {
-        const y = yield* input.content.match(nothing, function*() {
-          throw $util.error('input content must not be null');
-        });
-
-        const i = yield* $var(number);
-
         return yield* postStore.update({
           key: {
             id: input.id
           },
-          if: item => item.title.isDefined(),
-          *actions(item) {
-            yield* item.tags.push('tag');
-            yield* item.tags.push([
-              'tag',
-              input.id,
-            ]);
-            yield* item.tags.push(item.tags);
-
-            yield* input.content.match(string, item.content.set);
-            yield* input.title.match(string, function*(title) {
-              yield * i.set(i.get().minus(1));
-              yield* item.title.set(title);
+          condition: (item) => $if(input.id.isNotEmpty(), function*() {
+            return item.id.equals(input.id);
+          }, $else(function*() {
+            throw $util.error('');
+          })),
+          *transaction(item) {
+            // set content to the new value if it is not null
+            yield* input.content.match(string, item.content.set); // short-form
+            yield* $if($util.isNotNull(input.title), function*() {
+              yield* item.title.set(input.title.as(string));
             });
           },
         });
@@ -444,6 +407,7 @@ const MyApi = new Api(stack, 'MyApi', {
 import assert = require('@aws-cdk/assert');
 import { literal } from '@punchcard/shape/lib/literal';
 import { union, UnionShape } from '@punchcard/shape/lib/union';
+import { DynamoDSL } from '../../lib/dynamodb/dsl/dynamo-repr';
 
 
 Build.resolve(MyApi.resource);

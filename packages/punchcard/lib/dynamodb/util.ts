@@ -21,7 +21,7 @@ export function keyType(shape: Shape): dynamodb.AttributeType {
     return dynamodb.AttributeType.STRING;
   } else if (ShapeGuards.isBinaryShape(shape)) {
     return dynamodb.AttributeType.STRING;
-  } else if (ShapeGuards.isNumericShape(shape)) {
+  } else if (ShapeGuards.isNumberShape(shape)) {
     return dynamodb.AttributeType.NUMBER;
   }
   throw new Error(`shape of kind ${shape.Kind} can not be used as a DynamoDB Key`);

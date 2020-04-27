@@ -3,7 +3,7 @@ import { ElseBranch, IfBranch } from './statement';
 import { VTL } from './vtl';
 import { VBool, VNothing, VObject } from './vtl-object';
 
-export function $if<T extends VObject>(
+export function $if<T>(
   condition: VBool,
   then: () => Generator<any, T>,
   elseIf: IfBranch<T> | ElseBranch<T>
@@ -64,12 +64,18 @@ export function $else<T>(then: () => Generator<any, T>): ElseBranch<T> {
 }
 
 
-export function $var<T extends Shape>(item: T, id?: string): VTL<Var<T>> {
-  throw new Error('not implemented');
+export function *$var<T extends Shape>(item: T, id?: string): VTL<Var<T>> {
+  return new Var(item, id);
 }
 
 export class Var<T extends Shape> {
-  public get(): VObject.Of<T> {}
+  constructor(
+    public readonly shape: T,
+    public readonly id?: string
+  ) {}
+  public get(): VObject.Of<T> {
+    throw new Error('not implemented');
+  }
   public set(value: VObject.Like<T>): VTL<VObject.Of<T>> {
     throw new Error('not implemented');
   }

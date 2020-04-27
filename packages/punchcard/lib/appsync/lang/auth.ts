@@ -1,3 +1,4 @@
+import { string } from '@punchcard/shape';
 import { AuthMetadata, AuthMode, AuthProps } from '../api/auth';
 import { $context } from '../lang/context';
 import { directive } from '../lang/statement';
@@ -29,9 +30,9 @@ export namespace $auth {
 
   export function *mode(): VTL<VString> {
     return yield* $if($util.isNull($context.identity), function*() {
-      return yield* $if($context.identity.cognitoIdentityPoolId.isNotEmpty(), () =>
+      return yield* $if($context.identity.cognitoIdentityPoolId.as(string).isNotEmpty(), () =>
         VTL.string(AuthMode.AMAZON_COGNITO_USER_POOLS)
-      , $elseIf($context.identity.accountId.isNotEmpty(), () =>
+      , $elseIf($context.identity.accountId.as(string).isNotEmpty(), () =>
         VTL.string(AuthMode.AWS_IAM)
       , $else(() =>
         VTL.string(AuthMode.NONE)

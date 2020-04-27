@@ -1,7 +1,7 @@
 import { Shape } from "@punchcard/shape";
 import { VObject } from "../../appsync";
 import { DynamoExpr } from "./dynamo-expr";
-import { UpdateTransaction } from "./update-statement";
+import { UpdateTransaction } from "./update-transaction";
 
 export function isAddExpressionName(a: any): a is AddExpressionName {
   return a.tag === AddExpressionName.TAG;

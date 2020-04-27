@@ -192,7 +192,7 @@ export namespace DSL {
   export class Literal<T extends Shape> extends ExpressionNode<T> {
     public readonly [SubNodeType] = 'literal';
 
-    constructor(type: T, public readonly value: AttributeValue.Of<T>) {
+    constructor(type: T, public readonly value: Value.Of<AttributeValue.ShapeOf<T>>) {
       super(type);
     }
 
@@ -687,7 +687,7 @@ export namespace DSL {
     }
   }
 
-  export class Union<T extends UnionShape<Shape[]>> extends Object<T> {
+  export class Union<T extends UnionShape<ArrayLike<Shape>>> extends Object<T> {
     public as<S extends T['Items'][Extract<keyof T['Items'], number>]>(shape: S): DSL.Of<S> {
       return shape.visit(DslVisitor as any, this);
     }

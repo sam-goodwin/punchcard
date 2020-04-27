@@ -10,8 +10,8 @@ import { Value } from '@punchcard/shape/lib/value';
 import { AttributeValue } from './attribute';
 
 export interface Mapper<T extends Shape> {
-  read(value: AttributeValue.Of<T>): Value.Of<T>;
-  write(value: Value.Of<T>): AttributeValue.Of<T>;
+  read(value: any): Value.Of<T>;
+  write(value: Value.Of<T>): Value.Of<AttributeValue.ShapeOf<T>>;
 }
 
 export namespace Mapper {

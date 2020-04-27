@@ -1,8 +1,8 @@
-import { ArrayShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, MapShape, NeverShape, NothingShape, NumberShape, NumericShape, RecordMembers, RecordShape, SetShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape } from '@punchcard/shape';
+import { Shape, ShapeGuards } from '@punchcard/shape';
 import { VExpression, VObject } from '../../appsync';
 
 export function toAttributeValue<S extends Shape>(shape: S, obj: VObject.Like<S>): VObject.Like<S> {
-  return VObject.of(shape, toAttributeValueExpression(shape, obj, true));
+  return VObject.ofExpression(shape, toAttributeValueExpression(shape, obj, true));
 }
 export function toAttributeValueExpression<S extends Shape>(shape: S, obj: VObject.Like<S>, topLevel: boolean = true): VExpression {
   if (!VObject.isObject(obj)) {
@@ -22,7 +22,7 @@ export function toAttributeValueExpression<S extends Shape>(shape: S, obj: VObje
       });
     } else if (ShapeGuards.isSetShape(shape) && Array.isArray(obj)) {
       const type = ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isTimestampShape(shape.Items) ? 'SS' :
-        ShapeGuards.isNumericShape(shape.Items) ? 'NS' :
+        ShapeGuards.isNumberShape(shape.Items) ? 'NS' :
         'BS'
       ;
 
@@ -58,15 +58,15 @@ export function toAttributeValueExpression<S extends Shape>(shape: S, obj: VObje
   return toDynamoDBJson(obj);
 }
 
-type SetShapes = StringShape | NumericShape | TimestampShape | BinaryShape;
-function toSet(items: SetShapes, obj: VObject) {
+function toSet(items: Shape, obj: VObject) {
   return VExpression.concat(
     VExpression.text(`$util.dynamodb.${
       ShapeGuards.isStringShape(items) || ShapeGuards.isTimestampShape(items) ? 'toStringSet' :
-      ShapeGuards.isNumericShape(items) ? 'toNumberSet' :
-      'toBinarySet'
+      ShapeGuards.isNumberShape(items) ? 'toNumberSet' :
+      ShapeGuards.isBinaryShape(items) ? 'toBinarySet' :
+      'toList'
     }Json(`),
-    VObject.exprOf(obj),
+    VObject.getExpression(obj),
     VExpression.text(')')
   );
 }
@@ -74,7 +74,7 @@ function toSet(items: SetShapes, obj: VObject) {
 function toDynamoDBJson(obj: VObject){
   return VExpression.concat(
     VExpression.text('$util.dynamodb.toDynamoDBJson('),
-    VObject.exprOf(obj),
+    VObject.getExpression(obj),
     VExpression.text(')'),
   );
 }

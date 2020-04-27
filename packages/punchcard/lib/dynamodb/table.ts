@@ -4,7 +4,7 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, array, integer, map, Record, RecordShape, Shape, string } from '@punchcard/shape';
+import { any, array, map, Record, RecordShape, Shape, string } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
 import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VString, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';
@@ -15,10 +15,10 @@ import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { DynamoExpr } from './dsl/dynamo-expr';
 import { DynamoDSL } from './dsl/dynamo-repr';
-import { isAddExpressionName, isAddExpressionValue } from './dsl/filter-expression';
+import { isAddExpressionName, isAddExpressionValue } from './dsl/expression-values';
 import { toAttributeValue, toAttributeValueExpression } from './dsl/to-attribute-value';
 import { UpdateRequest } from './dsl/update-request';
-import { isAddSetAction } from './dsl/update-statement';
+import { isAddSetAction } from './dsl/update-transaction';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
@@ -192,7 +192,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       operation: string,
       key: this.keyShape
     });
-    const request = VObject.of(GetItemRequest, VExpression.json({
+    const request = VObject.ofExpression(GetItemRequest, VExpression.json({
       version: '2017-02-28',
       operation: 'GetItem',
       key: toAttributeValueExpression(this.keyShape, key)
@@ -202,7 +202,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
   }
 
   public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
-    if (request.if) {
+    if (request.condition) {
       // ifExpr = yield* request.if(Filter.of(this.dataType,  ).)
     }
     const fields: any = {};
@@ -218,7 +218,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     // map of name -> id
     const expressionNames = yield* vtl(map(string))`{}`;
 
-    const generator = request.actions(fields);
+    const generator = request.transaction(fields);
     let next: IteratorResult<any, any>;
     let returns: any;
 
@@ -235,6 +235,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
         const ref = yield* renderExpression(stmt.expr);
         // yield* expressionNames.put(id, stmt.expr);
       } else if (isAddExpressionValue(stmt)) {
+        yield* addValue(toAttributeValue(stmt.type, stmt.value));
         const id = newId();
         returns = id;
         yield* expressionValues.put(id, toAttributeValue(stmt.type, stmt.value));
@@ -255,7 +256,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
         }
       } else if (DynamoExpr.isGetListItem(expr)) {
         const index = typeof expr.index === 'number' ? yield* VTL.number(expr.index) : expr.index;
-        return `${yield* renderExpression(expr.list.expr)}[${index.toJson}]`;
+        return `${yield* renderExpression(expr.list.expr)}[${index}]`;
       } else if (DynamoExpr.isGetMapItem(expr)) {
         // if (!expressionValues.has(expr.key)) {
         //   const id = newId();
@@ -290,7 +291,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       attributeValues: this.attributeValuesShape
     });
 
-    const request = VObject.of(PutItemRequest, VExpression.json({
+    const request = VObject.ofExpression(PutItemRequest, VExpression.json({
       version: '2017-02-28',
       operation: 'PutItem',
       key: toAttributeValueExpression(this.keyShape, value),

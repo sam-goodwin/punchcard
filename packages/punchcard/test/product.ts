@@ -1,4 +1,4 @@
-import { any, AssertIsKey, integer, IntegerShape, NumberShape, NumericShape, Record, RecordShape, Shape, string, StringShape, Structure, Value } from '@punchcard/shape';
+import { NumberShape, StringShape } from '@punchcard/shape';
 
 // tslint:disable: no-unused-expression
 
@@ -19,7 +19,7 @@ export interface OptionProps {
   readonly comment?: string;
 }
 
-export type SelectShape = StringShape | NumericShape;
+export type SelectShape = StringShape | NumberShape;
 export type SelectCandidate = {
   readonly display: string;
 };

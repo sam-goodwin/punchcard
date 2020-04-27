@@ -134,7 +134,7 @@ export interface ObjectSchema<P extends ObjectSchemaProperties> {
   required: string[];
 }
 
-export interface OneOf<T extends Shape[]> {
+export interface OneOf<T extends ArrayLike<Shape>> {
   oneOf: {
     [i in Extract<keyof T, number>]: JsonSchema.Of<T[i]>;
   } & {

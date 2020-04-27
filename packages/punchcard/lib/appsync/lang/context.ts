@@ -1,4 +1,4 @@
-import { array, optional, Record, string } from '@punchcard/shape';
+import { array, optional, Record, string, StringShape } from '@punchcard/shape';
 import { StandardClaims } from '../../cognito/standard-claims';
 import { VExpression } from './expression';
 import { VList, VObject, VString } from './vtl-object';
@@ -75,7 +75,7 @@ export namespace $context {
   }
 
   export type Claims = {
-    'cognito:groups': VList<VString>;
+    'cognito:groups': VList<StringShape>;
     'cognito:username': VString;
   } & {
     [k in keyof typeof StandardClaims]: VObject.Of<(typeof StandardClaims)[k]>
@@ -83,12 +83,12 @@ export namespace $context {
     [key in string]?: VString;
   };
 
-  export const identity: VObject.Of<typeof Identity> & {claims: Claims} = VObject.of(Identity, new VExpression('$context.identity')) as any;
+  export const identity: VObject.Of<typeof Identity> & {claims: Claims} = VObject.ofExpression(Identity, new VExpression('$context.identity')) as any;
   (identity as any).claims = {
-    'cognito:groups': VObject.of(array(string), new VExpression('$context.identity.claims.get("cognito:groups")')),
-    'cognito:username': VObject.of(string, new VExpression('$context.identity.claims.get("cognito:username")')),
+    'cognito:groups': VObject.ofExpression(array(string), new VExpression('$context.identity.claims.get("cognito:groups")')),
+    'cognito:username': VObject.ofExpression(string, new VExpression('$context.identity.claims.get("cognito:username")')),
     ...(Object.entries(StandardClaims)
-      .map(([name, shape]) => ({[name]: VObject.of(shape, new VExpression(`$context.identity.claims.get("${name}")`))}))
+      .map(([name, shape]) => ({[name]: VObject.ofExpression(shape, new VExpression(`$context.identity.claims.get("${name}")`))}))
       .reduce((a, b) => ({...a, ...b})))
   } as Claims;
 }

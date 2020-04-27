@@ -6,7 +6,7 @@ import sinon = require('sinon');
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
-import { array, binary, integer, map, number, Optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
+import { array, binary, integer, map, number, Optional, optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
 import { bigint, double, float, smallint, tinyint } from '@punchcard/shape-hive';
 import { Core, DynamoDB } from '../../lib';
 import { Build } from '../../lib/core/build';
@@ -45,7 +45,7 @@ function keyTypeTests(makeTable: (type: Shape) => void) {
     makeTable(binary);
   });
   it('should not accept optional', () => {
-    expect(() =>  makeTable(string.apply(Optional))).toThrow();
+    expect(() =>  makeTable(optional(string))).toThrow();
   });
   it('should not accept array', () => {
     expect(() =>  makeTable(array(string))).toThrow();

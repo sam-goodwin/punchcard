@@ -2,6 +2,7 @@ export * from './appsync';
 export * from './auth';
 export * from './context';
 export * from './expression';
+export * from './interface';
 export * from './statement';
 export * from './subscription';
 export * from './syntax';

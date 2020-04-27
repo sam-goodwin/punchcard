@@ -1,8 +1,8 @@
 import { array, ArrayShape, boolean, BoolShape, integer, IntegerShape, MapShape, number, NumberShape, RecordShape, Shape, ShapeGuards, string, StringShape } from '@punchcard/shape';
 import { VInteger, VObject, VString, VTL } from '../../appsync';
 import { DynamoExpr } from './dynamo-expr';
-import { addExpressionValue } from './filter-expression';
-import { addSetAction, UpdateTransaction } from './update-statement';
+import { addExpressionValue } from './expression-values';
+import { addSetAction, UpdateTransaction } from './update-transaction';
 
 const Objekt = Object;
 
@@ -33,11 +33,15 @@ export namespace DynamoDSL {
     return new DynamoDSL.Object(type, expr) as Repr<T>;
   }
 
-  export class Object<T extends Shape> {
+  export class Object<T extends Shape = Shape> {
     constructor(
       public readonly type: T,
       public readonly expr: DynamoExpr
     ) {}
+
+    public equals(value: VObject.Of<T>): DynamoDSL.Bool {
+      return new Bool(new DynamoExpr.Operator(this, '=', value));
+    }
 
     public isDefined(): Bool {
       return new Bool(new DynamoExpr.FunctionCall(boolean, 'attribute_exists', [this]));
@@ -49,8 +53,30 @@ export namespace DynamoDSL {
     }
   }
   export class Bool extends Object<BoolShape> {
+    private static operator(op: string, bs: Bool[]): DynamoDSL.Bool {
+      if (bs.length === 0) {
+        throw new Error(`attempted to apply opeator ${op} to empty list of booleans`);
+      } else if (bs.length === 1) {
+        return bs[0];
+      }
+      return bs.reduce((a, b) => new Bool(new DynamoExpr.Operator(a, op, b)));
+    }
+    public static and(...bs: Bool[]): DynamoDSL.Bool {
+      return Bool.operator('and', bs);
+    }
+    public static or(...bs: Bool[]): DynamoDSL.Bool {
+      return Bool.operator('or', bs);
+    }
+
     constructor(expr: DynamoExpr) {
       super(boolean, expr);
+    }
+
+    public and(...bs: Bool[]): DynamoDSL.Bool {
+      return Bool.and(this, ...bs);
+    }
+    public or(...bs: Bool[]): DynamoDSL.Bool {
+      return Bool.or(this, ...bs);
     }
   }
   class Numeric<T extends IntegerShape | NumberShape> extends Object<T> {

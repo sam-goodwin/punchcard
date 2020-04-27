@@ -215,7 +215,7 @@ export class Api<
         const directives: Directives = {};
         const typeName = typeSpec.type.FQN;
         const selfType = typeSpec.type;
-        const self = VObject.of(typeSpec.type, new VExpression('$context.source'));
+        const self = VObject.ofExpression(typeSpec.type, new VExpression('$context.source'));
         for (const [fieldName, resolver] of Object.entries(typeSpec.resolvers) as [string, FieldResolver<any, any, any>][]) {
           directives[fieldName] = [];
           const {auth, cache, subscribe} = resolver as Partial<AuthMetadata & CacheMetadata<Shape> & SubscribeMetadata<Shape>>;
@@ -229,7 +229,7 @@ export class Api<
           let generator: VTL<VObject | void> = undefined as any;
           if (ShapeGuards.isFunctionShape(fieldShape)) {
             const args = Object.entries(fieldShape.args).map(([argName, argShape]) => ({
-              [argName]: VObject.of(argShape, new VExpression(`$context.arguments.${argName}`))
+              [argName]: VObject.ofExpression(argShape, new VExpression(`$context.arguments.${argName}`))
             })).reduce((a, b) => ({...a, ...b}));
             if (resolver.resolve) {
               generator = resolver.resolve.bind(self)(args as any, self);
@@ -277,7 +277,7 @@ export class Api<
               const {expr, returnType} = parseIf(stmt, ifResult);
               const txt = expr.visit({indentSpaces: 0}).text;
               template.push(txt);
-              returns = VObject.of(returnType, VExpression.text(ifResult));
+              returns = VObject.ofExpression(returnType, VExpression.text(ifResult));
 
               function parseIf(branch: IfBranch<VObject | void>, callback: string): {
                 expr: VExpression;
@@ -354,21 +354,21 @@ export class Api<
                       const name = stmt.id || id();
                       expressions.push(VExpression.concat(`#set($${name} = `, stmt.value, ')'));
                       // return a reference to the set value
-                      ret = VObject.clone(stmt.value, new VExpression(`$${name}`));
+                      ret = VObject.ofExpression(VObject.getType(stmt.value), new VExpression(`$${name}`));
                     } else if (StatementGuards.isIf(stmt)) {
                       const {expr, returnType} = parseIf(stmt, callback);
                       expressions.push(expr);
-                      ret = VObject.of(returnType, new VExpression(`$${callback}`));
+                      ret = VObject.ofExpression(returnType, new VExpression(`$${callback}`));
                     } else if (StatementGuards.isCall(stmt)) {
-                      throw new Error(`Calls to services are not supported within an If branch.`);
+                      throw new Error(`calls to services are not supported within an If branch.`);
                     } else {
                       throw new Error(`unsupported syntax within an If: ${stmt}`);
                     }
                   }
                 } catch (err) {
                   if (VObject.isObject(err)) {
-                    returnType = VObject.typeOf(err);
-                    expressions.push(VObject.exprOf(err));
+                    returnType = VObject.getType(err);
+                    expressions.push(VObject.getExpression(err));
                   } else {
                     throw err;
                   }
@@ -386,17 +386,17 @@ export class Api<
               }
             } else if (StatementGuards.isSet(stmt)) {
               const name = stmt.id || id();
-              template.push(`#set($context.stash.${name} = ${VObject.exprOf(stmt.value).visit({indentSpaces: 0}).text})`);
+              template.push(`#set($context.stash.${name} = ${VObject.getExpression(stmt.value).visit({indentSpaces: 0}).text})`);
 
               // return a reference to the set value
-              returns = VObject.clone(stmt.value, new VExpression(`$context.stash.${name}`));
+              returns = VObject.ofExpression(VObject.getType(stmt.value), new VExpression(`$context.stash.${name}`));
             } else if (StatementGuards.isCall(stmt)) {
               const name = id();
-              template.push(VObject.exprOf(stmt.request).visit({indentSpaces: 0}).text);
+              template.push(VObject.getExpression(stmt.request).visit({indentSpaces: 0}).text);
               const requestMappingTemplate = template.join('\n');
               console.log(requestMappingTemplate);
               // return a reference to the previou s result
-              returns = VObject.of(stmt.responseType, new VExpression(`$context.stash.${name}`));
+              returns = VObject.ofExpression(stmt.responseType, new VExpression(`$context.stash.${name}`));
               const responseMappingTemplate = `#set($context.stash.${name} = $context.result){}\n`;
 
               // clear template state
@@ -425,10 +425,8 @@ export class Api<
           }
           if (next.value !== undefined) {
             template.push(VExpression.concat(
-              VExpression.text('$util.toJson('),
-              VObject.exprOf(next.value as VObject),
-              VExpression.text(')'
-            )).visit({indentSpaces: 0}).text);
+              '$util.toJson(', next.value, ')'
+            ).visit({indentSpaces: 0}).text);
           }
 
           const responseTemplate = template.join('\n');
@@ -518,9 +516,7 @@ function getTypeAnnotation(shape: Shape, directives?: string[]): string {
     } else if (ShapeGuards.isBoolShape(shape)) {
       return 'Boolean';
     } else if (ShapeGuards.isNumberShape(shape)) {
-      return 'Float';
-    } else if (ShapeGuards.isIntegerShape(shape)) {
-      return 'Int';
+      return ShapeGuards.isIntegerShape(shape) ? 'Int' : 'Float';
     } else if (ShapeGuards.isRecordShape(shape)) {
       if (shape.FQN === undefined) {
         throw new Error(`Only records wit a FQN are supported as types in Graphql. class A extends Record('FQN', { .. }) {}`);
@@ -534,7 +530,7 @@ function getTypeAnnotation(shape: Shape, directives?: string[]): string {
 
 function isScalar(shape: Shape) {
   return ShapeGuards.isStringShape(shape)
-    || ShapeGuards.isNumericShape(shape)
+    || ShapeGuards.isNumberShape(shape)
     || ShapeGuards.isBoolShape(shape)
     || ShapeGuards.isTimestampShape(shape);
 }

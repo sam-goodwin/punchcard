@@ -1,64 +1,41 @@
 import 'jest';
 
+import { AnyShape, optional, string, Value } from '@punchcard/shape';
 import { AttributeValue } from '../lib';
 import { MyType } from './mock';
 
 it('should map Shape AST to AttributeValue AST', () => {
-  const actual: AttributeValue.Of<typeof MyType> = null as any;
-
+  const actual: AttributeValue.ShapeOf<typeof MyType> = null as any;
+  const b = actual;
   // compile-time unit test
   const expected: {
-    M: {
-      id: AttributeValue.StringValue,
-      count?: AttributeValue.NothingValue | AttributeValue.NumberValue,
-      integer: AttributeValue.NumberValue,
+    id: typeof AttributeValue.String,
+    count?: typeof AttributeValue.Nothing | typeof AttributeValue.Number,
+    integer: typeof AttributeValue.Number,
 
-      nested: {
-        M: {
-          a: AttributeValue.StringValue;
-        }
-      },
+    nested: {
+      M: {
+        a: typeof AttributeValue.String;
+      }
+    },
 
-      array: {
-        L: AttributeValue.StringValue[];
-      },
-      complexArray: {
-        L: {
-          M: {
-            a: AttributeValue.StringValue;
-          }
-        }[]
-      },
+    array: AttributeValue.List<typeof AttributeValue.String>;
+    complexArray: AttributeValue.List<AttributeValue.Struct<{
+      a: typeof AttributeValue.String
+    }>>;
 
-      stringSet: {
-        SS: string[];
-      };
-      numberSet: {
-        NS: string[];
-      };
+    stringSet: typeof AttributeValue.StringSet;
+    numberSet: typeof AttributeValue.NumberSet;
 
-      map: {
-        M: {
-          [key: string]: AttributeValue.StringValue | undefined;
-        }
-      };
-      complexMap: {
-        M: {
-          [key: string]: {
-            M: {
-              a: AttributeValue.StringValue
-            }
-          } | undefined;
-        }
-      };
-      binaryField: {
-        B: Buffer;
-      },
-      binarySet: {
-        BS: Buffer[];
-      },
-      anyField: AttributeValue.Type;
-      unknownField: AttributeValue.Type;
-    }
-  } = actual;
+    map: AttributeValue.Map<typeof AttributeValue.String>;
+
+    complexMap: AttributeValue.Map<AttributeValue.Struct<{
+      a: typeof AttributeValue.String
+    }>>;
+
+    binaryField: typeof AttributeValue.BinarySet;
+    binarySet: typeof AttributeValue.BinarySet;
+    anyField: AnyShape;
+    unknownField: AnyShape;
+  } = actual.M;
 });

@@ -121,6 +121,29 @@ export class VExpression {
 
   public readonly [isExpr]: true = true;
 
+  public static call(self: VObject, functionName: string, ...args: (VExpression | VObject | string)[]): VExpression;
+  public static call(functionName: string, ...args: (VExpression | VObject | string)[]): VExpression;
+  public static call(...args: any[]): VExpression {
+    if (typeof args[0] === 'string') {
+      const functionName = args[0];
+      args = args.slice(1);
+      return VExpression.concat(
+        functionName, '(',
+          VExpression.concat(...args.map((a, i) => i < args.length ? VExpression.concat(a, ',') : a)),
+        ')'
+      );
+    } else {
+      const self = args[0];
+      const functionName = args[1];
+      args = args.slice(2);
+      return VExpression.concat(
+        self, '.', functionName, '(',
+          VExpression.concat(...args.map((a, i) => i < args.length ? VExpression.concat(a, ',') : a)),
+        ')'
+      );
+    }
+  }
+
   public static concat(...expressions: (VExpression | VObject | string)[]) {
     return new VExpression((ctx) => {
       const tokens: string[] = [];
@@ -128,7 +151,7 @@ export class VExpression {
         if (typeof expr === 'string') {
           tokens.push(expr);
         } else {
-          const e = VObject.isObject(expr) ? VObject.exprOf(expr) : expr;
+          const e = VObject.isObject(expr) ? VObject.getExpression(expr) : expr;
           const result = e.visit(ctx);
           if (result.context !== undefined) {
             ctx = result.context;

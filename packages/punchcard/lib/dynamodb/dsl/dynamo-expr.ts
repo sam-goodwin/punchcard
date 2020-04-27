@@ -1,12 +1,14 @@
 import { Shape } from '@punchcard/shape';
 import { VInteger, VObject, VString } from '../../appsync';
-import { DynamoDSL } from './dynamo-repr';
+import type { DynamoDSL } from './dynamo-repr';
 
 export type DynamoExpr<T extends Shape = Shape> =
+  | DynamoExpr.FunctionCall<T>
   | DynamoExpr.GetListItem<T>
   | DynamoExpr.GetMapItem<T>
-  | DynamoExpr.FunctionCall<T>
+  | DynamoExpr.Operator
   | DynamoExpr.Reference<T>
+  | DynamoExpr.Scope
 ;
 export namespace DynamoExpr {
   export function isReference(a: any): a is Reference<Shape> {
@@ -53,6 +55,23 @@ export namespace DynamoExpr {
       public readonly type: T,
       public readonly functionName: string,
       public readonly args: VObject.Like<Shape>[]
+    ) {}
+  }
+  export class Operator {
+    public static readonly TAG = 'operator';
+    public readonly tag = Operator.TAG;
+    constructor(
+      // public readonly type: T,
+      public readonly lhs: DynamoDSL.Object,
+      public readonly operator: string,
+      public readonly rhs: DynamoDSL.Object | VObject,
+    ) {}
+  }
+  export class Scope {
+    public static readonly TAG = 'scope';
+    public readonly tag = Scope.TAG;
+    constructor(
+      public readonly children: DynamoExpr[]
     ) {}
   }
 }

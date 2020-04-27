@@ -1,6 +1,6 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, Record } from '@punchcard/shape';
+import { array, string, Record, Shape } from '@punchcard/shape';
 import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType } from 'punchcard/lib/appsync';
 import { Scope } from 'punchcard/lib/core/construct';
 import { VFunction } from '@punchcard/shape/lib/function';
@@ -21,6 +21,7 @@ class Post extends Record('Post', {
   content: string,
   tags: array(string)
 }) {}
+
 
 /*
 "Traits" are like interfaces in TypeScript.

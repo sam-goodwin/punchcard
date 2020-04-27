@@ -1,6 +1,6 @@
 import { Shape } from '@punchcard/shape';
 import { IfBranch, VString } from '../../appsync';
-import { AddExpressionName, AddExpressionValue } from './filter-expression';
+import { AddExpressionName, AddExpressionValue } from './expression-values';
 
 /**
  * An update transaction against an item.

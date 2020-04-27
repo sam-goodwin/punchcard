@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Trait, UnionShape } from '@punchcard/shape';
+import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, RecordShape, SetShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape, Trait, UnionShape } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 
 import { KeysOfType } from 'typelevel-ts';
@@ -101,26 +101,26 @@ export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
   public mapShape(shape: MapShape<any>): glue.Type {
     return glue.Schema.map(glue.Schema.STRING, shape.Items.visit(this, null));
   }
-  public integerShape(shape: IntegerShape): glue.Type {
-    const { glueType } = Meta.get(shape, ['glueType']);
-    switch (glueType) {
-      case 'bigint':
-        return glue.Schema.BIG_INT;
-      case 'smallint':
-        return glue.Schema.SMALL_INT;
-      case 'tinyint':
-        return glue.Schema.TINY_INT;
-      default:
-        return glue.Schema.INTEGER;
-    }
-  }
   public numberShape(shape: NumberShape): glue.Type {
     const { glueType } = Meta.get(shape, ['glueType']);
-    switch (glueType) {
-      case 'float':
-        return glue.Schema.FLOAT;
-      default:
-        return glue.Schema.DOUBLE;
+    if (ShapeGuards.isIntegerShape(shape)) {
+      switch (glueType) {
+        case 'bigint':
+          return glue.Schema.BIG_INT;
+        case 'smallint':
+          return glue.Schema.SMALL_INT;
+        case 'tinyint':
+          return glue.Schema.TINY_INT;
+        default:
+          return glue.Schema.INTEGER;
+      }
+    } else {
+      switch (glueType) {
+        case 'float':
+          return glue.Schema.FLOAT;
+        default:
+          return glue.Schema.DOUBLE;
+      }
     }
   }
   public setShape(shape: SetShape<any>): glue.Type {

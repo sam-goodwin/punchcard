@@ -52,15 +52,17 @@ export class Util {
   }
 
   public isNull(value: VObject): VBool {
-    return new VBool(new VExpression((ctx) => `$util.isNull(${VObject.exprOf(value).visit(ctx).text})`));
+    return new VBool(new VExpression((ctx) => `$util.isNull(${VObject.getExpression(value).visit(ctx).text})`));
   }
 
   public isNotNull(value: VObject): VBool {
-    return new VBool(new VExpression((ctx) => `!$util.isNull(${VObject.exprOf(value).visit(ctx).text})`));
+    return new VBool(new VExpression((ctx) => `!$util.isNull(${VObject.getExpression(value).visit(ctx).text})`));
   }
 
-  public defaultIfNull<T extends VObject>(obj: T, defaultValue: VObject.Like<VObject.TypeOf<T>>): T {
-    return VObject.clone(obj, new VExpression((ctx) => `$util.defaultIfNull(${VObject.exprOf(obj).visit(ctx).text})`));
+  public *defaultIfNull<T extends VObject>(obj: T, defaultValue: VObject.Like<VObject.TypeOf<T>>): VTL<T> {
+    const type = VObject.getType(obj);
+    return VObject.ofExpression(type, new VExpression((ctx) =>
+      `$util.defaultIfNull(${VObject.getExpression(obj).visit(ctx).text}, ${yield* VObject.of(type, defaultValue)})`)) as any;
   }
 
   public readonly dynamodb = new DynamoDBUtil();
@@ -77,7 +79,7 @@ function call(functionName: string, args: (string | VObject | undefined)[]) {
         // that's so we can support overloaded methods like `$util.error`.
         break;
       }
-      parameters.push(typeof arg === 'string' ? arg : VObject.exprOf(arg!).visit(ctx).text);
+      parameters.push(typeof arg === 'string' ? arg : VObject.getExpression(arg!).visit(ctx).text);
     }
 
     return `${functionName}(${parameters.join(',')})`;

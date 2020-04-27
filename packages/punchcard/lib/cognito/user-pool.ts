@@ -69,7 +69,7 @@ export class UserPool<R extends RequiredAttributes, C extends CustomAttributes> 
             maxLen: maxLength,
             minLen: minLength
           });
-        } else if (ShapeGuards.isNumericShape(shape)) {
+        } else if (ShapeGuards.isNumberShape(shape)) {
           const { maximum, minimum } = Meta.get(shape, ['maximum', 'minimum']);
           return new cognito.NumberAttribute({
             max: maximum,
