@@ -1,10 +1,7 @@
 import { BinaryShape, BoolShape, DynamicShape, IntegerShape, isOptional, LiteralShape, Meta, NeverShape, NumberShape, RecordShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
-import { ArraySchema, MapSchema, SetSchema } from './collection';
-import { JsonSchema } from './json-schema';
-import { ObjectSchema } from './object';
-import { AnySchema, BinarySchema, BoolSchema, IntegerSchema, NothingSchema, NumberSchema, StringSchema, TimestampSchema } from './primitive';
+import { AnySchema, ArraySchema, BinarySchema, BoolSchema, IntegerSchema, JsonSchema, MapSchema, NothingSchema, NumberSchema, ObjectSchema, SetSchema, StringSchema, TimestampSchema } from './json-schema';
 
 /**
  * Transforms a Shape into its corresponding JSON Schema representation.

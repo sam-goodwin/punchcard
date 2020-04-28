@@ -1,6 +1,6 @@
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Build } from '../../core/build';
-import { DataSourceBindCallback } from '../data-source';
+import { DataSourceBindCallback } from '../api/data-source';
 import { VTL } from './vtl';
 import { VBool, VNothing, VObject } from './vtl-object';
 
