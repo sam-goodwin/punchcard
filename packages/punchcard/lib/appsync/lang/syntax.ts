@@ -1,6 +1,6 @@
 import { Shape } from '@punchcard/shape';
-import { ElseBranch, IfBranch } from './statement';
-import { VTL } from './vtl';
+import { ElseBranch, IfBranch, setVariable } from './statement';
+import { VTL, vtl } from './vtl';
 import { VBool, VNothing, VObject } from './vtl-object';
 
 export function $if<T>(
@@ -65,13 +65,17 @@ export function $else<T>(then: () => Generator<any, T>): ElseBranch<T> {
 
 
 export function *$var<T extends Shape>(item: T, id?: string): VTL<Var<T>> {
+  const v = yield* setVariable({
+    local,
+    
+  });
   return new Var(item, id);
 }
 
 export class Var<T extends Shape> {
   constructor(
     public readonly shape: T,
-    public readonly id?: string
+    public readonly id: string
   ) {}
   public get(): VObject.Of<T> {
     throw new Error('not implemented');

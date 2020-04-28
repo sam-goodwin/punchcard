@@ -56,7 +56,7 @@ export function vtl(...args: any[]): any {
         ...template.map((str, i) => new VExpression(ctx =>
           `${str}${i < args.length ?
             VObject.isObject(args[i]) ? VObject.getExpression(args[i] as VObject).visit(ctx).text : '' :
-            typeof args[i] === 'string' ? `"${args[i]}"` :
+            typeof args[i] === 'string' ? `${args[i]}` :
             typeof args[i] === 'number' ? args[i].toString(10) :
             args[i].toString()
           }`

@@ -6,7 +6,7 @@ import type * as cdk from '@aws-cdk/core';
 
 import { any, array, map, Record, RecordShape, Shape, string } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VString, VTL, vtl } from '../appsync';
+import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VString, VTL, vtl, $var } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -210,7 +210,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       fields[name] = DynamoDSL.of(field, new DynamoExpr.Reference(undefined, field, name));
     }
 
-    const setStatements = yield* vtl(array(string))`[]`;
+    const setStatements = yield* $var(string);
 
     // map of id -> attribute-value
     const expressionValues = yield* vtl(map(any))`{}`;

@@ -1,7 +1,7 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
 import { array, string, Record, Shape } from '@punchcard/shape';
-import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType } from 'punchcard/lib/appsync';
+import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType, $context, $if } from 'punchcard/lib/appsync';
 import { Scope } from 'punchcard/lib/core/construct';
 import { VFunction } from '@punchcard/shape/lib/function';
 import { ApiFragment } from 'punchcard/lib/appsync/api/api-fragment';
@@ -117,14 +117,14 @@ export const PostApi = (
   const postMutationApi = new PostMutationApi({
     addPost: {
       *resolve(input) {
-        const id = yield* $util.autoId();
-  
-        const post = yield* postStore.put({
-          id,
+        yield* $if($util.isNull($context.identity.user), function*() {
+          throw $util.error('user must be logged in');
+        });
+
+        return yield* postStore.put({
+          id: yield* $util.autoId(),
           ...input
         });
-  
-        return post;
       }
     }
   });
