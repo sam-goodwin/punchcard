@@ -2,7 +2,7 @@ import 'jest';
 
 import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, RecordType, set, Shape, Static, string, StringShape, timestamp, Value } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $appsync, $else, $if, $var, ID, Impl, Interface, VFloat } from '../../lib/appsync';
+import { $appsync, $else, $if, ID, Impl, Interface, VFloat } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { ApiFragment } from '../../lib/appsync/api/api-fragment';
 import { CachingBehavior, CachingInstanceType } from '../../lib/appsync/api/caching';

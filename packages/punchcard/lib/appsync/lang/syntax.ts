@@ -64,23 +64,25 @@ export function $else<T>(then: () => Generator<any, T>): ElseBranch<T> {
 }
 
 
-export function *$var<T extends Shape>(item: T, id?: string): VTL<Var<T>> {
-  const v = yield* setVariable({
-    local,
-    
-  });
-  return new Var(item, id);
-}
+// export function *$var<T extends Shape>(shape: T, props?: {
+//   id?: string
+//   locale?: boolean
+// }): VTL<Var<T>> {
+//   const obj = yield* setVariable({
+//     ...(props || {})
+//   });
+//   return new Var<T>(shape, obj);
+// }
 
-export class Var<T extends Shape> {
-  constructor(
-    public readonly shape: T,
-    public readonly id: string
-  ) {}
-  public get(): VObject.Of<T> {
-    throw new Error('not implemented');
-  }
-  public set(value: VObject.Like<T>): VTL<VObject.Of<T>> {
-    throw new Error('not implemented');
-  }
-}
+// export class Var<T extends Shape> {
+//   constructor(
+//     public readonly shape: T,
+//     public readonly obj: VObject.Of<T>
+//   ) {}
+//   public get(): VObject.Of<T> {
+//     throw new Error('not implemented');
+//   }
+//   public set(value: VObject.Like<T>): VTL<VObject.Of<T>> {
+//     throw new Error('not implemented');
+//   }
+// }

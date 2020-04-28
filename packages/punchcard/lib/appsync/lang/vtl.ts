@@ -45,13 +45,13 @@ export function vtl<T extends Shape>(type: T): ExpressionTemplate<T>;
 export function vtl<Args extends (VObject | string | number)[]>(
   template: TemplateStringsArray,
   ...args: Args
-): VTL<void>;
+): VTL<VExpression>;
 
 export function vtl(...args: any[]): any {
   if (ShapeGuards.isShape(args[0])) {
     const type: Shape = args[0];
     return function*(template: TemplateStringsArray, args: (VObject | string | number)[]) {
-      return yield* setVariable(VObject.ofExpression(type,  VExpression.concat(
+      const obj = VObject.ofExpression(type,  VExpression.concat(
         quotes(type),
         ...template.map((str, i) => new VExpression(ctx =>
           `${str}${i < args.length ?
@@ -62,10 +62,22 @@ export function vtl(...args: any[]): any {
           }`
         )),
         quotes(type)
-      )));
+      ));
+      return yield* setVariable(obj);
     };
   } else {
-
+    const template = args[0];
+    args = args.slice(1);
+    return (function*() {
+      return VExpression.concat(template.map((str: string, i: number) => new VExpression(ctx =>
+        `${str}${i < args.length ?
+          VObject.isObject(args[i]) ? VObject.getExpression(args[i] as VObject).visit(ctx).text : '' :
+          typeof args[i] === 'string' ? `${args[i]}` :
+          typeof args[i] === 'number' ? args[i].toString(10) :
+          args[i].toString()
+        }`
+      )));
+    })();
   }
 }
 

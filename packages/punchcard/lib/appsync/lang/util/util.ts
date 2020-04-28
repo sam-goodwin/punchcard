@@ -61,8 +61,9 @@ export class Util {
 
   public *defaultIfNull<T extends VObject>(obj: T, defaultValue: VObject.Like<VObject.TypeOf<T>>): VTL<T> {
     const type = VObject.getType(obj);
+    const defaultV = yield* VObject.of(type, defaultValue);
     return VObject.ofExpression(type, new VExpression((ctx) =>
-      `$util.defaultIfNull(${VObject.getExpression(obj).visit(ctx).text}, ${yield* VObject.of(type, defaultValue)})`)) as any;
+      `$util.defaultIfNull(${VObject.getExpression(obj).visit(ctx).text}, ${defaultV})`)) as any;
   }
 
   public readonly dynamodb = new DynamoDBUtil();

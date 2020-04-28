@@ -144,10 +144,10 @@ it('should createPartition', async () => {
           Name: 'timestamp',
           Type: 'timestamp'
         }],
-        InputFormat: glue.DataFormat.Json.inputFormat.className,
-        OutputFormat: glue.DataFormat.Json.outputFormat.className,
+        InputFormat: glue.DataFormat.JSON.inputFormat.className,
+        OutputFormat: glue.DataFormat.JSON.outputFormat.className,
         SerdeInfo: {
-          SerializationLibrary: glue.DataFormat.Json.serializationLibrary.className,
+          SerializationLibrary: glue.DataFormat.JSON.serializationLibrary.className,
         }
       }
     }
@@ -184,10 +184,10 @@ it('should batchCreatePartition', async () => {
           Name: 'timestamp',
           Type: 'timestamp'
         }],
-        InputFormat: glue.DataFormat.Json.inputFormat.className,
-        OutputFormat: glue.DataFormat.Json.outputFormat.className,
+        InputFormat: glue.DataFormat.JSON.inputFormat.className,
+        OutputFormat: glue.DataFormat.JSON.outputFormat.className,
         SerdeInfo: {
-          SerializationLibrary: glue.DataFormat.Json.serializationLibrary.className,
+          SerializationLibrary: glue.DataFormat.JSON.serializationLibrary.className,
         }
       }
     }]
@@ -231,10 +231,10 @@ it('should updatePartition', async () => {
           Name: 'timestamp',
           Type: 'timestamp'
         }],
-        InputFormat: glue.DataFormat.Json.inputFormat.className,
-        OutputFormat: glue.DataFormat.Json.outputFormat.className,
+        InputFormat: glue.DataFormat.JSON.inputFormat.className,
+        OutputFormat: glue.DataFormat.JSON.outputFormat.className,
         SerdeInfo: {
-          SerializationLibrary: glue.DataFormat.Json.serializationLibrary.className,
+          SerializationLibrary: glue.DataFormat.JSON.serializationLibrary.className,
         }
       }
     }

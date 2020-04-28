@@ -6,7 +6,7 @@ import type * as cdk from '@aws-cdk/core';
 
 import { Json } from '@punchcard/shape-json';
 
-import { any, AnyShape, ArrayShape, BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, Mapper, MapperFactory, MapShape, NeverShape, NothingShape, NumberShape, Pointer, RecordShape, SetShape, Shape, ShapeVisitor, StringShape, TimestampShape, Value } from '@punchcard/shape';
+import { any, AnyShape, Mapper, MapperFactory, NothingShape, Pointer, Shape, Value } from '@punchcard/shape';
 import { DataSourceType, VExpression } from '../appsync';
 import { call } from '../appsync/lang/statement';
 import { VTL } from '../appsync/lang/vtl';
@@ -141,7 +141,7 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
 
   private _dependencies: D;
   private get dependencies(): D {
-    if (this._dependencies) {
+    if (this._dependencies === undefined) {
       this._dependencies = (this.depends as any).install ?
         this.depends as D :
         (this.depends as () => D)();
@@ -153,11 +153,11 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
     scope: Scope,
     id: string,
     props: FunctionProps<T, U, D>,
-    handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<Value.Of<U>>
+    handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<U extends NothingShape ? void : Value.Of<U>>
   ) {
     this.request = (props.request || any) as any;
     this.response = (props.request || any) as any;
-    this.handle = handle;
+    this.handle = handle as any;
     const entrypointId = Global.addEntrypoint(this);
 
     // default to JSON serialization

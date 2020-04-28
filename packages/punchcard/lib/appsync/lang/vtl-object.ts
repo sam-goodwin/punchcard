@@ -1,5 +1,5 @@
-import { any, AnyShape, array, binary, BinaryShape, bool, boolean, CollectionShape, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, ShapeGuards, ShapeVisitor, timestamp, unknown, UnknownShape, Value } from '@punchcard/shape';
-import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShape, Pointer, RecordShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
+import { any, array, binary, BinaryShape, boolean, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, ShapeGuards, ShapeVisitor, timestamp, unknown, Value } from '@punchcard/shape';
+import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShape, RecordShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
 import { string, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { UnionShape } from '@punchcard/shape/lib/union';
@@ -499,7 +499,7 @@ export namespace VUnion {
 export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public static defaultInstance = new Visitor();
   public unionShape(shape: UnionShape<ArrayLike<Shape>>, expr: VExpression): VObject<Shape> {
-    throw new Error("Method not implemented.");
+    return new VUnion(shape, expr);
   }
   public literalShape(shape: LiteralShape<Shape, any>, expr: VExpression): VObject<Shape> {
     return shape.Type.visit(this, expr);
@@ -533,21 +533,19 @@ export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public integerShape(shape: IntegerShape, expr: VExpression): VInteger {
     return new VInteger(expr);
   }
-  public mapShape(shape: MapShape<Shape>, expr: VExpression): never {
-    throw new Error(`map is not supported by GraphQL`);
+  public mapShape(shape: MapShape<Shape>, expr: VExpression): VMap<Shape> {
+    return new VMap(shape, expr);
   }
   public nothingShape(shape: NothingShape, expr: VExpression): VNothing {
     throw new VNothing(expr);
   }
   public numberShape(shape: NumberShape, expr: VExpression): VFloat {
-    // tslint:disable-next-line: no-construct
     return new VFloat(expr);
   }
   public setShape(shape: SetShape<Shape>, expr: VExpression): VSet<Shape> {
     return new VSet(shape, expr);
   }
   public stringShape(shape: StringShape, expr: VExpression): VString {
-    // tslint:disable-next-line: no-construct
     return new VString(expr);
   }
   public timestampShape(shape: TimestampShape, expr: VExpression): VTimestamp {

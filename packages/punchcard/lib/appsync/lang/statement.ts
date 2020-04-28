@@ -87,21 +87,13 @@ export class SetVariable<T = VObject> {
   readonly [Statement.Type]: T;
 
   constructor(
-    public readonly value?: T,
-    public readonly id?: string,
-    /**
-     * @default false
-     */
-    public readonly local?: boolean
+    public readonly value: T,
+    public readonly id?: string
   ) {}
 }
 
-export function *setVariable<T extends VObject>(props: {
-  value?: T,
-  id?: string,
-  local?: boolean
-}): VTL<T> {
-  return (yield new SetVariable(props.value, props.id, props.local)) as T;
+export function *setVariable<T extends VObject>(value: T, id?: string): VTL<T> {
+  return (yield new SetVariable(value, id)) as T;
 }
 
 /**

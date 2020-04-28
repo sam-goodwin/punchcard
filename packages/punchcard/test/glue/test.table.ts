@@ -47,7 +47,7 @@ it('should map columns and partition keys to their respective types', () => {
     }
   });
 
-  expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.Json);
+  expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.JSON);
   expect(Build.resolve(table.resource).columns).toEqual([{
     name: 'boolean',
     type: {
@@ -174,7 +174,7 @@ it('should default to Json Codec', () => {
   });
 
   expect(table.dataType).toEqual(DataType.Json);
-  expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.Json);
+  expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.JSON);
 });
 
 function partitionTest(type: Shape): void {

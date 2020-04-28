@@ -1,3 +1,4 @@
+import { $util } from "./util";
 import { VObject } from "./vtl-object";
 
 export interface VExpressionContext {
@@ -20,6 +21,7 @@ export type VExpressionLiteral =
   | {
     [key: string]: VExpressionLiteral;
   }
+  | VObject
 ;
 
 const isExpr = Symbol.for('AppSync.isExpr');
@@ -29,30 +31,33 @@ export class VExpression {
     return a[isExpr] === true;
   }
 
-  public static json<L extends VExpressionLiteral>(literal: L): VExpression {
-    if (VExpression.isExpression(literal)) {
-      return literal;
+  public static json<L extends VExpressionLiteral>(obj: L): VExpression {
+    if (VExpression.isExpression(obj)) {
+      return obj;
+    }
+    if (VObject.isObject(obj)) {
+      return VExpression.call('$util.toJson', obj);
     }
 
-    if (typeof literal === 'string') {
-      return VExpression.text(`"${literal}"`);
-    } else if (typeof literal === 'number') {
-      return VExpression.text(`${literal.toString(10)}`);
-    } else if (typeof literal === 'boolean') {
-      return VExpression.text(`${literal}`);
-    } else if (typeof literal === 'undefined') {
+    if (typeof obj === 'string') {
+      return VExpression.text(`"${obj}"`);
+    } else if (typeof obj === 'number') {
+      return VExpression.text(`${obj.toString(10)}`);
+    } else if (typeof obj === 'boolean') {
+      return VExpression.text(`${obj}`);
+    } else if (typeof obj === 'undefined') {
       return VExpression.text('null');
-    } else if ((literal as any) instanceof Date) {
-      return VExpression.text(`"${(literal as any).toISOString()}"`);
-    } else if (Array.isArray(literal)) {
+    } else if ((obj as any) instanceof Date) {
+      return VExpression.text(`"${(obj as any).toISOString()}"`);
+    } else if (Array.isArray(obj)) {
       return VExpression.concat(
         '[',
         VExpression.indent(),
         VExpression.line(),
 
-        ...literal.map((item, i) => VExpression.concat(
+        ...obj.map((item, i) => VExpression.concat(
           VExpression.json(item),
-          i < literal.length - 1 ?
+          i < obj.length - 1 ?
             VExpression.concat(',', VExpression.line()) :
             ''
         )),
@@ -61,8 +66,8 @@ export class VExpression {
         VExpression.line(),
         ']',
       );
-    } else if (typeof literal === 'object') {
-      const members: [string, VExpressionLiteral][] = Object.entries(literal as any);
+    } else if (typeof obj === 'object') {
+      const members: [string, VExpressionLiteral][] = Object.entries(obj as any);
       return VExpression.concat(
         '{',
         VExpression.indent(),
@@ -81,7 +86,7 @@ export class VExpression {
       );
     }
 
-    throw new Error(`could not convert literal type to expression: ${literal}`);
+    throw new Error(`could not convert literal type to expression: ${obj}`);
   }
 
   public static text(text: string) {
