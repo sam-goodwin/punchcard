@@ -1,14 +1,13 @@
-import { isArray } from "util";
-import { array, ArrayShape, MapShape, SetShape } from "./collection";
-import { Equals } from "./equals";
-import { FunctionArgs, FunctionShape } from "./function";
-import { LiteralShape } from "./literal";
-import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape, UnknownShape } from "./primitive";
-import { RecordMembers, RecordShape } from "./record";
-import { Shape } from "./shape";
-import { UnionShape } from "./union";
-import { Value } from "./value";
-import { ShapeVisitor } from "./visitor";
+import { ArrayShape, MapShape, SetShape } from './collection';
+import { Equals } from './equals';
+import { FunctionShape } from './function';
+import { LiteralShape } from './literal';
+import { AnyShape, BinaryShape, BoolShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { RecordShape } from './record';
+import { Shape } from './shape';
+import { UnionShape } from './union';
+import { Value } from './value';
+import { ShapeVisitor } from './visitor';
 
 export type IsInstance<T extends Shape> = (a: any) => a is Value.Of<T>;
 export namespace IsInstance {
@@ -59,8 +58,8 @@ export class IsInstanceVisitor implements ShapeVisitor<IsInstance<Shape>, IsInst
       }
     }) as IsInstance<typeof shape>;
   }
-  public dynamicShape(shape: DynamicShape<any>, props: IsInstanceProps): IsInstance<Shape> {
-    return ((a: any) => true) as IsInstance<AnyShape | UnknownShape>;
+  public anyShape(shape: AnyShape, props: IsInstanceProps): IsInstance<Shape> {
+    return ((a: any) => true) as IsInstance<AnyShape>;
   }
   public functionShape(shape: FunctionShape): IsInstance<Shape> {
     // TODO: what to do with functions? ignore for now

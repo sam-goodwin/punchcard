@@ -1,5 +1,5 @@
 import 'jest';
-import { any, AnyShape, binary, NothingShape, number, NumberShape, optional, Record, string, StringShape, union, UnionShape, unknown, UnknownShape } from '../lib';
+import { any, AnyShape, binary, NothingShape, number, NumberShape, optional, Record, string, StringShape, union, UnionShape } from '../lib';
 import { array, ArrayShape, map, MapShape, set, SetShape } from '../lib/collection';
 
 // tslint:disable: member-access
@@ -10,7 +10,6 @@ class Nested extends Record('Nested', {
 
 class MyType extends Record('MyType', {
   anyType: any,
-  unknownType: unknown,
   binaryType: binary,
   id: string,
   count: optional(number),
@@ -30,7 +29,6 @@ it('should have Kind, "recordShape"', () => {
 
 it('should parse members', () => {
   expect(MyType.Members.anyType).toEqual(new AnyShape());
-  expect(MyType.Members.unknownType).toEqual(new UnknownShape());
   expect(MyType.Members.id).toEqual(new StringShape());
   expect(MyType.Members.count).toEqual(new UnionShape([new NumberShape(), new NothingShape()]));
   expect(MyType.Members.nested).toEqual(Nested);

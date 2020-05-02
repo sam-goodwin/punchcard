@@ -1,7 +1,7 @@
 import { LiteralShape, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
-import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { AnyShape, BinaryShape, bool, BoolShape, IntegerShape, NeverShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { RecordShape } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Writer } from './writer';
@@ -17,7 +17,7 @@ export namespace JsonPath {
   export type Of<T extends Shape> =
     T extends BinaryShape ? JsonPath.Binary :
     T extends BoolShape ? JsonPath.Bool :
-    T extends DynamicShape<any> ? JsonPath.Dynamic<T> :
+    T extends AnyShape ? JsonPath.Any<T> :
     T extends NumberShape ? JsonPath.Number :
     T extends StringShape ? JsonPath.String :
 
@@ -151,7 +151,7 @@ export namespace JsonPath {
     }
   }
 
-  export class Dynamic<T extends DynamicShape<any | unknown>> extends Object<T> {
+  export class Any<T extends AnyShape> extends Object<T> {
     public as<S extends Shape>(shape: S): JsonPath.Of<S> {
       return shape.visit(visitor as any, this);
     }
@@ -444,8 +444,8 @@ class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
   public nothingShape(shape: NothingShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Object<NothingShape> {
     return new JsonPath.Object(shape, expression);
   }
-  public dynamicShape(shape: DynamicShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Dynamic<any> {
-    return new JsonPath.Dynamic(shape, expression);
+  public anyShape(shape: AnyShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Any<any> {
+    return new JsonPath.Any(shape, expression);
   }
   public binaryShape(shape: BinaryShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Binary {
     return new JsonPath.Binary(shape, expression);

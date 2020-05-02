@@ -6,7 +6,8 @@ import type * as cdk from '@aws-cdk/core';
 
 import { any, array, map, Record, RecordShape, Shape, string } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VString, VTL, vtl } from '../appsync';
+import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, isIfBranch, VExpression, VObject, VString, VTL, vtl } from '../appsync';
+import { interpret, InterpreterState, interpretProgram, parseIf } from '../appsync/api/interpreter';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -18,7 +19,7 @@ import { DynamoDSL } from './dsl/dynamo-repr';
 import { isAddExpressionName, isAddExpressionValue } from './dsl/expression-values';
 import { toAttributeValue, toAttributeValueExpression } from './dsl/to-attribute-value';
 import { UpdateRequest } from './dsl/update-request';
-import { isAddSetAction } from './dsl/update-transaction';
+import { isAddSetAction, UpdateTransaction } from './dsl/update-transaction';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
@@ -202,9 +203,6 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
   }
 
   public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
-    if (request.condition) {
-      // ifExpr = yield* request.if(Filter.of(this.dataType,  ).)
-    }
     const fields: any = {};
     for (const [name, field] of Object.entries(this.dataType.Members)) {
       fields[name] = DynamoDSL.of(field, new DynamoExpr.Reference(undefined, field, name));
@@ -218,32 +216,14 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     // map of name -> id
     const expressionNames = yield* vtl(map(string))`{}`;
 
-    const generator = request.transaction(fields);
-    let next: IteratorResult<any, any>;
-    let returns: any;
-
     const newId = (() => {
       let i = 0;
       return (prefix?: string) => `${prefix || ''}var${i += 1}`;
     })();
 
-    while (!(next = generator.next(returns)).done) {
-      const stmt = next.value;
-      if (isAddExpressionName(stmt)) {
-        const id = newId();
-        returns = id;
-        const ref = yield* renderExpression(stmt.expr);
-        // yield* expressionNames.put(id, stmt.expr);
-      } else if (isAddExpressionValue(stmt)) {
-        yield* addValue(toAttributeValue(stmt.type, stmt.value));
-        const id = newId();
-        returns = id;
-        yield* expressionValues.put(id, toAttributeValue(stmt.type, stmt.value));
-      } else if (isAddSetAction(stmt)) {
-        returns = undefined;
-        yield* setStatements.add(stmt.action);
-      }
-    }
+    const tx = request.transaction(fields);
+
+    yield* interpretProgram(tx, interpreter(yield* getState()));
 
     const UpdateItemRequest = Record({
       version: string,
@@ -272,6 +252,32 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       updateRequest,
       this.dataType
     );
+
+    function interpreter(state: InterpreterState) {
+      return function *interpretTxStatement(stmt: any) {
+        // console.log(stmt);
+        if (isAddExpressionName(stmt)) {
+          const id = newId();
+          const ref = yield* renderExpression(stmt.expr);
+          return id;
+          // yield* expressionNames.put(id, stmt.expr);
+        } else if (isAddExpressionValue(stmt)) {
+          yield* addValue(toAttributeValue(stmt.shape, stmt.value));
+          const id = newId();
+          yield* expressionValues.put(id, toAttributeValue(stmt.shape, stmt.value));
+          return id;
+        } else if (isAddSetAction(stmt)) {
+          yield* setStatements.add(stmt.action);
+          return undefined;
+        } else if (isIfBranch(stmt)) {
+          const result = yield* parseIf(stmt, state, interpreter);
+          return result;
+        } else {
+          console.warn('unsupported tx statement', stmt);
+          return yield stmt;
+        }
+      };
+    }
 
     function *renderExpression(expr: DynamoExpr<Shape>): Generator<any, string> {
       if (DynamoExpr.isReference(expr)) {

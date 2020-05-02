@@ -1,6 +1,8 @@
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Build } from '../../core/build';
 import { DataSourceBindCallback } from '../api/data-source';
+import { InterpreterState } from '../api/interpreter';
+import { VExpression } from './expression';
 import { VTL } from './vtl';
 import { VBool, VNothing, VObject } from './vtl-object';
 
@@ -12,10 +14,11 @@ import { VBool, VNothing, VObject } from './vtl-object';
  * @see https://docs.aws.amazon.com/appsync/latest/devguide/pipeline-resolvers.html
  */
 export type Statement<A = any> =
-  | Directive<A>
   | CallFunction<A>
   | IfBranch<A>
-  | SetVariable<A>
+  | Stash
+  | Write
+  | 'get-state'
 ;
 
 export namespace Statement {
@@ -33,28 +36,54 @@ export namespace StatementGuards {
   export function isCall(a: any): a is CallFunction<VObject> {
     return a[Statement.Tag] === 'call';
   }
-  export function isDirective(a: any): a is Directive {
-    return a[Statement.Tag] === 'directive';
-  }
   export function isIf(a: any): a is IfBranch<VObject | void> {
     return a[Statement.Tag] === 'if';
   }
-  export function isSet(a: any): a is SetVariable<VObject> {
-    return a[Statement.Tag] === 'set';
+  export function isWrite(a: any): a is Write {
+    return a[Statement.Tag] === 'write';
+  }
+  export function isStash(a: any): a is Stash {
+    return a[Statement.Tag] === 'stash';
+  }
+  export function isGetState(a: any): a is GetState {
+    return a === GetState;
   }
 }
 
-export class Directive<T = VNothing> {
-  readonly [Statement.Tag]: 'directive' = 'directive';
-  readonly [Statement.Type]: T;
+export function *getState(): VTL<InterpreterState> {
+  return (yield 'get-state') as any;
+}
+export type GetState = typeof GetState;
+export const GetState = 'get-state';
 
-  constructor(
-    public readonly directives: string[]
-  ) {}
+export function *write(a: VExpression | VObject): VTL<void> {
+  return (yield new Write(VObject.isObject(a) ? VObject.getExpression(a) : a)) as void;
 }
 
-export function *directive(...directives: string[]): VTL<VNothing> {
-  return (yield new Directive(directives)) as any;
+export class Write {
+  public readonly [Statement.Tag]: 'write' = 'write';
+  constructor(public readonly expr: VExpression) {}
+}
+
+export function *stash<T extends VObject>(v: VObject, props?: StashProps): VTL<T> {
+  return (yield new Stash(v, props)) as T;
+}
+
+export interface StashProps {
+  id?: string;
+  local?: boolean;
+}
+export class Stash {
+  public readonly [Statement.Tag]: 'stash' = 'stash';
+  public readonly id: string | undefined;
+  public readonly local: boolean;
+  constructor(
+    public readonly value: VObject,
+    props?: StashProps
+  ) {
+    this.id = props?.id;
+    this.local = (props?.local === undefined ? false : props?.local);
+  }
 }
 
 /**
@@ -77,23 +106,6 @@ export function *call<T extends Shape, U extends Shape>(
   responseType: U
 ): VTL<VObject.Of<U>> {
   return (yield new CallFunction(dataSourceProps, request, responseType)) as VObject.Of<U>;
-}
-
-/**
- * Stash a value for use later.
- */
-export class SetVariable<T = VObject> {
-  readonly [Statement.Tag]: 'set' = 'set';
-  readonly [Statement.Type]: T;
-
-  constructor(
-    public readonly value: T,
-    public readonly id?: string
-  ) {}
-}
-
-export function *setVariable<T extends VObject>(value: T, id?: string): VTL<T> {
-  return (yield new SetVariable(value, id)) as T;
 }
 
 /**

@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, DynamicShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, RecordShape, SetShape, StringShape, UnionShape } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BinaryShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, RecordShape, SetShape, StringShape, UnionShape } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { ToJsonSchemaVisitor } from './visitor';
 
@@ -24,7 +24,7 @@ export namespace JsonSchema {
   export type Of<T extends Shape> =
     T extends BinaryShape ? BinarySchema<Meta.GetData<T>> :
     T extends BoolSchema ? BoolSchema :
-    T extends DynamicShape<any> ? AnySchema :
+    T extends AnyShape ? AnySchema :
     T extends IntegerShape ? IntegerSchema<Meta.GetData<T>> :
     T extends NothingShape ? NothingSchema :
     T extends NumberShape ? NumberSchema<Meta.GetData<T>> :

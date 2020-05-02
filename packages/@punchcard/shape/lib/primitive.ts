@@ -1,9 +1,9 @@
+import { ShapeGuards } from './guards';
 import { Decorated, Trait } from './metadata';
 import { Shape } from './shape';
 
 export type PrimitiveShapes =
   | AnyShape
-  | UnknownShape
   | BoolShape
   | StringShape
   | NumberShape
@@ -12,20 +12,16 @@ export type PrimitiveShapes =
   | NothingShape
   ;
 
-export abstract class DynamicShape<T extends any | unknown> extends Shape {
-  public abstract readonly Tag: 'any' | 'unknown';
-
-  public readonly Kind: 'dynamicShape' = 'dynamicShape';
-}
-
-export class AnyShape extends DynamicShape<any> {
-  public readonly Tag: 'any' = 'any';
+export class AnyShape extends Shape {
+  public readonly Kind: 'anyShape' = 'anyShape';
   public readonly FQN: 'punchcard.any' = 'punchcard.any';
-}
 
-export class UnknownShape extends DynamicShape<unknown> {
-  public readonly Tag: 'unknown' = 'unknown';
-  public readonly FQN: 'punchcard.unknown' = 'punchcard.unknown';
+  public equals<O extends Shape>(other: O): this is O {
+    return ShapeGuards.isAnyShape(other);
+  }
+  public hashCode(): number {
+    return 0;
+  }
 }
 
 export class BinaryShape extends Shape {
@@ -72,6 +68,10 @@ export class IntegerShape extends NumberShape {
 export class TimestampShape extends Shape {
   public readonly Kind: 'timestampShape' = 'timestampShape';
   public readonly FQN: 'timestamp' = 'timestamp';
+
+  public equals<O extends Shape>(other: O): this is O {
+    return ShapeGuards.isBinaryShape(other);
+  }
 }
 
 export class NothingShape extends Shape {
@@ -87,7 +87,6 @@ export class NeverShape extends Shape {
 export const never = new NeverShape();
 export const nothing = new NothingShape();
 export const any = new AnyShape();
-export const unknown = new UnknownShape();
 
 export const binary = new BinaryShape();
 export const bool = new BoolShape();

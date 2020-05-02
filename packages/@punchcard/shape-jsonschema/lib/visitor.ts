@@ -1,4 +1,4 @@
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, isOptional, LiteralShape, Meta, NeverShape, NumberShape, RecordShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
+import { AnyShape, BinaryShape, BoolShape, IntegerShape, isOptional, LiteralShape, Meta, NeverShape, NumberShape, RecordShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { AnySchema, ArraySchema, BinarySchema, BoolSchema, IntegerSchema, JsonSchema, MapSchema, NothingSchema, NumberSchema, ObjectSchema, SetSchema, StringSchema, TimestampSchema } from './json-schema';
@@ -25,7 +25,7 @@ export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema, undefined> 
   public functionShape(shape: FunctionShape<FunctionArgs, Shape>): JsonSchema {
     throw new Error("JSON schema does not support function types");
   }
-  public dynamicShape(shape: DynamicShape<any>, context: undefined): AnySchema {
+  public anyShape(shape: AnyShape, context: undefined): AnySchema {
     return {
       type: {}
     };
@@ -104,7 +104,7 @@ export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema, undefined> 
   public recordShape(shape: RecordShape<any>): ObjectSchema<any> {
     const required = (Object.entries(shape.Members) as [string, Shape][])
       .map(([name, member]) => {
-        return isOptional(member) ? [] : [name];
+        return isOptional(member) || ShapeGuards.isNothingShape(member) ? [] : [name];
       })
       .reduce((a, b) => a.concat(b), []);
 

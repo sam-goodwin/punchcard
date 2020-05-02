@@ -1,4 +1,4 @@
-import { any, binary, bool, integer, number, optional, Record, string, timestamp, unknown } from '@punchcard/shape';
+import { any, binary, bool, integer, number, optional, Record, string, timestamp } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import '../lib';
@@ -32,6 +32,5 @@ export class MyType extends Record('MyType', {
 
   binaryField: binary,
   binarySet: set(binary),
-  anyField: any,
-  unknownField: unknown,
+  anyField: any
 }) {}

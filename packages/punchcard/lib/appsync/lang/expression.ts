@@ -1,15 +1,10 @@
-import { $util } from "./util";
-import { VObject } from "./vtl-object";
-
-export interface VExpressionContext {
-  indentSpaces: number;
-}
+import { InterpreterState } from '../api/interpreter';
+import { VObject } from './vtl-object';
 
 export interface VExpressionResult {
   text: string;
-  context?: VExpressionContext;
+  context?: InterpreterState;
 }
-
 
 export type VExpressionLiteral =
   | VExpression
@@ -98,6 +93,7 @@ export class VExpression {
       return {
         text: '',
         context: {
+          ...ctx,
           indentSpaces: ctx.indentSpaces + spaces
         }
       };
@@ -168,13 +164,13 @@ export class VExpression {
     });
   }
 
-  constructor(private readonly _visit: string | ((ctx: VExpressionContext) => string | VExpressionResult)) {}
+  constructor(private readonly _visit: string | ((ctx: InterpreterState) => string | VExpressionResult)) {}
 
   /**
    * Write variables to the Frame and
    * @param frame
    */
-  public visit(context: VExpressionContext): VExpressionResult {
+  public visit(context: InterpreterState): VExpressionResult {
     if (typeof this._visit === 'string') {
       return {
         text: this._visit,

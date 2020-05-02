@@ -1,4 +1,4 @@
-import { any, AnyShape, array, ArrayShape, AssertIsShape, binary, BinaryShape, boolean, BoolShape, DynamicShape, literal, LiteralShape, map, MapShape, NothingShape, NumberShape, RequiredKeys, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape, union, UnionShape, Value } from '@punchcard/shape';
+import { any, AnyShape, array, ArrayShape, AssertIsShape, binary, BinaryShape, boolean, BoolShape, literal, LiteralShape, map, MapShape, NothingShape, NumberShape, RequiredKeys, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape, union, UnionShape, Value } from '@punchcard/shape';
 import { Record, RecordMembers, RecordShape, RecordType} from '@punchcard/shape/lib/record';
 
 // tslint:disable: ban-types
@@ -23,7 +23,7 @@ export namespace AttributeValue {
     T extends BoolShape ? typeof AttributeValue.Bool :
     T extends BinaryShape ? typeof AttributeValue.Binary :
     T extends NothingShape ? typeof AttributeValue.Nothing :
-    T extends DynamicShape<any> ? AnyShape :
+    T extends AnyShape ? AnyShape :
     T extends ArrayShape<infer I> ? AttributeValue.List<ShapeOf<I, Props>> :
     T extends MapShape<infer V> ? AttributeValue.Map<ShapeOf<V, Props>> :
     T extends SetShape<infer I> ?
@@ -69,8 +69,8 @@ export namespace AttributeValue {
       return AttributeValue.Binary as ShapeOf<T>;
     } else if (ShapeGuards.isNothingShape(shape)) {
       return AttributeValue.Nothing as ShapeOf<T>;
-    } else if (ShapeGuards.isDynamicShape(shape)) {
-      return any as ShapeOf<T>;
+    } else if (ShapeGuards.isAnyShape(shape)) {
+      return shape as ShapeOf<T>;
     } else if (ShapeGuards.isArrayShape(shape)) {
       return AttributeValue.List(shapeOf(shape.Items, props)) as ShapeOf<T>;
     } else if (ShapeGuards.isMapShape(shape)) {

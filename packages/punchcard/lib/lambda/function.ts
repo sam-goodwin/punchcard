@@ -141,7 +141,7 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
 
   private _dependencies: D;
   private get dependencies(): D {
-    if (this._dependencies === undefined) {
+    if (this._dependencies === undefined && this.depends !== undefined) {
       this._dependencies = (this.depends as any).install ?
         this.depends as D :
         (this.depends as () => D)();

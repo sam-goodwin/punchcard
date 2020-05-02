@@ -68,7 +68,7 @@ it('should render JSON schema', () => {
       'map',
       'stringOrNumber',
       'binary',
-      'any'
+      'any',
     ],
     properties: {
       id: {

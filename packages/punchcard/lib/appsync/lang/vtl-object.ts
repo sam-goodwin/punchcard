@@ -1,10 +1,10 @@
-import { any, array, binary, BinaryShape, boolean, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, ShapeGuards, ShapeVisitor, timestamp, unknown, Value } from '@punchcard/shape';
-import { ArrayShape, BoolShape, DynamicShape, IntegerShape, MapShape, NumberShape, RecordShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
+import { any, array, binary, BinaryShape, boolean, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, ShapeGuards, ShapeVisitor, timestamp, Value } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BoolShape, IntegerShape, MapShape, NumberShape, RecordShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
 import { string, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { UnionShape } from '@punchcard/shape/lib/union';
 import { VExpression } from './expression';
-import { ElseBranch, IfBranch, setVariable } from './statement';
+import { ElseBranch, IfBranch, stash } from './statement';
 import { $else, $elseIf, $if } from './syntax';
 import { $util } from './util';
 import { VTL, vtl } from './vtl';
@@ -26,9 +26,7 @@ export class VObject<T extends Shape = Shape> {
 
   public notEquals(other: this | Value.Of<T>): VBool {
     return new VBool(VExpression.concat(
-      this,
-      '!=',
-      VObject.isObject(other) ? other : VExpression.json(other)
+      this, '!=', VObject.isObject(other) ? other : VExpression.json(other)
     ));
   }
 
@@ -41,7 +39,7 @@ export class VObject<T extends Shape = Shape> {
 
 export namespace VObject {
   export function *of<T extends Shape>(type: T, value: VObject.Like<T>): VTL<VObject.Of<T>> {
-    if (ShapeGuards.isDynamicShape(type)) {
+    if (ShapeGuards.isAnyShape(type)) {
       // TODO: support any
       throw new Error(`unsupported VTL type: any`);
     }
@@ -147,7 +145,7 @@ export namespace VObject {
     T extends SetShape<infer I> ? VSet<I> :
     T extends MapShape<infer I> ? VMap<I> : // maps are not supported in GraphQL
     T extends BoolShape ? VBool :
-    T extends DynamicShape<any> ? VAny :
+    T extends AnyShape ? VAny :
     T extends IntegerShape ? VInteger :
     T extends NumberShape ? VFloat :
     T extends StringShape ? VString :
@@ -192,11 +190,10 @@ export const IDTrait: {
 export const ID = string.apply(IDTrait);
 
 export class VAny extends VObject.NewType(any) {}
-export class VUnknown extends VObject.NewType(unknown) {}
 
 const VNumeric = <N extends NumberShape>(type: N) => class extends VObject.NewType(type) {
   public *minus(value: VObject.Like<N>): VTL<this> {
-    return (yield* setVariable(VObject.ofExpression(type, VExpression.concat(
+    return (yield* stash(VObject.ofExpression(type, VExpression.concat(
       this, ' - ', VObject.isObject(value) ? value : value.toString(10)
     )))) as any as this;
   }
@@ -363,8 +360,8 @@ export namespace VUnion {
   export type OtherwiseBlock<T> = () => Generator<any, T>;
   export type UnionCase<U extends UnionShape<ArrayLike<Shape>>> = U['Items'][Extract<keyof U['Items'], number>];
 
-  function toCondition(m: Match | Otherwise): VBool {
-    const shape = VObject.getType(m.value);
+  function toCondition(m: Match): VBool {
+    const shape = m.matchType;
     const type = $util.typeOf(m.value);
 
     const s =
@@ -407,7 +404,6 @@ export namespace VUnion {
 
     constructor(
       public readonly parent: Match<any, Returns, any>,
-      public readonly value: VObject<Shape>,
       public readonly block: VUnion.OtherwiseBlock<Returns>
     ) {}
 
@@ -491,7 +487,7 @@ export namespace VUnion {
         Returns :
         Exclude<Returns, undefined>
     > {
-      return null as any;
+      return new Otherwise(this, block as any) as any;
     }
   }
 }
@@ -523,12 +519,8 @@ export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public recordShape(shape: RecordShape<any>, expr: VExpression): VRecord {
     return new VRecord(shape, expr);
   }
-  public dynamicShape(shape: DynamicShape<any>, expr: VExpression): VAny | VUnknown {
-    if (shape.Tag === 'any') {
-      return new VAny(expr);
-    } else {
-      return new VUnknown(expr);
-    }
+  public anyShape(shape: AnyShape, expr: VExpression): VAny {
+    return new VAny(expr);
   }
   public integerShape(shape: IntegerShape, expr: VExpression): VInteger {
     return new VInteger(expr);
@@ -537,7 +529,7 @@ export class Visitor implements ShapeVisitor<VObject, VExpression> {
     return new VMap(shape, expr);
   }
   public nothingShape(shape: NothingShape, expr: VExpression): VNothing {
-    throw new VNothing(expr);
+    return new VNothing(expr);
   }
   public numberShape(shape: NumberShape, expr: VExpression): VFloat {
     return new VFloat(expr);

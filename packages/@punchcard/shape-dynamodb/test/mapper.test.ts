@@ -71,9 +71,6 @@ it('should read attribute values', () => {
       },
       anyField: {
         S: 'any'
-      },
-      unknownField: {
-        N: '1'
       }
     }
   });
@@ -102,8 +99,7 @@ it('should read attribute values', () => {
     stringSet: new Set(['1', '2']),
     binaryField: Buffer.from('binaryField', 'utf8'),
     binarySet: HashSet.of(binary).add(Buffer.from('binarySet', 'utf8')),
-    anyField: 'any',
-    unknownField: 1
+    anyField: 'any'
   });
 
   expect(actual).toEqual(expected);

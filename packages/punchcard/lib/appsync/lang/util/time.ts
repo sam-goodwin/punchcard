@@ -1,21 +1,20 @@
-import { string, timestamp } from '@punchcard/shape';
 import { VExpression } from '../expression';
-import { setVariable } from '../statement';
+import { stash } from '../statement';
 import { VTL } from '../vtl';
-import { VInteger, VObject, VString, VTimestamp } from '../vtl-object';
+import { VInteger, VString, VTimestamp } from '../vtl-object';
 
 export class TimeUtil {
   public *nowISO8601(): VTL<VTimestamp> {
-    return yield* setVariable(new VTimestamp(new VExpression('$util.time.nowISO8601()')));
+    return yield* stash(new VTimestamp(new VExpression('$util.time.nowISO8601()')));
   }
   public *nowEpochSeconds() : VTL<VInteger> {
-    return yield* setVariable(new VInteger(new VExpression('$util.time.nowISO8601()')));
+    return yield* stash(new VInteger(new VExpression('$util.time.nowISO8601()')));
   }
   public *nowEpochMilliSeconds() : VTL<VInteger> {
-    return yield* setVariable(new VInteger(new VExpression('$util.time.nowEpochMilliSeconds()')));
+    return yield* stash(new VInteger(new VExpression('$util.time.nowEpochMilliSeconds()')));
   }
   public *nowFormatted(format: VString) : VTL<VString> {
-    return yield* setVariable(new VString(VExpression.concat(
+    return yield* stash(new VString(VExpression.concat(
       VExpression.text('$util.time.nowFormatted('),
       format,
       VExpression.text(')')

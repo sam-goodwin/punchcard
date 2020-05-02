@@ -2,30 +2,16 @@ import { ArrayShape, CollectionShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
 import { LiteralShape } from './literal';
 import { Decorated } from './metadata';
-import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape, UnknownShape } from './primitive';
+import { AnyShape, BinaryShape, BoolShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordMembers, RecordShape } from './record';
 import { Shape } from './shape';
 import { UnionShape } from './union';
 
 export namespace ShapeGuards {
-  export const isDynamicShape = (a: any): a is DynamicShape<unknown> => isShape(a) && a.Kind === 'dynamicShape';
-  export const assertDynamicShape = (a: any): asserts a is DynamicShape<unknown> => {
-    if (!isDynamicShape(a)) {
-      throw new Error(`${a} is not of type: DynamicShape`);
-    }
-  };
-
-  export const isAnyShape = (a: any): a is AnyShape => isDynamicShape(a) && a.Tag === 'any';
+  export const isAnyShape = (a: any): a is AnyShape => isShape(a) && a.Kind === 'anyShape';
   export const assertAnyShape = (a: any): asserts a is AnyShape => {
     if (!isAnyShape(a)) {
       throw new Error(`${a} is not of type: AnyShape`);
-    }
-  };
-
-  export const isUnknownShape = (a: any): a is UnknownShape => isDynamicShape(a) && a.Tag === 'unknown';
-  export const assertUnknownShape = (a: any): asserts a is UnknownShape => {
-    if (!isUnknownShape(a)) {
-      throw new Error(`${a} is not of type: UnknownShape`);
     }
   };
 
@@ -104,7 +90,7 @@ export namespace ShapeGuards {
     }
   };
 
-  export const isSetShape = (a: any): a is SetShape<Shape> => a.Kind === 'setShape';
+  export const isSetShape = (a: any): a is SetShape<Shape> => isShape(a) && a.Kind === 'setShape';
   export const assertSetShape = (a: any): asserts a is SetShape<Shape> => {
     if (!isSetShape(a)) {
       throw new Error(`${a} is not of type: SetShape`);

@@ -2,7 +2,7 @@ import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
 import { IsInstance } from './is-instance';
 import { LiteralShape } from './literal';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { AnyShape, BinaryShape, BoolShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape } from './record';
 import { Shape } from './shape';
 import { UnionShape } from './union';
@@ -59,7 +59,7 @@ export namespace Equals {
     public nothingShape(shape: NothingShape, context: undefined): Equals<NothingShape> {
       return (a, b) => a === b && a === undefined;
     }
-    public dynamicShape(shape: DynamicShape<any>, context: undefined): Equals<DynamicShape<any>> {
+    public anyShape(shape: AnyShape, context: undefined): Equals<AnyShape> {
       return function equals(a: any, b: any): boolean {
         const type = typeof a;
         if (type !== typeof b) {

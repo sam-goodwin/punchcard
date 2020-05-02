@@ -1,5 +1,6 @@
 import { Apply, Decorated, Meta, Metadata, Trait } from './metadata';
 import { PrimitiveShapes } from './primitive';
+import { stringHashCode } from './util';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
 
@@ -26,6 +27,14 @@ export abstract class Shape {
 
   public apply<T extends Shape, Data extends Metadata>(trait: Trait<this extends T ? T : never, Data>): Apply<this, Data> {
     return Meta.apply(this, trait[Trait.Data]!) as Apply<this, Data>;
+  }
+
+  public equals(other: Shape): boolean {
+    return this.Kind === other.Kind;
+  }
+
+  public hashCode(): number {
+    return stringHashCode(this.Kind);
   }
 }
 export namespace Shape {

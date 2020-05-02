@@ -1,24 +1,11 @@
 import 'jest';
-import { any, binary, integer, isOptional, literal, nothing, number, optional, Record, Shape, string, timestamp, union, unknown } from '../lib';
+import { any, binary, integer, isOptional, literal, nothing, number, optional, Record, string, timestamp, union } from '../lib';
 import { array, map, set } from '../lib/collection';
 import { ShapeGuards } from '../lib/guards';
 
-test('isDynamicShape', () => {
-  expect(ShapeGuards.isDynamicShape(any)).toBe(true);
-  expect(ShapeGuards.isDynamicShape(unknown)).toBe(true);
-  expect(ShapeGuards.isDynamicShape(number)).toBe(false);
-});
-
 test('isAnyShape', () => {
   expect(ShapeGuards.isAnyShape(any)).toBe(true);
-  expect(ShapeGuards.isAnyShape(unknown)).toBe(false);
   expect(ShapeGuards.isAnyShape(number)).toBe(false);
-});
-
-test('isUnknownShape', () => {
-  expect(ShapeGuards.isUnknownShape(unknown)).toBe(true);
-  expect(ShapeGuards.isUnknownShape(any)).toBe(false);
-  expect(ShapeGuards.isUnknownShape(number)).toBe(false);
 });
 
 test('isBinaryShape', () => {

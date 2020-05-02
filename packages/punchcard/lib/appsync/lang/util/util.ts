@@ -1,6 +1,6 @@
-import { bool, never, Shape, string } from '@punchcard/shape';
+import { Shape } from '@punchcard/shape';
 import { VExpression } from '../expression';
-import { setVariable } from '../statement';
+import { stash } from '../statement';
 import { VTL } from '../vtl';
 import { VBool, VNever, VObject, VString } from '../vtl-object';
 import { $DynamoDBUtil as DynamoDBUtil } from './dynamodb';
@@ -16,7 +16,7 @@ export class Util {
 
   public *autoId(): VTL<VString> {
     // return yield new Statements.Set(value, id);
-    return yield* setVariable(new VString(new VExpression('$util.autoId()')));
+    return yield* stash(new VString(new VExpression('$util.autoId()')));
   }
 
   public matches(regex: RegExp | string): VTL<VBool> {

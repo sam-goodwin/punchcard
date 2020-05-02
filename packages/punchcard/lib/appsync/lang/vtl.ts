@@ -1,7 +1,7 @@
 import { number as numberShape, ShapeGuards, string as stringShape } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { VExpression } from './expression';
-import { setVariable, Statement } from './statement';
+import { stash, Statement } from './statement';
 import { VFloat, VObject, VString } from './vtl-object';
 
 /**
@@ -50,7 +50,8 @@ export function vtl<Args extends (VObject | string | number)[]>(
 export function vtl(...args: any[]): any {
   if (ShapeGuards.isShape(args[0])) {
     const type: Shape = args[0];
-    return function*(template: TemplateStringsArray, args: (VObject | string | number)[]) {
+    return function*(template: TemplateStringsArray, args: (VObject | string | number)[] = []) {
+      // console.log(template, args);
       const obj = VObject.ofExpression(type,  VExpression.concat(
         quotes(type),
         ...template.map((str, i) => new VExpression(ctx =>
@@ -58,12 +59,12 @@ export function vtl(...args: any[]): any {
             VObject.isObject(args[i]) ? VObject.getExpression(args[i] as VObject).visit(ctx).text : '' :
             typeof args[i] === 'string' ? `${args[i]}` :
             typeof args[i] === 'number' ? args[i].toString(10) :
-            args[i].toString()
+            (args[i] || '').toString()
           }`
         )),
         quotes(type)
       ));
-      return yield* setVariable(obj);
+      return yield* stash(obj);
     };
   } else {
     const template = args[0];
@@ -91,10 +92,10 @@ function needsQuotes(type: Shape): boolean {
 
 export namespace VTL {
   export function *string(s: string): VTL<VString> {
-    return yield* setVariable(VObject.ofExpression(stringShape, new VExpression(`"${s}"`)));
+    return yield* stash(VObject.ofExpression(stringShape, new VExpression(`"${s}"`)));
   }
 
   export function *number(n: number): VTL<VFloat> {
-    return yield* setVariable(VObject.ofExpression(numberShape, new VExpression(n.toString(10))));
+    return yield* stash(VObject.ofExpression(numberShape, new VExpression(n.toString(10))));
   }
 }

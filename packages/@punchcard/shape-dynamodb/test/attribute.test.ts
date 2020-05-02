@@ -37,7 +37,6 @@ it('should map Shape AST to AttributeValue AST', () => {
       binaryField: AttributeValue.BinarySet;
       binarySet: AttributeValue.BinarySet;
       anyField: any;
-      unknownField: unknown;
     }
   } = actual;
 });

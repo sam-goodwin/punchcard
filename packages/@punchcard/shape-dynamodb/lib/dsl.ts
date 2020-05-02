@@ -1,7 +1,7 @@
 import { RecordShape, RecordType, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
-import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { AnyShape, BinaryShape, bool, BoolShape, IntegerShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
@@ -19,7 +19,7 @@ export namespace DSL {
   export type Of<T extends Shape> =
     T extends BinaryShape ? DSL.Binary :
     T extends BoolShape ? DSL.Bool :
-    T extends DynamicShape<any> ? DSL.Dynamic<T> :
+    T extends AnyShape ? DSL.Any<T> :
     T extends NumberShape ? DSL.Number :
     T extends StringShape ? DSL.String :
     T extends TimestampShape ? DSL.String :
@@ -78,8 +78,8 @@ export namespace DSL {
     nothingShape: (shape: NothingShape, expression: ExpressionNode<any>): Object<NothingShape> => {
       return new Object(shape, expression);
     },
-    dynamicShape: (shape: DynamicShape<any>, expression: ExpressionNode<any>): Dynamic<any> => {
-      return new Dynamic(shape, expression);
+    anyShape: (shape: AnyShape, expression: ExpressionNode<any>): Any<any> => {
+      return new Any(shape, expression);
     },
     binaryShape: (shape: BinaryShape, expression: ExpressionNode<any>): Binary => {
       return new Binary(shape, expression);
@@ -673,7 +673,7 @@ export namespace DSL {
     }
   }
 
-  export class Dynamic<T extends DynamicShape<any | unknown>> extends Object<T> {
+  export class Any<T extends AnyShape> extends Object<T> {
     public as<S extends Shape>(shape: S): DSL.Of<S> {
       return shape.visit(DslVisitor as any, this);
     }

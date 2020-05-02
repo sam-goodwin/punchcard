@@ -1,4 +1,4 @@
-import { AnyShape, array, ArrayShape, binary, BinaryShape, bool, boolean, BoolShape, CollectionShape, DynamicShape, FunctionArgs, FunctionShape, literal, LiteralShape, map, MapShape, NeverShape, NothingShape, NumberShape, Pointer, Record, RecordMembers, RecordShape, RecordType, set, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, union, UnionShape } from '@punchcard/shape';
+import { AnyShape, array, ArrayShape, binary, BinaryShape, bool, boolean, BoolShape, CollectionShape, FunctionArgs, FunctionShape, literal, LiteralShape, map, MapShape, NeverShape, NothingShape, NumberShape, Pointer, Record, RecordMembers, RecordShape, RecordType, set, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, union, UnionShape } from '@punchcard/shape';
 import { AttributeValue } from '@punchcard/shape-dynamodb';
 import { VExpression } from '../expression';
 import { VBool, VFloat, VInteger, VList, VMap, VObject, VString } from '../vtl-object';

@@ -1,7 +1,6 @@
 import { string } from '@punchcard/shape';
 import { AuthMetadata, AuthMode, AuthProps } from '../api/auth';
 import { $context } from '../lang/context';
-import { directive } from '../lang/statement';
 import { $else, $elseIf, $if } from './syntax';
 import { $util } from './util/util';
 import { VTL } from './vtl';
@@ -18,16 +17,6 @@ export function toAuthDirectives(props: AuthProps) {
 }
 
 export namespace $auth {
-  export function *allow(props: AuthMetadata): VTL<VNothing> {
-    return yield* directive(...Object.entries(props).map(([name, value]) => {
-      if (value === true) {
-        return `@${name}`;
-      } else {
-        return `@${name}(cognito_groups: ["${value.groups.join('","')}"])`;
-      }
-    }));
-  }
-
   export function *mode(): VTL<VString> {
     return yield* $if($util.isNull($context.identity), function*() {
       return yield* $if($context.identity.cognitoIdentityPoolId.as(string).isNotEmpty(), () =>

@@ -1,6 +1,4 @@
-import { Shape } from '@punchcard/shape';
-import { ElseBranch, IfBranch, setVariable } from './statement';
-import { VTL, vtl } from './vtl';
+import { ElseBranch, IfBranch, stash } from './statement';
 import { VBool, VNothing, VObject } from './vtl-object';
 
 export function $if<T>(
@@ -68,7 +66,7 @@ export function $else<T>(then: () => Generator<any, T>): ElseBranch<T> {
 //   id?: string
 //   locale?: boolean
 // }): VTL<Var<T>> {
-//   const obj = yield* setVariable({
+//   const obj = yield* stash({
 //     ...(props || {})
 //   });
 //   return new Var<T>(shape, obj);

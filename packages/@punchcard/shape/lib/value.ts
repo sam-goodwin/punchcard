@@ -2,7 +2,7 @@ import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionShape } from './function';
 import { HashSet } from './hash-set';
 import { LiteralShape } from './literal';
-import { AnyShape, BinaryShape, BoolShape, NothingShape, NumberShape, StringShape, TimestampShape, UnknownShape } from './primitive';
+import { AnyShape, BinaryShape, BoolShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordMembers, RecordShape} from './record';
 import { UnionShape } from './union';
 
@@ -21,7 +21,6 @@ export namespace Value {
     T extends NumberShape ? number :
     T extends StringShape ? string :
     T extends TimestampShape ? Date :
-    T extends UnknownShape ? unknown :
     T extends LiteralShape<any, infer V> ? V :
     T extends UnionShape<infer U> ? {
       [u in keyof U]: Of<U[u]>

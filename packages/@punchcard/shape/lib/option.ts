@@ -4,12 +4,10 @@ import { Shape } from './shape';
 import { union, UnionShape } from './union';
 
 export function isOptional<T extends Shape>(shape: T): boolean {
-  if (ShapeGuards.isNothingShape(shape)) {
-    return true;
-  } else if (ShapeGuards.isUnionShape(shape)) {
-    return shape.Items.find(i => isOptional(i)) !== undefined;
+  if (ShapeGuards.isUnionShape(shape)) {
+    return shape.Items.find(isOptional) !== undefined;
   }
-  return false;
+  return ShapeGuards.isNothingShape(shape);
 }
 
 export type IsOptional<T extends Shape> =

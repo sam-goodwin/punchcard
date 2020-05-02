@@ -1,6 +1,6 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
-import { Meta, nothing, Shape, ShapeGuards, string } from '@punchcard/shape';
+import { isOptional, Meta, Shape, ShapeGuards, UnionShape } from '@punchcard/shape';
 import { RecordShape } from '@punchcard/shape/lib/record';
 import { UserPool } from '../../cognito/user-pool';
 import { Build } from '../../core/build';
@@ -9,12 +9,12 @@ import { Construct, Scope } from '../../core/construct';
 import { Resource } from '../../core/resource';
 import { Subscriptions, toAuthDirectives } from '../lang';
 import { VExpression } from '../lang/expression';
-import { ElseBranch, IfBranch, isIfBranch, Statement, StatementGuards } from '../lang/statement';
-import { VTL } from '../lang/vtl';
-import { VObject } from '../lang/vtl-object';
+import { stash, StatementGuards } from '../lang/statement';
+import { VObject, VObjectExpr } from '../lang/vtl-object';
 import { ApiFragment } from './api-fragment';
 import { AuthMetadata } from './auth';
 import { CacheMetadata, FullRequestCachingConfiguration, isPerResolverCachingConfiguration, PerResolverCachingConfiguration } from './caching';
+import { idFactory, interpret, Interpreter, InterpreterState, interpretProgram, parseIf } from './interpreter';
 import { FieldResolver } from './resolver';
 import { MutationRoot, QueryRoot, SubscriptionRoot } from './root';
 import { SubscribeMetadata } from './subscription';
@@ -77,7 +77,6 @@ export class Api<
     this.MutationSpec = this.Types[this.MutationFQN] as any;
     this.SubscriptionFQN = SubscriptionRoot.FQN as S;
     this.SubscriptionSpec = this.Types[this.SubscriptionFQN] as any;
-    console.log(this);
 
     this.resource = Build.concat(
       CDK,
@@ -167,7 +166,6 @@ export class Api<
             throw new Error(`could not find type ${shape.FQN} in the TypeIndex`);
           }
           const directives = interpretResolverPipeline(typeSpec);
-          console.log('directives', directives);
           generateTypeSignature(typeSpec, directives);
         }
       }
@@ -226,207 +224,92 @@ export class Api<
             directives[fieldName]!.push(`@aws_subscribe(mutations:[${(Array.isArray(subscribe) ? subscribe : [subscribe]).map(s => `"${s.field}"`).join(',')}])`);
           }
           const fieldShape = typeSpec.fields[fieldName];
-          let generator: VTL<VObject | void> = undefined as any;
+          let program: Generator<any, any, any> = undefined as any;
           if (ShapeGuards.isFunctionShape(fieldShape)) {
             const args = Object.entries(fieldShape.args).map(([argName, argShape]) => ({
               [argName]: VObject.ofExpression(argShape, new VExpression(`$context.arguments.${argName}`))
             })).reduce((a, b) => ({...a, ...b}));
             if (resolver.resolve) {
-              generator = resolver.resolve.bind(self)(args as any, self);
+              program = resolver.resolve.bind(self)(args as any, self);
             }
           } else if (resolver.resolve) {
-            generator = (resolver as any).resolve.bind(self)(self);
+            program = (resolver as any).resolve.bind(self)(self);
           }
-          if (generator === undefined) {
-            generator = (function*() {})();
+          if (program === undefined) {
+            program = (function*() {})();
           }
 
           const functions: appsync.CfnFunctionConfiguration[] = [];
           let template: string[] = [];
-
           let stageCount = 0;
-          const id = (() => {
-            const inc: {
-              [key: string]: number;
-            } = {};
-
-            return (prefix: string = 'var') => {
-              const i = inc[prefix];
-              if (i === undefined) {
-                inc[prefix] = 0;
-              }
-              return `${prefix}${(inc[prefix] += 1).toString(10)}`;
-            };
-          })();
 
           // create a FQN for the <type>.<field>
           const fieldFQN = `${typeName}_${fieldName}`.replace(/[^_0-9A-Za-z]/g, '_');
 
-          let next: IteratorResult<any, any>;
-          let returns: VObject | undefined;
+          const initState = {
+            indentSpaces: 0,
+            newId: idFactory()
+          };
 
-          while (!(next = generator.next(returns)).done) {
-            const stmt = next.value;
-            if (StatementGuards.isDirective(stmt)) {
-              if (!directives[fieldName]) {
-                directives[fieldName] = [];
-              }
-              directives[fieldName]?.push(...stmt.directives);
-            } else if (StatementGuards.isIf(stmt)) {
-              const ifResult = `$context.stash.${id()}`;
-              const {expr, returnType} = parseIf(stmt, ifResult);
-              const txt = expr.visit({indentSpaces: 0}).text;
-              template.push(txt);
-              returns = VObject.ofExpression(returnType, VExpression.text(ifResult));
+          const result = interpret(interpretProgram(program, interpreter(initState)));
 
-              function parseIf(branch: IfBranch<VObject | void>, callback: string): {
-                expr: VExpression;
-                returnType: Shape;
-               } {
-                const elseIfBranches: IfBranch<VObject | void>[] = [];
-                let elseBranch: ElseBranch<VObject | void> | undefined;
-
-                let b: IfBranch<VObject | void> | ElseBranch<VObject | void> | undefined = branch.elseBranch;
-                while (b !== undefined) {
-                  if (isIfBranch(b)) {
-                    elseIfBranches.push(b);
-                    b = b.elseBranch!;
-                  } else {
-                    elseBranch = b;
-                    break;
-                  }
+          function interpreter(state: InterpreterState): Interpreter {
+            return function*(stmt) {
+              if(StatementGuards.isGetState(stmt)) {
+                return state;
+              } else if (StatementGuards.isStash(stmt)) {
+                const stashId = stmt.id || `$${stmt.local ? '' : 'context.stash.'}${state.newId('var')}`;
+                template.push(`#set(${stashId} = ${stmt.value[VObjectExpr].visit(state).text})`);
+                return VObject.ofExpression(VObject.getType(stmt.value), VExpression.text(stashId));
+              } else if (StatementGuards.isWrite(stmt)) {
+                template.push(stmt.expr.visit(state).text);
+                return undefined;
+              } else if (StatementGuards.isIf(stmt)) {
+                const result = yield* parseIf(stmt, state, interpreter);
+                if (state.indentSpaces === 0) {
+                  // assume that we are at the top-level if indent is 0, so stash the result
+                  return yield* stash(result);
+                } else {
+                  // nested if-statements should not be stashed
+                  // TODO: potentially need a first-class state value to indiciate this - feels hacky AF.
+                  return result;
                 }
-
-                // callback ID for the return
-                const localCallback = `$${id('local')}`; // local varible
-
-                const _if = parseBlock(stmt.then(), localCallback);
-                const _elseIfs = elseIfBranches.map(b => {
-                  const e = parseBlock(b.then(), localCallback);
-                  return {
-                    expr: VExpression.concat(
-                      '#elseif(', b.condition, ')',
-                      VExpression.block(e.expr)
-                    ),
-                    returnType: e.returnType
-                  };
+              } else if (StatementGuards.isCall(stmt)) {
+                const name = idFactory();
+                template.push(VObject.getExpression(stmt.request).visit(state).text);
+                const requestMappingTemplate = template.join('\n');
+                console.log(requestMappingTemplate);
+                // return a reference to the previou s result
+                const responseMappingTemplate = `#set($context.stash.${name} = $context.result){}\n`;
+                // clear template state
+                template = [];
+                const stageName = `${fieldFQN}${stageCount += 1}`;
+                const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, fieldFQN);
+                const dataSource = new appsync.CfnDataSource(scope, `DataSource(${fieldFQN})`, {
+                  ...dataSourceProps,
+                  apiId: api.attrApiId,
+                  name: stageName,
                 });
-                const _else = elseBranch ? parseBlock(elseBranch.then(), localCallback) : undefined;
-                const returnTypes: Shape[] = [
-                  _if.returnType,
-                  ..._elseIfs.map(_ => _.returnType),
-                  _else?.returnType
-                ].filter(_ => _ !== undefined) as Shape[];
-
-                // generate a name for the return value
-                return {
-                  expr: VExpression.concat(
-                    '#if(', stmt.condition, ')',
-                    VExpression.block(_if.expr),
-                    ...(_elseIfs.map(_ => _.expr)),
-                    ...(_else ? [
-                      '#{else}', VExpression.block(_else.expr),
-                    ] : []),
-                    '#end',
-                    VExpression.line(),
-                    `#set(${callback} = ${localCallback})`
-                  ),
-                  returnType: returnTypes ? returnTypes[0] : nothing
-                };
+                const functionConfiguration = new appsync.CfnFunctionConfiguration(scope, `Function(${fieldFQN})`, {
+                  apiId: api.attrApiId,
+                  name: stageName,
+                  requestMappingTemplate,
+                  responseMappingTemplate,
+                  dataSourceName: dataSource.attrName,
+                  functionVersion: '2018-05-29',
+                });
+                functions.push(functionConfiguration);
+                return VObject.ofExpression(stmt.responseType, new VExpression(`$context.stash.${name}`));
               }
-
-              function parseBlock(
-                block: VTL<VObject | void>,
-                callback: string,
-              ): {
-                expr: VExpression;
-                returnType?: Shape;
-               } {
-                const expressions: VExpression[] = [];
-                let it: IteratorResult<Statement<VObject | void>, any> | undefined;
-                let ret: VObject | undefined;
-                let returnType: Shape | undefined;
-                try {
-                  while ((it = block.next(ret)).done === false) {
-                    const stmt = it.value;
-                    if (StatementGuards.isSet(stmt)) {
-                      // we set things locally from within function blocks
-                      const name = stmt.id || id();
-                      expressions.push(VExpression.concat(`#set($${name} = `, stmt.value, ')'));
-                      // return a reference to the set value
-                      ret = VObject.ofExpression(VObject.getType(stmt.value), new VExpression(`$${name}`));
-                    } else if (StatementGuards.isIf(stmt)) {
-                      const {expr, returnType} = parseIf(stmt, callback);
-                      expressions.push(expr);
-                      ret = VObject.ofExpression(returnType, new VExpression(`$${callback}`));
-                    } else if (StatementGuards.isCall(stmt)) {
-                      throw new Error(`calls to services are not supported within an If branch.`);
-                    } else {
-                      throw new Error(`unsupported syntax within an If: ${stmt}`);
-                    }
-                  }
-                } catch (err) {
-                  if (VObject.isObject(err)) {
-                    returnType = VObject.getType(err);
-                    expressions.push(VObject.getExpression(err));
-                  } else {
-                    throw err;
-                  }
-                }
-                if (it && it!.value !== undefined) {
-                  expressions.push(VExpression.concat(
-                    `#set(${callback} = `, it!.value, ')')
-                  );
-                }
-                // what to do with the return?
-                return {
-                  expr: VExpression.concat(...expressions),
-                  returnType
-                };
-              }
-            } else if (StatementGuards.isSet(stmt)) {
-              const name = stmt.id || id();
-              template.push(`#set($context.stash.${name} = ${VObject.getExpression(stmt.value).visit({indentSpaces: 0}).text})`);
-
-              // return a reference to the set value
-              returns = VObject.ofExpression(VObject.getType(stmt.value), new VExpression(`$context.stash.${name}`));
-            } else if (StatementGuards.isCall(stmt)) {
-              const name = id();
-              template.push(VObject.getExpression(stmt.request).visit({indentSpaces: 0}).text);
-              const requestMappingTemplate = template.join('\n');
-              console.log(requestMappingTemplate);
-              // return a reference to the previou s result
-              returns = VObject.ofExpression(stmt.responseType, new VExpression(`$context.stash.${name}`));
-              const responseMappingTemplate = `#set($context.stash.${name} = $context.result){}\n`;
-
-              // clear template state
-              template = [];
-
-              const stageName = `${fieldFQN}${stageCount += 1}`;
-              const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, fieldFQN);
-              const dataSource = new appsync.CfnDataSource(scope, `DataSource(${fieldFQN})`, {
-                ...dataSourceProps,
-                apiId: api.attrApiId,
-                name: stageName,
-              });
-
-              const functionConfiguration = new appsync.CfnFunctionConfiguration(scope, `Function(${fieldFQN})`, {
-                apiId: api.attrApiId,
-                name: stageName,
-                requestMappingTemplate,
-                responseMappingTemplate,
-                dataSourceName: dataSource.attrName,
-                functionVersion: '2018-05-29',
-              });
-              functions.push(functionConfiguration);
-            } else {
-              throw new Error(`unknown statement: ${next.value}`);
-            }
+              console.error('unsupported statement type', stmt);
+              throw new Error(`unsupported statement type: ${state}`);
+            };
           }
-          if (next.value !== undefined) {
+
+          if (result !== undefined) {
             template.push(VExpression.concat(
-              '$util.toJson(', next.value, ')'
-            ).visit({indentSpaces: 0}).text);
+              '$util.toJson(', result, ')'
+            ).visit(initState).text);
           }
 
           const responseTemplate = template.join('\n');
@@ -480,6 +363,7 @@ export class Api<
   }
 }
 
+
 type Directives = {
   [field in string]?: string[]; // directives
 };
@@ -497,8 +381,12 @@ const isUseful = (spec?: TypeSpec): spec is TypeSpec => {
 };
 
 // gets the GraphQL type annotaiton syntax for a Shape
-function getTypeAnnotation(shape: Shape, directives?: string[]): string {
-  const {graphqlType, isNullable} = Meta.get(shape, ['graphqlType', 'isNullable']);
+function getTypeAnnotation(shape: Shape): string {
+  const {graphqlType} = Meta.get(shape, ['graphqlType']);
+
+  const isNullable = isOptional(shape);
+
+  shape = isNullable ? (shape as UnionShape<Shape[]>).Items.find(i => !ShapeGuards.isNothingShape(i))! : shape;
 
   return `${getTypeName()}${isNullable === true ? '' : '!'}`;
 

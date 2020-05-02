@@ -2,10 +2,11 @@ import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
 import { IsInstance } from './is-instance';
 import { LiteralShape } from './literal';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { AnyShape, BinaryShape, BoolShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape} from './record';
 import { Shape } from './shape';
 import { UnionShape } from './union';
+import { stringHashCode } from './util';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
 
@@ -31,16 +32,6 @@ export namespace HashCode {
     function make() {
       return (shape as any).visit(visitor );
     }
-  }
-
-  export function stringHashCode(value: string): number {
-    let hash = 0;
-    for (let i = 0; i < value.length; i++) {
-      const character = value.charCodeAt(i);
-      hash = ((hash << 5) - hash) + character;
-      hash = hash & hash; // Convert to 32bit integer
-    }
-    return hash;
   }
 
   export class Visitor implements ShapeVisitor<HashCode<any>> {
@@ -71,7 +62,7 @@ export namespace HashCode {
     public nothingShape(shape: NothingShape, context: undefined): HashCode<any> {
       return _ => 0;
     }
-    public dynamicShape(shape: DynamicShape<any>): HashCode<any> {
+    public anyShape(shape: AnyShape): HashCode<any> {
       return hashCode;
 
       function hashCode(value: any) {

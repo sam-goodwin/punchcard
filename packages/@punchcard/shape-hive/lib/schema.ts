@@ -1,4 +1,4 @@
-import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, RecordShape, SetShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape, Trait, UnionShape } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BinaryShape, BoolShape, Decorated, IntegerShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, RecordShape, SetShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape, Trait, UnionShape } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 
 import { KeysOfType } from 'typelevel-ts';
@@ -79,7 +79,7 @@ export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
   public nothingShape(shape: NothingShape, context: null): glue.Type {
     throw new Error(`Nothing Shape is not supported by Glue.`);
   }
-  public dynamicShape(shape: DynamicShape<any>): glue.Type {
+  public anyShape(shape: AnyShape): glue.Type {
     throw new Error("Dynamic type is not supported by Glue.");
   }
   public arrayShape(shape: ArrayShape<any>): glue.Type {

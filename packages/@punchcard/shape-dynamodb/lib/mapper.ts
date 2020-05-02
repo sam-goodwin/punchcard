@@ -219,7 +219,7 @@ export namespace Mapper {
             };
           }
         } as any;
-      } else if (ShapeGuards.isDynamicShape(shape)) {
+      } else if (ShapeGuards.isAnyShape(shape)) {
         return {
           read: AWS.DynamoDB.Converter.output,
           write: AWS.DynamoDB.Converter.input,

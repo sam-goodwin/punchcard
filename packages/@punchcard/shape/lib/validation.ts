@@ -4,7 +4,7 @@ import { IsInstance } from './is-instance';
 import { LiteralShape } from './literal';
 import { Meta } from './metadata';
 import { Trait } from './metadata';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import { AnyShape, BinaryShape, BoolShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { RecordShape } from './record';
 import { Shape } from './shape';
 import { UnionShape } from './union';
@@ -71,7 +71,7 @@ export namespace Validator {
     public nothingShape(shape: NothingShape, context: string): Validator<any>[] {
       return [];
     }
-    public dynamicShape(shape: DynamicShape<any>): Validator<any>[] {
+    public anyShape(shape: AnyShape): Validator<any>[] {
       return [];
     }
     public arrayShape(shape: ArrayShape<any>): Validator<any>[] {
