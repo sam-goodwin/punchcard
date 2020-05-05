@@ -10,7 +10,7 @@ import { Resource } from '../../core/resource';
 import { Subscriptions, toAuthDirectives } from '../lang';
 import { VExpression } from '../lang/expression';
 import { stash, StatementGuards } from '../lang/statement';
-import { VObject, VObjectExpr } from '../lang/vtl-object';
+import { VNothing, VObject, VObjectExpr, VUnion } from '../lang/vtl-object';
 import { ApiFragment } from './api-fragment';
 import { AuthMetadata } from './auth';
 import { CacheMetadata, FullRequestCachingConfiguration, isPerResolverCachingConfiguration, PerResolverCachingConfiguration } from './caching';
@@ -258,6 +258,7 @@ export class Api<
               if(StatementGuards.isGetState(stmt)) {
                 return state;
               } else if (StatementGuards.isStash(stmt)) {
+                // console.log('stash', stmt);
                 const stashId = stmt.id || `$${stmt.local ? '' : 'context.stash.'}${state.newId('var')}`;
                 template.push(`#set(${stashId} = ${stmt.value[VObjectExpr].visit(state).text})`);
                 return VObject.ofExpression(VObject.getType(stmt.value), VExpression.text(stashId));
@@ -265,15 +266,30 @@ export class Api<
                 template.push(stmt.expr.visit(state).text);
                 return undefined;
               } else if (StatementGuards.isIf(stmt)) {
-                const result = yield* parseIf(stmt, state, interpreter);
-                if (state.indentSpaces === 0) {
+                const [returnId, branchYieldValues] = yield* parseIf(stmt, state, interpreter);
+
+                const returnedValues = branchYieldValues
+                  // map undefined to VNothing
+                  .map(r => r === undefined ? new VNothing(VExpression.text('null')) : r as VObject)
+                  // filter duplicates
+                  .filter((r, index, self) => self.findIndex(v => VObject.getType(r).equals(VObject.getType(v))) === index)
+                ;
+
+                // derive a VObject to represent the returned value of the if-else-then branches
+                const returnValue = returnedValues.length === 1 ? returnedValues[0] : new VUnion(
+                  new UnionShape(returnedValues.map(v => VObject.getType(v))),
+                  VExpression.text(returnId)
+                );
+
+                console.log('returnValue', returnValue);
+                const s = yield* stash(returnValue, {
                   // assume that we are at the top-level if indent is 0, so stash the result
-                  return yield* stash(result);
-                } else {
                   // nested if-statements should not be stashed
                   // TODO: potentially need a first-class state value to indiciate this - feels hacky AF.
-                  return result;
-                }
+                  id: 'test',
+                  local: state.indentSpaces > 0
+                });
+                return s;
               } else if (StatementGuards.isCall(stmt)) {
                 const name = idFactory();
                 template.push(VObject.getExpression(stmt.request).visit(state).text);

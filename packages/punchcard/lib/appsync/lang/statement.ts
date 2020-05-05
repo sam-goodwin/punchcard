@@ -66,6 +66,7 @@ export class Write {
 }
 
 export function *stash<T extends VObject>(v: VObject, props?: StashProps): VTL<T> {
+  console.log(new Stash(v, props));
   return (yield new Stash(v, props)) as T;
 }
 

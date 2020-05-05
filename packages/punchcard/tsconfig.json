@@ -6,6 +6,7 @@
       "es6",
       "esnext.asynciterable"
     ],
+    "outDir": "./dist",
     "downlevelIteration": true,
     "module": "commonjs",
     "strict": true,
@@ -16,13 +17,15 @@
     "alwaysStrict": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "inlineSourceMap": true,
+    // "inlineSourceMap": true,
+    "sourceMap": true,
     "declaration": true,
     "esModuleInterop": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true
   },
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "./dist"
   ]
 }

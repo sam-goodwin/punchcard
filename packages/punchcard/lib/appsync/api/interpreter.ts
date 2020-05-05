@@ -54,10 +54,10 @@ export function *interpretProgram(
 }
 
 export function *parseIf(
-  branch: IfBranch<VObject | void>,
+  branch: IfBranch<any>,
   state: InterpreterState,
   interpretFactory: InterpreterFactory
-): Generator<any, VObject> {
+): Generator<any, readonly [string, any[]]> {
   const elseIfBranches: IfBranch<VObject | void>[] = [];
   let elseBranch: ElseBranch<VObject | void> | undefined;
 
@@ -79,37 +79,22 @@ export function *parseIf(
     indentSpaces: state.indentSpaces + 2,
   };
 
-  const branchYieldValues = [];
+  const branchYieldValues: any[] = [];
 
   yield* write(VExpression.concat('#if(', branch.condition, ')'));
-  branchYieldValues.push(yield* interpretProgram(branch.then(), interpretFactory(nextState)), returnId);
+  branchYieldValues.push(yield* interpretProgram(branch.then(), interpretFactory(nextState), returnId));
   // yield* parseBlock(branch.then(), localCallback, interpret);
   for (const elseIfBranch of elseIfBranches) {
     yield* write(VExpression.concat('#elseif(', elseIfBranch.condition, ')',));
-    branchYieldValues.push(yield* interpretProgram(elseIfBranch.then(), interpretFactory(nextState)), returnId);
+    branchYieldValues.push(yield* interpretProgram(elseIfBranch.then(), interpretFactory(nextState), returnId));
   }
   if (elseBranch) {
     yield* write(VExpression.text('#{else}'));
-    branchYieldValues.push(yield* interpretProgram(elseBranch.then(), interpretFactory(nextState)), returnId);
+    branchYieldValues.push(yield* interpretProgram(elseBranch.then(), interpretFactory(nextState), returnId));
   } else {
     branchYieldValues.push(undefined);
   }
   yield* write(VExpression.text('#end'));
 
-  console.log(branchYieldValues);
-
-  const returnedValues = branchYieldValues
-    // map undefined to VNothing
-    .map(r => r === undefined ? new VNothing(VExpression.text('null')) : r as VObject)
-    // filter duplicates
-    .filter((r, index, self) => self.findIndex(v => VObject.getType(r).equals(VObject.getType(v))) === index)
-  ;
-  if (returnedValues.length === 1) {
-    return returnedValues[0];
-  } else {
-    return new VUnion(
-      new UnionShape(returnedValues.map(v => VObject.getType(v))),
-      VExpression.text(returnId)
-    );
-  }
+  return [returnId, branchYieldValues] as const;
 }

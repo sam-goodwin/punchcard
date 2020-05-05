@@ -132,7 +132,7 @@ export namespace VObject {
   export type TypeOf<T extends VObject> = T[typeof VObjectType];
 
   export function isObject(a: any): a is VObject {
-    return a[VObjectExpr] !== undefined;
+    return a && a[VObjectExpr] !== undefined;
   }
 
   // export type ShapeOf<T extends VObject> = T extends VObject<infer I> ? I : never;

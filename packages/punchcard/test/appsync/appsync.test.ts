@@ -2,7 +2,7 @@ import 'jest';
 
 import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, RecordType, set, Shape, Static, string, StringShape, timestamp, union, Value } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $appsync, $else, $if, ID, Impl, Interface, VFloat } from '../../lib/appsync';
+import { $appsync, $else, $if, ID, Impl, Interface, VFloat, VTL } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { ApiFragment } from '../../lib/appsync/api/api-fragment';
 import { CachingBehavior, CachingInstanceType } from '../../lib/appsync/api/caching';
@@ -235,7 +235,11 @@ export const PostApi = (scope: Scope) => {
         return yield* postStore.put({
           id,
           title: input.title,
-          content: input.content,
+          content: yield* $if($util.isNull(input.content), () =>
+            VTL.string('content'),
+          $else(function*() {
+            return input.content;
+          })),
           timestamp,
           channel: 'category',
           tags: []
@@ -384,7 +388,6 @@ const MyApi = new Api(stack, 'MyApi', {
 it('should', () => {
   Build.resolve(MyApi.resource);
   const _stack = Build.resolve(stack);
-  console.log(_stack);
 });
 
 // it('should generate schema', () => {
