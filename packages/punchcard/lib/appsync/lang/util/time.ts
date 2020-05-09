@@ -5,13 +5,13 @@ import { VInteger, VString, VTimestamp } from '../vtl-object';
 
 export class TimeUtil {
   public *nowISO8601(): VTL<VTimestamp> {
-    return yield* stash(new VTimestamp(new VExpression('$util.time.nowISO8601()')));
+    return yield* stash(new VTimestamp(VExpression.text('$util.time.nowISO8601()')));
   }
   public *nowEpochSeconds() : VTL<VInteger> {
-    return yield* stash(new VInteger(new VExpression('$util.time.nowISO8601()')));
+    return yield* stash(new VInteger(VExpression.text('$util.time.nowISO8601()')));
   }
   public *nowEpochMilliSeconds() : VTL<VInteger> {
-    return yield* stash(new VInteger(new VExpression('$util.time.nowEpochMilliSeconds()')));
+    return yield* stash(new VInteger(VExpression.text('$util.time.nowEpochMilliSeconds()')));
   }
   public *nowFormatted(format: VString) : VTL<VString> {
     return yield* stash(new VString(VExpression.concat(

@@ -7,7 +7,7 @@ import type * as cdk from '@aws-cdk/core';
 import { any, array, map, Record, RecordShape, Shape, string } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
 import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, isIfBranch, VExpression, VObject, VString, VTL, vtl } from '../appsync';
-import { interpret, InterpreterState, interpretProgram, parseIf } from '../appsync/api/interpreter';
+import { InterpreterState, interpretProgram, parseIf } from '../appsync/api/interpreter';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -223,7 +223,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
 
     const tx = request.transaction(fields);
 
-    yield* interpretProgram(tx, interpreter(yield* getState()));
+    // yield* interpretProgram(tx, interpreter(yield* getState()));
 
     const UpdateItemRequest = Record({
       version: string,
@@ -253,53 +253,52 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       this.dataType
     );
 
-    function interpreter(state: InterpreterState) {
-      return function *interpretTxStatement(stmt: any) {
-        // console.log(stmt);
-        if (isAddExpressionName(stmt)) {
-          const id = newId();
-          const ref = yield* renderExpression(stmt.expr);
-          return id;
-          // yield* expressionNames.put(id, stmt.expr);
-        } else if (isAddExpressionValue(stmt)) {
-          yield* addValue(toAttributeValue(stmt.shape, stmt.value));
-          const id = newId();
-          yield* expressionValues.put(id, toAttributeValue(stmt.shape, stmt.value));
-          return id;
-        } else if (isAddSetAction(stmt)) {
-          yield* setStatements.add(stmt.action);
-          return undefined;
-        } else if (isIfBranch(stmt)) {
-          const result = yield* parseIf(stmt, state, interpreter);
-          return result;
-        } else {
-          console.warn('unsupported tx statement', stmt);
-          return yield stmt;
-        }
-      };
-    }
+    // function interpreter(stmt: any, state: InterpreterState) {
+    //   console.log(stmt);
+    //   // console.log(stmt);
+    //   if (isAddExpressionName(stmt)) {
+    //     const id = newId();
+    //     const ref = yield* renderExpression(stmt.expr);
+    //     return id;
+    //     // yield* expressionNames.put(id, stmt.expr);
+    //   } else if (isAddExpressionValue(stmt)) {
+    //     yield* addValue(toAttributeValue(stmt.shape, stmt.value));
+    //     const id = newId();
+    //     yield* expressionValues.put(id, toAttributeValue(stmt.shape, stmt.value));
+    //     return id;
+    //   } else if (isAddSetAction(stmt)) {
+    //     yield* setStatements.add(stmt.action);
+    //     return undefined;
+    //   } else if (isIfBranch(stmt)) {
+    //     const result = yield* parseIf(stmt, state, interpreter);
+    //     return result;
+    //   } else {
+    //     console.warn('unsupported tx statement', stmt);
+    //     return yield stmt;
+    //   }
+    // }
 
-    function *renderExpression(expr: DynamoExpr<Shape>): Generator<any, string> {
-      if (DynamoExpr.isReference(expr)) {
-        if (expr.target) {
-          return `${yield* renderExpression(expr.target.expr)}.${yield* addName(expr.id)}`;
-        } else {
-          return yield* addName(expr.id);
-        }
-      } else if (DynamoExpr.isGetListItem(expr)) {
-        const index = typeof expr.index === 'number' ? yield* VTL.number(expr.index) : expr.index;
-        return `${yield* renderExpression(expr.list.expr)}[${index}]`;
-      } else if (DynamoExpr.isGetMapItem(expr)) {
-        // if (!expressionValues.has(expr.key)) {
-        //   const id = newId();
-        //   _expressionValues.set(expr.key, id);
-        //   yield* expressionValues.put(id, toAttributeValue(string, expr.key));
-        // }
-        // return `${yield* renderExpression(expr.map.expr)}.${_expressionValues.get(expr.)}`;
-      }
+    // function *renderExpression(expr: DynamoExpr<Shape>): Generator<any, string> {
+    //   if (DynamoExpr.isReference(expr)) {
+    //     if (expr.target) {
+    //       return `${yield* renderExpression(expr.target.expr)}.${yield* addName(expr.id)}`;
+    //     } else {
+    //       return yield* addName(expr.id);
+    //     }
+    //   } else if (DynamoExpr.isGetListItem(expr)) {
+    //     const index = typeof expr.index === 'number' ? yield* VTL.number(expr.index) : expr.index;
+    //     return `${yield* renderExpression(expr.list.expr)}[${index}]`;
+    //   } else if (DynamoExpr.isGetMapItem(expr)) {
+    //     // if (!expressionValues.has(expr.key)) {
+    //     //   const id = newId();
+    //     //   _expressionValues.set(expr.key, id);
+    //     //   yield* expressionValues.put(id, toAttributeValue(string, expr.key));
+    //     // }
+    //     // return `${yield* renderExpression(expr.map.expr)}.${_expressionValues.get(expr.)}`;
+    //   }
 
-      return '';
-    }
+    //   return '';
+    // }
 
     function *addName(name: string | VString): Generator<any, string> {
       const id = newId();

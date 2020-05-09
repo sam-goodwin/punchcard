@@ -1,4 +1,4 @@
-import { InterpreterState } from '../api/interpreter';
+import { InterpreterState, isInterpreterState } from '../api/interpreter';
 import { VObject } from './vtl-object';
 
 export interface VExpressionResult {
@@ -85,19 +85,15 @@ export class VExpression {
   }
 
   public static text(text: string) {
-    return new VExpression(text);
+    return new VExpression(state => state.write(text));
   }
 
-  public static indent(spaces: number = 2): VExpression {
-    return new VExpression(ctx => {
-      return {
-        text: '',
-        context: {
-          ...ctx,
-          indentSpaces: ctx.indentSpaces + spaces
-        }
-      };
-    });
+  public static indent(): VExpression {
+    return new VExpression(state => state.indent());
+  }
+
+  public static unindent(): VExpression {
+    return new VExpression(state => state.unindent());
   }
 
   public static block(expr: VExpression) {
@@ -111,13 +107,7 @@ export class VExpression {
   }
 
   public static line(): VExpression {
-    return new VExpression(ctx => ({
-      text: `\n${Array(ctx.indentSpaces).map(_ => ' ').join(' ')}`,
-    }));
-  }
-
-  public static unindent(spaces: number = 2): VExpression {
-    return VExpression.indent(-1 * spaces);
+    return new VExpression(state => state.writeLine());
   }
 
   public readonly [isExpr]: true = true;
@@ -139,49 +129,15 @@ export class VExpression {
       args = args.slice(2);
       return VExpression.concat(
         self, '.', functionName, '(',
-          VExpression.concat(...args.map((a, i) => i < args.length ? VExpression.concat(a, ',') : a)),
+          VExpression.concat(...args.map((a, i) => i < args.length - 1 ? VExpression.concat(a, ',') : a)),
         ')'
       );
     }
   }
 
   public static concat(...expressions: (VExpression | VObject | string)[]) {
-    return new VExpression((ctx) => {
-      const tokens: string[] = [];
-      for (const expr of expressions) {
-        if (typeof expr === 'string') {
-          tokens.push(expr);
-        } else {
-          const e = VObject.isObject(expr) ? VObject.getExpression(expr) : expr;
-          const result = e.visit(ctx);
-          if (result.context !== undefined) {
-            ctx = result.context;
-          }
-          tokens.push(result.text);
-        }
-      }
-      return tokens.join('');
-    });
+    return new VExpression((ctx) => ctx.write(...expressions));
   }
 
-  constructor(private readonly _visit: string | ((ctx: InterpreterState) => string | VExpressionResult)) {}
-
-  /**
-   * Write variables to the Frame and
-   * @param frame
-   */
-  public visit(context: InterpreterState): VExpressionResult {
-    if (typeof this._visit === 'string') {
-      return {
-        text: this._visit,
-        context
-      };
-    } else {
-      const text = this._visit(context);
-      return typeof text === 'string' ? {
-        text,
-        context
-      } : text;
-    }
-  }
+  constructor(public readonly visit: ((state: InterpreterState) => string | InterpreterState | void)) {}
 }

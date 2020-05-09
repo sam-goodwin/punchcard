@@ -56,17 +56,18 @@ export function *getState(): VTL<InterpreterState> {
 export type GetState = typeof GetState;
 export const GetState = 'get-state';
 
-export function *write(a: VExpression | VObject): VTL<void> {
-  return (yield new Write(VObject.isObject(a) ? VObject.getExpression(a) : a)) as void;
+export function *write(...expressions: Writable[]): VTL<void> {
+  return (yield new Write(expressions)) as void;
 }
+
+export type Writable = number | string | VObject | VExpression;
 
 export class Write {
   public readonly [Statement.Tag]: 'write' = 'write';
-  constructor(public readonly expr: VExpression) {}
+  constructor(public readonly expressions: Writable[]) {}
 }
 
 export function *stash<T extends VObject>(v: VObject, props?: StashProps): VTL<T> {
-  console.log(new Stash(v, props));
   return (yield new Stash(v, props)) as T;
 }
 

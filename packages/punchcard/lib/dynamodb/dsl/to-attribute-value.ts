@@ -7,7 +7,6 @@ export function toAttributeValue<S extends Shape>(shape: S, obj: VObject.Like<S>
 export function toAttributeValueExpression<S extends Shape>(shape: S, obj: VObject.Like<S>, topLevel: boolean = true): VExpression {
   if (!VObject.isObject(obj)) {
     if (ShapeGuards.isArrayShape(shape) && Array.isArray(obj)) {
-      console.log(obj);
       const list = (obj as VObject.Like<Shape>[]);
       return VExpression.json({
         L: list.map(o => toAttributeValueExpression(shape.Items, o, false))

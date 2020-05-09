@@ -1,67 +1,125 @@
-import { UnionShape } from '@punchcard/shape/lib/union';
 import { VExpression } from '../lang/expression';
-import { ElseBranch, IfBranch, isIfBranch, stash, write } from '../lang/statement';
-import { VNothing, VObject, VUnion } from '../lang/vtl-object';
+import { ElseBranch, IfBranch, isIfBranch, stash, Writable, write } from '../lang/statement';
+import { VObject } from '../lang/vtl-object';
 
-export const idFactory = () => {
-  const inc: {
-    [key: string]: number;
+export type Interpreter = (stmt: any, state: InterpreterState) => any;
+
+export function isInterpreterState(a: any): a is InterpreterState {
+  return typeof a?.renderTemplate === 'function';
+}
+export class InterpreterState {
+  constructor(
+    public readonly template: string[] = [],
+    public indentSpaces: number = 0,
+    public readonly newId: (prefix?: string) => string = idGenerator()
+  ) {}
+
+  public renderTemplate(clear: boolean = true): string {
+    const templateText = this.template.join('');
+    if (clear) {
+      this.clearTemplate();
+    }
+    return templateText;
+  }
+
+  public clearTemplate(): void {
+    this.template.splice(0, this.template.length);
+  }
+
+  public writeLine(): InterpreterState {
+    this.write('\n');
+    for (let i = 0; i < this.indentSpaces; i++) {
+      this.write(' ');
+    }
+    return this;
+  }
+
+  public write(...expressions: Writable[]): InterpreterState {
+    // console.log(expressions);
+    let state: InterpreterState = this;
+    expressions.forEach(write);
+    return state;
+
+    function write(expr: Writable) {
+      if (typeof expr === 'string') {
+        state.template.push(expr);
+      } else if (typeof expr === 'number') {
+        state.write(expr.toString(10));
+      } else if (VObject.isObject(expr)) {
+        state.write(VObject.getExpression(expr));
+      } else {
+        const t = expr.visit(state);
+        if (typeof t === 'string') {
+          state.write(t);
+        } else if (isInterpreterState(t)) {
+          state = t;
+        }
+      }
+    }
+  }
+
+  public stash(value: VObject, props?: {
+    id?: string;
+    local?: boolean;
+  }): string {
+    const id = props?.id || `$${props?.local ? '': 'context.stash.'}${this.newId()}`;
+
+    this.write(`#set(${id} = `, value, ')').writeLine();
+    return id!;
+  }
+
+  public indent(): InterpreterState {
+    this.indentSpaces += 2;
+    return this;
+  }
+
+  public unindent(): InterpreterState {
+    this.indentSpaces -= 2;
+    if(this.indentSpaces < 0) {
+      this.indentSpaces = 0;
+    }
+    return this;
+  }
+}
+
+export function idGenerator() {
+  const idNamespaces: {
+    [key: string]: number
   } = {};
 
   return (prefix: string = 'var') => {
-    const i = inc[prefix];
+    const i = idNamespaces[prefix];
     if (i === undefined) {
-      inc[prefix] = 0;
+      idNamespaces[prefix] = 0;
     }
-    return `${prefix}${(inc[prefix] += 1).toString(10)}`;
+    return `${prefix}${(idNamespaces[prefix] += 1).toString(10)}`;
   };
-};
-
-export function interpret(program: Generator): any {
-  let next: IteratorResult<any, any>;
-  while (!(next = program.next(undefined)).done) {
-    next = program.next();
-  }
-  return next.value;
 }
 
-export interface InterpreterState {
-  readonly indentSpaces: number;
-  newId(prefix?: string): string;
-}
-export type InterpreterFactory = (state: InterpreterState) => Interpreter;
-export type Interpreter = (stmt: any) => Generator<any, any, any>;
-
-export function *interpretProgram(
+export function interpretProgram(
   program: Generator<any, VObject | void>,
+  state: InterpreterState,
   interpreter: Interpreter,
-  returnId?: string
-): Generator<any, VObject | void, any> {
+): VObject | void {
   let next: IteratorResult<any, any>;
   let returns: VObject | undefined;
 
   while (!(next = program.next(returns)).done) {
     const stmt = next.value;
-    returns = yield* interpreter(stmt);
+    returns = interpreter(stmt, state);
   }
-  if (next.value !== undefined && returnId) {
-    return yield* stash(next.value, {
-      id: returnId
-    });
-  }
-
-  return undefined;
+  return next.value;
 }
 
-export function *parseIf(
-  branch: IfBranch<any>,
+export function parseIf(
+  ifBranch: IfBranch<any>,
   state: InterpreterState,
-  interpretFactory: InterpreterFactory
-): Generator<any, readonly [string, any[]]> {
+  interpreter: Interpreter
+): readonly [string, any[]] {
   const elseIfBranches: IfBranch<VObject | void>[] = [];
   let elseBranch: ElseBranch<VObject | void> | undefined;
 
-  let b: IfBranch<VObject | void> | ElseBranch<VObject | void> | undefined = branch.elseBranch;
+  let b: IfBranch<VObject | void> | ElseBranch<VObject | void> | undefined = ifBranch.elseBranch;
   while (b !== undefined) {
     if (isIfBranch(b)) {
       elseIfBranches.push(b);
@@ -73,28 +131,38 @@ export function *parseIf(
   }
 
   const returnId = `$${state.newId('local')}`;
-
-  const nextState: InterpreterState = {
-    ...state,
-    indentSpaces: state.indentSpaces + 2,
-  };
-
   const branchYieldValues: any[] = [];
 
-  yield* write(VExpression.concat('#if(', branch.condition, ')'));
-  branchYieldValues.push(yield* interpretProgram(branch.then(), interpretFactory(nextState), returnId));
-  // yield* parseBlock(branch.then(), localCallback, interpret);
+  let firstIf = true; // track whether this is an if or an elseIf
+  visitBranch(ifBranch);
   for (const elseIfBranch of elseIfBranches) {
-    yield* write(VExpression.concat('#elseif(', elseIfBranch.condition, ')',));
-    branchYieldValues.push(yield* interpretProgram(elseIfBranch.then(), interpretFactory(nextState), returnId));
+    visitBranch(elseIfBranch);
   }
   if (elseBranch) {
-    yield* write(VExpression.text('#{else}'));
-    branchYieldValues.push(yield* interpretProgram(elseBranch.then(), interpretFactory(nextState), returnId));
+    visitBranch(elseBranch);
   } else {
     branchYieldValues.push(undefined);
   }
-  yield* write(VExpression.text('#end'));
+  state.write('#end').writeLine();
+
+  // visits a branch and returns the value by setting the outer returnId
+  function visitBranch(branch: IfBranch | ElseBranch) {
+    if(isIfBranch(branch)) {
+      state.write(firstIf ? `#if` : '#elseif', '(', branch.condition, ')');
+      firstIf = false;
+    } else {
+      state.write('#{else}');
+    }
+    state.indent().writeLine();
+    const value = interpretProgram(branch.then(), state, interpreter);
+    if (value) {
+      state.stash(value, {
+        id: returnId
+      });
+    }
+    state.unindent().writeLine();
+    branchYieldValues.push(value);
+  }
 
   return [returnId, branchYieldValues] as const;
 }

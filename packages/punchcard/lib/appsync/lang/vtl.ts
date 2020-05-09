@@ -1,7 +1,7 @@
 import { number as numberShape, ShapeGuards, string as stringShape } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { VExpression } from './expression';
-import { stash, Statement } from './statement';
+import { stash, Statement, write } from './statement';
 import { VFloat, VObject, VString } from './vtl-object';
 
 /**
@@ -45,38 +45,24 @@ export function vtl<T extends Shape>(type: T): ExpressionTemplate<T>;
 export function vtl<Args extends (VObject | string | number)[]>(
   template: TemplateStringsArray,
   ...args: Args
-): VTL<VExpression>;
+): VTL<void>;
 
 export function vtl(...args: any[]): any {
   if (ShapeGuards.isShape(args[0])) {
     const type: Shape = args[0];
     return function*(template: TemplateStringsArray, args: (VObject | string | number)[] = []) {
-      // console.log(template, args);
-      const obj = VObject.ofExpression(type,  VExpression.concat(
+      return yield* stash(VObject.ofExpression(type, new VExpression(state => state.write(
         quotes(type),
-        ...template.map((str, i) => new VExpression(ctx =>
-          `${str}${i < args.length ?
-            VObject.isObject(args[i]) ? VObject.getExpression(args[i] as VObject).visit(ctx).text : '' :
-            typeof args[i] === 'string' ? `${args[i]}` :
-            typeof args[i] === 'number' ? args[i].toString(10) :
-            (args[i] || '').toString()
-          }`
-        )),
+        ...template.map((str, i) => i < args.length ? [str, args[i]] : [str]).reduce((a, b) => a.concat(b)),
         quotes(type)
-      ));
-      return yield* stash(obj);
+      ))));
     };
   } else {
-    const template = args[0];
+    const template: string[] = args[0];
     args = args.slice(1);
     return (function*() {
-      return VExpression.concat(template.map((str: string, i: number) => new VExpression(ctx =>
-        `${str}${i < args.length ?
-          VObject.isObject(args[i]) ? VObject.getExpression(args[i] as VObject).visit(ctx).text : '' :
-          typeof args[i] === 'string' ? `${args[i]}` :
-          typeof args[i] === 'number' ? args[i].toString(10) :
-          args[i].toString()
-        }`
+      yield* write(new VExpression(state => state.write(
+        ...template.map((str, i) => i < args.length ? [str, args[i]] : [str]).reduce((a, b) => a.concat(b))
       )));
     })();
   }
@@ -92,10 +78,10 @@ function needsQuotes(type: Shape): boolean {
 
 export namespace VTL {
   export function *string(s: string): VTL<VString> {
-    return yield* stash(VObject.ofExpression(stringShape, new VExpression(`"${s}"`)));
+    return yield* stash(VObject.ofExpression(stringShape, VExpression.text(`"${s}"`)));
   }
 
   export function *number(n: number): VTL<VFloat> {
-    return yield* stash(VObject.ofExpression(numberShape, new VExpression(n.toString(10))));
+    return yield* stash(VObject.ofExpression(numberShape, VExpression.text(n.toString(10))));
   }
 }

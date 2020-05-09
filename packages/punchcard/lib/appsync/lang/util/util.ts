@@ -16,7 +16,7 @@ export class Util {
 
   public *autoId(): VTL<VString> {
     // return yield new Statements.Set(value, id);
-    return yield* stash(new VString(new VExpression('$util.autoId()')));
+    return yield* stash(new VString(VExpression.text('$util.autoId()')));
   }
 
   public matches(regex: RegExp | string): VTL<VBool> {
@@ -24,7 +24,7 @@ export class Util {
   }
 
   public unauthorized(): VNever {
-    return new VNever(new VExpression('$util.unauthorized()'));
+    return new VNever(VExpression.text('$util.unauthorized()'));
   }
 
   /**
@@ -52,18 +52,19 @@ export class Util {
   }
 
   public isNull(value: VObject): VBool {
-    return new VBool(new VExpression((ctx) => `$util.isNull(${VObject.getExpression(value).visit(ctx).text})`));
+    return new VBool(new VExpression(state => state.write('$util.isNull(', value, ')')));
   }
 
   public isNotNull(value: VObject): VBool {
-    return new VBool(new VExpression((ctx) => `!$util.isNull(${VObject.getExpression(value).visit(ctx).text})`));
+    return new VBool(new VExpression(state => state.write(`!$util.isNull(`, value, `)`)));
   }
 
   public *defaultIfNull<T extends VObject>(obj: T, defaultValue: VObject.Like<VObject.TypeOf<T>>): VTL<T> {
     const type = VObject.getType(obj);
     const defaultV = yield* VObject.of(type, defaultValue);
-    return VObject.ofExpression(type, new VExpression((ctx) =>
-      `$util.defaultIfNull(${VObject.getExpression(obj).visit(ctx).text}, ${defaultV})`)) as any;
+    return VObject.ofExpression(type, new VExpression(state => state.write(
+      '$util.defaultIfNull(', obj, ',', defaultV, ')'
+    ))) as any;
   }
 
   public readonly dynamodb = new DynamoDBUtil();
@@ -72,7 +73,7 @@ export class Util {
 }
 
 function call(functionName: string, args: (string | VObject | undefined)[]) {
-  return new VExpression(ctx => {
+  return new VExpression(state => {
     const parameters = [];
     for (const arg of args) {
       if (arg === undefined) {
@@ -80,10 +81,10 @@ function call(functionName: string, args: (string | VObject | undefined)[]) {
         // that's so we can support overloaded methods like `$util.error`.
         break;
       }
-      parameters.push(typeof arg === 'string' ? arg : VObject.getExpression(arg!).visit(ctx).text);
+      parameters.push(arg);
     }
 
-    return `${functionName}(${parameters.join(',')})`;
+    state.write(functionName, '(', ...parameters, ')');
   });
 }
 
