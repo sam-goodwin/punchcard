@@ -213,7 +213,7 @@ export class Api<
         const directives: Directives = {};
         const typeName = typeSpec.type.FQN;
         const selfType = typeSpec.type;
-        const self = VObject.ofExpression(typeSpec.type, VExpression.text('$context.source'));
+        const self = VObject.fromExpr(typeSpec.type, VExpression.text('$context.source'));
         for (const [fieldName, resolver] of Object.entries(typeSpec.resolvers) as [string, FieldResolver<any, any, any>][]) {
           directives[fieldName] = [];
           const {auth, cache, subscribe} = resolver as Partial<AuthMetadata & CacheMetadata<Shape> & SubscribeMetadata<Shape>>;
@@ -227,7 +227,7 @@ export class Api<
           let program: Generator<any, any, any> = undefined as any;
           if (ShapeGuards.isFunctionShape(fieldShape)) {
             const args = Object.entries(fieldShape.args).map(([argName, argShape]) => ({
-              [argName]: VObject.ofExpression(argShape, VExpression.text(`$context.arguments.${argName}`))
+              [argName]: VObject.fromExpr(argShape, VExpression.text(`$context.arguments.${argName}`))
             })).reduce((a, b) => ({...a, ...b}));
             if (resolver.resolve) {
               program = resolver.resolve.bind(self)(args as any, self);
@@ -254,7 +254,8 @@ export class Api<
             if(StatementGuards.isGetState(stmt)) {
               return state;
             } else if (StatementGuards.isStash(stmt)) {
-              return VObject.ofExpression(VObject.getType(stmt.value), VExpression.text(state.stash(stmt.value)));
+              const stashId = state.stash(stmt.value, stmt);
+              return VObject.fromExpr(VObject.getType(stmt.value), VExpression.text(stashId));
             } else if (StatementGuards.isWrite(stmt)) {
               state.write(...stmt.expressions);
               return undefined;
@@ -277,7 +278,7 @@ export class Api<
               return state.stash(returnValue);
             } else if (StatementGuards.isCall(stmt)) {
               const name = state.newId();
-              state.write(VObject.getExpression(stmt.request));
+              state.write(VObject.getExpr(stmt.request));
               const requestMappingTemplate = state.renderTemplate();
               console.log(requestMappingTemplate);
               // return a reference to the previou s result
@@ -299,7 +300,7 @@ export class Api<
                 functionVersion: '2018-05-29',
               });
               functions.push(functionConfiguration);
-              return VObject.ofExpression(stmt.responseType, VExpression.text(`$context.stash.${name}`));
+              return VObject.fromExpr(stmt.responseType, VExpression.text(`$context.stash.${name}`));
             }
             console.error('unsupported statement type', stmt);
             throw new Error(`unsupported statement type: ${state}`);

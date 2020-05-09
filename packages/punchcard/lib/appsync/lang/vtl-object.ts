@@ -21,7 +21,7 @@ export class VObject<T extends Shape = Shape> {
   }
 
   public as<T extends Shape>(t: T): VObject.Of<T> {
-    return VObject.ofExpression(t, this[VObjectExpr]);
+    return VObject.fromExpr(t, this[VObjectExpr]);
   }
 
   public notEquals(other: this | Value.Of<T>): VBool {
@@ -71,7 +71,7 @@ export namespace VObject {
         // write to VTL using the item's type
         const itemValue = yield* of(itemType, value);
         // return an instance of the union
-        return VObject.ofExpression(type as T, itemValue[VObjectExpr]) as VObject.Of<T>;
+        return VObject.fromExpr(type as T, itemValue[VObjectExpr]) as VObject.Of<T>;
       }
       throw new Error(`value did not match item in the UnionShape: ${type.Items.map(i => i.Kind).join(',')}`);
     }
@@ -109,7 +109,7 @@ export namespace VObject {
     );
   }
 
-  export function ofExpression<T extends Shape>(type: T, expr: VExpression): VObject.Of<T> {
+  export function fromExpr<T extends Shape>(type: T, expr: VExpression): VObject.Of<T> {
     const shape: Shape = VObject.isObject(type) ? getType(type) : type as Shape;
     return shape.visit(Visitor.defaultInstance as any, expr) as any;
   }
@@ -118,7 +118,7 @@ export namespace VObject {
     return t[VObjectType];
   }
 
-  export function getExpression<T extends VObject>(t: T): VExpression {
+  export function getExpr<T extends VObject>(t: T): VExpression {
     return t[VObjectExpr];
   }
 
@@ -193,7 +193,7 @@ export class VAny extends VObject.NewType(any) {}
 
 const VNumeric = <N extends NumberShape>(type: N) => class extends VObject.NewType(type) {
   public *minus(value: VObject.Like<N>): VTL<this> {
-    return (yield* stash(VObject.ofExpression(type, VExpression.concat(
+    return (yield* stash(VObject.fromExpr(type, VExpression.concat(
       this, ' - ', VObject.isObject(value) ? value : value.toString(10)
     )))) as any as this;
   }
@@ -302,7 +302,7 @@ export class VMap<T extends Shape = Shape> extends VObject<MapShape<T>> {
   }
 
   public get(key: string | VString): VObject.Of<T> {
-    return VObject.ofExpression(this[VObjectType].Items, VExpression.concat(
+    return VObject.fromExpr(this[VObjectType].Items, VExpression.concat(
       this, '.get(', key, ')'
     )) as VObject.Of<T>;
   }
@@ -316,7 +316,7 @@ export class VRecord<T extends RecordShape = RecordShape> extends VObject<T> {
   constructor(type: T, expr: VExpression) {
     super(type, expr);
     for (const [name, shape] of Object.entries(type.Members) as [string, Shape][]) {
-      (this as any)[name] = VObject.ofExpression(shape, VExpression.concat(expr, '.', name));
+      (this as any)[name] = VObject.fromExpr(shape, VExpression.concat(expr, '.', name));
     }
   }
 }
@@ -385,7 +385,7 @@ export namespace VUnion {
 
   function parseMatch(m: Match, elseIf?: IfBranch | ElseBranch): Generator<any, any> {
     const assertCondition = toCondition(m);
-    const assertedValue = VObject.ofExpression(m.matchType, VObject.getExpression(m.value));
+    const assertedValue = VObject.fromExpr(m.matchType, VObject.getExpr(m.value));
     if (elseIf) {
       return m.parent === undefined ?
         $if(assertCondition, () => m.block(assertedValue), elseIf) :

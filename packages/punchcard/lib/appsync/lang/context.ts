@@ -83,12 +83,12 @@ export namespace $context {
     [key in string]?: VString;
   };
 
-  export const identity: VObject.Of<typeof Identity> & {claims: Claims} = VObject.ofExpression(Identity, VExpression.text('$context.identity')) as any;
+  export const identity: VObject.Of<typeof Identity> & {claims: Claims} = VObject.fromExpr(Identity, VExpression.text('$context.identity')) as any;
   (identity as any).claims = {
-    'cognito:groups': VObject.ofExpression(array(string), VExpression.text('$context.identity.claims.get("cognito:groups")')),
-    'cognito:username': VObject.ofExpression(string, VExpression.text('$context.identity.claims.get("cognito:username")')),
+    'cognito:groups': VObject.fromExpr(array(string), VExpression.text('$context.identity.claims.get("cognito:groups")')),
+    'cognito:username': VObject.fromExpr(string, VExpression.text('$context.identity.claims.get("cognito:username")')),
     ...(Object.entries(StandardClaims)
-      .map(([name, shape]) => ({[name]: VObject.ofExpression(shape, VExpression.text(`$context.identity.claims.get("${name}")`))}))
+      .map(([name, shape]) => ({[name]: VObject.fromExpr(shape, VExpression.text(`$context.identity.claims.get("${name}")`))}))
       .reduce((a, b) => ({...a, ...b})))
   } as Claims;
 }

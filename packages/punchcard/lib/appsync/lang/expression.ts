@@ -112,7 +112,7 @@ export class VExpression {
 
   public readonly [isExpr]: true = true;
 
-  public static call(self: VObject, functionName: string, ...args: (VExpression | VObject | string)[]): VExpression;
+  public static call(self: VObject, functionName: string, ...args: []): VExpression;
   public static call(functionName: string, ...args: (VExpression | VObject | string)[]): VExpression;
   public static call(...args: any[]): VExpression {
     if (typeof args[0] === 'string') {
@@ -120,7 +120,7 @@ export class VExpression {
       args = args.slice(1);
       return VExpression.concat(
         functionName, '(',
-          VExpression.concat(...args.map((a, i) => i < args.length ? VExpression.concat(a, ',') : a)),
+          VExpression.concat(...args.map((a, i) => i < args.length - 1 ? VExpression.concat(a, ',') : a)),
         ')'
       );
     } else {

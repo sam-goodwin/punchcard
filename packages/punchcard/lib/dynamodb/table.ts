@@ -4,10 +4,9 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, array, map, Record, RecordShape, Shape, string } from '@punchcard/shape';
+import { any, array, map, Record, RecordShape, string } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, isIfBranch, VExpression, VObject, VString, VTL, vtl } from '../appsync';
-import { InterpreterState, interpretProgram, parseIf } from '../appsync/api/interpreter';
+import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -16,10 +15,8 @@ import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { DynamoExpr } from './dsl/dynamo-expr';
 import { DynamoDSL } from './dsl/dynamo-repr';
-import { isAddExpressionName, isAddExpressionValue } from './dsl/expression-values';
-import { toAttributeValue, toAttributeValueExpression } from './dsl/to-attribute-value';
+import { toAttributeValueJson } from './dsl/to-attribute-value';
 import { UpdateRequest } from './dsl/update-request';
-import { isAddSetAction, UpdateTransaction } from './dsl/update-transaction';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
@@ -193,37 +190,39 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       operation: string,
       key: this.keyShape
     });
-    const request = VObject.ofExpression(GetItemRequest, VExpression.json({
+    const request = VObject.fromExpr(GetItemRequest, VExpression.json({
       version: '2017-02-28',
       operation: 'GetItem',
-      key: toAttributeValueExpression(this.keyShape, key)
+      key: toAttributeValueJson(this.keyShape, key)
     }));
 
     return call(this.dataSourceProps((table, role) => table.grantReadData(role), props), request, this.dataType);
   }
 
   public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
+    const setStatements = yield* vtl(array(string), {
+      local: true,
+      id: '$setStatements'
+    })`[]`;
+
+    // map of id -> attribute-value
+    const expressionValues = yield* vtl(map(any), {
+      local: true,
+      id: '$expressionValues'
+    })`{}`;
+
+    // map of name -> id
+    const expressionNames = yield* vtl(map(string), {
+      local: true,
+      id: '$expressionNames'
+    })`{}`;
+
     const fields: any = {};
     for (const [name, field] of Object.entries(this.dataType.Members)) {
       fields[name] = DynamoDSL.of(field, new DynamoExpr.Reference(undefined, field, name));
     }
 
-    const setStatements = yield* vtl(array(string))`[]`;
-
-    // map of id -> attribute-value
-    const expressionValues = yield* vtl(map(any))`{}`;
-
-    // map of name -> id
-    const expressionNames = yield* vtl(map(string))`{}`;
-
-    const newId = (() => {
-      let i = 0;
-      return (prefix?: string) => `${prefix || ''}var${i += 1}`;
-    })();
-
-    const tx = request.transaction(fields);
-
-    // yield* interpretProgram(tx, interpreter(yield* getState()));
+    yield* request.transaction(fields);
 
     const UpdateItemRequest = Record({
       version: string,
@@ -236,12 +235,15 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       })
     });
 
-    const updateRequest = VObject.ofExpression(UpdateItemRequest, VExpression.json({
+    const updateRequest = VObject.fromExpr(UpdateItemRequest, VExpression.json({
       version: '2017-02-28',
       operation: 'UpdateItem',
-      key: toAttributeValueExpression(this.keyShape, request.key),
+      key: toAttributeValueJson(this.keyShape, request.key),
       update: {
-        expression: yield* vtl(string)`"SET #foreach( $i in ${setStatements} )$i#if( $foreach.hasNext ),#end"`,
+        expression: yield* vtl(string, {
+          local: true,
+          id: '$expression'
+        })`SET #foreach( $i in ${setStatements} )$i#if( $foreach.hasNext ),#end`,
         expressionNames,
         expressionValues
       }
@@ -252,65 +254,6 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       updateRequest,
       this.dataType
     );
-
-    // function interpreter(stmt: any, state: InterpreterState) {
-    //   console.log(stmt);
-    //   // console.log(stmt);
-    //   if (isAddExpressionName(stmt)) {
-    //     const id = newId();
-    //     const ref = yield* renderExpression(stmt.expr);
-    //     return id;
-    //     // yield* expressionNames.put(id, stmt.expr);
-    //   } else if (isAddExpressionValue(stmt)) {
-    //     yield* addValue(toAttributeValue(stmt.shape, stmt.value));
-    //     const id = newId();
-    //     yield* expressionValues.put(id, toAttributeValue(stmt.shape, stmt.value));
-    //     return id;
-    //   } else if (isAddSetAction(stmt)) {
-    //     yield* setStatements.add(stmt.action);
-    //     return undefined;
-    //   } else if (isIfBranch(stmt)) {
-    //     const result = yield* parseIf(stmt, state, interpreter);
-    //     return result;
-    //   } else {
-    //     console.warn('unsupported tx statement', stmt);
-    //     return yield stmt;
-    //   }
-    // }
-
-    // function *renderExpression(expr: DynamoExpr<Shape>): Generator<any, string> {
-    //   if (DynamoExpr.isReference(expr)) {
-    //     if (expr.target) {
-    //       return `${yield* renderExpression(expr.target.expr)}.${yield* addName(expr.id)}`;
-    //     } else {
-    //       return yield* addName(expr.id);
-    //     }
-    //   } else if (DynamoExpr.isGetListItem(expr)) {
-    //     const index = typeof expr.index === 'number' ? yield* VTL.number(expr.index) : expr.index;
-    //     return `${yield* renderExpression(expr.list.expr)}[${index}]`;
-    //   } else if (DynamoExpr.isGetMapItem(expr)) {
-    //     // if (!expressionValues.has(expr.key)) {
-    //     //   const id = newId();
-    //     //   _expressionValues.set(expr.key, id);
-    //     //   yield* expressionValues.put(id, toAttributeValue(string, expr.key));
-    //     // }
-    //     // return `${yield* renderExpression(expr.map.expr)}.${_expressionValues.get(expr.)}`;
-    //   }
-
-    //   return '';
-    // }
-
-    function *addName(name: string | VString): Generator<any, string> {
-      const id = newId();
-      yield* expressionNames.put(name, yield* VTL.string(id));
-      return id;
-    }
-
-    function *addValue(value: any): Generator<any, string> {
-      const id = newId();
-      yield* expressionValues.put(id, value);
-      return id;
-    }
   }
 
   public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
@@ -322,11 +265,11 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       attributeValues: this.attributeValuesShape
     });
 
-    const request = VObject.ofExpression(PutItemRequest, VExpression.json({
+    const request = VObject.fromExpr(PutItemRequest, VExpression.json({
       version: '2017-02-28',
       operation: 'PutItem',
-      key: toAttributeValueExpression(this.keyShape, value),
-      attributeValues: toAttributeValueExpression(this.attributeValuesShape, value)
+      key: toAttributeValueJson(this.keyShape, value),
+      attributeValues: toAttributeValueJson(this.attributeValuesShape, value)
     }));
 
     return call(this.dataSourceProps((table, role) => table.grantWriteData(role), props), request, this.dataType);
@@ -457,13 +400,6 @@ export type KeyGraphQLRepr<DataType extends RecordShape, K extends DDB.KeyOf<Dat
 };
 
 export namespace Table {
-  type FilterExpressionItem<DataType extends RecordShape> = {
-    [field in keyof DataType['Members']]: field;
-  };
-  export interface GetItemF<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> {
-    if?: (item: any) => any;
-  }
-
   export interface DataSourceProps {
     description?: string;
     serviceRole?: Build<iam.IRole>;

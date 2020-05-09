@@ -1,8 +1,8 @@
 import { array, ArrayShape, boolean, BoolShape, integer, IntegerShape, MapShape, number, NumberShape, RecordShape, Shape, ShapeGuards, string, StringShape } from '@punchcard/shape';
-import { VInteger, VObject, VString, VTL } from '../../appsync';
+import { AttributeValue } from '@punchcard/shape-dynamodb';
+import { getState, VInteger, VObject, VString, VTL, vtl } from '../../appsync';
+import { $util } from '../../appsync/lang/util';
 import { DynamoExpr } from './dynamo-expr';
-import { addExpressionValue } from './expression-values';
-import { addSetAction, UpdateTransaction } from './update-transaction';
 
 const Objekt = Object;
 
@@ -34,10 +34,16 @@ export namespace DynamoDSL {
   }
 
   export class Object<T extends Shape = Shape> {
+    public readonly dynamoType: AttributeValue.ShapeOf<T, {
+      setAsList: false;
+    }>;
+
     constructor(
       public readonly type: T,
-      public readonly expr: DynamoExpr
-    ) {}
+      public readonly expr: DynamoExpr,
+    ) {
+      this.dynamoType = AttributeValue.shapeOf(this.type);
+    }
 
     public equals(value: VObject.Of<T>): DynamoDSL.Bool {
       return new Bool(new DynamoExpr.Operator(this, '=', value));
@@ -47,9 +53,18 @@ export namespace DynamoDSL {
       return new Bool(new DynamoExpr.FunctionCall(boolean, 'attribute_exists', [this]));
     }
 
-    public *set(value: VObject.Like<T>): UpdateTransaction<void> {
-      const id = yield* addExpressionValue(this.type, value);
-      yield* addSetAction(`${id} = `);
+    public *set(value: VObject.Like<T>): VTL<void> {
+      const state = yield* getState();
+      const thisPath = yield* DynamoExpr.toPath(this.expr);
+      const setValue = yield* $util.dynamodb.toDynamoDBExtended(this.type, value);
+      const valueId = state.newId(':');
+
+      yield* vtl`$uti.qr($expressionValues.put("${valueId}", ${setValue}))`;
+
+      yield* vtl`$util.qr($setStatements.add("${thisPath} = ${valueId}"))`;
+
+      // const id = yield* addExpressionValue(this.type, value);
+      // yield* addSetAction(`${id} = `);
     }
   }
   export class Bool extends Object<BoolShape> {
@@ -59,7 +74,7 @@ export namespace DynamoDSL {
       } else if (bs.length === 1) {
         return bs[0];
       }
-      return bs.reduce((a, b) => new Bool(new DynamoExpr.Operator(a, op, b)));
+      return bs.reduce((a, b) => new Bool(new DynamoExpr.Operator(a as any, op, b as any)));
     }
     public static and(...bs: Bool[]): DynamoDSL.Bool {
       return Bool.operator('and', bs);
@@ -109,7 +124,7 @@ export namespace DynamoDSL {
       return DynamoDSL.of(this.type.Items, new DynamoExpr.GetListItem(this, index));
     }
 
-    public *push(value: VObject.Like<ArrayShape<T>> | VObject.Like<T> | DynamoDSL.List<T>): UpdateTransaction<void> {
+    public *push(value: VObject.Like<ArrayShape<T>> | VObject.Like<T> | DynamoDSL.List<T>): VTL<void> {
 
     }
   }
@@ -134,7 +149,7 @@ export namespace DynamoDSL {
 
       this.M = {} as this['M'];
       for (const [name, field] of Objekt.entries(type.Members)) {
-        (this.M as any)[name] = new DynamoExpr.Reference(this, field, name);
+        (this.M as any)[name] = new DynamoExpr.Reference(this as Object<Shape>, field, name);
       }
     }
   }

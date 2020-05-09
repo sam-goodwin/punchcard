@@ -1,22 +1,23 @@
 import { Shape, ShapeGuards } from '@punchcard/shape';
 import { VExpression, VObject } from '../../appsync';
 
-export function toAttributeValue<S extends Shape>(shape: S, obj: VObject.Like<S>): VObject.Like<S> {
-  return VObject.ofExpression(shape, toAttributeValueExpression(shape, obj, true));
-}
-export function toAttributeValueExpression<S extends Shape>(shape: S, obj: VObject.Like<S>, topLevel: boolean = true): VExpression {
+export function toAttributeValueJson<S extends Shape>(
+  shape: S,
+  obj: VObject.Like<S>,
+  topLevel: boolean = true
+): VExpression {
   if (!VObject.isObject(obj)) {
     if (ShapeGuards.isArrayShape(shape) && Array.isArray(obj)) {
       const list = (obj as VObject.Like<Shape>[]);
       return VExpression.json({
-        L: list.map(o => toAttributeValueExpression(shape.Items, o, false))
+        L: list.map(o => toAttributeValueJson(shape.Items, o, false))
       });
     } else if (ShapeGuards.isMapShape(shape)) {
       const map = (obj as {[key: string]: VObject.Like<Shape>});
       return VExpression.json({
         M: Object.entries(map)
           .map(([name, value]) => ({
-            [name]: toAttributeValueExpression(shape.Items, value, false)
+            [name]: toAttributeValueJson(shape.Items, value, false)
           }))
           .reduce((a, b) => ({...a, ...b}))
       });
@@ -32,7 +33,7 @@ export function toAttributeValueExpression<S extends Shape>(shape: S, obj: VObje
     } else if (ShapeGuards.isRecordShape(shape)) {
       const record = obj as {[key: string]: VObject.Like<Shape>; };
       const M = Object.entries(shape.Members).map(([name, shape]) => ({
-        [name]: toAttributeValueExpression(shape, record[name], false)
+        [name]: toAttributeValueJson(shape, record[name], false)
       })).reduce((a, b) => ({...a, ...b}));
       return VExpression.json(topLevel ? M : {M});
     } else if (typeof obj === 'string') {
@@ -66,7 +67,7 @@ function toSet(items: Shape, obj: VObject) {
       ShapeGuards.isBinaryShape(items) ? 'toBinarySet' :
       'toList'
     }Json(`),
-    VObject.getExpression(obj),
+    VObject.getExpr(obj),
     VExpression.text(')')
   );
 }
@@ -74,7 +75,7 @@ function toSet(items: Shape, obj: VObject) {
 function toDynamoDBJson(obj: VObject){
   return VExpression.concat(
     VExpression.text('$util.dynamodb.toDynamoDBJson('),
-    VObject.getExpression(obj),
+    VObject.getExpr(obj),
     VExpression.text(')'),
   );
 }

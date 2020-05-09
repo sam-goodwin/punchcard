@@ -1,5 +1,5 @@
 import { Shape } from '@punchcard/shape';
-import { VInteger, VObject, VString } from '../../appsync';
+import { getState, VInteger, VObject, VObjectExpr, VString, vtl } from '../../appsync';
 import type { DynamoDSL } from './dynamo-repr';
 
 export type DynamoExpr<T extends Shape = Shape> =
@@ -11,6 +11,40 @@ export type DynamoExpr<T extends Shape = Shape> =
   | DynamoExpr.Scope
 ;
 export namespace DynamoExpr {
+  /**
+   * Traverses the DDB expression, writes values to the expression
+   * attribute names and returns a string representing the path
+   * to the attribute.
+   */
+  export function *toPath(expr: DynamoExpr): Generator<any, string> {
+    const state = yield* getState();
+    if (isReference(expr)) {
+      const prev = expr.target ? `${(yield* toPath(expr.target.expr))}.` : '';
+      const id = state.newId('#');
+      yield* vtl`$util.qr($expressionNames.put("${id}", "${expr.id}"))`;
+      return `${prev}${id}`;
+    } else if (isGetListItem(expr)) {
+      const prev = yield* toPath(expr.list.expr);
+      const index = typeof expr.index === 'number' ?
+        expr.index :
+        expr.index[VObjectExpr].visit(state)
+      ;
+      return `${prev}[${index}]`;
+    } else if (isGetMapItem(expr)) {
+      const prev = yield* toPath(expr.map.expr);
+      const key = typeof expr.key === 'string' ?
+        expr.key :
+        expr.key[VObjectExpr].visit(state) as string // todo: visit doesn't always return a string
+      ;
+      const id = state.newId('#');
+      yield* vtl`$util.qr($expressionNames.put("${id}", "${key}"))`;
+      return `${prev}.${id}`;
+    }
+    // TODO: the rest
+    console.error('unknown expr', expr);
+    throw new Error(`unknown expr`);
+  }
+
   export function isReference(a: any): a is Reference<Shape> {
     return a.tag === Reference.TAG;
   }

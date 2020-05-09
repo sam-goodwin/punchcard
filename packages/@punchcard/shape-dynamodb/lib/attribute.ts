@@ -1,5 +1,5 @@
 import { any, AnyShape, array, ArrayShape, AssertIsShape, binary, BinaryShape, boolean, BoolShape, literal, LiteralShape, map, MapShape, NothingShape, NumberShape, RequiredKeys, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape, union, UnionShape, Value } from '@punchcard/shape';
-import { Record, RecordMembers, RecordShape, RecordType} from '@punchcard/shape/lib/record';
+import { Record, RecordShape, RecordType} from '@punchcard/shape/lib/record';
 
 // tslint:disable: ban-types
 

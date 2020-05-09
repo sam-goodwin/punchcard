@@ -62,7 +62,7 @@ export class Util {
   public *defaultIfNull<T extends VObject>(obj: T, defaultValue: VObject.Like<VObject.TypeOf<T>>): VTL<T> {
     const type = VObject.getType(obj);
     const defaultV = yield* VObject.of(type, defaultValue);
-    return VObject.ofExpression(type, new VExpression(state => state.write(
+    return VObject.fromExpr(type, new VExpression(state => state.write(
       '$util.defaultIfNull(', obj, ',', defaultV, ')'
     ))) as any;
   }

@@ -246,13 +246,13 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
     const requestShape: T = Pointer.resolve(this.request);
     const responseShape: U = Pointer.resolve(this.response);
 
-    const requestObject = VObject.ofExpression(requestShape, VExpression.json({
+    const requestObject = VObject.fromExpr(requestShape, VExpression.json({
       version: '2017-02-28',
       operation: 'Invoke',
       payload: VObject.isObject(request) ?
         VExpression.concat(
           VExpression.text('$util.toJson('),
-          VObject.getExpression(request),
+          VObject.getExpr(request),
           VExpression.text(')')
         ) :
         VExpression.json(request),

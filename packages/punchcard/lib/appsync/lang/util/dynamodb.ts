@@ -1,6 +1,8 @@
 import { AnyShape, array, ArrayShape, binary, BinaryShape, bool, boolean, BoolShape, CollectionShape, FunctionArgs, FunctionShape, literal, LiteralShape, map, MapShape, NeverShape, NothingShape, NumberShape, Pointer, Record, RecordMembers, RecordShape, RecordType, set, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, union, UnionShape } from '@punchcard/shape';
 import { AttributeValue } from '@punchcard/shape-dynamodb';
 import { VExpression } from '../expression';
+import { StashProps } from '../statement';
+import { VTL, vtl } from '../vtl';
 import { VBool, VFloat, VInteger, VList, VMap, VObject, VString } from '../vtl-object';
 
 type _HasSet<T extends Shape> =
@@ -34,13 +36,6 @@ function hasSet<T extends Shape>(shape: T): HasSet<T> {
   return false as HasSet<T>;
 }
 
-class R extends Record({
-  a: array(string),
-  s: set(string)
-}) {}
-
-const r = hasSet(R);
-
 /**
  * AppSync is opinionated about how it represents some types: e.g., it will
  * use lists (“L”) rather than sets (“SS”, “NS”, “BS”). This returns an object that describes
@@ -57,15 +52,54 @@ function appSyncDynamoDBFormat<T extends Shape>(shape: T): AppSyncDynamoDBFormat
   } as const) as any as AppSyncDynamoDBFormat<T>;
 }
 
-class A extends Record({
-  key: string,
-  map: map(string),
-  list: array(string),
-  set: set(string)
-}) {}
-
-
 export class $DynamoDBUtil {
+  /**
+   * General object conversion tool for DynamoDB that converts input objects to the appropriate
+   * DynamoDB representation. Unlike the built-in `$util.dynamodb.toDynamoDB` utility, the
+   * extended form supports sets.
+   *
+   * @param object value to convert to its DynamoDB encoding
+   */
+  public toDynamoDBExtended<T extends VObject>(object: T): VTL<VObject.Of<AttributeValue.ShapeOf<VObject.TypeOf<T>>>>;
+  public toDynamoDBExtended<T extends Shape>(type: T, obj: VObject.Like<T>): VTL<VObject.Of<AttributeValue.ShapeOf<T>>>;
+  public *toDynamoDBExtended(a: any, b?: any) {
+    const stashProps: StashProps = {
+      local: true // use local variables for intermediate stashes
+    };
+    const shape = ShapeGuards.isShape(a) ? a : VObject.getType(a);
+    const dynamoShape = AttributeValue.shapeOf(shape) as Shape;
+    const value: VObject.Like<Shape> = VObject.isObject(a) ? a : b;
+    if (!hasSet(dynamoShape) && VObject.isObject(value)) {
+      // if the object doesn't have any set types and is a reference, then use the built-in utility
+      return this.toDynamoDB(value);
+    }
+    if (ShapeGuards.isStringShape(shape) || ShapeGuards.isTimestampShape(shape)) {
+      return yield* vtl(dynamoShape, stashProps)`${this.toString(value)}`;
+    } else if (ShapeGuards.isNumberShape(shape)) {
+      return yield* vtl(dynamoShape, stashProps)`${this.toNumber(value)}`;
+    } else if (ShapeGuards.isBoolShape(shape)) {
+      return yield* vtl(dynamoShape, stashProps)`${this.toBoolean(value)}`;
+    } else if (ShapeGuards.isNothingShape(shape)) {
+      return yield* vtl(dynamoShape, stashProps)`${this.toNull()}`;
+    } else if (ShapeGuards.isArrayShape(shape)) {
+      const itemDynamoShape = AttributeValue.shapeOf(shape.Items);
+      const list = yield* vtl(AttributeValue.List(itemDynamoShape), stashProps)`{}`;
+      if (VObject.isObject(value)) {
+        // array must have set within
+        throw new Error(`todo`);
+      } else {
+        for (const item of value) {
+          yield* list.L.add(yield* this.toDynamoDBExtended(shape.Items, item));
+        }
+      }
+      return list;
+    } else if (ShapeGuards.isMapShape(shape)) {
+
+    }
+
+    return null as any;
+  }
+
   /**
    * General object conversion tool for DynamoDB that converts input objects to the appropriate
    * DynamoDB representation. It’s opinionated about how it represents some types: e.g., it will
@@ -75,7 +109,7 @@ export class $DynamoDBUtil {
    * @param object value to convert to its DynamoDB encoding
    */
   public toDynamoDB<T extends VObject>(object: T): VObject.Of<AppSyncDynamoDBFormat<VObject.TypeOf<T>>> {
-    return VObject.ofExpression(
+    return VObject.fromExpr(
       appSyncDynamoDBFormat(VObject.getType(object)),
       VExpression.call('$util.dynamodb.toDynamoDB', object)
     ) as VObject.Of<AppSyncDynamoDBFormat<VObject.TypeOf<T>>>;
@@ -88,81 +122,79 @@ export class $DynamoDBUtil {
    * @param object value to convert to its DynamoDB encoding
    */
   public toDynamoDBJson<T extends VObject>(object: T): VString {
-    return VObject.ofExpression(string, VExpression.call('$util.dynamodb.toDynamoDBJson', object));
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toDynamoDBJson', object));
   }
 
   public toNull(): VObject.Of<typeof AttributeValue.Nothing> {
-    return VObject.ofExpression(AttributeValue.Nothing, VExpression.call('$util.dynamodb.toNull',));
+    return VObject.fromExpr(AttributeValue.Nothing, VExpression.call('$util.dynamodb.toNull'));
   }
 
-  public toBoolean(object: VBool): VObject.Of<typeof AttributeValue.Bool> {
-    return VObject.ofExpression(AttributeValue.Bool, VExpression.call('$util.dynamodb.toBoolean', object));
+  public toBoolean(object: VBool | boolean): VObject.Of<typeof AttributeValue.Bool> {
+    return VObject.fromExpr(AttributeValue.Bool, VExpression.call('$util.dynamodb.toBoolean', typeof object === 'boolean' ? object.toString() : object));
   }
   public toBooleanJson(object: VBool): VString {
-    return VObject.ofExpression(string, VExpression.call('$util.dynamodb.toBooleanJson', object));
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toBooleanJson', typeof object === 'boolean' ? `${object}` : object));
   }
 
-  public toBinary(object: VString): VObject.Of<typeof AttributeValue.Binary> {
-    return VObject.ofExpression(AttributeValue.Binary, VExpression.call('$util.dynamodb.toBinary', object));
+  public toBinary(object: VString | string): VObject.Of<typeof AttributeValue.Binary> {
+    return VObject.fromExpr(AttributeValue.Binary, VExpression.call('$util.dynamodb.toBinary', object));
   }
-  public toBinaryJson(object: VString): VString {
-    return VObject.ofExpression(string, VExpression.call('$util.dynamodb.toBinaryJson', object));
+  public toBinaryJson(object: VString | string): VString {
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toBinaryJson', object));
   }
   public toBinarySet(value: VList<StringShape>): VObject.Of<typeof AttributeValue.BinarySet> {
-    return VObject.ofExpression(AttributeValue.BinarySet, VExpression.call('$util.dynamodb.toBinarySet', value));
+    return VObject.fromExpr(AttributeValue.BinarySet, VExpression.call('$util.dynamodb.toBinarySet', value));
   }
   public toBinarySetJson(value: VList<StringShape>): VString {
-    return VObject.ofExpression(string, VExpression.call('$util.dynamodb.toBinarySet', value));
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toBinarySet', value));
   }
 
-  public toNumber<N extends VInteger | VFloat>(object: N): VObject.Of<typeof AttributeValue.Number> {
-    return VObject.ofExpression(AttributeValue.Number, VExpression.call('$util.dynamodb.toNumber', object));
+  public toNumber(object: VInteger | VFloat | number): VObject.Of<typeof AttributeValue.Number> {
+    return VObject.fromExpr(AttributeValue.Number, VExpression.call('$util.dynamodb.toNumber', typeof object === 'number' ? object.toString(10) : object));
   }
-  public toNumberJson<N extends VInteger | VFloat>(object: N): VString {
-    return VObject.ofExpression(string, VExpression.call('$util.dynamodb.toNumberJson', object));
+  public toNumberJson(object: VInteger | VFloat | number): VString {
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toNumberJson', typeof object === 'number' ? object.toString(10) : object));
   }
   public toNumberSet(value: VList<NumberShape>): VObject.Of<typeof AttributeValue.NumberSet> {
-    return VObject.ofExpression(AttributeValue.NumberSet, VExpression.call('$util.dynamodb.toNumberSet', value));
+    return VObject.fromExpr(AttributeValue.NumberSet, VExpression.call('$util.dynamodb.toNumberSet', value));
   }
   public toNumberSetJson(value: VList<NumberShape>): VString {
-    return VObject.ofExpression(string, VExpression.call('$util.dynamodb.toNumberSetJson', value));
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toNumberSetJson', value));
   }
 
   public toString(value: VString): VObject.Of<typeof AttributeValue.String> {
-    return VObject.ofExpression(AttributeValue.String, VExpression.call('$util.dynamodb.toString', value));
+    return VObject.fromExpr(AttributeValue.String, VExpression.call('$util.dynamodb.toString', value));
   }
   public toStringJson(value: VString): VString {
-    return VObject.ofExpression(string, VExpression.call('$util.dynamodb.toStringJson', value));
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toStringJson', value));
   }
   public toStringSet(value: VList<StringShape>): VObject.Of<typeof AttributeValue.StringSet> {
-    return VObject.ofExpression(AttributeValue.StringSet, VExpression.call('$util.dynamodb.toStringSet', value));
+    return VObject.fromExpr(AttributeValue.StringSet, VExpression.call('$util.dynamodb.toStringSet', value));
   }
   public toStringSetJson(value: VList<StringShape>): VString {
-    return VObject.ofExpression(string, VExpression.call('$util.dynamodb.toStringSetJson', value));
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toStringSetJson', value));
   }
 
   public toList<T extends Shape>(list: VList<T>): VObject.Of<AttributeValue.List<AppSyncDynamoDBFormat<T>>> {
-    return VObject.ofExpression(
+    return VObject.fromExpr(
       appSyncDynamoDBFormat(VObject.getType(list)),
       VExpression.call('$util.dynamodb.toList', list)
     ) as VObject.Of<AttributeValue.List<AppSyncDynamoDBFormat<T>>>;
   }
   public toListJson<T extends Shape>(list: VList<T>): VString {
-    return VObject.ofExpression(string, VExpression.call('$util.dynamodb.toListJson', list));
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toListJson', list));
   }
 
   public toMap<T extends Shape>(list: VMap<T>): VObject.Of<AttributeValue.Map<AppSyncDynamoDBFormat<T>>> {
-    return VObject.ofExpression(
+    return VObject.fromExpr(
       appSyncDynamoDBFormat(VObject.getType(list)),
       VExpression.call('$util.dynamodb.toMap', list)
     ) as VObject.Of<AttributeValue.Map<AppSyncDynamoDBFormat<T>>>;
   }
   public toMapJson<T extends Shape>(list: VList<T>): VString {
-    return VObject.ofExpression(string, VExpression.call('$util.dynamodb.toMapJson', list));
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toMapJson', list));
   }
 }
-
-
 
 /**
  * Converts a Shape to its DynamoDB representation.

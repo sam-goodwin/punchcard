@@ -46,7 +46,7 @@ export class InterpreterState {
       } else if (typeof expr === 'number') {
         state.write(expr.toString(10));
       } else if (VObject.isObject(expr)) {
-        state.write(VObject.getExpression(expr));
+        state.write(VObject.getExpr(expr));
       } else {
         const t = expr.visit(state);
         if (typeof t === 'string') {
