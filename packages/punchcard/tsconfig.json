@@ -6,7 +6,7 @@
       "es6",
       "esnext.asynciterable"
     ],
-    "outDir": "./dist",
+    // "outDir": "./dist",
     "downlevelIteration": true,
     "module": "commonjs",
     "strict": true,
@@ -26,6 +26,6 @@
   },
   "exclude": [
     "node_modules",
-    "./dist"
+    // "./dist"
   ]
 }

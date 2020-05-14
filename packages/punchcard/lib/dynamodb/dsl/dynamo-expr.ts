@@ -6,47 +6,35 @@ export type DynamoExpr<T extends Shape = Shape> =
   | DynamoExpr.FunctionCall<T>
   | DynamoExpr.GetListItem<T>
   | DynamoExpr.GetMapItem<T>
+  | DynamoExpr.Literal<T>
   | DynamoExpr.Operator
   | DynamoExpr.Reference<T>
   | DynamoExpr.Scope
 ;
 export namespace DynamoExpr {
-  /**
-   * Traverses the DDB expression, writes values to the expression
-   * attribute names and returns a string representing the path
-   * to the attribute.
-   */
-  export function *toPath(expr: DynamoExpr): Generator<any, string> {
-    const state = yield* getState();
-    if (isReference(expr)) {
-      const prev = expr.target ? `${(yield* toPath(expr.target.expr))}.` : '';
-      const id = state.newId('#');
-      yield* vtl`$util.qr($expressionNames.put("${id}", "${expr.id}"))`;
-      return `${prev}${id}`;
-    } else if (isGetListItem(expr)) {
-      const prev = yield* toPath(expr.list.expr);
-      const index = typeof expr.index === 'number' ?
-        expr.index :
-        expr.index[VObjectExpr].visit(state)
-      ;
-      return `${prev}[${index}]`;
-    } else if (isGetMapItem(expr)) {
-      const prev = yield* toPath(expr.map.expr);
-      const key = typeof expr.key === 'string' ?
-        expr.key :
-        expr.key[VObjectExpr].visit(state) as string // todo: visit doesn't always return a string
-      ;
-      const id = state.newId('#');
-      yield* vtl`$util.qr($expressionNames.put("${id}", "${key}"))`;
-      return `${prev}.${id}`;
-    }
-    // TODO: the rest
-    console.error('unknown expr', expr);
-    throw new Error(`unknown expr`);
+  export function isExpr(a: any): a is DynamoExpr {
+    return isReference(a) ||
+      isGetListItem(a) ||
+      isGetMapItem(a) ||
+      isOperator(a) ||
+      isReference(a) ||
+      isScope(a) ||
+      isLiteral(a)
+    ;
   }
-
+  export function isLiteral(a: any): a is Literal<Shape> {
+    return a && a.tag === 'literal';
+  }
+  export class Literal<T extends Shape> {
+    public static readonly TAG = 'literal';
+    public readonly tag = Literal.TAG;
+    constructor(
+      public readonly type: T,
+      public readonly value: VObject.Like<T>
+    ) {}
+  }
   export function isReference(a: any): a is Reference<Shape> {
-    return a.tag === Reference.TAG;
+    return a && a.tag === Reference.TAG;
   }
   export class Reference<T extends Shape> {
     public static readonly TAG = 'reference';
@@ -58,7 +46,7 @@ export namespace DynamoExpr {
     ) {}
   }
   export function isGetListItem(a: any): a is GetListItem<Shape> {
-    return a.tag === GetListItem.TAG;
+    return a && a.tag === GetListItem.TAG;
   }
   export class GetListItem<T extends Shape> {
     public static readonly TAG = 'get-list-item';
@@ -69,7 +57,7 @@ export namespace DynamoExpr {
     ) {}
   }
   export function isGetMapItem(a: any): a is GetMapItem<Shape> {
-    return a.tag === GetMapItem.TAG;
+    return a && a.tag === GetMapItem.TAG;
   }
   export class GetMapItem<T extends Shape> {
     public static readonly TAG = 'get-map-item';
@@ -80,7 +68,11 @@ export namespace DynamoExpr {
     ) {}
   }
   export function isFunctionCall(a: any): a is FunctionCall<Shape> {
-    return a.tag === FunctionCall.TAG;
+    return a && a.tag === FunctionCall.TAG;
+  }
+  export interface FunctionCallArg<T extends Shape = Shape> {
+    type: T;
+    value: VObject.Like<T> | DynamoDSL.Object<T>;
   }
   export class FunctionCall<T extends Shape> {
     public static readonly TAG = 'function-call';
@@ -88,18 +80,24 @@ export namespace DynamoExpr {
     constructor(
       public readonly type: T,
       public readonly functionName: string,
-      public readonly args: VObject.Like<Shape>[]
+      public readonly args: FunctionCallArg[]
     ) {}
   }
-  export class Operator {
+  export function isOperator(a: any): a is Operator<Shape> {
+    return a && a.tag === Operator.TAG;
+  }
+  export class Operator<T extends Shape = Shape> {
     public static readonly TAG = 'operator';
     public readonly tag = Operator.TAG;
     constructor(
-      // public readonly type: T,
+      public readonly type: T,
       public readonly lhs: DynamoDSL.Object,
       public readonly operator: string,
-      public readonly rhs: DynamoDSL.Object | VObject,
+      public readonly rhs: DynamoDSL.Object<T> | VObject.Like<T>,
     ) {}
+  }
+  export function isScope(a: any): a is Scope {
+    return a && a.tag === Scope.TAG;
   }
   export class Scope {
     public static readonly TAG = 'scope';

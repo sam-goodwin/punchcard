@@ -1,8 +1,8 @@
 import 'jest';
 
-import { array, boolean, integer, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, RecordType, set, Shape, Static, string, StringShape, timestamp, union, Value } from '@punchcard/shape';
+import { array, boolean, integer, map, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, RecordType, set, Shape, Static, string, StringShape, timestamp, union, Value } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $appsync, $else, $if, ID, Impl, Interface, VFloat, VTL } from '../../lib/appsync';
+import { $appsync, $else, $if, ID, Impl, Interface, VFloat, VObject, VTL, vtl } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { ApiFragment } from '../../lib/appsync/api/api-fragment';
 import { CachingBehavior, CachingInstanceType } from '../../lib/appsync/api/caching';
@@ -19,6 +19,7 @@ import DynamoDB = require('../../lib/dynamodb');
 import Lambda = require('../../lib/lambda');
 
 import assert = require('@aws-cdk/assert');
+import { DynamoDSL } from '../../lib/dynamodb/dsl/dynamo-repr';
 
 // throw Object.entries(s).join('\n');
 
@@ -112,6 +113,7 @@ export const PostMutations = Mutation({
       id: ID,
       title: optional(string),
       content: optional(string),
+      tags: optional(array(string))
       // stringOrNumber: union(string, number),
       // list: array(set(string))
     },
@@ -150,8 +152,10 @@ export const UserApi = (
         }
       },
       *resolve(request) {
+        const id = yield* $util.autoId();
+
         return yield* userStore.put({
-          id: yield* $util.autoId(),
+          id,
           alias: request.alias,
         });
       }
@@ -212,9 +216,13 @@ export const PostApi = (scope: Scope) => {
       //     id: args.id
       //   });
       // }
-      resolve: request => postStore.get({
-        id: request.id
-      })
+      *resolve(request) {
+        const post = yield* postStore.get({
+          id: request.id
+        });
+
+        return yield* VObject.of(Post, post);
+      }
     }
   });
 
@@ -242,7 +250,7 @@ export const PostApi = (scope: Scope) => {
           })),
           timestamp,
           channel: 'category',
-          tags: []
+          tags: [],
         });
       }
     },
@@ -261,16 +269,16 @@ export const PostApi = (scope: Scope) => {
           key: {
             id: input.id
           },
-          // condition: (item) => $if(input.id.isNotEmpty(), function*() {
-          //   return item.id.equals(input.id);
-          // }, $else(function*() {
-          //   throw $util.error('');
-          // })),
+          *condition(item) {
+            yield* DynamoDSL.expect(item.id.exists());
+          },
           *transaction(item) {
-            // set content to the new value if it is not null
-            // yield* input.content.match(string, item.content.set); // short-form
-            yield* $if($util.isNotNull(input.title), function*() {
-              yield* item.title.set(input.title.as(string));
+            yield* input.title.match(string, function*(title) {
+              yield* item.title.set(title);
+            });
+
+            yield* input.tags.match(array(string), function*(tags) {
+              yield* item.tags.push(tags);
             });
           },
         });

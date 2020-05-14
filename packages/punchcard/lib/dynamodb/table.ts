@@ -150,7 +150,9 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
   private get attributeValuesShape() {
     if (!this._attributeValuesShape) {
       const keyShape = this.keyShape;
-      const attributeValues = this.dataType.Members;
+      const attributeValues = {
+        ...this.dataType.Members
+      };
       Object.keys(keyShape.Members).forEach(k => delete attributeValues[k]);
       this._attributeValuesShape = Record(attributeValues);
     }
@@ -200,6 +202,11 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
   }
 
   public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
+    const condition = yield* vtl(string, {
+      local: true,
+      id: '$conditionExpression'
+    })``;
+
     const setStatements = yield* vtl(array(string), {
       local: true,
       id: '$setStatements'
@@ -222,6 +229,9 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       fields[name] = DynamoDSL.of(field, new DynamoExpr.Reference(undefined, field, name));
     }
 
+    if (request.condition) {
+      yield* request.condition(fields);
+    }
     yield* request.transaction(fields);
 
     const UpdateItemRequest = Record({
@@ -232,7 +242,8 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
         expression: string,
         expressionNames: map(string),
         expressionValues: map(string)
-      })
+      }),
+      condition: string
     });
 
     const updateRequest = VObject.fromExpr(UpdateItemRequest, VExpression.json({
@@ -246,7 +257,8 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
         })`SET #foreach( $i in ${setStatements} )$i#if( $foreach.hasNext ),#end`,
         expressionNames,
         expressionValues
-      }
+      },
+      condition
     }));
 
     return yield* call(
@@ -413,17 +425,16 @@ export namespace Table {
     input: {
       data: DataType,
       key: Key
-    }):
-      Construct.Class<Table<DataType, Key>, BaseTableProps> {
-        return class extends Table<DataType, Key> {
-          constructor(scope: Scope, id: string, props: BaseTableProps) {
-            super(scope, id, {
-              ...props,
-              ...input
-            });
-          }
-        } as any;
-      }
+    }): Construct.Class<Table<DataType, Key>, BaseTableProps> {
+      return class extends Table<DataType, Key> {
+        constructor(scope: Scope, id: string, props: BaseTableProps) {
+          super(scope, id, {
+            ...props,
+            ...input
+          });
+        }
+      } as any;
+    }
   /**
    * A DynamoDB Table with read-only permissions.
    *

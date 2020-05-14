@@ -16,7 +16,7 @@ export type IsOptional<T extends Shape> =
     false :
   false
 ;
-export type Optional<T extends Shape> = UnionShape<[T, NothingShape] & { length: 2; }>;
+export type Optional<T extends Shape> = UnionShape<[T, NothingShape] >;
 
 export function optional<T extends Shape>(shape: T): Optional<T> {
   return union(shape, nothing);

@@ -1,6 +1,4 @@
-import { Shape } from '@punchcard/shape';
 import { ElseBranch, IfBranch } from './statement';
-import { VTL } from './vtl';
 import { VBool, VNothing, VObject } from './vtl-object';
 
 export function $if<T extends VObject>(

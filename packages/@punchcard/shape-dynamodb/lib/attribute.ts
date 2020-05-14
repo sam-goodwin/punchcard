@@ -37,9 +37,7 @@ export namespace AttributeValue {
       [field in keyof Fields]: ShapeOf<Fields[field], Props>
     }> :
     T extends UnionShape<infer I> ? UnionShape<{
-      [i in Extract<keyof I, UnionShape.Indices>]: ShapeOf<AssertIsShape<I[i]>, Props>
-    } & {
-      length: I['length']
+      [i in keyof I]: ShapeOf<AssertIsShape<I[i]>, Props>
     }> :
     T extends LiteralShape<infer I> ? {
       [i in keyof I]: ShapeOf<I, Props>

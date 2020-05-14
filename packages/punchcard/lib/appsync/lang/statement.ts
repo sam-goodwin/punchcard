@@ -4,7 +4,7 @@ import { DataSourceBindCallback } from '../api/data-source';
 import { InterpreterState } from '../api/interpreter';
 import { VExpression } from './expression';
 import { VTL } from './vtl';
-import { VBool, VNothing, VObject } from './vtl-object';
+import { VBool, VList, VNothing, VObject } from './vtl-object';
 
 /**
  * A piece of logic executed by AppSync with Velocity Templates.
@@ -15,6 +15,7 @@ import { VBool, VNothing, VObject } from './vtl-object';
  */
 export type Statement<A = any> =
   | CallFunction<A>
+  | ForLoop
   | IfBranch<A>
   | Stash
   | Write
@@ -24,9 +25,6 @@ export type Statement<A = any> =
 export namespace Statement {
   export const Tag = Symbol.for('appsync.Statement.Tag');
   export type Tag = typeof Tag;
-
-  export const Type = Symbol.for('appsync.Statement.Tag');
-  export type Type = typeof Type;
 }
 
 /**
@@ -35,6 +33,9 @@ export namespace Statement {
 export namespace StatementGuards {
   export function isCall(a: any): a is CallFunction<VObject> {
     return a[Statement.Tag] === 'call';
+  }
+  export function isForLoop(a: any): a is ForLoop {
+    return a[Statement.Tag] === 'for-loop';
   }
   export function isIf(a: any): a is IfBranch<VObject | void> {
     return a[Statement.Tag] === 'if';
@@ -60,7 +61,7 @@ export function *write(...expressions: Writable[]): VTL<void> {
   return (yield new Write(expressions)) as void;
 }
 
-export type Writable = number | string | VObject | VExpression;
+export type Writable = boolean | number | string | VObject | VExpression;
 
 export class Write {
   public readonly [Statement.Tag]: 'write' = 'write';
@@ -93,7 +94,6 @@ export class Stash {
  */
 export class CallFunction<T = VObject> {
   readonly [Statement.Tag]: 'call' = 'call';
-  readonly [Statement.Type]: T;
 
   constructor(
     public readonly dataSourceProps: Build<DataSourceBindCallback>,
@@ -115,7 +115,6 @@ export function *call<T extends Shape, U extends Shape>(
  */
 export class IfBranch<T = any, Stmt = any> {
   readonly [Statement.Tag]: 'if' = 'if';
-  readonly [Statement.Type]: T;
   readonly branchType: 'if' = 'if';
 
   constructor(
@@ -136,4 +135,17 @@ export function isIfBranch(a: any): a is IfBranch<VObject | void> {
 
 export function isElseBranch(a: any): a is ElseBranch<VObject | void> {
   return a.branchType === 'else';
+}
+
+export function *forLoop<T extends VList>(list: T, then: (item: VObject.TypeOf<T>['Items']) => VTL<void>): VTL<void> {
+  return (yield new ForLoop(list, then as any)) as void;
+}
+
+export class ForLoop {
+  readonly [Statement.Tag]: 'for-loop' = 'for-loop';
+
+  constructor(
+    public readonly list: VList,
+    public readonly then: (item: VObject) => VTL<void>
+  ) {}
 }

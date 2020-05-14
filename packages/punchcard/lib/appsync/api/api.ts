@@ -259,6 +259,18 @@ export class Api<
             } else if (StatementGuards.isWrite(stmt)) {
               state.write(...stmt.expressions);
               return undefined;
+            } else if (StatementGuards.isForLoop(stmt)) {
+              const itemId = `$${state.newId('item')}`;
+
+              state.write(VExpression.concat(
+                '#forEach( ', itemId, ' in ', stmt.list, ')'
+              ));
+
+              interpretProgram(
+                stmt.then(VObject.fromExpr(VObject.getType(stmt.list).Items, VExpression.text(itemId))),
+                state.indent(),
+                interpret
+              );
             } else if (StatementGuards.isIf(stmt)) {
               const [returnId, branchYieldValues] = parseIf(stmt, state, interpret);
 

@@ -687,7 +687,7 @@ export namespace DSL {
     }
   }
 
-  export class Union<T extends UnionShape<ArrayLike<Shape>>> extends Object<T> {
+  export class Union<T extends UnionShape<Shape[]>> extends Object<T> {
     public as<S extends T['Items'][Extract<keyof T['Items'], number>]>(shape: S): DSL.Of<S> {
       return shape.visit(DslVisitor as any, this);
     }

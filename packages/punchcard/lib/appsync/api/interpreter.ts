@@ -45,6 +45,8 @@ export class InterpreterState {
         state.template.push(expr);
       } else if (typeof expr === 'number') {
         state.write(expr.toString(10));
+      } else if (typeof expr === 'boolean') {
+        state.write(`${expr}`);
       } else if (VObject.isObject(expr)) {
         state.write(VObject.getExpr(expr));
       } else {

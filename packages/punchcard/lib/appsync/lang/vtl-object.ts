@@ -4,7 +4,7 @@ import { string, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { UnionShape } from '@punchcard/shape/lib/union';
 import { VExpression } from './expression';
-import { ElseBranch, IfBranch, stash } from './statement';
+import { ElseBranch, forLoop, IfBranch, stash } from './statement';
 import { $else, $elseIf, $if } from './syntax';
 import { $util } from './util';
 import { VTL, vtl } from './vtl';
@@ -19,6 +19,9 @@ export class VObject<T extends Shape = Shape> {
     this[VObjectType] = _type;
     this[VObjectExpr] = _expr;
   }
+  public hashCode(): VInteger {
+    return new VInteger(VExpression.call(this, 'hashCode', []));
+  }
 
   public as<T extends Shape>(t: T): VObject.Of<T> {
     return VObject.fromExpr(t, this[VObjectExpr]);
@@ -26,13 +29,13 @@ export class VObject<T extends Shape = Shape> {
 
   public notEquals(other: this | Value.Of<T>): VBool {
     return new VBool(VExpression.concat(
-      this, '!=', VObject.isObject(other) ? other : VExpression.json(other)
+      this, ' != ', VObject.isObject(other) ? other : VExpression.json(other)
     ));
   }
 
   public equals(other: this | Value.Of<T>): VBool {
     return new VBool(VExpression.concat(
-      this, '==', VObject.isObject(other) ? other : VExpression.json(other)
+      this, ' == ', VObject.isObject(other) ? other : VExpression.json(other)
     ));
   }
 }
@@ -135,6 +138,10 @@ export namespace VObject {
     return a && a[VObjectExpr] !== undefined;
   }
 
+  export function isList(a: any): a is VList {
+    return VObject.isObject(a) && ShapeGuards.isArrayShape(a[VObjectType]);
+  }
+
   // export type ShapeOf<T extends VObject> = T extends VObject<infer I> ? I : never;
 
   export type Of<T extends Shape> =
@@ -150,7 +157,10 @@ export namespace VObject {
     T extends NumberShape ? VFloat :
     T extends StringShape ? VString :
     T extends TimestampShape ? VTimestamp :
-    T extends UnionShape<infer U> ? VUnion<T> :
+    T extends UnionShape<infer U> ? VUnion<{
+      [u in keyof U]: U[u] extends Shape ? Of<U[u]> : never
+    }> :
+    T extends NothingShape ? VNothing :
 
     VObject<T>
   ;
@@ -247,21 +257,278 @@ export class VBool extends VObject.NewType(boolean) {
   }
 }
 
+function cleanArgs(...args: any[]): any[] {
+  return args.filter(a => a !== undefined);
+}
+
+export interface VString {
+  /**
+   * Returns a hash code for this string. The hash code for a String object is computed as:
+   * ```java
+   * s[0]*31^(n-1) + s[1]*31^(n-2) + ... + s[n-1]
+   * ```
+   * using int arithmetic, where s[i] is the ith character of the string, n is the length
+   * of the string, and ^ indicates exponentiation. (The hash value of the empty string is zero.)
+   */
+  hashCode(): VInteger;
+}
+
 export class VString extends VObject.NewType(string) {
-  public toUpperCase(): VString {
-    return new VString(VExpression.concat(this, '.toUpperCase()'));
+  /**
+   * Compares two strings lexicographically. The comparison is based on the Unicode value
+   * of each character in the strings. The character sequence represented by this String
+   * object is compared lexicographically to the character sequence represented by the
+   * argument string. The result is a negative integer if this String object lexicographically
+   * precedes the argument string. The result is a positive integer if this String object
+   * lexicographically follows the argument string. The result is zero if the strings are
+   * equal; compareTo returns `0` exactly when the `equals(Object)` method would return `true`.
+   *
+   * This is the definition of lexicographic ordering. If two strings are different, then
+   * either they have different characters at some index that is a valid index for both
+   * strings, or their lengths are different, or both. If they have different characters
+   * at one or more index positions, let k be the smallest such index; then the string
+   * whose character at position k has the smaller value, as determined by using the `<`
+   * operator, lexicographically precedes the other string. In this case, `compareTo`
+   * returns the difference of the two character values at position k in the two string
+   * -- that is, the value:
+   *
+   * ```java
+   * this.charAt(k)-anotherString.charAt(k)
+   * ```
+   * If there is no index position at which they differ, then the shorter string lexicographically
+   * precedes the longer string. In this case, compareTo returns the difference of the lengths of
+   * the strings -- that is, the value:
+   * ```java
+   * this.length()-anotherString.length()
+   * ```
+   * @param anotherString the String to be compared.
+   * @returns the value `0` if the argument string is equal to this string; a value less
+   *          than `0` if this string is lexicographically less than the string argument;
+   *          and a value greater than 0 if this string is lexicographically greater
+   *          than the string argument.
+   */
+  public compareTo(anotherString: string | VString): VBool {
+    return new VBool(VExpression.call(this, 'compareTo', [anotherString]));
   }
 
-  public isNotEmpty(): VBool {
-    return VBool.not(this.isEmpty());
+  /**
+   * Compares two strings lexicographically, ignoring case differences. This method returns
+   * an integer whose sign is that of calling compareTo with normalized versions of the
+   * strings where case differences have been eliminated by calling
+   * `Character.toLowerCase(Character.toUpperCase(character))`on each character.
+   *
+   * Note that this method does not take locale into account, and will result in an
+   * unsatisfactory ordering for certain locales. The `java.text` package provides collators
+   * to allow locale-sensitive ordering.
+   *
+   * @param anotherString the String to be compared.
+   * @returns a negative integer, zero, or a positive integer as the specified String
+   *          is greater than, equal to, or less than this String, ignoring case considerations.
+   */
+  public compareToIgnoreCase(anotherString: string | VString): VBool {
+    return new VBool(VExpression.call(this, 'compareToIgnoreCase', [anotherString]));
+  }
+  /**
+   * Concatenates the specified string to the end of this string.
+   * If the length of the argument string is 0, then this String object is returned.
+   * Otherwise, a new String object is created, representing a character sequence
+   * that is the concatenation of the character sequence represented by this String
+   * object and the character sequence represented by the argument string.
+   *
+   * Examples:
+   * ```
+   * "cares".concat("s") // returns "caress"
+   * "to".concat("get").concat("her") // returns "together"
+   * ```
+   * @param str the String that is concatenated to the end of this String.
+   * @returns a string that represents the concatenation of this object's characters
+   *          followed by the string argument's characters.
+   */
+  public concat(str: string | VString): VString {
+    return new VString(VExpression.call(this, 'concat', [str]));
+  }
+  /**
+   * Tests if this string ends with the specified suffix.
+   * @param suffix the suffix.
+   * @returns true if the character sequence represented by the argument is a suffix
+   *          of the character sequence represented by this object; false otherwise.
+   *          Note that the result will be true if the argument is the empty string
+   *          or is equal to this String object as determined by the `equals(Object)`
+   *          method.
+   */
+  public endsWith(suffix: string | VString): VBool {
+    return new VBool(VExpression.call(this, 'endsWith', [suffix]));
   }
 
+  /**
+   * Compares this String to another String, ignoring case considerations. Two strings
+   * are considered equal ignoring case if they are of the same length and corresponding
+   * characters in the two strings are equal ignoring case.
+   *
+   * Two characters `c1` and `c2` are considered the same ignoring case if at least one of
+   * the following is true:
+   *
+   * - The two characters are the same (as compared by the `==` operator)
+   * - Applying the method `Character.toUpperCase(char)` to each character produces the same result
+   * - Applying the method `Character.toLowerCase(char)` to each character produces the same result
+   *
+   * @param anotherString The String to compare this String against
+   * @returns `true` if the argument is not `null` and it represents an equivalent String ignoring case; `false` otherwise
+   */
+  public equalsIgnoreCase(anotherString: string | VString): VBool {
+    return new VBool(VExpression.call(this, 'equalsIgnoreCase', [anotherString]));
+  }
+
+  /**
+   * Returns the index within this string of the first occurrence of the specified
+   * substring, starting at the specified index. The integer returned is the
+   * smallest value k for which:
+   *
+   * ```java
+   * k >= Math.min(fromIndex, this.length()) && this.startsWith(str, k)
+   * ```
+   *
+   * If no such value of k exists, then -1 is returned.
+   * @param str the substring for which to search.
+   * @param fromIndex the index from which to start the search.
+   * @returns the index within this string of the first occurrence of the specified
+   *          substring, starting at the specified index.
+   */
+  public indexOf(str: string | VString, fromIndex?: number | VInteger): VInteger {
+    return new VInteger(VExpression.call(this, 'indexOf', cleanArgs(str, fromIndex)));
+  }
+  /**
+   * Returns `true` if, and only if, `length()` is `0`.
+   */
   public isEmpty(): VBool {
     return new VBool(VExpression.concat(this, '.isEmpty()'));
   }
-
-  public size(): VInteger {
-    return new VInteger(VExpression.concat(this, '.size()'));
+  /**
+   * Returns the index within this string of the last occurrence of the specified character,
+   * searching backward starting at the specified index.
+   *
+   * ```java
+   * k >= Math.min(fromIndex, this.length()) && this.startsWith(str, k)
+   * ```
+   *
+   * If no such value of k exists, then -1 is returned.
+   * @param str the substring to search for
+   * @param fromIndex the index to start the search from.
+   */
+  public lastIndexOf(str: string | VString, fromIndex?: number | VInteger): VInteger {
+    return new VInteger(VExpression.call(
+      this, 'substring', cleanArgs(str, fromIndex)));
+  }
+  /**
+   * Returns the length of this string.
+   */
+  public length(): VInteger {
+    return new VInteger(VExpression.concat(this, '.length()'));
+  }
+  /**
+   * Tells whether or not this string matches the given regular expression.
+   *
+   * An invocation of this method of the form str.matches(regex) yields exactly the same result as the expression
+   * @param regex the regular expression to which this string is to be matched
+   * @returns `true` if, and only if, this string matches the given regular expression
+   */
+  public matches(regex: string | RegExp | VString): VBool {
+    return new VBool(VExpression.call(
+      this, 'matches', [
+        typeof regex !== 'string' && !VObject.isObject(regex) ? regex.source : regex
+      ]));
+  }
+  /**
+   * Splits this string around matches of the given regular expression.
+   *
+   * The array returned by this method contains each substring of this string that is
+   * terminated by another substring that matches the given expression or is terminated
+   * by the end of the string. The substrings in the array are in the order in which
+   * they occur in this string. If the expression does not match any part of the input
+   * then the resulting array has just one element, namely this string.
+   *
+   * The limit parameter controls the number of times the pattern is applied and therefore
+   * affects the length of the resulting array. If the limit n is greater than zero then
+   * the pattern will be applied at most n - 1 times, the array's length will be no greater
+   * than n, and the array's last entry will contain all input beyond the last matched
+   * delimiter. If n is non-positive then the pattern will be applied as many times as
+   * possible and the array can have any length. If n is zero then the pattern will be
+   * applied as many times as possible, the array can have any length, and trailing empty
+   * strings will be discarded.
+   *
+   * The string `"boo:and:foo"`, for example, yields the following results with these parameters:
+   * ```
+   * Regex	Limit	Result
+   * :	    2	    { "boo", "and:foo" }
+   * :	    5	    { "boo", "and", "foo" }
+   * :	    -2	   { "boo", "and", "foo" }
+   * o	    5	    { "b", "", ":and:f", "", "" }
+   * o	    -2	   { "b", "", ":and:f", "", "" }
+   * o	    0	    { "b", "", ":and:f" }
+   * ```
+   *
+   * @param regex the delimiting regular expression
+   * @param limit the result threshold, as described above
+   * @returns the array of strings computed by splitting this string around matches of the given regular expression
+   */
+  public split(regex: string | RegExp | VString, limit?: number | VInteger): VList<StringShape> {
+    return new VList(string, VExpression.call(
+      this, 'split', cleanArgs(
+        typeof regex !== 'string' && !VObject.isObject(regex) ? regex.source : regex,
+        limit
+    )));
+  }
+  /**
+   * Returns a new string that is a substring of this string. The substring begins
+   * at the specified beginIndex and extends to the character at index endIndex - 1.
+   * Thus the length of the substring is endIndex-beginIndex.
+   *
+   * @param beginIndex the beginning index, inclusive.
+   * @param endIndex the ending index, exclusive.
+   * @returns the specified substring.
+   */
+  public substring(beginIndex: VObject.Like<IntegerShape>, endIndex?: VObject.Like<IntegerShape>): VString {
+    return new VString(VExpression.call(
+      this, 'substring', cleanArgs(beginIndex, endIndex)));
+  }
+  /**
+   * Tests if the substring of this string beginning at the specified index starts with the specified prefix.
+   *
+   * @param prefix the prefix.
+   * @param toffset true if the character sequence represented by the argument is a prefix of the
+   *                character sequence represented by this string; false otherwise. Note also
+   *                that true will be returned if the argument is an empty string or is equal to
+   *                this String object as determined by the equals(Object) method.
+   * @returns true if the character sequence represented by the argument is a prefix of the substring
+   *          of this object starting at index toffset; false otherwise. The result is false if toffset
+   *          is negative or greater than the length of this String object; otherwise the result is the
+   *          same as the result of the expression
+   */
+  public startsWith(prefix: string | VString, toffset?: number | VInteger): VBool {
+    return new VBool(VExpression.call(
+      this, 'startsWith', [
+        prefix,
+        ...(toffset === undefined ? [] : [])
+      ]
+    ));
+  }
+  /**
+   * Converts all of the characters in this String to lower case using the rules of the default locale.
+   */
+  public toLowerCase(): VString {
+    return new VString(VExpression.concat(this, '.toLowerCase()'));
+  }
+  /**
+   * Converts all of the characters in this String to upper case using the rules of the default locale.
+   */
+  public toUpperCase(): VString {
+    return new VString(VExpression.concat(this, '.toUpperCase()'));
+  }
+  /**
+   * Returns a copy of the string, with leading and trailing whitespace omitted.
+   */
+  public trim(): VString {
+    return new VString(VExpression.concat(this, '.trim()'));
   }
 }
 
@@ -272,12 +539,28 @@ export class VList<T extends Shape = Shape> extends VObject<ArrayShape<T>> {
     super(array(shape), expression);
   }
 
-  public *get(index: number | VInteger): VTL<VObject.Of<T>> {
-    return yield* vtl(this[VObjectType].Items)`${this}.get(${index})`;
+  public size(): VInteger {
+    return new VInteger(VExpression.concat(this, '.size()'));
   }
 
-  public *add(value: VObject.Like<T>) {
+  public isEmpty(): VBool {
+    return new VBool(VExpression.concat(this, '.isEmpty()'));
+  }
+
+  public get(index: number | VInteger): VObject.Of<T> {
+    return VObject.fromExpr(this[VObjectType].Items, VExpression.concat(this, '.get(', index, ')'));
+  }
+
+  public *set(index: number | VInteger, value: VObject.Like<T>): VTL<void> {
+    yield* vtl`$util.qr(${this}.set(${index}, ${yield* VObject.of(this[VObjectType].Items, value)}))`;
+  }
+
+  public *add(value: VObject.Like<T>): VTL<void> {
     yield* vtl`$util.qr(${this}.add(${yield* VObject.of(this[VObjectType].Items, value)}))`;
+  }
+
+  public *forEach(f: (item: VObject.Of<T>) => VTL<void>): VTL<void> {
+    yield* forLoop(this, f as any);
   }
 }
 
@@ -328,18 +611,9 @@ export namespace VRecord {
   export type Class<T extends VRecord = any> = (new(members: VRecord.GetMembers<T>) => T);
 }
 
-export class VUnion<U extends UnionShape<ArrayLike<Shape>>> extends VObject<U> {
-  constructor(type: U, expr: VExpression) {
-    super(type, expr);
-
-    // // VUnion needs to behave like all the other shapes simultaneously
-    // // we will proxy methods and introspect values to emulate the behavior
-    // // of the other shapes
-    // return new Proxy(this, {
-
-    // })
-  }
-
+export class VUnion<U extends VObject[]> extends VObject<UnionShape<{
+  [u in keyof U]: u extends number ? VObject.TypeOf<U[u]> : never
+}>> {
   public *assertIs<T extends VUnion.UnionCase<U>>(item: T, msg?: string | VString): VTL<VObject.Of<T>, any> {
     return yield* this.match(item, function*(i) {
       return i;
@@ -348,17 +622,17 @@ export class VUnion<U extends UnionShape<ArrayLike<Shape>>> extends VObject<U> {
     }) as any as VTL<VObject.Of<T>, any>;
   }
 
-  public match<T, I extends VUnion.UnionCase<U>>(
-    match: I,
-    then: VUnion.CaseBlock<I, T>
-  ): VUnion.Match<U, T | undefined, I> {
+  public match<T, M extends VUnion.UnionCase<U>>(
+    match: M,
+    then: VUnion.CaseBlock<M, T>
+  ): VUnion.Match<U, T | undefined, M> {
     return new VUnion.Match(undefined, this, match, then);
   }
 }
 export namespace VUnion {
   export type CaseBlock<I extends Shape, T> = (i: VObject.Of<I>) => Generator<any, T>;
   export type OtherwiseBlock<T> = () => Generator<any, T>;
-  export type UnionCase<U extends UnionShape<ArrayLike<Shape>>> = U['Items'][Extract<keyof U['Items'], number>];
+  export type UnionCase<U extends VObject[]> = VObject.TypeOf<U[Extract<keyof U, number>]>;
 
   function toCondition(m: Match): VBool {
     const shape = m.matchType;
@@ -429,7 +703,7 @@ export namespace VUnion {
   }
 
   export class Match<
-    U extends UnionShape<ArrayLike<Shape>> = UnionShape<ArrayLike<Shape>>,
+    U extends VObject[] = VObject[],
     Returns = any,
     Excludes extends UnionCase<U> = UnionCase<U>
   > implements VTL<Returns, any> {
@@ -463,18 +737,18 @@ export namespace VUnion {
     }
 
     public match<
-      T,
-      I extends Exclude<
-        U['Items'][Extract<keyof U['Items'], number>],
-        Exclude<Excludes, never>
-      >
+      M extends Exclude<
+        VObject.TypeOf<U[Extract<keyof U, number>]>,
+        Excludes
+      >,
+      T
     >(
-      match: I,
-      then: CaseBlock<I, T>
+      match: M,
+      then: CaseBlock<M, T>
     ): Match<
       U,
       T | Returns | undefined,
-      I | Excludes
+      M | Excludes
     > {
       return new Match(this, this.value, match, then);
     }
@@ -494,7 +768,7 @@ export namespace VUnion {
 
 export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public static defaultInstance = new Visitor();
-  public unionShape(shape: UnionShape<ArrayLike<Shape>>, expr: VExpression): VObject<Shape> {
+  public unionShape(shape: UnionShape<Shape[]>, expr: VExpression): VObject<Shape> {
     return new VUnion(shape, expr);
   }
   public literalShape(shape: LiteralShape<Shape, any>, expr: VExpression): VObject<Shape> {

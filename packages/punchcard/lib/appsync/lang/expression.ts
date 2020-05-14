@@ -23,7 +23,7 @@ const isExpr = Symbol.for('AppSync.isExpr');
 
 export class VExpression {
   public static isExpression(a: any): a is VExpression {
-    return a[isExpr] === true;
+    return a && a[isExpr] === true;
   }
 
   public static json<L extends VExpressionLiteral>(obj: L): VExpression {
@@ -31,7 +31,7 @@ export class VExpression {
       return obj;
     }
     if (VObject.isObject(obj)) {
-      return VExpression.call('$util.toJson', obj);
+      return VExpression.call('$util.toJson', [obj]);
     }
 
     if (typeof obj === 'string') {
@@ -112,32 +112,41 @@ export class VExpression {
 
   public readonly [isExpr]: true = true;
 
-  public static call(self: VObject, functionName: string, ...args: []): VExpression;
-  public static call(functionName: string, ...args: (VExpression | VObject | string)[]): VExpression;
+  public static call(self: VObject, functionName: string, args: CallArg[]): VExpression;
+  public static call(functionName: string, args: CallArg[]): VExpression;
   public static call(...args: any[]): VExpression {
     if (typeof args[0] === 'string') {
       const functionName = args[0];
-      args = args.slice(1);
+      args = args[1];
       return VExpression.concat(
-        functionName, '(',
-          VExpression.concat(...args.map((a, i) => i < args.length - 1 ? VExpression.concat(a, ',') : a)),
-        ')'
+        functionName, '(', ...toArgs(args), ')'
       );
     } else {
       const self = args[0];
       const functionName = args[1];
-      args = args.slice(2);
+      args = args[3];
       return VExpression.concat(
-        self, '.', functionName, '(',
-          VExpression.concat(...args.map((a, i) => i < args.length - 1 ? VExpression.concat(a, ',') : a)),
-        ')'
+        self, '.', functionName, '(', ...toArgs(args), ')'
       );
+    }
+
+    function toArgs(args: any[]): any[] {
+      return args.map((a, i) => {
+        a =
+          typeof a === 'string' ? `"${a}"` :
+          typeof a === 'number' ? a.toString(10) :
+          typeof a === 'boolean' ? `${a}` :
+          a;
+        return i < args.length - 1 ? VExpression.concat(a, ',') : a;
+      });
     }
   }
 
-  public static concat(...expressions: (VExpression | VObject | string)[]) {
+  public static concat(...expressions: (VExpression | VObject | string | number)[]) {
     return new VExpression((ctx) => ctx.write(...expressions));
   }
 
   constructor(public readonly visit: ((state: InterpreterState) => string | InterpreterState | void)) {}
 }
+
+type CallArg = (VExpression | VObject | string | number | boolean);

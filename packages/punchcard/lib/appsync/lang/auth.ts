@@ -1,10 +1,10 @@
 import { string } from '@punchcard/shape';
-import { AuthMetadata, AuthMode, AuthProps } from '../api/auth';
+import { AuthMode, AuthProps } from '../api/auth';
 import { $context } from '../lang/context';
 import { $else, $elseIf, $if } from './syntax';
-import { $util } from './util/util';
+import { $util } from './util';
 import { VTL } from './vtl';
-import { VNothing, VString } from './vtl-object';
+import { VBool, VString } from './vtl-object';
 
 export function toAuthDirectives(props: AuthProps) {
   return Object.entries(props).map(([name, value]) => {
@@ -19,9 +19,9 @@ export function toAuthDirectives(props: AuthProps) {
 export namespace $auth {
   export function *mode(): VTL<VString> {
     return yield* $if($util.isNull($context.identity), function*() {
-      return yield* $if($context.identity.cognitoIdentityPoolId.as(string).isNotEmpty(), () =>
+      return yield* $if(VBool.not($context.identity.cognitoIdentityPoolId.as(string).isEmpty()), () =>
         VTL.string(AuthMode.AMAZON_COGNITO_USER_POOLS)
-      , $elseIf($context.identity.accountId.as(string).isNotEmpty(), () =>
+      , $elseIf(VBool.not($context.identity.accountId.as(string).isEmpty()), () =>
         VTL.string(AuthMode.AWS_IAM)
       , $else(() =>
         VTL.string(AuthMode.NONE)
