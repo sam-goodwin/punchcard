@@ -149,7 +149,7 @@ export namespace VObject {
       [field in keyof T['Members']]: Of<T['Members'][field]>;
     } :
     T extends ArrayShape<infer I> ? VList<I> :
-    T extends SetShape<infer I> ? VSet<I> :
+    T extends SetShape<infer I> ? VList<I> :
     T extends MapShape<infer I> ? VMap<I> : // maps are not supported in GraphQL
     T extends BoolShape ? VBool :
     T extends AnyShape ? VAny :
@@ -564,21 +564,6 @@ export class VList<T extends Shape = Shape> extends VObject<ArrayShape<T>> {
   }
 }
 
-export class VSet<T extends Shape = Shape> extends VObject<SetShape<T>> {
-  constructor(shape: SetShape<T>, expression: VExpression) {
-    super(shape, expression);
-  }
-
-  public *has(value: VObject.Like<T>): VTL<VBool> {
-    const itemType = this[VObjectType].Items;
-    return yield* vtl(boolean)`${this}.get(${yield* VObject.of(itemType, value)})`;
-  }
-
-  public *add(value: VObject.Like<T>) {
-    yield* vtl`$util.qr(${this}.add(${yield* VObject.of(this[VObjectType].Items, value)}))`;
-  }
-}
-
 export class VMap<T extends Shape = Shape> extends VObject<MapShape<T>> {
   constructor(shape: MapShape<T>, expression: VExpression) {
     super(shape, expression);
@@ -808,8 +793,8 @@ export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public numberShape(shape: NumberShape, expr: VExpression): VFloat {
     return new VFloat(expr);
   }
-  public setShape(shape: SetShape<Shape>, expr: VExpression): VSet<Shape> {
-    return new VSet(shape, expr);
+  public setShape(shape: SetShape<Shape>, expr: VExpression): VList<Shape> {
+    return new VList(shape, expr);
   }
   public stringShape(shape: StringShape, expr: VExpression): VString {
     return new VString(expr);

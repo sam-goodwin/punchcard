@@ -1,7 +1,6 @@
-import { array, ArrayShape, bool, boolean, BoolShape, integer, IntegerShape, map, MapShape, number, NumberShape, RecordShape, Shape, ShapeGuards, string, StringShape } from '@punchcard/shape';
+import { array, ArrayShape, BinaryShape, bool, boolean, BoolShape, integer, IntegerShape, map, MapShape, number, NumberShape, RecordShape, set, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape } from '@punchcard/shape';
 import { AttributeValue } from '@punchcard/shape-dynamodb';
-import { $else, $if, getState, VExpression, VInteger, VList, VObject, VString, VTL, vtl } from '../../appsync';
-import { $util } from '../../appsync/lang/util';
+import { getState, VInteger, VList, VObject, VString, VTL, vtl } from '../../appsync';
 import { DynamoExpr } from './dynamo-expr';
 import { DynamoGuards } from './guards';
 import { addValue, toPath } from './util';
@@ -14,6 +13,10 @@ export namespace DynamoDSL {
     T extends IntegerShape ? DynamoDSL.Int :
     T extends NumberShape ? DynamoDSL.Number :
     T extends ArrayShape<infer I> ? DynamoDSL.List<I> :
+    T extends SetShape<infer I> ?
+      I extends StringShape | TimestampShape | BinaryShape | NumberShape ?
+        DynamoDSL.Set<I> :
+        DynamoDSL.List<I> :
     T extends MapShape<infer V> ? DynamoDSL.Map<V> :
     T extends RecordShape<infer M> ? DynamoDSL.Record<T> :
     Object<T>
@@ -44,14 +47,7 @@ export namespace DynamoDSL {
   }
 
   export function *expect(condition: DynamoDSL.Bool): VTL<void> {
-    const conditionExpression = new VString(VExpression.text('$conditionExpression'));
-    const next = yield* descend(condition.expr);
-
-    yield* $if($util.isNullOrEmpty(conditionExpression), function*() {
-      yield* vtl`$util.qr(${conditionExpression} = "(${next})")`;
-    }, $else(function*() {
-      yield* vtl`$util.qr(${conditionExpression} = "${conditionExpression} and (${next})"`;
-    }));
+    yield* vtl`$util.qr($CONDITION.add("${yield* descend(condition.expr)}"))`;
 
     function *descend(expr: DynamoExpr): VTL<string> {
       if(DynamoExpr.isOperator(expr)) {
@@ -79,6 +75,13 @@ export namespace DynamoDSL {
       this.dynamoType = AttributeValue.shapeOf(this.type);
     }
 
+    public get size(): DynamoDSL.Int {
+      return new Int(new DynamoExpr.FunctionCall(bool, 'size', [{
+        type: this.type,
+        value: this
+      }]));
+    }
+
     public exists(): DynamoDSL.Bool {
       return new Bool(new DynamoExpr.FunctionCall(boolean, 'attribute_exists', [{
         type: this.type,
@@ -100,7 +103,7 @@ export namespace DynamoDSL {
     public *set(value: VObject.Like<T>): VTL<void> {
       const thisPath = yield* toPath(this.expr);
       const valueId = yield* addValue(this.type, value);
-      yield* vtl`$util.qr($setStatements.add("${thisPath} = ${valueId}"))`;
+      yield* vtl`$util.qr($SET.add("${thisPath} = ${valueId}"))`;
     }
   }
   export class Bool extends Object<BoolShape> {
@@ -164,13 +167,6 @@ export namespace DynamoDSL {
       super(array(type), expr);
     }
 
-    public get size(): DynamoDSL.Int {
-      return new Int(new DynamoExpr.FunctionCall(bool, 'size', [{
-        type: this.type,
-        value: this
-      }]));
-    }
-
     public get(index: number | VInteger): DynamoDSL.Repr<T> {
       return DynamoDSL.of(this.type.Items, new DynamoExpr.GetListItem(this, index));
     }
@@ -178,12 +174,37 @@ export namespace DynamoDSL {
     public push(...values: VObject.Like<T>[]): VTL<void>;
     public push(list: VList<T> | DynamoDSL.List<T>): VTL<void>;
     public *push(...args: any[]) {
-      const valueId = args.length === 1 && VObject.isList(args[0]) ?
-        yield* addValue(this.type, args[0]) :
-        yield* addValue(this.type, args)
-      ;
-      const thisPath = yield* toPath(this.expr);
-      yield* vtl`$util.qr($setStatements.add("${thisPath} = list_append(${thisPath}, ${valueId})"))`;
+      const { valueId, thisPath } = yield* prepareList(this.type, this.expr, args);
+      yield* vtl`$util.qr($SET.add("${thisPath} = list_append(${thisPath}, ${valueId})"))`;
+    }
+  }
+  // helper for adding a list or set of items in the transaction
+  function *prepareList(type: Shape, expr: DynamoExpr, args: any[]) {
+    return {
+      valueId: args.length === 1 && VObject.isList(args[0]) ?
+        yield* addValue(type, args[0] as any) :
+        yield* addValue(type, args as any),
+      thisPath: yield* toPath(expr)
+    };
+  }
+
+  export class Set<T extends StringShape | TimestampShape | NumberShape | BinaryShape> extends Object<SetShape<T>> {
+    constructor(type: T, expr: DynamoExpr) {
+      super(set(type as any), expr);
+    }
+
+    public add(...values: VObject.Like<T>[]): VTL<void>;
+    public add(list: VList<T> | DynamoDSL.Set<T>): VTL<void>;
+    public *add(...args: any[]) {
+      const { valueId, thisPath } = yield* prepareList(this.type, this.expr, args);
+      yield* vtl`$util.qr($ADD.add("${thisPath} ${valueId}"))`;
+    }
+
+    public remove(...values: VObject.Like<T>[]): VTL<void>;
+    public remove(list: VList<T> | DynamoDSL.Set<T>): VTL<void>;
+    public *remove(...args: any[]) {
+      const { valueId, thisPath } = yield* prepareList(this.type, this.expr, args);
+      yield* vtl`$util.qr($ADD.add("${thisPath} ${valueId}"))`;
     }
   }
   export class Map<T extends Shape> extends Object<MapShape<T>> {
@@ -199,9 +220,9 @@ export namespace DynamoDSL {
       const state = yield* getState();
       const thisPath = yield* toPath(this.expr);
       const keyId = state.newId('#');
-      yield* vtl`$util.qr($expressionNames.put("${keyId}", ${typeof key === 'string' ? `"${key}"` : key}))`;
+      yield* vtl`$util.qr($NAMES.put("${keyId}", ${typeof key === 'string' ? `"${key}"` : key}))`;
       const valueId = yield* addValue(this.item, value);
-      yield* vtl`$util.qr($setStatements.add("${thisPath}.${keyId} = ${valueId}"))`;
+      yield* vtl`$util.qr($SET.add("${thisPath}.${keyId} = ${valueId}"))`;
     }
   }
   export class Record<T extends RecordShape> extends Object<T> {

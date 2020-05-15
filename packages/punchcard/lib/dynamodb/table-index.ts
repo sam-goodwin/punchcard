@@ -70,16 +70,16 @@ export class Index<SourceTable extends Table<RecordShape, any>, Projection exten
     this.key = props.key;
     this.projection = props.projection || props.sourceTable.dataType;
 
-    const type: any = this.projection;
+    const type = this.projection;
 
     CDK.chain(({dynamodb}) => this.sourceTable.resource.map(table => {
       const partitionKey = {
         name: this.key.partition,
-        type: keyType(type.members[this.key.partition])
+        type: keyType(type.Members[this.key.partition as any])
       };
       const sortKey = this.key.sort ? {
         name: this.key.sort,
-        type: keyType(type.members[this.key.sort])
+        type: keyType(type.Members[this.key.sort as any])
       } : undefined;
 
       // the names of both the table and the index's partition+sort keys.
@@ -99,7 +99,7 @@ export class Index<SourceTable extends Table<RecordShape, any>, Projection exten
       }
 
       // all properties in the Table
-      const TABLE_MEMBERS = new Set(Object.keys(props.sourceTable.dataType.members));
+      const TABLE_MEMBERS = new Set(Object.keys(props.sourceTable.dataType.Members));
 
       const projectionType =
         PROJECTION_MEMBERS.size === TABLE_MEMBERS.size ? dynamodb.ProjectionType.ALL :

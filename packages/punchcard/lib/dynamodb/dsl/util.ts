@@ -16,7 +16,7 @@ export function *toPath(expr: DynamoExpr): Generator<any, string> {
   } else if (DynamoExpr.isReference(expr)) {
     const prev = expr.target ? `${(yield* toPath(expr.target.expr))}.` : '';
     const id = state.newId('#');
-    yield* vtl`$util.qr($expressionNames.put("${id}", "${expr.id}"))`;
+    yield* vtl`$util.qr($NAMES.put("${id}", "${expr.id}"))`;
     return `${prev}${id}`;
   } else if (DynamoExpr.isGetListItem(expr)) {
     const prev = yield* toPath(expr.list.expr);
@@ -32,7 +32,7 @@ export function *toPath(expr: DynamoExpr): Generator<any, string> {
       expr.key[VObjectExpr].visit(state) as string // todo: visit doesn't always return a string
     ;
     const id = state.newId('#');
-    yield* vtl`$util.qr($expressionNames.put("${id}", ${key}))`;
+    yield* vtl`$util.qr($NAMES.put("${id}", ${key}))`;
     return `${prev}.${id}`;
   } else if (DynamoExpr.isFunctionCall(expr)) {
     const args: string[] = [];
@@ -55,6 +55,6 @@ export function *addValue<T extends Shape>(type: T, value: VObject.Like<T>): VTL
   const state = yield* getState();
   const setValue = yield* $util.dynamodb.toDynamoDBExtended(type, value);
   const valueId = state.newId(':');
-  yield* vtl`$util.qr($expressionValues.put("${valueId}", ${setValue}))`;
+  yield* vtl`$util.qr($VALUES.put("${valueId}", ${setValue}))`;
   return valueId;
 }

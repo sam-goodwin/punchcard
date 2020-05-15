@@ -110,7 +110,7 @@ export namespace $util.dynamodb {
     const shape = ShapeGuards.isShape(a) ? a : VObject.getType(a);
     const dynamoShape = AttributeValue.shapeOf(shape) as Shape;
     const value: VObject.Like<Shape> = VObject.isObject(a) ? a : b;
-    if (!hasSet(dynamoShape) && VObject.isObject(value)) {
+    if (!hasSet(shape) && VObject.isObject(value)) {
       // if the object doesn't have any set types and is a reference, then use the built-in utility
       return toDynamoDB(value);
     }
@@ -123,19 +123,42 @@ export namespace $util.dynamodb {
     } else if (ShapeGuards.isNothingShape(shape)) {
       return yield* vtl(dynamoShape, stashProps)`${toNull()}`;
     } else if (ShapeGuards.isArrayShape(shape)) {
+      return yield* toList(shape);
+    } else if (ShapeGuards.isMapShape(shape)) {
+    } else if (ShapeGuards.isArrayShape(shape)) {
+      return yield* toList(shape);
+    } else if (ShapeGuards.isSetShape(shape)) {
+      if (VObject.isList(value)) {
+        return ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isTimestampShape(shape.Items) ? toStringSet(value as VList<StringShape>) :
+          ShapeGuards.isNumberShape(shape.Items) ? toNumberSet(value as VList<NumberShape>) :
+          ShapeGuards.isBinaryShape(shape.Items) ? toBinarySet(value as VList<BinaryShape>) :
+          yield* toList(shape);
+      } else {
+        const tag =
+          ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isTimestampShape(shape.Items) ? 'SS' :
+          ShapeGuards.isNumberShape(shape.Items) ? 'NS' :
+          ShapeGuards.isBinaryShape(shape.Items) ? 'BS' :
+          'L'
+        ;
+        const set = yield* vtl(dynamoShape)`{${tag}:[]}`;
+        for (const item of value) {
+          yield* (set as any)[tag].add(yield* toDynamoDBExtended(shape.Items, item));
+        }
+      }
+    }
+
+    function *toList(shape: CollectionShape<Shape>) {
       const list = yield* vtl(AttributeValue.List(AttributeValue.shapeOf(shape.Items)), stashProps)`{L: []}`;
       if (VObject.isList(value)) {
         yield* value.forEach(function*(item) {
           yield* list.L.add(yield* toDynamoDBExtended(shape.Items, item));
         });
       } else {
-        console.log(value);
         for (const item of value) {
           yield* list.L.add(yield* toDynamoDBExtended(shape.Items, item));
         }
       }
       return list;
-    } else if (ShapeGuards.isMapShape(shape)) {
     }
 
     return null as any;
@@ -166,74 +189,233 @@ export namespace $util.dynamodb {
     return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toDynamoDBJson', [object]));
   }
 
+  /**
+   * Returns a null in DynamoDB null format. This returns an object that describes the DynamoDB attribute value.
+   * ```
+   * Input:      $util.dynamodb.toNull()
+   * Output:     { "NULL" : null }
+   * ```
+   */
   export function toNull(): VObject.Of<typeof AttributeValue.Nothing> {
     return VObject.fromExpr(AttributeValue.Nothing, VExpression.call('$util.dynamodb.toNull', []));
   }
-
-  export function toBoolean(object: VBool | boolean): VObject.Of<typeof AttributeValue.Bool> {
-    return VObject.fromExpr(AttributeValue.Bool, VExpression.call('$util.dynamodb.toBoolean', [typeof object === 'boolean' ? object.toString() : object]));
-  }
-  export function toBooleanJson(object: VBool): VString {
-    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toBooleanJson', [typeof object === 'boolean' ? `${object}` : object]));
-  }
-
-  export function toBinary(object: VString | string): VObject.Of<typeof AttributeValue.Binary> {
-    return VObject.fromExpr(AttributeValue.Binary, VExpression.call('$util.dynamodb.toBinary', [object]));
-  }
-  export function toBinaryJson(object: VString | string): VString {
-    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toBinaryJson', [object]));
-  }
-  export function toBinarySet(value: VList<StringShape>): VObject.Of<typeof AttributeValue.BinarySet> {
-    return VObject.fromExpr(AttributeValue.BinarySet, VExpression.call('$util.dynamodb.toBinarySet', [value]));
-  }
-  export function toBinarySetJson(value: VList<StringShape>): VString {
-    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toBinarySet', [value]));
+  /**
+   * The same as `$util.dynamodb.toNull`, but returns the DynamoDB attribute value as a JSON encoded string.
+   */
+  export function toNullJson(): VString {
+    return new VString(VExpression.call('$util.dynamodb.toNullJson', []));
   }
 
-  export function toNumber(object: VInteger | VFloat | number): VObject.Of<typeof AttributeValue.Number> {
-    return VObject.fromExpr(AttributeValue.Number, VExpression.call('$util.dynamodb.toNumber', [typeof object === 'number' ? object.toString(10) : object]));
+  /**
+   * Converts a boolean to the appropriate DynamoDB boolean format. This returns an object that describes the DynamoDB attribute value.
+   * ```
+   * Input:      $util.dynamodb.toBoolean(true)
+   * Output:     { "BOOL" : true }
+   * ```
+   * @param bool to convert to a DynamoDB BOOL object.
+   */
+  export function toBoolean(bool: VBool | boolean): VObject.Of<typeof AttributeValue.Bool> {
+    return VObject.fromExpr(AttributeValue.Bool, VExpression.call('$util.dynamodb.toBoolean', [typeof bool === 'boolean' ? bool.toString() : bool]));
   }
-  export function toNumberJson(object: VInteger | VFloat | number): VString {
-    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toNumberJson', [typeof object === 'number' ? object.toString(10) : object]));
+  /**
+   * The same as `$util.dynamodb.toBoolean`, but returns the DynamoDB attribute value as a JSON encoded string.
+   *
+   * @param bool to convert to a DynamoDB BOOL object.
+   */
+  export function toBooleanJson(bool: VBool): VString {
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toBooleanJson', [typeof bool === 'boolean' ? `${bool}` : bool]));
   }
-  export function toNumberSet(value: VList<NumberShape>): VObject.Of<typeof AttributeValue.NumberSet> {
-    return VObject.fromExpr(AttributeValue.NumberSet, VExpression.call('$util.dynamodb.toNumberSet', [value]));
+
+  /**
+   * Converts binary data encoded as a base64 string to DynamoDB binary format. This returns an object that describes the DynamoDB attribute value.
+   * ```
+   * Input:      $util.dynamodb.toBinary("foo")
+   * Output:     { "B" : "foo" }
+   * ```
+   * @param string to convert to a DynamoDB binary object.
+   */
+  export function toBinary(string: VString | string): VObject.Of<typeof AttributeValue.Binary> {
+    return VObject.fromExpr(AttributeValue.Binary, VExpression.call('$util.dynamodb.toBinary', [string]));
   }
+  /**
+   * The same as `$util.dynamodb.toBinary`, but returns the DynamoDB attribute value as a JSON encoded string.
+   *
+   * @param str to convert to a DynamoDB binary object JSON string.
+   */
+  export function toBinaryJson(str: VString | string): VString {
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toBinaryJson', [str]));
+  }
+  /**
+   * Converts a list of binary data encoded as base64 strings to DynamoDB binary set format. This returns an object that describes the DynamoDB attribute value.
+   * ```
+   * Input:      $util.dynamodb.toBinarySet([ "foo", "bar", "baz" ])
+   * Output:     { "BS" : [ "foo", "bar", "baz" ] }
+   * ```
+   * @param list of strings to convert to a DynamoDB binary set.
+   */
+  export function toBinarySet(list: VList<StringShape | BinaryShape>): VObject.Of<typeof AttributeValue.BinarySet> {
+    return VObject.fromExpr(AttributeValue.BinarySet, VExpression.call('$util.dynamodb.toBinarySet', [list]));
+  }
+  /**
+   * The same as `$util.dynamodb.toBinarySet`, but returns the DynamoDB attribute value as a JSON encoded string.
+   *
+   * @param list of strings to convert to a DynamoDB binary set.
+   */
+  export function toBinarySetJson(list: VList<StringShape>): VString {
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toBinarySet', [list]));
+  }
+
+  /**
+   * Converts a number to the DynamoDB number format. This returns an object that describes the DynamoDB attribute value.
+   * ```
+   * Input:      $util.dynamodb.toNumber(12345)
+   * Output:     { "N" : 12345 }
+   * ```
+   * @param number to convert to a DynamoDB number object.
+   */
+  export function toNumber(number: VInteger | VFloat | number): VObject.Of<typeof AttributeValue.Number> {
+    return VObject.fromExpr(AttributeValue.Number, VExpression.call('$util.dynamodb.toNumber', [typeof number === 'number' ? number.toString(10) : number]));
+  }
+  /**
+   * The same as `$util.dynamodb.toNumber`, but returns the DynamoDB attribute value as a JSON encoded string.
+   * @param number to convert to a DynamoDB number object.
+   */
+  export function toNumberJson(number: VInteger | VFloat | number): VString {
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toNumberJson', [typeof number === 'number' ? number.toString(10) : number]));
+  }
+  /**
+   * Converts a list of numbers to the DynamoDB number set format. This returns an object that describes the DynamoDB attribute value.
+   *
+   * ```
+   * Input:      $util.dynamodb.toNumberSet([ 1, 23, 4.56 ])
+   * Output:     { "NS" : [ 1, 23, 4.56 ] }
+   * ```
+   * @param list of numbers to convert to a DynamoDB number set.
+   */
+  export function toNumberSet(list: VList<NumberShape>): VObject.Of<typeof AttributeValue.NumberSet> {
+    return VObject.fromExpr(AttributeValue.NumberSet, VExpression.call('$util.dynamodb.toNumberSet', [list]));
+  }
+  /**
+   * The same as `$util.dynamodb.toNumberSet`, but returns the DynamoDB attribute value as a JSON encoded string.
+   *
+   * @param list of numbers to convert to a DynamoDB number set JSON string.
+   */
   export function toNumberSetJson(value: VList<NumberShape>): VString {
     return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toNumberSetJson', [value]));
   }
 
+  /**
+   * Convert an input string to the DynamoDB string format. This returns an object that describes the DynamoDB attribute value.
+   *
+   * ```
+   * Input:      $util.dynamodb.toString("foo")
+   * Output:     { "S" : "foo" }
+   * ```
+   * @param value string to convert into a DynamoDB string object.
+   */
   export function toString(value: VString | string): VObject.Of<typeof AttributeValue.String> {
     return VObject.fromExpr(AttributeValue.String, VExpression.call('$util.dynamodb.toString', [value]));
   }
+  /**
+   * The same as `$util.dynamodb.toString(String)`, but returns the DynamoDB attribute value as a JSON encoded string.
+   *
+   * @param value string to convert into a DynamoDB string object JSON string.
+   */
   export function toStringJson(value: VString): VString {
     return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toStringJson', [value]));
   }
-  export function toStringSet(value: VList<StringShape>): VObject.Of<typeof AttributeValue.StringSet> {
-    return VObject.fromExpr(AttributeValue.StringSet, VExpression.call('$util.dynamodb.toStringSet', [value]));
+  /**
+   * Converts a lists with Strings to the DynamoDB string set format. This returns an object that describes the DynamoDB attribute value.
+   * ```
+   * Input:      $util.dynamodb.toStringSet([ "foo", "bar", "baz" ])
+   * Output:     { "SS" : [ "foo", "bar", "baz" ] }
+   * ```
+   * @param list list of strings to convert to a DynamoDB string set.
+   */
+  export function toStringSet(list: VList<StringShape | TimestampShape>): VObject.Of<typeof AttributeValue.StringSet> {
+    return VObject.fromExpr(AttributeValue.StringSet, VExpression.call('$util.dynamodb.toStringSet', [list]));
   }
-  export function toStringSetJson(value: VList<StringShape>): VString {
-    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toStringSetJson', [value]));
+  /**
+   * The same as `$util.dynamodb.toStringSet`, but returns the DynamoDB attribute value as a JSON encoded string.
+   *
+   * @param list list of strings to convert to a DynamoDB string set JSON string.
+   */
+  export function toStringSetJson(list: VList<StringShape>): VString {
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toStringSetJson', [list]));
   }
 
+  /**
+   * Converts a list of object to DynamoDB list format. Each item in the list is also converted to
+   * its appropriate DynamoDB format. It’s opinionated about how it represents some of the nested
+   * objects: e.g., it will use lists (`L`) rather than sets (`SS`, `NS`, `BS`). This returns an
+   * object that describes the DynamoDB attribute value.
+   *
+   * ```
+   * Input: $util.dynamodb.toList([ "foo", 123, { "bar" : "baz" } ])
+   * Output:
+   * {
+   *   "L" : [
+   *     { "S" : "foo" },
+   *     { "N" : 123 },
+   *     {
+   *        "M" : {
+   *          "bar" : { "S" : "baz" }
+   *        }
+   *     }
+   *   ]
+   * }
+   * ```
+   * @param list to convert to a DynamoDB list object.
+   */
   export function toList<T extends Shape>(list: VList<T>): VObject.Of<AttributeValue.List<AppSyncDynamoDBFormat<T>>> {
     return VObject.fromExpr(
       appSyncDynamoDBFormat(VObject.getType(list)),
       VExpression.call('$util.dynamodb.toList', [list])
     ) as VObject.Of<AttributeValue.List<AppSyncDynamoDBFormat<T>>>;
   }
+  /**
+   * The same as `$util.dynamodb.toList`, but returns the DynamoDB attribute value as a JSON encoded string.
+   *
+   * @param list to convert to a DynamoDB list object JSON string.
+   */
   export function toListJson<T extends Shape>(list: VList<T>): VString {
     return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toListJson', [list]));
   }
 
-  export function toMap<T extends Shape>(list: VMap<T>): VObject.Of<AttributeValue.Map<AppSyncDynamoDBFormat<T>>> {
+  /**
+   * Converts a map to DynamoDB map format. Each value in the map is also converted to its
+   * appropriate DynamoDB format. It’s opinionated about how it represents some of the nested
+   * objects: e.g., it will use lists (`L`) rather than sets (`SS`, `NS`, `BS`). This returns an
+   * object that describes the DynamoDB attribute value.
+   *
+   * ```
+   * Input:      $util.dynamodb.toMap({ "foo": "bar", "baz" : 1234, "beep": [ "boop"] })
+   * Output: {
+   *   "M" : {
+   *     "foo"  : { "S" : "bar" },
+   *     "baz"  : { "N" : 1234 },
+   *     "beep" : {
+   *       "L" : [
+   *         { "S" : "boop" }
+   *       ]
+   *     }
+   *   }
+   * }
+   * ```
+   * @param map to convert to a DynamoDB map.
+   */
+  export function toMap<T extends Shape>(map: VMap<T>): VObject.Of<AttributeValue.Map<AppSyncDynamoDBFormat<T>>> {
     return VObject.fromExpr(
-      appSyncDynamoDBFormat(VObject.getType(list)),
-      VExpression.call('$util.dynamodb.toMap', [list])
+      appSyncDynamoDBFormat(VObject.getType(map)),
+      VExpression.call('$util.dynamodb.toMap', [map])
     ) as VObject.Of<AttributeValue.Map<AppSyncDynamoDBFormat<T>>>;
   }
-  export function toMapJson<T extends Shape>(list: VList<T>): VString {
-    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toMapJson', [list]));
+  /**
+   * The same as `$util.dynamodb.toMap`, but returns the DynamoDB attribute value as a JSON encoded string.
+   * @param map to convert to a DynamoDB map.
+   */
+  export function toMapJson<T extends Shape>(map: VMap<T>): VString {
+    return new VString(VExpression.call('$util.dynamodb.toMapJson', [map]));
   }
 
   /**

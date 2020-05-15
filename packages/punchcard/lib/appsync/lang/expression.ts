@@ -124,7 +124,7 @@ export class VExpression {
     } else {
       const self = args[0];
       const functionName = args[1];
-      args = args[3];
+      args = args[2];
       return VExpression.concat(
         self, '.', functionName, '(', ...toArgs(args), ')'
       );

@@ -264,15 +264,19 @@ export class Api<
 
               state.write(VExpression.concat(
                 '#forEach( ', itemId, ' in ', stmt.list, ')'
-              ));
+              )).indent().writeLine();
 
               interpretProgram(
                 stmt.then(VObject.fromExpr(VObject.getType(stmt.list).Items, VExpression.text(itemId))),
-                state.indent(),
+                state,
                 interpret
               );
+              state.unindent().writeLine().write('#end');
+              return undefined;
             } else if (StatementGuards.isIf(stmt)) {
               const [returnId, branchYieldValues] = parseIf(stmt, state, interpret);
+
+              const allUndefined = branchYieldValues.filter(v => v !== undefined).length === 0;
 
               const returnedValues = branchYieldValues
                 // map undefined to VNothing
@@ -287,7 +291,11 @@ export class Api<
                 VExpression.text(returnId)
               );
 
-              return state.stash(returnValue);
+              if (!allUndefined) {
+                return state.stash(returnValue);
+              } else {
+                return new VNothing(VExpression.text('null'));
+              }
             } else if (StatementGuards.isCall(stmt)) {
               const name = state.newId();
               state.write(VObject.getExpr(stmt.request));
@@ -404,7 +412,7 @@ function getTypeAnnotation(shape: Shape): string {
   function getTypeName(): string {
     if (typeof graphqlType === 'string') {
       return graphqlType;
-    } else if (ShapeGuards.isArrayShape(shape)) {
+    } else if (ShapeGuards.isArrayShape(shape) || ShapeGuards.isSetShape(shape)) {
       return `[${getTypeAnnotation(shape.Items)}]`;
     } else if (ShapeGuards.isMapShape(shape)) {
       throw new Error(`maps are not supported in GraphQL - use a RecordType instead`);

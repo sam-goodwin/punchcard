@@ -72,7 +72,7 @@ export class Post extends Record('Post', {
   content: string,
   channel: string,
   timestamp,
-  tags: array(string)
+  tags: set(string)
 }) {}
 
 export class PostStore extends DynamoDB.Table.NewType({
@@ -175,13 +175,11 @@ export const UserApi = (
           'id'
         ]
       },
-      resolve: request => userStore.get({
-        id: request.id
-      })
-      // or:
-      // *resolve({id}) {
-      //   return yield* userStore.get({id});
-      // }
+      *resolve({id}) {
+        return yield* userStore.get({
+          id
+        });
+      }
     }
   });
 
@@ -211,17 +209,10 @@ export const PostApi = (scope: Scope) => {
         ],
         ttl: 60
       },
-      // *resolve(args) {
-      //   return yield* postStore.get({
-      //     id: args.id
-      //   });
-      // }
       *resolve(request) {
-        const post = yield* postStore.get({
+        return yield* postStore.get({
           id: request.id
         });
-
-        return yield* VObject.of(Post, post);
       }
     }
   });
@@ -240,7 +231,7 @@ export const PostApi = (scope: Scope) => {
         const id = yield* $util.autoId();
         const timestamp = yield* $util.time.nowISO8601();
 
-        return yield* postStore.put({
+        const post = yield* postStore.put({
           id,
           title: input.title,
           content: yield* $if($util.isNull(input.content), () =>
@@ -252,6 +243,8 @@ export const PostApi = (scope: Scope) => {
           channel: 'category',
           tags: [],
         });
+
+        return post;
       }
     },
 
@@ -270,15 +263,13 @@ export const PostApi = (scope: Scope) => {
             id: input.id
           },
           *condition(item) {
-            yield* DynamoDSL.expect(item.id.exists());
+            yield* $if(input.id.equalsIgnoreCase('sam'), function*() {
+              yield* DynamoDSL.expect(item.id.equals('sam').and(item.tags.size.gt(0)));
+            });
           },
           *transaction(item) {
             yield* input.title.match(string, function*(title) {
               yield* item.title.set(title);
-            });
-
-            yield* input.tags.match(array(string), function*(tags) {
-              yield* item.tags.push(tags);
             });
           },
         });
@@ -300,14 +291,6 @@ export const PostApi = (scope: Scope) => {
       ],
     }
   });
-
-  // const relatedPostIndex = postStore.globalIndex({
-  //   indexName: 'related-posts',
-  //   key: {
-  //     partition: 'category',
-  //     sort: 'timestamp'
-  //   }
-  // });
 
   const relatedPosts = new RelatedPostsTrait(Post, {
     relatedPosts: {

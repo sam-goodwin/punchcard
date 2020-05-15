@@ -4,9 +4,9 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, array, map, Record, RecordShape, string } from '@punchcard/shape';
+import { any, array, map, Record, RecordShape, string, StringShape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { call, DataSourceBindCallback, DataSourceProps, DataSourceType, VExpression, VObject, VTL, vtl } from '../appsync';
+import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VList, VObject, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -202,26 +202,27 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
   }
 
   public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
-    const condition = yield* vtl(string, {
-      local: true,
-      id: '$conditionExpression'
-    })``;
-
-    const setStatements = yield* vtl(array(string), {
-      local: true,
-      id: '$setStatements'
-    })`[]`;
+    function* stringList(id: string) {
+      return yield* vtl(array(string), {
+        local: true,
+        id
+      })`[]`;
+    }
+    const CONDITION = yield* stringList('$CONDITION');
+    const ADD = yield* stringList('$ADD');
+    const DELETE = yield* stringList('$DELETE');
+    const SET = yield* stringList('$SET');
 
     // map of id -> attribute-value
     const expressionValues = yield* vtl(map(any), {
       local: true,
-      id: '$expressionValues'
+      id: '${VALUES}'
     })`{}`;
 
     // map of name -> id
     const expressionNames = yield* vtl(map(string), {
       local: true,
-      id: '$expressionNames'
+      id: '${NAMES}'
     })`{}`;
 
     const fields: any = {};
@@ -246,19 +247,36 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       condition: string
     });
 
+    const expression = yield* vtl(string, {
+      local: true,
+      id: '${CONDITION}'
+    })``;
+
+    for (const [name, list] of Object.entries({
+      SET,
+      ADD,
+      DELETE
+    })) {
+      (yield* getState()).writeLine();
+      yield* vtl`## DynamoDB Update Expressions - ${name}`;
+      yield* $if(VBool.not(list.isEmpty()), function*() {
+        yield* vtl`#set(${expression} = "${expression}${name} #foreach($item in ${list})$item#if($foreach.hasNext), #end ")`;
+      });
+    }
+
     const updateRequest = VObject.fromExpr(UpdateItemRequest, VExpression.json({
       version: '2017-02-28',
       operation: 'UpdateItem',
       key: toAttributeValueJson(this.keyShape, request.key),
       update: {
-        expression: yield* vtl(string, {
-          local: true,
-          id: '$expression'
-        })`SET #foreach( $i in ${setStatements} )$i#if( $foreach.hasNext ),#end`,
+        expression,
         expressionNames,
         expressionValues
       },
-      condition
+      condition: yield* vtl(string, {
+        local: true,
+        id: '$condition'
+      })`#foreach( $i in ${CONDITION} )($i)#if( $foreach.hasNext ) and #end`,
     }));
 
     return yield* call(
