@@ -81,7 +81,7 @@ export class Api<
     this.resource = Build.concat(
       CDK,
       Scope.resolve(scope),
-      props.overrideProps || Build.of(undefined)
+      props.overrideProps || Build.of({})
     ).map(([{appsync, core, iam}, scope, buildProps]) => {
       const blocks: string[] = [];
 
@@ -107,7 +107,8 @@ export class Api<
         logConfig: {
           cloudWatchLogsRoleArn: cwRole.roleArn,
           fieldLogLevel: 'ALL',
-        }
+        },
+        ...buildProps
       });
       const apiCache: appsync.CfnApiCache | undefined = props.caching ? new appsync.CfnApiCache(scope, 'ApiCache', {
         apiId: api.attrApiId,

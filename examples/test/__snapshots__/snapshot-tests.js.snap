@@ -10,9 +10,9 @@ Object {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, import/no-extraneous-dependencies
     const s3 = new (require('aws-sdk').S3)();
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const https = require(\\"https\\");
+    const https = require('https');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const url = require(\\"url\\");
+    const url = require('url');
     log(JSON.stringify(event, undefined, 2));
     const props = event.ResourceProperties;
     if (event.RequestType === 'Delete') {
@@ -20,15 +20,15 @@ Object {
     }
     const req = {
         Bucket: props.BucketName,
-        NotificationConfiguration: props.NotificationConfiguration
+        NotificationConfiguration: props.NotificationConfiguration,
     };
     return s3.putBucketNotificationConfiguration(req, (err, data) => {
         log({ err, data });
         if (err) {
-            return submitResponse(\\"FAILED\\", err.message + \`\\\\nMore information in CloudWatch Log Stream: \${context.logStreamName}\`);
+            return submitResponse('FAILED', err.message + \`\\\\nMore information in CloudWatch Log Stream: \${context.logStreamName}\`);
         }
         else {
-            return submitResponse(\\"SUCCESS\\");
+            return submitResponse('SUCCESS');
         }
     });
     function log(obj) {
@@ -40,7 +40,7 @@ Object {
     function submitResponse(responseStatus, reason) {
         const responseBody = JSON.stringify({
             Status: responseStatus,
-            Reason: reason || \\"See the details in CloudWatch Log Stream: \\" + context.logStreamName,
+            Reason: reason || 'See the details in CloudWatch Log Stream: ' + context.logStreamName,
             PhysicalResourceId: event.PhysicalResourceId || event.LogicalResourceId,
             StackId: event.StackId,
             RequestId: event.RequestId,
@@ -53,17 +53,17 @@ Object {
             hostname: parsedUrl.hostname,
             port: 443,
             path: parsedUrl.path,
-            method: \\"PUT\\",
+            method: 'PUT',
             headers: {
-                \\"content-type\\": \\"\\",
-                \\"content-length\\": responseBody.length
-            }
+                'content-type': '',
+                'content-length': responseBody.length,
+            },
         };
         const request = https.request(options, (r) => {
             log({ statusCode: r.statusCode, statusMessage: r.statusMessage });
             context.done();
         });
-        request.on(\\"error\\", (error) => {
+        request.on('error', (error) => {
             log({ sendError: error });
             context.done();
         });
@@ -236,7 +236,7 @@ Object {
           "Statement": Array [
             Object {
               "Action": Array [
-                "kinesis:DescribeStream",
+                "kinesis:ListShards",
                 "kinesis:PutRecord",
                 "kinesis:PutRecords",
               ],
@@ -350,9 +350,11 @@ Object {
           "Statement": Array [
             Object {
               "Action": Array [
-                "kinesis:DescribeStream",
+                "kinesis:DescribeStreamSummary",
                 "kinesis:GetRecords",
                 "kinesis:GetShardIterator",
+                "kinesis:ListShards",
+                "kinesis:SubscribeToShard",
               ],
               "Effect": "Allow",
               "Resource": Object {
@@ -368,6 +370,16 @@ Object {
               "Resource": Object {
                 "Fn::GetAtt": Array [
                   "LakeDatabasedataPointsStreamKey6D78F220",
+                  "Arn",
+                ],
+              },
+            },
+            Object {
+              "Action": "kinesis:DescribeStream",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "LakeDatabasedataPointsStreamF9D85971",
                   "Arn",
                 ],
               },
@@ -1001,9 +1013,11 @@ Object {
           "Statement": Array [
             Object {
               "Action": Array [
-                "kinesis:DescribeStream",
+                "kinesis:DescribeStreamSummary",
                 "kinesis:GetRecords",
                 "kinesis:GetShardIterator",
+                "kinesis:ListShards",
+                "kinesis:SubscribeToShard",
               ],
               "Effect": "Allow",
               "Resource": Object {
@@ -1628,6 +1642,633 @@ Object {
 }
 `;
 
+exports[`graphql stack graphql should match snapshot 1`] = `
+Object {
+  "Resources": Object {
+    "GetRelatedPosts45E2F422": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "1",
+            "is_runtime": "true",
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "GetRelatedPostsServiceRoleAB59E692",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "GetRelatedPostsServiceRoleAB59E692": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApi3597551C": Object {
+      "Properties": Object {
+        "AuthenticationType": "AWS_IAM",
+        "LogConfig": Object {
+          "CloudWatchLogsRoleArn": Object {
+            "Fn::GetAtt": Array [
+              "MyApiCloudWatchRole2BEC1A9C",
+              "Arn",
+            ],
+          },
+          "FieldLogLevel": "ALL",
+        },
+        "Name": "MyApi",
+      },
+      "Type": "AWS::AppSync::GraphQLApi",
+    },
+    "MyApiApiCache6C5B11D6": Object {
+      "Properties": Object {
+        "ApiCachingBehavior": "PER_RESOLVER_CACHING",
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "Ttl": 60,
+        "Type": "T2_SMALL",
+      },
+      "Type": "AWS::AppSync::ApiCache",
+    },
+    "MyApiCloudWatchRole2BEC1A9C": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiCloudWatchRoleDefaultPolicy04DC78F2": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:DescribeLogStreams",
+              ],
+              "Effect": "Allow",
+              "Resource": "arn:aws:logs:*:*:*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiCloudWatchRoleDefaultPolicy04DC78F2",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiCloudWatchRole2BEC1A9C",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiDataSourceMutationaddPost1B208957": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DynamoDBConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "TableName": Object {
+            "Ref": "PostStoreE7B00A44",
+          },
+        },
+        "Name": "Mutation_addPost1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcesMutationaddPostRoleE097C31F",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "MyApiDataSourcePostrelatedPostsCB9CEB80": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "LambdaConfig": Object {
+          "LambdaFunctionArn": Object {
+            "Fn::GetAtt": Array [
+              "GetRelatedPosts45E2F422",
+              "Arn",
+            ],
+          },
+        },
+        "Name": "Post_relatedPosts1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcesPostrelatedPostsRoleA6DD673A",
+            "Arn",
+          ],
+        },
+        "Type": "AWS_LAMBDA",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "MyApiDataSourceQuerygetPostFCC2B475": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DynamoDBConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "TableName": Object {
+            "Ref": "PostStoreE7B00A44",
+          },
+        },
+        "Name": "Query_getPost1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcesQuerygetPostRoleB10DD6FD",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "MyApiDataSourcesMutationaddPostRoleDefaultPolicy4D3C7F97": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "PostStoreE7B00A44",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiDataSourcesMutationaddPostRoleDefaultPolicy4D3C7F97",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiDataSourcesMutationaddPostRoleE097C31F",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiDataSourcesMutationaddPostRoleE097C31F": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesPostrelatedPostsRoleA6DD673A": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesPostrelatedPostsRoleDefaultPolicyA0FE6E5F": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "GetRelatedPosts45E2F422",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiDataSourcesPostrelatedPostsRoleDefaultPolicyA0FE6E5F",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiDataSourcesPostrelatedPostsRoleA6DD673A",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiDataSourcesQuerygetPostRoleB10DD6FD": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesQuerygetPostRoleDefaultPolicy66D08614": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "PostStoreE7B00A44",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiDataSourcesQuerygetPostRoleDefaultPolicy66D08614",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiDataSourcesQuerygetPostRoleB10DD6FD",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiFunctionMutationaddPost3E391EAE": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourceMutationaddPost1B208957",
+            "Name",
+          ],
+        },
+        "FunctionVersion": "2018-05-29",
+        "Name": "Mutation_addPost1",
+        "RequestMappingTemplate": "#if($util.isNull($context.identity.user))
+  $util.error(user must be logged in)
+#end
+#set($context.stash.var1 = $util.autoId())
+{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"PutItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.stash.var1)
+  },
+  \\"attributeValues\\": {
+    \\"title\\": $util.dynamodb.toDynamoDBJson($context.arguments.title),
+    \\"content\\": $util.dynamodb.toDynamoDBJson($context.arguments.content),
+    \\"tags\\": $util.dynamodb.toDynamoDBJson($context.arguments.tags)
+  }
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var2 = $context.result){}
+",
+      },
+      "Type": "AWS::AppSync::FunctionConfiguration",
+    },
+    "MyApiFunctionPostrelatedPosts02913462": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcePostrelatedPostsCB9CEB80",
+            "Name",
+          ],
+        },
+        "FunctionVersion": "2018-05-29",
+        "Name": "Post_relatedPosts1",
+        "RequestMappingTemplate": "{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"Invoke\\",
+  \\"payload\\": $util.toJson($context.arguments.tags)
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result){}
+",
+      },
+      "Type": "AWS::AppSync::FunctionConfiguration",
+    },
+    "MyApiFunctionQuerygetPost4E6A0A0C": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourceQuerygetPostFCC2B475",
+            "Name",
+          ],
+        },
+        "FunctionVersion": "2018-05-29",
+        "Name": "Query_getPost1",
+        "RequestMappingTemplate": "{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"GetItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.arguments.id)
+  }
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result){}
+",
+      },
+      "Type": "AWS::AppSync::FunctionConfiguration",
+    },
+    "MyApiResolveMutationaddPostF92111DC": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "FieldName": "addPost",
+        "Kind": "PIPELINE",
+        "PipelineConfig": Object {
+          "Functions": Array [
+            Object {
+              "Fn::GetAtt": Array [
+                "MyApiFunctionMutationaddPost3E391EAE",
+                "FunctionId",
+              ],
+            },
+          ],
+        },
+        "RequestMappingTemplate": "$util.toJson($context.stash.var2)",
+        "ResponseMappingTemplate": "$util.toJson($context.stash.var2)",
+        "TypeName": "Mutation",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiResolvePostrelatedPostsBD59287C": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "FieldName": "relatedPosts",
+        "Kind": "PIPELINE",
+        "PipelineConfig": Object {
+          "Functions": Array [
+            Object {
+              "Fn::GetAtt": Array [
+                "MyApiFunctionPostrelatedPosts02913462",
+                "FunctionId",
+              ],
+            },
+          ],
+        },
+        "RequestMappingTemplate": "$util.toJson($context.stash.var1)",
+        "ResponseMappingTemplate": "$util.toJson($context.stash.var1)",
+        "TypeName": "Post",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiResolveQuerygetPostF0D4061E": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "CachingConfig": Object {
+          "CachingKeys": Array [
+            "$context.arguments.id",
+          ],
+          "Ttl": 60,
+        },
+        "FieldName": "getPost",
+        "Kind": "PIPELINE",
+        "PipelineConfig": Object {
+          "Functions": Array [
+            Object {
+              "Fn::GetAtt": Array [
+                "MyApiFunctionQuerygetPost4E6A0A0C",
+                "FunctionId",
+              ],
+            },
+          ],
+        },
+        "RequestMappingTemplate": "$util.toJson($context.stash.var1)",
+        "ResponseMappingTemplate": "$util.toJson($context.stash.var1)",
+        "TypeName": "Query",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiResolveSubscriptionnewPost7AA3D95F": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "FieldName": "newPost",
+        "Kind": "PIPELINE",
+        "PipelineConfig": Object {
+          "Functions": Array [],
+        },
+        "RequestMappingTemplate": "{}",
+        "ResponseMappingTemplate": "{}",
+        "TypeName": "Subscription",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiSchema552ABCAD": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "Definition": "type Post {
+  id: ID!
+  title: String!
+  content: String!
+  tags: [String!]!
+  relatedPosts(tags: [String!]!): [Post!]!
+}
+type Query {
+  getPost(id: ID!): Post!
+}
+type Mutation {
+  addPost(title: String!,content: String!,tags: [String!]!): Post!
+}
+type Subscription {
+  newPost: Post!
+    @aws_subscribe(mutations:[\\"addPost\\"])
+}
+schema {
+  query: Query,
+  mutation: Mutation,
+  subscription: Subscription
+}",
+      },
+      "Type": "AWS::AppSync::GraphQLSchema",
+    },
+    "PostStoreE7B00A44": Object {
+      "DeletionPolicy": "Retain",
+      "Properties": Object {
+        "AttributeDefinitions": Array [
+          Object {
+            "AttributeName": "id",
+            "AttributeType": "S",
+          },
+        ],
+        "KeySchema": Array [
+          Object {
+            "AttributeName": "id",
+            "KeyType": "HASH",
+          },
+        ],
+        "ProvisionedThroughput": Object {
+          "ReadCapacityUnits": 5,
+          "WriteCapacityUnits": 5,
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+  },
+}
+`;
+
 exports[`hello-world stack hello-world should match snapshot 1`] = `
 Object {
   "Resources": Object {
@@ -2160,1045 +2801,6 @@ Object {
 }
 `;
 
-exports[`pet-store-apigw stack pet-store-apigw should match snapshot 1`] = `
-Object {
-  "Outputs": Object {
-    "PetApiEndpointC3C360CF": Object {
-      "Value": Object {
-        "Fn::Join": Array [
-          "",
-          Array [
-            "https://",
-            Object {
-              "Ref": "PetApi503401F5",
-            },
-            ".execute-api.",
-            Object {
-              "Ref": "AWS::Region",
-            },
-            ".",
-            Object {
-              "Ref": "AWS::URLSuffix",
-            },
-            "/",
-            Object {
-              "Ref": "PetApiDeploymentStageprod6B2EA37F",
-            },
-            "/",
-          ],
-        ],
-      },
-    },
-  },
-  "Resources": Object {
-    "MyEndpointE262FD4F": Object {
-      "Properties": Object {
-        "Code": Object {
-          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
-        },
-        "Environment": Object {
-          "Variables": Object {
-            "entrypoint_id": "1",
-            "is_runtime": "true",
-            "punchcard_tableName": Object {
-              "Ref": "petstore3A6A0F62",
-            },
-            "resource_id___pets": Object {
-              "Ref": "PetApipetsC3752A49",
-            },
-            "resource_id___pets__id_": Object {
-              "Ref": "PetApipetsidBC2D20F8",
-            },
-          },
-        },
-        "Handler": "index.handler",
-        "MemorySize": 512,
-        "Role": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointServiceRole3F5D1E79",
-            "Arn",
-          ],
-        },
-        "Runtime": "nodejs10.x",
-      },
-      "Type": "AWS::Lambda::Function",
-    },
-    "MyEndpointServiceRole3F5D1E79": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": Object {
-                "Service": "lambda.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "ManagedPolicyArns": Array [
-          Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "arn:",
-                Object {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "MyEndpointServiceRoleDefaultPolicy0B46AFFE": Object {
-      "Properties": Object {
-        "PolicyDocument": Object {
-          "Statement": Array [
-            Object {
-              "Action": Array [
-                "dynamodb:BatchGetItem",
-                "dynamodb:GetRecords",
-                "dynamodb:GetShardIterator",
-                "dynamodb:Query",
-                "dynamodb:GetItem",
-                "dynamodb:Scan",
-                "dynamodb:BatchWriteItem",
-                "dynamodb:PutItem",
-                "dynamodb:UpdateItem",
-                "dynamodb:DeleteItem",
-              ],
-              "Effect": "Allow",
-              "Resource": Array [
-                Object {
-                  "Fn::GetAtt": Array [
-                    "petstore3A6A0F62",
-                    "Arn",
-                  ],
-                },
-                Object {
-                  "Ref": "AWS::NoValue",
-                },
-              ],
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "MyEndpointServiceRoleDefaultPolicy0B46AFFE",
-        "Roles": Array [
-          Object {
-            "Ref": "MyEndpointServiceRole3F5D1E79",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
-    },
-    "PetApi503401F5": Object {
-      "Properties": Object {
-        "Name": "PetApi",
-      },
-      "Type": "AWS::ApiGateway::RestApi",
-    },
-    "PetApiAccountF3CC1A9E": Object {
-      "Properties": Object {
-        "CloudWatchRoleArn": Object {
-          "Fn::GetAtt": Array [
-            "PetApiCloudWatchRole2CADA4DF",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::ApiGateway::Account",
-    },
-    "PetApiBodyRequestValidator27F6CC90": Object {
-      "Properties": Object {
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "ValidateRequestBody": true,
-        "ValidateRequestParameters": true,
-      },
-      "Type": "AWS::ApiGateway::RequestValidator",
-    },
-    "PetApiCloudWatchRole2CADA4DF": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": Object {
-                "Service": "apigateway.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "ManagedPolicyArns": Array [
-          Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "arn:",
-                Object {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs",
-              ],
-            ],
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "PetApiDeployment7572958D": Object {
-      "Properties": Object {
-        "Description": "Automatically created by the RestApi construct",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-      },
-      "Type": "AWS::ApiGateway::Deployment",
-    },
-    "PetApiDeploymentStageprod6B2EA37F": Object {
-      "Properties": Object {
-        "DeploymentId": Object {
-          "Ref": "PetApiDeployment7572958D",
-        },
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "StageName": "prod",
-      },
-      "Type": "AWS::ApiGateway::Stage",
-    },
-    "PetApiGetRequestValidator5CEE9644": Object {
-      "Properties": Object {
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "ValidateRequestParameters": true,
-      },
-      "Type": "AWS::ApiGateway::RequestValidator",
-    },
-    "PetApipetsC3752A49": Object {
-      "Properties": Object {
-        "ParentId": Object {
-          "Fn::GetAtt": Array [
-            "PetApi503401F5",
-            "RootResourceId",
-          ],
-        },
-        "PathPart": "pets",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-      },
-      "Type": "AWS::ApiGateway::Resource",
-    },
-    "PetApipetsGETA4B70B6B": Object {
-      "Properties": Object {
-        "AuthorizationType": "NONE",
-        "HttpMethod": "GET",
-        "Integration": Object {
-          "IntegrationHttpMethod": "POST",
-          "IntegrationResponses": Array [
-            Object {
-              "SelectionPattern": "",
-              "StatusCode": "200",
-            },
-            Object {
-              "ResponseTemplates": Object {
-                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-{
-  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
-}
-",
-              },
-              "SelectionPattern": "\\\\{\\"statusCode\\":500.*",
-              "StatusCode": "500",
-            },
-          ],
-          "PassthroughBehavior": "NEVER",
-          "RequestTemplates": Object {
-            "application/json": "#set($inputRoot = $input.path('$'))
-{
-  \\"__resourceId\\": \\"$context.resourceId\\",
-  \\"__httpMethod\\": \\"$context.httpMethod\\"
-}
-",
-          },
-          "Type": "AWS",
-          "Uri": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "arn:",
-                Object {
-                  "Ref": "AWS::Partition",
-                },
-                ":apigateway:",
-                Object {
-                  "Ref": "AWS::Region",
-                },
-                ":lambda:path/2015-03-31/functions/",
-                Object {
-                  "Fn::GetAtt": Array [
-                    "MyEndpointE262FD4F",
-                    "Arn",
-                  ],
-                },
-                "/invocations",
-              ],
-            ],
-          },
-        },
-        "MethodResponses": Array [
-          Object {
-            "ResponseModels": Object {
-              "application/json": Object {
-                "Ref": "PetApipetsGETResponse200FF51F4D9",
-              },
-            },
-            "StatusCode": "200",
-          },
-          Object {
-            "ResponseModels": Object {
-              "application/json": Object {
-                "Ref": "PetApipetsGETResponse5002EFDFAFD",
-              },
-            },
-            "StatusCode": "500",
-          },
-        ],
-        "RequestModels": Object {
-          "application/json": Object {
-            "Ref": "PetApipetsGETRequestC70DCE36",
-          },
-        },
-        "ResourceId": Object {
-          "Ref": "PetApipetsC3752A49",
-        },
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-      },
-      "Type": "AWS::ApiGateway::Method",
-    },
-    "PetApipetsGETApiPermissionTestpetstorePetApi101B408DGETpetsCD49AEAA": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/test-invoke-stage/GET/pets",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "PetApipetsGETApiPermissionpetstorePetApi101B408DGETpets90F4294D": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/",
-              Object {
-                "Ref": "PetApiDeploymentStageprod6B2EA37F",
-              },
-              "/GET/pets",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "PetApipetsGETRequestC70DCE36": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "properties": Object {},
-          "type": "object",
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "PetApipetsGETResponse200FF51F4D9": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "items": Object {
-            "properties": Object {
-              "id": Object {
-                "type": "string",
-              },
-              "price": Object {
-                "type": "number",
-              },
-              "type": Object {
-                "type": "string",
-              },
-            },
-            "required": Array [
-              "id",
-              "type",
-              "price",
-            ],
-            "type": "object",
-          },
-          "type": "array",
-          "uniqueItems": false,
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "PetApipetsGETResponse5002EFDFAFD": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "properties": Object {
-            "errorMessage": Object {
-              "type": "string",
-            },
-          },
-          "required": Array [
-            "errorMessage",
-          ],
-          "type": "object",
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "PetApipetsPOST9E9D6FF4": Object {
-      "Properties": Object {
-        "AuthorizationType": "NONE",
-        "HttpMethod": "POST",
-        "Integration": Object {
-          "IntegrationHttpMethod": "POST",
-          "IntegrationResponses": Array [
-            Object {
-              "SelectionPattern": "",
-              "StatusCode": "200",
-            },
-            Object {
-              "ResponseTemplates": Object {
-                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-$inputRoot
-",
-              },
-              "SelectionPattern": "\\\\{\\"statusCode\\":409.*",
-              "StatusCode": "409",
-            },
-            Object {
-              "ResponseTemplates": Object {
-                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-{
-  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
-}
-",
-              },
-              "SelectionPattern": "\\\\{\\"statusCode\\":500.*",
-              "StatusCode": "500",
-            },
-          ],
-          "PassthroughBehavior": "NEVER",
-          "RequestTemplates": Object {
-            "application/json": "#set($inputRoot = $input.path('$'))
-{
-  \\"type\\":\\"$inputRoot.type\\",
-  \\"price\\":$inputRoot.price,
-  \\"__resourceId\\": \\"$context.resourceId\\",
-  \\"__httpMethod\\": \\"$context.httpMethod\\"
-}
-",
-          },
-          "Type": "AWS",
-          "Uri": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "arn:",
-                Object {
-                  "Ref": "AWS::Partition",
-                },
-                ":apigateway:",
-                Object {
-                  "Ref": "AWS::Region",
-                },
-                ":lambda:path/2015-03-31/functions/",
-                Object {
-                  "Fn::GetAtt": Array [
-                    "MyEndpointE262FD4F",
-                    "Arn",
-                  ],
-                },
-                "/invocations",
-              ],
-            ],
-          },
-        },
-        "MethodResponses": Array [
-          Object {
-            "ResponseModels": Object {
-              "application/json": Object {
-                "Ref": "PetApipetsPOSTResponse2005523C306",
-              },
-            },
-            "StatusCode": "200",
-          },
-          Object {
-            "ResponseModels": Object {
-              "application/json": Object {
-                "Ref": "PetApipetsPOSTResponse409774A4B75",
-              },
-            },
-            "StatusCode": "409",
-          },
-          Object {
-            "ResponseModels": Object {
-              "application/json": Object {
-                "Ref": "PetApipetsPOSTResponse5004699E0D0",
-              },
-            },
-            "StatusCode": "500",
-          },
-        ],
-        "RequestModels": Object {
-          "application/json": Object {
-            "Ref": "PetApipetsPOSTRequest0AEAE40B",
-          },
-        },
-        "ResourceId": Object {
-          "Ref": "PetApipetsC3752A49",
-        },
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-      },
-      "Type": "AWS::ApiGateway::Method",
-    },
-    "PetApipetsPOSTApiPermissionTestpetstorePetApi101B408DPOSTpets7C31F763": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/test-invoke-stage/POST/pets",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "PetApipetsPOSTApiPermissionpetstorePetApi101B408DPOSTpetsF05C70E4": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/",
-              Object {
-                "Ref": "PetApiDeploymentStageprod6B2EA37F",
-              },
-              "/POST/pets",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "PetApipetsPOSTRequest0AEAE40B": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "properties": Object {
-            "price": Object {
-              "exclusiveMinimum": false,
-              "minimum": 0,
-              "type": "number",
-            },
-            "type": Object {
-              "type": "string",
-            },
-          },
-          "required": Array [
-            "type",
-            "price",
-          ],
-          "type": "object",
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "PetApipetsPOSTResponse2005523C306": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "properties": Object {
-            "id": Object {
-              "type": "string",
-            },
-          },
-          "required": Array [
-            "id",
-          ],
-          "type": "object",
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "PetApipetsPOSTResponse409774A4B75": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "type": "string",
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "PetApipetsPOSTResponse5004699E0D0": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "properties": Object {
-            "errorMessage": Object {
-              "type": "string",
-            },
-          },
-          "required": Array [
-            "errorMessage",
-          ],
-          "type": "object",
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "PetApipetsidBC2D20F8": Object {
-      "Properties": Object {
-        "ParentId": Object {
-          "Ref": "PetApipetsC3752A49",
-        },
-        "PathPart": "{id}",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-      },
-      "Type": "AWS::ApiGateway::Resource",
-    },
-    "PetApipetsidGET1A2905E8": Object {
-      "Properties": Object {
-        "AuthorizationType": "NONE",
-        "HttpMethod": "GET",
-        "Integration": Object {
-          "IntegrationHttpMethod": "POST",
-          "IntegrationResponses": Array [
-            Object {
-              "SelectionPattern": "",
-              "StatusCode": "200",
-            },
-            Object {
-              "ResponseTemplates": Object {
-                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-$inputRoot
-",
-              },
-              "SelectionPattern": "\\\\{\\"statusCode\\":404.*",
-              "StatusCode": "404",
-            },
-            Object {
-              "ResponseTemplates": Object {
-                "application/json": "#set($inputRoot = $util.parseJson($input.path('$.errorMessage')).body)
-{
-  \\"errorMessage\\":\\"$inputRoot.errorMessage\\"
-}
-",
-              },
-              "SelectionPattern": "\\\\{\\"statusCode\\":500.*",
-              "StatusCode": "500",
-            },
-          ],
-          "PassthroughBehavior": "NEVER",
-          "RequestTemplates": Object {
-            "application/json": "#set($inputRoot = $input.path('$'))
-{
-  \\"id\\": \\"$input.params('id')\\",
-  \\"__resourceId\\": \\"$context.resourceId\\",
-  \\"__httpMethod\\": \\"$context.httpMethod\\"
-}
-",
-          },
-          "Type": "AWS",
-          "Uri": Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "arn:",
-                Object {
-                  "Ref": "AWS::Partition",
-                },
-                ":apigateway:",
-                Object {
-                  "Ref": "AWS::Region",
-                },
-                ":lambda:path/2015-03-31/functions/",
-                Object {
-                  "Fn::GetAtt": Array [
-                    "MyEndpointE262FD4F",
-                    "Arn",
-                  ],
-                },
-                "/invocations",
-              ],
-            ],
-          },
-        },
-        "MethodResponses": Array [
-          Object {
-            "ResponseModels": Object {
-              "application/json": Object {
-                "Ref": "PetApipetsidGETResponse200248249B5",
-              },
-            },
-            "StatusCode": "200",
-          },
-          Object {
-            "ResponseModels": Object {
-              "application/json": Object {
-                "Ref": "PetApipetsidGETResponse404FE9915DC",
-              },
-            },
-            "StatusCode": "404",
-          },
-          Object {
-            "ResponseModels": Object {
-              "application/json": Object {
-                "Ref": "PetApipetsidGETResponse500B2083ABD",
-              },
-            },
-            "StatusCode": "500",
-          },
-        ],
-        "RequestModels": Object {
-          "application/json": Object {
-            "Ref": "PetApipetsidGETRequest9062AB18",
-          },
-        },
-        "ResourceId": Object {
-          "Ref": "PetApipetsidBC2D20F8",
-        },
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-      },
-      "Type": "AWS::ApiGateway::Method",
-    },
-    "PetApipetsidGETApiPermissionTestpetstorePetApi101B408DGETpetsid8FEF4993": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/test-invoke-stage/GET/pets/{id}",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "PetApipetsidGETApiPermissionpetstorePetApi101B408DGETpetsid2A2AC067": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "MyEndpointE262FD4F",
-            "Arn",
-          ],
-        },
-        "Principal": "apigateway.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::Join": Array [
-            "",
-            Array [
-              "arn:",
-              Object {
-                "Ref": "AWS::Partition",
-              },
-              ":execute-api:",
-              Object {
-                "Ref": "AWS::Region",
-              },
-              ":",
-              Object {
-                "Ref": "AWS::AccountId",
-              },
-              ":",
-              Object {
-                "Ref": "PetApi503401F5",
-              },
-              "/",
-              Object {
-                "Ref": "PetApiDeploymentStageprod6B2EA37F",
-              },
-              "/GET/pets/{id}",
-            ],
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "PetApipetsidGETRequest9062AB18": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "properties": Object {
-            "id": Object {
-              "type": "string",
-            },
-          },
-          "required": Array [
-            "id",
-          ],
-          "type": "object",
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "PetApipetsidGETResponse200248249B5": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "properties": Object {
-            "id": Object {
-              "type": "string",
-            },
-            "price": Object {
-              "type": "number",
-            },
-            "type": Object {
-              "type": "string",
-            },
-          },
-          "required": Array [
-            "id",
-            "type",
-            "price",
-          ],
-          "type": "object",
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "PetApipetsidGETResponse404FE9915DC": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "type": "string",
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "PetApipetsidGETResponse500B2083ABD": Object {
-      "Properties": Object {
-        "ContentType": "application/json",
-        "RestApiId": Object {
-          "Ref": "PetApi503401F5",
-        },
-        "Schema": Object {
-          "properties": Object {
-            "errorMessage": Object {
-              "type": "string",
-            },
-          },
-          "required": Array [
-            "errorMessage",
-          ],
-          "type": "object",
-        },
-      },
-      "Type": "AWS::ApiGateway::Model",
-    },
-    "petstore3A6A0F62": Object {
-      "DeletionPolicy": "Retain",
-      "Properties": Object {
-        "AttributeDefinitions": Array [
-          Object {
-            "AttributeName": "id",
-            "AttributeType": "S",
-          },
-        ],
-        "KeySchema": Array [
-          Object {
-            "AttributeName": "id",
-            "KeyType": "HASH",
-          },
-        ],
-        "ProvisionedThroughput": Object {
-          "ReadCapacityUnits": 5,
-          "WriteCapacityUnits": 5,
-        },
-      },
-      "Type": "AWS::DynamoDB::Table",
-      "UpdateReplacePolicy": "Retain",
-    },
-  },
-}
-`;
-
 exports[`scheduled-function stack scheduled-function should match snapshot 1`] = `
 Object {
   "Resources": Object {
@@ -3371,9 +2973,9 @@ Object {
     // eslint-disable-next-line @typescript-eslint/no-require-imports, import/no-extraneous-dependencies
     const s3 = new (require('aws-sdk').S3)();
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const https = require(\\"https\\");
+    const https = require('https');
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const url = require(\\"url\\");
+    const url = require('url');
     log(JSON.stringify(event, undefined, 2));
     const props = event.ResourceProperties;
     if (event.RequestType === 'Delete') {
@@ -3381,15 +2983,15 @@ Object {
     }
     const req = {
         Bucket: props.BucketName,
-        NotificationConfiguration: props.NotificationConfiguration
+        NotificationConfiguration: props.NotificationConfiguration,
     };
     return s3.putBucketNotificationConfiguration(req, (err, data) => {
         log({ err, data });
         if (err) {
-            return submitResponse(\\"FAILED\\", err.message + \`\\\\nMore information in CloudWatch Log Stream: \${context.logStreamName}\`);
+            return submitResponse('FAILED', err.message + \`\\\\nMore information in CloudWatch Log Stream: \${context.logStreamName}\`);
         }
         else {
-            return submitResponse(\\"SUCCESS\\");
+            return submitResponse('SUCCESS');
         }
     });
     function log(obj) {
@@ -3401,7 +3003,7 @@ Object {
     function submitResponse(responseStatus, reason) {
         const responseBody = JSON.stringify({
             Status: responseStatus,
-            Reason: reason || \\"See the details in CloudWatch Log Stream: \\" + context.logStreamName,
+            Reason: reason || 'See the details in CloudWatch Log Stream: ' + context.logStreamName,
             PhysicalResourceId: event.PhysicalResourceId || event.LogicalResourceId,
             StackId: event.StackId,
             RequestId: event.RequestId,
@@ -3414,17 +3016,17 @@ Object {
             hostname: parsedUrl.hostname,
             port: 443,
             path: parsedUrl.path,
-            method: \\"PUT\\",
+            method: 'PUT',
             headers: {
-                \\"content-type\\": \\"\\",
-                \\"content-length\\": responseBody.length
-            }
+                'content-type': '',
+                'content-length': responseBody.length,
+            },
         };
         const request = https.request(options, (r) => {
             log({ statusCode: r.statusCode, statusMessage: r.statusMessage });
             context.done();
         });
-        request.on(\\"error\\", (error) => {
+        request.on('error', (error) => {
             log({ sendError: error });
             context.done();
         });
@@ -3971,7 +3573,7 @@ Object {
           "Statement": Array [
             Object {
               "Action": Array [
-                "kinesis:DescribeStream",
+                "kinesis:ListShards",
                 "kinesis:PutRecord",
                 "kinesis:PutRecords",
               ],
@@ -4545,9 +4147,11 @@ Object {
           "Statement": Array [
             Object {
               "Action": Array [
-                "kinesis:DescribeStream",
+                "kinesis:DescribeStreamSummary",
                 "kinesis:GetRecords",
                 "kinesis:GetShardIterator",
+                "kinesis:ListShards",
+                "kinesis:SubscribeToShard",
               ],
               "Effect": "Allow",
               "Resource": Object {

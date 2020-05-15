@@ -1,7 +1,4 @@
-import type * as cdk from '@aws-cdk/core';
-
 import { GLOBAL_SYMBOL_NAME } from '../util';
-import { Build } from './build';
 import { Entrypoint } from './entrypoint';
 
 interface State {
