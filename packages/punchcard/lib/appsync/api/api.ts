@@ -347,75 +347,80 @@ export class Api<
             kind: 'UNIT'
           };
 
-          if (functions.length === 0) {
-            config.dataSourceName = noneDataSource().attrName;
-            config.requestMappingTemplate = initState.write(VExpression.json({
-              version: '2017-02-28',
-              paylaod: result === undefined ? {} : VExpression.concat('$util.toJson(', result, ')')
-            })).renderTemplate();
-            config.responseMappingTemplate = result === undefined ? '{}' : initState.write('$util.toJson(', result, ')').renderTemplate();
+          if (functions.length === 0 && result === undefined && initState.template.length === 0) {
+            // we don't need a resolver pipeline
+            console.warn(`no Resolver required for field ${fieldFQN}`);
           } else {
-            if (result !== undefined) {
-              initState.write('$util.toJson(', result, ')');
+            if (functions.length === 0) {
+              config.dataSourceName = noneDataSource().attrName;
+              config.requestMappingTemplate = initState.write(VExpression.json({
+                version: '2017-02-28',
+                payload: result === undefined ? {} : VExpression.concat('$util.toJson(', result, ')')
+              })).renderTemplate();
+              config.responseMappingTemplate = result === undefined ? 'null' : initState.write('$util.toJson(', result, ')').renderTemplate();
             } else {
-              initState.write('{}');
+              if (result !== undefined) {
+                initState.write('$util.toJson(', result, ')');
+              } else {
+                initState.write('null');
+              }
+              if (functions.length === 1) {
+                config.dataSourceName = functions[0].dataSourceName;
+                config.requestMappingTemplate = functions[0].requestMappingTemplate;
+                config.responseMappingTemplate = functions[0].responseMappingTemplate + '\n' + initState.renderTemplate();
+              } else {
+                config.kind = 'PIPELINE';
+                config.requestMappingTemplate = 'null';
+                config.pipelineConfig = {
+                  functions: functions.map((f, i) =>
+                    new appsync.CfnFunctionConfiguration(scope, `Function(${fieldFQN}, ${i})`, {
+                      ...f,
+                      // intermediate pipelines should emit null to the next function or final response mapping template
+                      responseMappingTemplate: f.responseMappingTemplate + '\nnull'
+                    }).attrFunctionId)
+                };
+                config.responseMappingTemplate = initState.renderTemplate();
+              }
             }
-            if (functions.length === 1) {
-              config.dataSourceName = functions[0].dataSourceName;
-              config.requestMappingTemplate = functions[0].requestMappingTemplate;
-              config.responseMappingTemplate = functions[0].responseMappingTemplate + '\n' + initState.renderTemplate();
-            } else {
-              config.kind = 'PIPELINE';
-              config.requestMappingTemplate = '{}';
-              config.pipelineConfig = {
-                functions: functions.map((f, i) =>
-                  new appsync.CfnFunctionConfiguration(scope, `Function(${fieldFQN}, ${i})`, {
-                    ...f,
-                    // intermediate pipelines should emit an empty object to the next function or final response mapping template
-                    responseMappingTemplate: f.responseMappingTemplate + '{}'
-                  }).attrFunctionId)
-              };
-              config.responseMappingTemplate = initState.renderTemplate();
-            }
-          }
 
-          const cfnResolver = new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {
-            ...config,
-            apiId: api.attrApiId,
-            typeName,
-            fieldName,
-            cachingConfig: (() => {
-              let cachingConfig: appsync.CfnResolver.CachingConfigProperty | undefined;
-              if (apiCache) {
-                if (cache !== undefined) {
-                  cachingConfig = {
-                    cachingKeys: cache.keys,
-                    ttl: cache.ttl
-                  };
-                }
-                if (props.caching && isPerResolverCachingConfiguration(props.caching)) {
-                  // override the resolver level caching with one overriden by the API root.
-                  const cache: any = (props.caching.resolvers?.[selfType.FQN] as any)?.[fieldName];
+            const cfnResolver = new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {
+              ...config,
+              apiId: api.attrApiId,
+              typeName,
+              fieldName,
+              cachingConfig: (() => {
+                let cachingConfig: appsync.CfnResolver.CachingConfigProperty | undefined;
+                if (apiCache) {
                   if (cache !== undefined) {
                     cachingConfig = {
                       cachingKeys: cache.keys,
                       ttl: cache.ttl
                     };
                   }
+                  if (props.caching && isPerResolverCachingConfiguration(props.caching)) {
+                    // override the resolver level caching with one overriden by the API root.
+                    const cache: any = (props.caching.resolvers?.[selfType.FQN] as any)?.[fieldName];
+                    if (cache !== undefined) {
+                      cachingConfig = {
+                        cachingKeys: cache.keys,
+                        ttl: cache.ttl
+                      };
+                    }
+                  }
                 }
-              }
-              if (cachingConfig !== undefined) {
-                return {
-                  ...cachingConfig,
-                  cachingKeys: cachingConfig.cachingKeys?.map((k: string) =>
-                    k.startsWith('$context.identity') ? k : `$context.arguments.${k}`
-                  )
-                };
-              }
-              return undefined;
-            })()
-          });
-          cfnResolver.addDependsOn(schema);
+                if (cachingConfig !== undefined) {
+                  return {
+                    ...cachingConfig,
+                    cachingKeys: cachingConfig.cachingKeys?.map((k: string) =>
+                      k.startsWith('$context.identity') ? k : `$context.arguments.${k}`
+                    )
+                  };
+                }
+                return undefined;
+              })()
+            });
+            cfnResolver.addDependsOn(schema);
+          }
         }
         return directives;
       }

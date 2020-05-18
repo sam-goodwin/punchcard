@@ -133,6 +133,11 @@ export const PostApi = (
       subscribe: [
         postMutationApi.subscription('addPost')
       ],
+      *resolve() {
+        yield* $if($context.identity.username.equalsIgnoreCase('sam'), function*() {
+          throw $util.error('sam is not allowed');
+        });
+      }
     }
   })
   
