@@ -2,26 +2,23 @@ import { ArrayShape, RecordMembers, RecordShape } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
 import { TraitImpl } from './trait';
 
-export interface TypeSpec {
-  type: RecordShape<{}, string>;
-  fields: RecordMembers;
-  resolvers: TraitImpl<RecordShape<{}, string>, {}, boolean>;
+export interface TypeSpec<F extends RecordMembers = RecordMembers> {
+  readonly type: RecordShape<{}, string>;
+  readonly fields: F;
+  readonly resolvers: TraitImpl<RecordShape<{}, string>, {}, boolean>;
 }
 
 /**
  * A map from a type's FQN to its field-level resolvers.
  */
-export type TypeSystem = {
-  [fqn in string]: TypeSpec
-};
+export interface TypeSystem {
+  Mutation: TypeSpec;
+  Query: TypeSpec;
+  Subscription: TypeSpec;
+  [fqn: string]: TypeSpec;
+}
 
 export namespace TypeSystem {
-  export type DefaultTypes = {
-    'Mutation': TypeSpec;
-    'Query': TypeSpec;
-    'Subscription': TypeSpec;
-  };
-
   // extracts any types that should be indexed by traversing RecordMembers and finding all RecordShapes.
   type ExtractTypes<F extends RecordMembers> =
     | Extract<F[keyof F], RecordShape<any, any>>

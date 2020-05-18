@@ -2,13 +2,7 @@ import { RecordShape, Shape, ShapeGuards, UnionToIntersection } from '@punchcard
 import { MutationRoot, QueryRoot, SubscriptionRoot } from './root';
 import { TypeSpec, TypeSystem } from './type-system';
 
-type DefaultTypes = {
-  'Mutation': TypeSpec;
-  'Query': TypeSpec;
-  'Subscription': TypeSpec;
-};
-
-export class ApiFragment<I extends TypeSystem = DefaultTypes> {
+export class ApiFragment<I extends TypeSystem> {
   public readonly Types: I;
 
   constructor(types: I) {
@@ -33,11 +27,9 @@ export class ApiFragment<I extends TypeSystem = DefaultTypes> {
 }
 
 export namespace ApiFragment {
-  export type Concat<F extends ApiFragment[]> = ApiFragment<
-    Extract<UnionToIntersection<Extract<F[keyof F], ApiFragment>['Types']>, TypeSystem>
-  >;
+  export type Concat<F extends ApiFragment<TypeSystem>[]> = UnionToIntersection<F[keyof F]>;
 
-  export function concat<F extends ApiFragment[]>(...fragments: F): ApiFragment.Concat<F> {
+  export function concat<F extends ApiFragment<any>[]>(...fragments: F): ApiFragment.Concat<F> {
     const implIndex: TypeSystem = {
       [MutationRoot.FQN]: {
         type: MutationRoot,
@@ -54,7 +46,7 @@ export namespace ApiFragment {
         fields: {},
         resolvers: {}
       }
-    } as any;
+    };
 
     for (const fragment of fragments) {
       for (const typeSpec of Object.values(fragment.Types) as TypeSpec[]) {

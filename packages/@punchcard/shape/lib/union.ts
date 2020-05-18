@@ -19,3 +19,5 @@ export class UnionShape<T extends Shape[]> extends Shape {
  * @see https://github.com/Microsoft/TypeScript/issues/26058#issuecomment-456606942
  */
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I)=>void) ? I : never;
+
+export type DistributeUnionShape<T extends Shape> = T extends UnionShape<infer U> ? T | U[keyof U] : T;

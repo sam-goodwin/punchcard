@@ -91,7 +91,7 @@ export class TraitFragment<
     fields: F & T['Members'];
     resolvers: TraitImpl<T, F>;
   };
-} & TypeSystem.DefaultTypes & TypeSystem.Collect<F>> {
+} & TypeSystem & TypeSystem.Collect<F>> {
   constructor(
     public readonly type: T,
     public readonly fields: F,

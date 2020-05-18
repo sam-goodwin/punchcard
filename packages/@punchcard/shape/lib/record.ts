@@ -6,9 +6,9 @@ import { Value } from './value';
 
 import { Compact, RowLacks } from 'typelevel-ts';
 
-export interface RecordMembers {
+export type RecordMembers = Readonly<{
   [member: string]: Shape;
-}
+}>;
 export namespace RecordMembers {
   /**
    * Computes a natural representation of the members by applying `+?` to `optional` fields.
@@ -58,7 +58,7 @@ export class RecordShape<M extends RecordMembers = RecordMembers, FQN extends st
   [key: string]: any;
 
   constructor(
-    public readonly Members: M,
+    public readonly Members: Readonly<M>,
     public readonly Metadata: Metadata,
     FQN?: FQN,
   ) {

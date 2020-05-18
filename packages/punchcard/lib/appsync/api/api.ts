@@ -1,6 +1,6 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
-import { isOptional, Meta, Shape, ShapeGuards, UnionShape } from '@punchcard/shape';
+import { ArrayShape, DistributeUnionShape, FunctionShape, isOptional, Meta, Shape, ShapeGuards, StringShape, UnionShape, Value } from '@punchcard/shape';
 import { RecordShape } from '@punchcard/shape/lib/record';
 import { UserPool } from '../../cognito/user-pool';
 import { Build } from '../../core/build';
@@ -61,11 +61,11 @@ export class Api<
     };
   };
   public readonly QueryFQN: Q;
-  public readonly QuerySpec: Q extends keyof T ? T[Q] : undefined;
+  public readonly QuerySpec: T['Query'];
   public readonly MutationFQN: M;
-  public readonly MutationSpec: M extends keyof T ? T[M] : undefined;
+  public readonly MutationSpec: T['Mutation'];
   public readonly SubscriptionFQN: S;
-  public readonly SubscriptionSpec: S extends keyof T ? T[S] : undefined;
+  public readonly SubscriptionSpec: T['Subscription'];
 
   constructor(scope: Scope, id: string, props: ApiProps<T>) {
     super(scope, id);
@@ -222,7 +222,7 @@ export class Api<
           if (subscribe !== undefined) {
             directives[fieldName]!.push(`@aws_subscribe(mutations:[${(Array.isArray(subscribe) ? subscribe : [subscribe]).map(s => `"${s.field}"`).join(',')}])`);
           }
-          const fieldShape = typeSpec.fields[fieldName];
+          const fieldShape: Shape = typeSpec.fields[fieldName];
           let program: Generator<any, any, any> = undefined as any;
           if (ShapeGuards.isFunctionShape(fieldShape)) {
             const args = Object.entries(fieldShape.args).map(([argName, argShape]) => ({
@@ -426,7 +426,37 @@ export class Api<
       }
     });
   }
+
+  // public query(): GqlQuery<this> {
+
+  // }
 }
+
+type Gql<T> =
+  T extends FunctionShape<infer Args, infer Returns> ? [
+    { [a in keyof Args]: Value.Of<Args[a]>; },
+    Gql<Returns>
+  ] :
+  T extends RecordShape<infer M, any> ? {
+    [m in keyof M]?: Gql<M[m]>;
+  } :
+  T extends UnionShape<infer U> ? {
+    [i in keyof U]: Gql<DistributeUnionShape<T>>
+  }[keyof U] :
+  T extends ArrayShape<infer I> ? {
+    [i in keyof I]: Gql<I>
+  }[keyof I] :
+  T extends Shape ? true :
+  never
+;
+
+
+
+type GqlQuery<T extends Api<TypeSystem, any, any, any>> = {
+  Query: (q: {
+    [q in keyof T['QuerySpec']['fields']]: Gql<T['QuerySpec']['fields'][q]>
+  }) => void;
+};
 
 type Directives = {
   [field in string]?: string[]; // directives

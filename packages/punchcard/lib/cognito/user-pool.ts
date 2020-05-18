@@ -35,7 +35,7 @@ export class UserPool<R extends RequiredAttributes, C extends CustomAttributes> 
 
   private readonly triggers: TriggerFunction<this['attributes'], Dependency<any>>[] = [];
 
-  constructor(scope: Scope, id: string, props: UserPoolProps<R, C>) {
+  constructor(scope: Scope, id: string, props: UserPoolProps<R, C> = {}) {
     super(scope, id);
     this.requiredAttributes = (props.requiredAttributes || {}) as R;
     this.customAttributes = (props.customAttributes || {}) as C;
@@ -53,7 +53,7 @@ export class UserPool<R extends RequiredAttributes, C extends CustomAttributes> 
 
       const customAttributes = Object.entries((props.customAttributes || {})).map(([name, value]) => ({
         [name]: shapeToAttribute(value as Shape)
-      })).reduce((a, b) => ({ ...a, ...b }));
+      })).reduce((a, b) => ({ ...a, ...b }), {});
 
       return new cognito.UserPool(scope, this.id, {
         requiredAttributes: props.requiredAttributes,

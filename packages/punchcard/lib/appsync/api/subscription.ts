@@ -1,4 +1,4 @@
-import { RecordMembers, Shape, UnionShape } from '@punchcard/shape';
+import { DistributeUnionShape, RecordMembers, Shape, UnionShape } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
 import { Subscribe } from '../lang';
 import { SubscriptionRoot } from './root';
@@ -31,14 +31,12 @@ export type SubscriptionImpl<
     & SubscribeMetadata<Fields[f]>
 };
 
-type Distribute<T extends Shape> = T extends UnionShape<infer U> ? T | U[keyof U] : T;
-
 export interface SubscribeMetadata<T extends Shape> {
   subscribe: T extends FunctionShape<any, infer Returns> ?
-    | Subscribe<Distribute<Returns>>
-    | Subscribe<Distribute<Returns>>[]
+    | Subscribe<DistributeUnionShape<Returns>>
+    | Subscribe<DistributeUnionShape<Returns>>[]
     :
-    | Subscribe<Distribute<T>>
-    | Subscribe<Distribute<T>>[]
+    | Subscribe<DistributeUnionShape<T>>
+    | Subscribe<DistributeUnionShape<T>>[]
   ;
 }
