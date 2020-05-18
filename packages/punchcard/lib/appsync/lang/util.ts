@@ -52,7 +52,12 @@ export namespace $util {
    * @see https://docs.aws.amazon.com/appsync/latest/devguide/resolver-util-reference.html
    */
   export function error(message: VString | string, errorType?: VString | string, data?: VObject, errorInfo?: VObject): VNever {
-    return new VNever(call('$util.error', [message, errorType, data, errorInfo]));
+    return new VNever(call('$util.error', [
+      typeof message === 'string' ? `"${message}"` : message,
+      typeof errorType === 'string' ? `"${errorType}"` : errorType,
+      data,
+      errorInfo
+  ]));
   }
 
   export function isNull(value: VObject): VBool {

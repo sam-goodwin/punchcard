@@ -1,6 +1,5 @@
 import { ArrayShape, RecordMembers, RecordShape } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
-import { SubscriptionImpl } from './subscription';
 import { TraitImpl } from './trait';
 
 export interface TypeSpec {

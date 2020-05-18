@@ -1,5 +1,6 @@
 import { VExpression } from '../lang/expression';
 import { ElseBranch, IfBranch, isIfBranch, stash, Writable, write } from '../lang/statement';
+import { $util } from '../lang/util';
 import { VNever, VObject } from '../lang/vtl-object';
 
 export type Interpreter = (stmt: any, state: InterpreterState) => any;
@@ -116,7 +117,12 @@ export function interpretProgram(
         return next.value;
       }
     } catch (err) {
-      state.write(err);
+      // if we receive an error, write that error to VTL (don't propagate).
+      if (VObject.isObject(err)) {
+        state.write(err);
+      } else {
+        state.write($util.error(err.message));
+      }
       return undefined;
     }
   }
@@ -171,14 +177,6 @@ export function parseIf(
         id: returnId
       });
     }
-    // try {
-    // } catch (err) {
-    //   if (VObject.isObject(err)) {
-
-    //   }
-    //   const e: VNever = err;
-    //   state.write()
-    // }
     state.unindent().writeLine();
     branchYieldValues.push(value);
   }

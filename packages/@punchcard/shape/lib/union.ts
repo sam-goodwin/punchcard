@@ -12,9 +12,10 @@ export class UnionShape<T extends Shape[]> extends Shape {
     super();
   }
 }
-export namespace UnionShape {
-  // sometimes we can't properly map Unions right now, so we gotta have explicit indices to Extract
-  // make larger as necessary. Union should probably end up being using sparingly?
-  // issue can potentially arise in computed types.
-  export type Indices = '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9';
-}
+
+/**
+ * @see https://stackoverflow.com/questions/50374908/transform-union-type-to-intersection-type/50375286#50375286
+ * @see https://github.com/Microsoft/TypeScript/issues/26058
+ * @see https://github.com/Microsoft/TypeScript/issues/26058#issuecomment-456606942
+ */
+export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I)=>void) ? I : never;

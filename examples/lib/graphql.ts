@@ -1,6 +1,6 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, Record } from '@punchcard/shape';
+import { array, string, Record, optional, nothing, union } from '@punchcard/shape';
 import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType, $context, $if } from 'punchcard/lib/appsync';
 import { Scope } from 'punchcard/lib/core/construct';
 import { VFunction } from '@punchcard/shape/lib/function';
@@ -56,7 +56,7 @@ const RelatedPostsAPI = Trait({
 });
 
 const PostSubscriptionsApi = Subscription({
-  newPost: Post
+  newPost: optional(Post)
 });
 
 // Create a class for our DDB table for storing posts
@@ -117,9 +117,9 @@ export const PostApi = (
   const postMutationApi = new PostMutationApi({
     addPost: {
       *resolve(input) {
-        yield* $if($util.isNull($context.identity.user), function*() {
-          throw $util.error('user must be logged in');
-        });
+        // yield* $if($util.isNull($context.identity.user), function*() {
+        //   throw $util.error('user must be logged in');
+        // });
 
         return yield* postStore.put({
           id: yield* $util.autoId(),
