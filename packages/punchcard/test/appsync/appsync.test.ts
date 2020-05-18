@@ -2,7 +2,7 @@ import 'jest';
 
 import { array, boolean, integer, map, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, RecordType, set, Shape, Static, string, StringShape, timestamp, union, Value } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
-import { $appsync, $else, $if, ID, Impl, Interface, VFloat, VObject, VTL, vtl } from '../../lib/appsync';
+import { $else, $if, ID, VTL } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { ApiFragment } from '../../lib/appsync/api/api-fragment';
 import { CachingBehavior, CachingInstanceType } from '../../lib/appsync/api/caching';
@@ -82,13 +82,6 @@ export class PostStore extends DynamoDB.Table.NewType({
   }
 }) {}
 
-/**
- * A user record exposes a feed of `Post`.
- */
-export const FeedTrait = Trait({
-  feed: array(Post)
-});
-
 export const GetPostTrait = Query({
   getPost: VFunction({
     args: { id: ID, },
@@ -114,8 +107,6 @@ export const PostMutations = Mutation({
       title: optional(string),
       content: optional(string),
       tags: optional(array(string))
-      // stringOrNumber: union(string, number),
-      // list: array(set(string))
     },
     returns: Post
   }),

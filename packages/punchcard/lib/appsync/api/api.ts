@@ -123,9 +123,7 @@ export class Api<
         apiId: api.attrApiId,
         definition: core.Lazy.stringValue({
           produce: () => {
-            const schema = blocks.concat(generateSchemaHeader(this)).join('\n');
-            console.log(schema);
-            return schema;
+            return blocks.concat(generateSchemaHeader(this)).join('\n');
           }
         }),
       });
@@ -240,7 +238,7 @@ export class Api<
             program = (function*() {})();
           }
 
-          const functions: appsync.CfnFunctionConfiguration[] = [];
+          const functions: appsync.CfnFunctionConfigurationProps[] = [];
           // let template: string[] = [];
           let stageCount = 0;
 
@@ -301,18 +299,18 @@ export class Api<
               const name = state.newId();
               state.write(VObject.getExpr(stmt.request));
               const requestMappingTemplate = state.renderTemplate();
-              console.log(requestMappingTemplate);
               // return a reference to the previou s result
-              const responseMappingTemplate = `#set($context.stash.${name} = $context.result){}\n`;
+              const responseMappingTemplate = `#set($context.stash.${name} = $context.result)\n`;
               // clear template state
               const stageName = `${fieldFQN}${stageCount += 1}`;
               const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, fieldFQN);
-              const dataSource = new appsync.CfnDataSource(scope, `DataSource(${fieldFQN})`, {
+              // TODO: de-duplicate data sources
+              const dataSource = new appsync.CfnDataSource(scope, `DataSource(${stageName})`, {
                 ...dataSourceProps,
                 apiId: api.attrApiId,
                 name: stageName,
               });
-              const functionConfiguration = new appsync.CfnFunctionConfiguration(scope, `Function(${fieldFQN})`, {
+              functions.push({
                 apiId: api.attrApiId,
                 name: stageName,
                 requestMappingTemplate,
@@ -320,30 +318,72 @@ export class Api<
                 dataSourceName: dataSource.attrName,
                 functionVersion: '2018-05-29',
               });
-              functions.push(functionConfiguration);
               return VObject.fromExpr(stmt.responseType, VExpression.text(`$context.stash.${name}`));
             }
             console.error('unsupported statement type', stmt);
             throw new Error(`unsupported statement type: ${state}`);
           }
 
-          if (result !== undefined) {
-            // console.log('result', result);
-            initState.write('$util.toJson(', result, ')');
+          let _noneDataSource: appsync.CfnDataSource | undefined;
+          const noneDataSource = () => {
+            if (!_noneDataSource) {
+              _noneDataSource = new appsync.CfnDataSource(scope, 'None', {
+                apiId: api.attrApiId,
+                name: 'NONE',
+                type: 'NONE',
+                description: 'Empty Data Source'
+              });
+            }
+            return _noneDataSource;
+          };
+
+          const config: {
+            kind: 'PIPELINE' | 'UNIT';
+            requestMappingTemplate?: string;
+            responseMappingTemplate?: string;
+            dataSourceName?: string;
+            pipelineConfig?: appsync.CfnResolver.PipelineConfigProperty;
+          } = {
+            kind: 'UNIT'
+          };
+
+          if (functions.length === 0) {
+            config.dataSourceName = noneDataSource().attrName;
+            config.requestMappingTemplate = initState.write(VExpression.json({
+              version: '2017-02-28',
+              paylaod: result === undefined ? {} : VExpression.concat('$util.toJson(', result, ')')
+            })).renderTemplate();
+            config.responseMappingTemplate = result === undefined ? '{}' : initState.write('$util.toJson(', result, ')').renderTemplate();
+          } else {
+            if (result !== undefined) {
+              initState.write('$util.toJson(', result, ')');
+            } else {
+              initState.write('{}');
+            }
+            if (functions.length === 1) {
+              config.dataSourceName = functions[0].dataSourceName;
+              config.requestMappingTemplate = functions[0].requestMappingTemplate;
+              config.responseMappingTemplate = functions[0].responseMappingTemplate + '\n' + initState.renderTemplate();
+            } else {
+              config.kind = 'PIPELINE';
+              config.requestMappingTemplate = '{}';
+              config.pipelineConfig = {
+                functions: functions.map((f, i) =>
+                  new appsync.CfnFunctionConfiguration(scope, `Function(${fieldFQN}, ${i})`, {
+                    ...f,
+                    // intermediate pipelines should emit an empty object to the next function or final response mapping template
+                    responseMappingTemplate: f.responseMappingTemplate + '{}'
+                  }).attrFunctionId)
+              };
+              config.responseMappingTemplate = initState.renderTemplate();
+            }
           }
 
-          const responseTemplate = initState.renderTemplate();
-
           const cfnResolver = new appsync.CfnResolver(scope, `Resolve(${fieldFQN})`, {
+            ...config,
             apiId: api.attrApiId,
             typeName,
             fieldName,
-            kind: 'PIPELINE', // always pipeline cuz we cool like that
-            pipelineConfig: {
-              functions: functions.map(f => f.attrFunctionId)
-            },
-            requestMappingTemplate: responseTemplate || '{}',
-            responseMappingTemplate: responseTemplate || '{}',
             cachingConfig: (() => {
               let cachingConfig: appsync.CfnResolver.CachingConfigProperty | undefined;
               if (apiCache) {
@@ -382,7 +422,6 @@ export class Api<
     });
   }
 }
-
 
 type Directives = {
   [field in string]?: string[]; // directives

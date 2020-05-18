@@ -22,7 +22,6 @@ class Post extends Record('Post', {
   tags: array(string)
 }) {}
 
-
 /*
 "Traits" are like interfaces in TypeScript.
 
@@ -46,7 +45,7 @@ const PostMutationApi = Mutation({
   })
 });
 
-const RelatedPostsAPI = Trait({
+const RelatedPostsAPI = Trait(Post, {
   relatedPosts: VFunction({
     args: {
       tags: array(string)
@@ -138,7 +137,7 @@ export const PostApi = (
   })
   
   // impl RelatedPostsAPI on Post (adds a `relatedPosts` resolver)
-  const relatedPostsApi = new RelatedPostsAPI(Post, {
+  const relatedPostsApi = new RelatedPostsAPI({
     relatedPosts: {
       *resolve({tags}) {
         return yield* fn.invoke(tags);

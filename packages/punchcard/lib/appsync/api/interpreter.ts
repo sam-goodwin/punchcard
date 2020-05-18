@@ -20,7 +20,7 @@ export class InterpreterState {
     if (clear) {
       this.clearTemplate();
     }
-    return templateText;
+    return templateText || '{}';
   }
 
   public clearTemplate(): void {
