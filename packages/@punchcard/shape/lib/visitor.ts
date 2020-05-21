@@ -2,7 +2,7 @@ import { ArrayShape, MapShape, SetShape } from './collection';
 import { FunctionArgs, FunctionShape } from './function';
 import { LiteralShape } from './literal';
 import { AnyShape, BinaryShape, BoolShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
-import { RecordMembers, RecordShape } from './record';
+import { Fields, RecordShape } from './record';
 import type { Shape } from './shape';
 import { UnionShape } from './union';
 
@@ -10,7 +10,7 @@ export interface ShapeVisitor<T = unknown, C = undefined> {
   arrayShape(shape: ArrayShape<Shape>, context: C): T;
   binaryShape(shape: BinaryShape, context: C): T;
   boolShape(shape: BoolShape, context: C): T;
-  recordShape(shape: RecordShape<RecordMembers>, context: C): T;
+  recordShape(shape: RecordShape<Fields>, context: C): T;
   anyShape(shape: AnyShape, context: C): T;
   functionShape(shape: FunctionShape<FunctionArgs, Shape>): T;
   mapShape(shape: MapShape<Shape>, context: C): T;

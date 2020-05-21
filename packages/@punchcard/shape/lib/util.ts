@@ -1,6 +1,6 @@
 import { Metadata } from './metadata';
 import { IsOptional } from './option';
-import { RecordMembers } from './record';
+import { Fields } from './record';
 import { Shape } from './shape';
 
 /**
@@ -17,10 +17,10 @@ export type ArrayToTuple<A extends any[]> = A[keyof A];
 export type AssertIsKey<T, K> = K extends keyof T ? K : never;
 export type AssertIsMetadata<T> = T extends Metadata ? T : never;
 export type AssertIsShape<T, C extends Shape = Shape> = T extends C ? T : never;
-export type OptionalKeys<T extends RecordMembers> = Exclude<{
+export type OptionalKeys<T extends Fields> = Exclude<{
   [k in keyof T]: IsOptional<T[k]> extends true ? k : undefined;
 }[keyof T], undefined>;
-export type RequiredKeys<T extends RecordMembers> = Exclude<keyof T, OptionalKeys<T>>;
+export type RequiredKeys<T extends Fields> = Exclude<keyof T, OptionalKeys<T>>;
 
 export function stringHashCode(value: string): number {
   let hash = 0;

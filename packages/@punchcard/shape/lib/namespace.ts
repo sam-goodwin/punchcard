@@ -1,9 +1,9 @@
-import { Record, RecordMembers, RecordType } from './record';
+import { Fields, Record, RecordType } from './record';
 
 // TODO: considering supporting something like this ....
 export function Namespace<Namespace extends string>(namespace: Namespace) {
   return {
-    Class<ClassName extends string, M extends RecordMembers>(className: ClassName, members: M): RecordType<M, ClassName> & {
+    Class<ClassName extends string, M extends Fields>(className: ClassName, members: M): RecordType<M, ClassName> & {
       Namespace: Namespace;
     } {
       const record = Record(className, members);

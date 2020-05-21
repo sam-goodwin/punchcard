@@ -1,7 +1,7 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
 import { ArrayShape, DistributeUnionShape, FunctionShape, isOptional, Meta, PrimitiveShapes, Shape, ShapeGuards, StringShape, UnionShape, UnionToIntersection, Value } from '@punchcard/shape';
-import { RecordMembers, RecordShape } from '@punchcard/shape/lib/record';
+import { Fields, RecordShape } from '@punchcard/shape/lib/record';
 import { UserPool } from '../../cognito/user-pool';
 import { Build } from '../../core/build';
 import { CDK } from '../../core/cdk';

@@ -1,7 +1,7 @@
-import { RecordMembers } from "./record";
+import { Fields } from "./record";
 
 
 
-export function Interface<F extends RecordMembers, FQN extends string>(fqn: FQN, fields: F) {
-  
+export function Interface<F extends Fields, FQN extends string>(fqn: FQN, fields: F) {
+  //
 }

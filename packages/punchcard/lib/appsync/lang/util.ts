@@ -1,4 +1,4 @@
-import { AnyShape, ArrayShape, BinaryShape, bool, boolean, BoolShape, CollectionShape, FunctionShape, literal, LiteralShape, map, MapShape, NeverShape, NothingShape, NumberShape, Pointer, Record, RecordMembers, RecordShape, RecordType, set, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, union, UnionShape } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BinaryShape, bool, boolean, BoolShape, CollectionShape, Fields, FunctionShape, literal, LiteralShape, map, MapShape, NeverShape, NothingShape, NumberShape, Pointer, Record, RecordShape, RecordType, set, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, union, UnionShape } from '@punchcard/shape';
 import { AttributeValue } from '@punchcard/shape-dynamodb';
 import { VExpression } from './expression';
 import { stash } from './statement';

@@ -6,14 +6,14 @@ import { Value } from './value';
 
 import { Compact, RowLacks } from 'typelevel-ts';
 
-export type RecordMembers = Readonly<{
+export type Fields = Readonly<{
   [member: string]: Shape;
 }>;
-export namespace RecordMembers {
+export namespace Fields {
   /**
    * Computes a natural representation of the members by applying `+?` to `optional` fields.
    */
-  export type Natural<M extends RecordMembers> = {
+  export type Natural<M extends Fields> = {
     /**
      * Write each member and their documentation to the structure.
      * Write them all as '?' for now.
@@ -47,7 +47,7 @@ export namespace RecordMembers {
  * @typeparam M record members (key-value pairs of shapes)
  * @typeparam I instance type of this Record (the value type)
  */
-export class RecordShape<M extends RecordMembers = RecordMembers, FQN extends string | undefined = string | undefined> extends Shape {
+export class RecordShape<M extends Fields = Fields, FQN extends string | undefined = string | undefined> extends Shape {
   public readonly Kind: 'recordShape' = 'recordShape';
 
   /**
@@ -93,7 +93,7 @@ export namespace RecordShape {
  * }).a; // <- same here
  * ```
  */
-export type RecordValues<M extends RecordMembers> = {
+export type RecordValues<M extends Fields> = {
   /**
    * Write each member and their documentation to the structure.
    * Write them all as '?' for now.
@@ -106,7 +106,7 @@ export type RecordValues<M extends RecordMembers> = {
   [m in RequiredKeys<M>]-?: Value.Of<Pointer.Resolve<M[m]>>;
 };
 
-export interface RecordType<M extends RecordMembers = RecordMembers, FQN extends string | undefined = string | undefined> extends RecordShape<M, FQN> {
+export interface RecordType<M extends Fields = Fields, FQN extends string | undefined = string | undefined> extends RecordShape<M, FQN> {
   /**
    * Constructor takes values for each member.
    */
@@ -135,8 +135,8 @@ export interface RecordType<M extends RecordMembers = RecordMembers, FQN extends
    *
    * @param members new Record members
    */
-  Extend<M2 extends RecordMembers>(members: RowLacks<M2, keyof M>): Extend<M, undefined, M2>;
-  Extend<FQN2 extends string, M2 extends RecordMembers>(fqn: FQN2, members: RowLacks<M2, keyof M>): Extend<M, FQN2, M2>;
+  Extend<M2 extends Fields>(members: RowLacks<M2, keyof M>): Extend<M, undefined, M2>;
+  Extend<FQN2 extends string, M2 extends Fields>(fqn: FQN2, members: RowLacks<M2, keyof M>): Extend<M, FQN2, M2>;
 
   /**
    * Pick members from a `Record` to create a new `RecordType`.
@@ -192,17 +192,17 @@ export interface RecordType<M extends RecordMembers = RecordMembers, FQN extends
  * @param members key-value pairs of members and their shape (type).
  */
 // export function Record<T extends RecordMembers = any>(members: T): RecordType<T>;
-export function Record<FQN extends string, T extends RecordMembers = any>(members: T): RecordType<T, undefined>;
-export function Record<FQN extends string, T extends RecordMembers = any>(fqn: FQN, members: T): RecordType<T, FQN>;
+export function Record<FQN extends string, T extends Fields = any>(members: T): RecordType<T, undefined>;
+export function Record<FQN extends string, T extends Fields = any>(fqn: FQN, members: T): RecordType<T, FQN>;
 
-export function Record<T extends RecordMembers>(a: any, b?: any) {
+export function Record<T extends Fields>(a: any, b?: any) {
   const FQN = typeof a === 'string' ? a : undefined;
   const members = typeof b === 'undefined' ? a : b;
 // export function Record<T extends RecordMembers = any>(members: T): RecordType<T> {
   class NewType {
     public static readonly FQN: string | undefined = FQN;
 
-    public static Extend<FQN extends string, M extends RecordMembers>(
+    public static Extend<FQN extends string, M extends Fields>(
       a: FQN | RowLacks<M, keyof T>,
       b?: RowLacks<M, keyof T>
     ): Extend<T, FQN, M> {
@@ -274,7 +274,7 @@ export function Record<T extends RecordMembers>(a: any, b?: any) {
 export function Extend<
   T extends RecordType,
   FQN extends string | undefined,
-  M extends RecordMembers
+  M extends Fields
 >(
   type: T,
   fqn: FQN,
@@ -295,13 +295,13 @@ export function Extend<
 /**
  * Combine two sets of Members into a single `RecordType`.
  */
-export type Extend<T extends RecordMembers, FQN extends string | undefined, M extends RecordMembers> = RecordType<Compact<T & M>, FQN>;
+export type Extend<T extends Fields, FQN extends string | undefined, M extends Fields> = RecordType<Compact<T & M>, FQN>;
 
 
 /**
  * Picks members from a `Record` to create a new `RecordType`.
  */
-export type PickRecord<T extends RecordMembers, FQN extends string | undefined, K extends (keyof T)[]> =
+export type PickRecord<T extends Fields, FQN extends string | undefined, K extends (keyof T)[]> =
   RecordType<
     Pick<T, Extract<K[keyof K], string>>,
     FQN
@@ -325,7 +325,7 @@ export type PickRecord<T extends RecordMembers, FQN extends string | undefined, 
  * @param fields to select from
  * @param select array of members to select
  */
-export function Pick<T extends RecordMembers, FQN extends string | undefined, M extends (keyof T)[]>(
+export function Pick<T extends Fields, FQN extends string | undefined, M extends (keyof T)[]>(
   fields: T,
   fqn: FQN,
   select: M
@@ -343,7 +343,7 @@ export function Pick<T extends RecordMembers, FQN extends string | undefined, M 
 /**
  * Omits members from a `Record` to create a new `RecordType`
  */
-export type OmitRecord<T extends RecordMembers, FQN extends string | undefined, K extends (keyof T)[]> =
+export type OmitRecord<T extends Fields, FQN extends string | undefined, K extends (keyof T)[]> =
   RecordType<
     Omit<T, Extract<K[keyof K], string>>,
     FQN
@@ -367,7 +367,7 @@ export type OmitRecord<T extends RecordMembers, FQN extends string | undefined, 
  * @param fields to select from
  * @param select array of members to select
  */
-export function Omit<T extends RecordMembers, FQN extends string | undefined, M extends (keyof T)[]>(
+export function Omit<T extends Fields, FQN extends string | undefined, M extends (keyof T)[]>(
   fields: T,
   fqn: FQN,
   select: M

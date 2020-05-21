@@ -1,4 +1,4 @@
-import { RecordMembers, RecordShape } from '@punchcard/shape';
+import { Fields, RecordShape } from '@punchcard/shape';
 import { ApiFragment } from './api-fragment';
 import { AuthMetadata } from './auth';
 import { CacheMetadata } from './caching';
@@ -6,7 +6,7 @@ import { FieldResolver } from './resolver';
 
 export interface FixedTraitClass<
   T extends RecordShape<any, string>,
-  F extends RecordMembers,
+  F extends Fields,
 > {
   readonly type: T;
   readonly fields: F
@@ -15,23 +15,23 @@ export interface FixedTraitClass<
 }
 
 export interface TraitClass<
-  Fields extends RecordMembers,
+  F extends Fields,
   ReturnsValue extends boolean = true
 > {
-  readonly fields: Fields;
-  new<T extends RecordShape<any, string>>(type: T, impl: TraitImpl<T, Fields, ReturnsValue>): ApiFragment<T, Fields>;
+  readonly fields: F;
+  new<T extends RecordShape<any, string>>(type: T, impl: TraitImpl<T, F, ReturnsValue>): ApiFragment<T, F>;
 }
 
 export function Trait<
   T extends RecordShape<any, string> = RecordShape<any, string>,
-  F extends RecordMembers = RecordMembers
+  F extends Fields = Fields
 >(
   type: T,
   fields: F,
 ): FixedTraitClass<T, F>;
 
 export function Trait<
-  F extends RecordMembers = RecordMembers,
+  F extends Fields = Fields,
 >(
   fields: F,
 ): TraitClass<F>;
@@ -39,7 +39,7 @@ export function Trait<
 export function Trait(a: any, b?: any): any {
   if (b !== undefined) {
     const type = a as RecordShape<any, string>;
-    const fields = b as RecordMembers;
+    const fields = b as Fields;
     return class Fragment extends ApiFragment<typeof type, typeof fields>  {
       // public static readonly type: T = type;
       public static readonly fields: typeof fields = fields;
@@ -49,7 +49,7 @@ export function Trait(a: any, b?: any): any {
       }
     };
   } else {
-    const fields = a as RecordMembers;
+    const fields = a as Fields;
     return class Fragment<T extends RecordShape<any, string>> extends ApiFragment<T, typeof fields>  {
       // public static readonly type: T = type;
       public static readonly fields: typeof fields = fields;
@@ -66,13 +66,13 @@ export function Trait(a: any, b?: any): any {
  */
 export type TraitImpl<
   Self extends RecordShape,
-  Fields extends RecordMembers,
+  F extends Fields,
   ReturnsValue extends boolean = true
 > = {
-  [f in keyof Fields]:
+  [f in keyof F]:
     & AuthMetadata
-    & CacheMetadata<Fields[f]>
-    & FieldResolver<Self, Fields[f], ReturnsValue>
+    & CacheMetadata<F[f]>
+    & FieldResolver<Self, F[f], ReturnsValue>
   ;
 };
 

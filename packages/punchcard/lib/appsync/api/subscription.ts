@@ -1,4 +1,4 @@
-import { DistributeUnionShape, RecordMembers, Shape, UnionShape } from '@punchcard/shape';
+import { DistributeUnionShape, Fields, Shape, UnionShape } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
 import { Subscribe } from '../lang';
 import { ApiFragment } from './api-fragment';
@@ -6,14 +6,14 @@ import { SubscriptionRoot } from './root';
 import { Trait, TraitImpl } from './trait';
 
 export interface SubscriptionTraitClass<
-  F extends RecordMembers,
+  F extends Fields,
 > {
   readonly fields: F
   readonly type: typeof SubscriptionRoot;
 
   new(impl: SubscriptionImpl<F>): ApiFragment<typeof SubscriptionRoot, F>
 }
-export function Subscription<F extends RecordMembers = RecordMembers>(fields: F): SubscriptionTraitClass<F> {
+export function Subscription<F extends Fields = Fields>(fields: F): SubscriptionTraitClass<F> {
   return class extends Trait(SubscriptionRoot, fields) {
     public static readonly fields = fields;
     public static readonly type = SubscriptionRoot;
@@ -25,11 +25,11 @@ export function Subscription<F extends RecordMembers = RecordMembers>(fields: F)
 }
 
 export type SubscriptionImpl<
-  Fields extends RecordMembers
+  F extends Fields
 > = {
-  [f in keyof TraitImpl<typeof SubscriptionRoot, Fields, false>]:
-    & TraitImpl<typeof SubscriptionRoot, Fields, false>[f]
-    & SubscribeMetadata<Fields[f]>
+  [f in keyof TraitImpl<typeof SubscriptionRoot, F, false>]:
+    & TraitImpl<typeof SubscriptionRoot, F, false>[f]
+    & SubscribeMetadata<F[f]>
 };
 
 export interface SubscribeMetadata<T extends Shape> {

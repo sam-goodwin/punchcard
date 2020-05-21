@@ -1,6 +1,6 @@
 import 'jest';
 
-import { array, boolean, integer, map, nothing, number, optional, Pointer, Record, RecordMembers, RecordShape, RecordType, set, Shape, Static, string, StringShape, timestamp, union, Value } from '@punchcard/shape';
+import { array, boolean, Fields, integer, map, nothing, number, optional, Pointer, Record, RecordShape, RecordType, set, Shape, Static, string, StringShape, timestamp, union, Value } from '@punchcard/shape';
 import { VFunction } from '@punchcard/shape/lib/function';
 import { $else, $if, ID, VTL } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';

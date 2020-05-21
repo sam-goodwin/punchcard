@@ -5,7 +5,7 @@ import { HashSet } from '@punchcard/shape/lib/hash-set';
 import { IsInstance } from '@punchcard/shape/lib/is-instance';
 import { Mapper, ValidatingMapper } from '@punchcard/shape/lib/mapper';
 import { AnyShape, BinaryShape, BoolShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
-import { RecordMembers, RecordShape, RecordType } from '@punchcard/shape/lib/record';
+import { Fields, RecordShape, RecordType } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Value } from '@punchcard/shape/lib/value';
 import { ShapeVisitor } from '@punchcard/shape/lib/visitor';
@@ -32,7 +32,7 @@ export namespace Json {
   ;
   export type Of<T> =
     T extends RecordShape<infer M> ? {
-      [m in keyof RecordMembers.Natural<M>]: Of<RecordMembers.Natural<M>[m]>;
+      [m in keyof Fields.Natural<M>]: Of<Fields.Natural<M>[m]>;
     } :
     // use the instance type if this type can be constructed (for class A extends Record({}) {})
     // support overriding the type of a value
