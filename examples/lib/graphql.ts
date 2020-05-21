@@ -25,7 +25,6 @@ class Post extends Record('Post', {
   tags: array(string)
 }) {}
 
-
 /*
 "Traits" are like interfaces in TypeScript.
 

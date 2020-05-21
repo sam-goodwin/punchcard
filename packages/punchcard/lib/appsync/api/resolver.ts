@@ -4,18 +4,32 @@ import { VTL } from '../lang/vtl';
 import { VObject } from '../lang/vtl-object';
 
 export type FieldResolver<Self extends RecordShape, T extends Shape, ReturnsValue extends boolean = true> =
-  & ReturnsValue extends true ? ThisType<VObject.Of<Self>> & {
+  & ReturnsValue extends true ? ThisType<SelfType<Self>> & {
     readonly resolve: T extends FunctionShape<infer Args, infer Returns> ?
       // if it's a Function type, expect a function taking those args and returning an object
-      (args: { [arg in keyof Args]: VObject.Of<Args[arg]>; }, self: VObject.Of<DistributeUnionShape<Self>>) => VTL<VObject.Of<DistributeUnionShape<Returns>>> :
+      (
+        args: { [arg in keyof Args]: VObject.Of<Args[arg]>; },
+        self: SelfType<Self>
+      ) => VTL<VObject.Of<DistributeUnionShape<Returns>>> :
       // no args if it is not a Function type
       (self: VObject.Of<Self>) => VTL<VObject.Of<DistributeUnionShape<T>>>
     ;
-  } : ThisType<VObject.Of<Self>> & {
+  } : ThisType<SelfType<Self>> & {
     readonly resolve?: T extends FunctionShape<infer Args, any> ?
       // if it's a Function type, expect a function taking those args and returning an object
-      (args: { [arg in keyof Args]: VObject.Of<Args[arg]>; }, self: VObject.Of<Self>) => VTL<void> :
+      (
+        args: { [arg in keyof Args]: VObject.Of<Args[arg]>; },
+        self: SelfType<Self>
+      ) => VTL<void> :
       // no args if it is not a Function type
-      (self: VObject.Of<Self>) => VTL<void>
+      (self: SelfType<Self>) => VTL<void>
     ;
-  };
+  }
+;
+
+type SelfType<T extends Shape> =
+  T extends RecordShape<infer M> ? {
+    [m in keyof M]: SelfType<M[m]>
+  }:
+  VObject.Of<T>
+;

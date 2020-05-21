@@ -135,6 +135,7 @@ export interface RecordType<M extends RecordMembers = RecordMembers, FQN extends
    *
    * @param members new Record members
    */
+  Extend<M2 extends RecordMembers>(members: RowLacks<M2, keyof M>): Extend<M, undefined, M2>;
   Extend<FQN2 extends string, M2 extends RecordMembers>(fqn: FQN2, members: RowLacks<M2, keyof M>): Extend<M, FQN2, M2>;
 
   /**

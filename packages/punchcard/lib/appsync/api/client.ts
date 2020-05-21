@@ -65,7 +65,6 @@ type GqlUnionSelector<
   UnselectedTypes extends string,
   Result extends object
 > = {
-
   on<FQN extends UnselectedTypes, T extends GqlResult>(
     type: FQN,
     selection: (selection: GqlFieldSelector<API, GqlFields<API, UnionType<U, Extract<FQN, string>>>>) => T
