@@ -1,8 +1,9 @@
 import { DistributeUnionShape, RecordMembers, Shape, UnionShape } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
 import { Subscribe } from '../lang';
+import { ApiFragment } from './api-fragment';
 import { SubscriptionRoot } from './root';
-import { Trait, TraitFragment, TraitImpl } from './trait';
+import { Trait, TraitImpl } from './trait';
 
 export interface SubscriptionTraitClass<
   F extends RecordMembers,
@@ -10,7 +11,7 @@ export interface SubscriptionTraitClass<
   readonly fields: F
   readonly type: typeof SubscriptionRoot;
 
-  new(impl: SubscriptionImpl<F>): TraitFragment<typeof SubscriptionRoot, F>
+  new(impl: SubscriptionImpl<F>): ApiFragment<typeof SubscriptionRoot, F>
 }
 export function Subscription<F extends RecordMembers = RecordMembers>(fields: F): SubscriptionTraitClass<F> {
   return class extends Trait(SubscriptionRoot, fields) {

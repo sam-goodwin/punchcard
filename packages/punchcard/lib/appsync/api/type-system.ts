@@ -1,4 +1,4 @@
-import { ArrayShape, RecordMembers, RecordShape } from '@punchcard/shape';
+import { ArrayShape, RecordMembers, RecordShape, UnionToIntersection } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
 import { TraitImpl } from './trait';
 
@@ -12,9 +12,6 @@ export interface TypeSpec<F extends RecordMembers = RecordMembers> {
  * A map from a type's FQN to its field-level resolvers.
  */
 export interface TypeSystem {
-  Mutation: TypeSpec;
-  Query: TypeSpec;
-  Subscription: TypeSpec;
   [fqn: string]: TypeSpec;
 }
 

@@ -1,68 +1,65 @@
-import { RecordShape, Shape, ShapeGuards, UnionToIntersection } from '@punchcard/shape';
-import { MutationRoot, QueryRoot, SubscriptionRoot } from './root';
-import { TypeSpec, TypeSystem } from './type-system';
+import { ArrayShape, FunctionShape, RecordMembers, RecordShape, Shape, ShapeGuards, UnionToIntersection } from '@punchcard/shape';
+import { SubscriptionImpl } from './subscription';
+import { TraitImpl } from './trait';
+import { TypeSpec } from './type-system';
 
-export class ApiFragment<I extends TypeSystem> {
-  public readonly Types: I;
-
-  constructor(types: I) {
-    const _types = types as any;
-
-    emptyDefault(QueryRoot);
-    emptyDefault(MutationRoot);
-    emptyDefault(SubscriptionRoot);
-
-    this.Types = _types;
-
-    function emptyDefault<T extends RecordShape<any, string>>(type: T) {
-      if (_types[type.FQN] === undefined) {
-        _types[type.FQN] = {
-          type,
-          fields: {},
-          resolvers: {}
-        };
-      }
-    }
-  }
+export class ApiFragment<
+  T extends RecordShape<{}, string> = RecordShape<{}, string>,
+  F extends RecordMembers = {}
+> {
+  constructor(
+    public readonly type: T,
+    public readonly fields: F,
+    public readonly resolvers: TraitImpl<T, F> | SubscriptionImpl<F>
+  ) {}
 }
 
-export namespace ApiFragment {
-  export type Concat<F extends ApiFragment<TypeSystem>[]> = UnionToIntersection<F[keyof F]>;
+export namespace ApiFragments {
+  type ByFQN<FQN extends string> = {
+    type: {
+      readonly FQN: FQN;
+    }
+  };
 
-  export function concat<F extends ApiFragment<any>[]>(...fragments: F): ApiFragment.Concat<F> {
-    const implIndex: TypeSystem = {
-      [MutationRoot.FQN]: {
-        type: MutationRoot,
-        fields: {},
-        resolvers: {}
-      },
-      [QueryRoot.FQN]: {
-        type: QueryRoot,
-        fields: {},
-        resolvers: {}
-      },
-      [SubscriptionRoot.FQN]: {
-        type: SubscriptionRoot,
-        fields: {},
-        resolvers: {}
-      }
-    };
+  export type GetType<
+    F extends readonly ApiFragment[],
+    FQN extends string
+  > = UnionToIntersection<
+    Extract<F[keyof F], ByFQN<FQN>>
+  > & {
+    fields: Extract<{
+      [i in Extract<keyof F, number>]: F[i]['type']
+    }[Extract<keyof F, number>], RecordShape<RecordMembers, FQN>>['Members']
+  };
+
+  export type ListTypeNames<
+    Fragments extends readonly ApiFragment[]
+  > = Extract<Fragments[keyof Fragments], ByFQN<string>>['type']['FQN'];
+
+  export type Reduce<
+    Fragments extends readonly ApiFragment[],
+  > = {
+    readonly [FQN in ListTypeNames<Fragments>]: GetType<Fragments, FQN>;
+  };
+
+  export function reduce<Fragments extends readonly ApiFragment[]>(...fragments: Fragments): Reduce<Fragments> {
+    const index: Record<string, TypeSpec> = {};
 
     for (const fragment of fragments) {
-      for (const typeSpec of Object.values(fragment.Types) as TypeSpec[]) {
-        Object
-          .values(typeSpec.fields)
-          .map(getTypes)
-          .reduce((a, b) => a.concat(b), [])
-          .forEach(shape => merge({
-            type: shape,
-            fields: shape.Members,
-            resolvers: {}
-          }));
+      Object
+        .values(fragment.fields as Record<string, Shape>)
+        .map(getTypes)
+        .reduce((a, b) => a.concat(b), [])
+        .forEach(shape => merge({
+          type: shape,
+          fields: shape.Members,
+          resolvers: {}
+        }));
 
-        merge(typeSpec);
-      }
+      merge(fragment);
     }
+
+    return index as Reduce<Fragments>;
 
     function getTypes(shape: Shape): RecordShape<any, string>[] {
       if (ShapeGuards.isFunctionShape(shape)) {
@@ -80,9 +77,9 @@ export namespace ApiFragment {
     }
 
     function merge(typeSpec: TypeSpec) {
-      const prev = implIndex[typeSpec.type.FQN];
+      const prev = index[typeSpec.type.FQN];
       if (prev !== undefined) {
-        implIndex[typeSpec.type.FQN] = {
+        index[typeSpec.type.FQN] = {
           type: typeSpec.type,
           fields: {
             ...prev.fields,
@@ -94,10 +91,8 @@ export namespace ApiFragment {
           }
         };
       } else {
-        implIndex[typeSpec.type.FQN] = typeSpec;
+        index[typeSpec.type.FQN] = typeSpec;
       }
     }
-
-    return new ApiFragment(implIndex) as any;
   }
 }

@@ -16,6 +16,7 @@ export function Namespace<Namespace extends string>(namespace: Namespace) {
 // usage:
 
 // const SMA = Namespace('SMA');
+
 // class Runtime extends SMA.Class('Runtime', {
 //   key: string
 // }) {}

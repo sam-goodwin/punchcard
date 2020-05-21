@@ -1,11 +1,13 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, Record, optional, nothing, union, UnionToIntersection } from '@punchcard/shape';
-import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType, $context, $if } from 'punchcard/lib/appsync';
+import { array, string, Record, optional, nothing, union, UnionToIntersection, RecordShape, Shape, Value, RecordMembers, ArrayShape, StringShape, PrimitiveShapes } from '@punchcard/shape';
+import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType, $context, $if, QueryRoot } from 'punchcard/lib/appsync';
 import { Scope } from 'punchcard/lib/core/construct';
-import { VFunction } from '@punchcard/shape/lib/function';
+import { VFunction, FunctionShape } from '@punchcard/shape/lib/function';
 import { ApiFragment } from 'punchcard/lib/appsync/api/api-fragment';
 import { $util } from 'punchcard/lib/appsync/lang/util';
+import { UserPool } from 'punchcard/lib/cognito/user-pool';
+import { FirehoseEvent } from 'punchcard/lib/firehose';
 
 /*
 type Post {
@@ -180,18 +182,20 @@ const stack = app.stack('graphql');
 // instantiate our API component 
 const api = PostApi(stack);
 
+const userPool = new UserPool(stack, 'UserPool');
+
 // Configure the API - generates schema and AppSync config (VTL, Resolvers, IAM Roles, etc.).
 const MyApi = new Api(stack, 'MyApi', {
   name: 'MyApi',
-  subscribe: {},
+  // subscribe: {},
   // merge our API fragments into one type-system
-  types: ApiFragment.concat(
+  fragments: [
     api.postMutationApi,
     api.postQueryApi,
     api.relatedPostsApi,
     api.postSubscriptionsApi
-  ),
-  userPool: null as any,
+  ] as const,
+  userPool,
   caching: {
     behavior: CachingBehavior.PER_RESOLVER_CACHING,
     instanceType: CachingInstanceType.T2_SMALL,
@@ -199,14 +203,29 @@ const MyApi = new Api(stack, 'MyApi', {
   }
 });
 
-// const b = ApiFragment.concat(api.postQueryApi, api.postMutationApi);
 
-// const q = MyApi.query();
+async function main() {
+  const res = await MyApi.Query(client => ({
+    namedQuery: client.getPost({id: 'id'}, _ => _
+      .content()
+      .title()
+      .relatedPosts({tags: ['a', 'b']}, _ => _
+        .id()
+        .tags()
+        .relatedPosts({tags: ['a']}, _ => _
+          .id()
+        )
+        .content()
+        .title()
+      )
+    ),
 
-// q.Query({
-//   getPost: [{
-//     id: 'id'
-//   }, {
-//     id: true
-//   }]
-// });
+    namedQuery2: client.getPost({id: 'id'}, _ => _
+      .content()
+    )
+  }));
+
+  const ids: string[][] = res.namedQuery.getPost.relatedPosts.map(post => post.relatedPosts.map(post => post.id))
+
+  const content = res.namedQuery2.getPost.content;
+}

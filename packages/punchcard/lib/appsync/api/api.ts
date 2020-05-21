@@ -1,24 +1,25 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
-import { ArrayShape, DistributeUnionShape, FunctionShape, isOptional, Meta, Shape, ShapeGuards, StringShape, UnionShape, Value } from '@punchcard/shape';
-import { RecordShape } from '@punchcard/shape/lib/record';
+import { ArrayShape, DistributeUnionShape, FunctionShape, isOptional, Meta, PrimitiveShapes, Shape, ShapeGuards, StringShape, UnionShape, UnionToIntersection, Value } from '@punchcard/shape';
+import { RecordMembers, RecordShape } from '@punchcard/shape/lib/record';
 import { UserPool } from '../../cognito/user-pool';
 import { Build } from '../../core/build';
 import { CDK } from '../../core/cdk';
 import { Construct, Scope } from '../../core/construct';
 import { Resource } from '../../core/resource';
-import { Subscriptions, toAuthDirectives } from '../lang';
+import { toAuthDirectives } from '../lang';
 import { VExpression } from '../lang/expression';
-import { stash, StatementGuards } from '../lang/statement';
-import { VNothing, VObject, VObjectExpr, VUnion } from '../lang/vtl-object';
-import { ApiFragment } from './api-fragment';
+import { StatementGuards } from '../lang/statement';
+import { VNothing, VObject, VUnion } from '../lang/vtl-object';
+import { ApiFragment, ApiFragments } from './api-fragment';
 import { AuthMetadata } from './auth';
-import { CacheMetadata, FullRequestCachingConfiguration, isPerResolverCachingConfiguration, PerResolverCachingConfiguration } from './caching';
+import { CacheMetadata, CachingConfiguration } from './caching';
+import { ApiClient, GqlResult } from './client';
 import { InterpreterState, interpretProgram, parseIf } from './interpreter';
 import { FieldResolver } from './resolver';
-import { MutationRoot, QueryRoot, SubscriptionRoot } from './root';
+import { QueryRoot } from './root';
 import { SubscribeMetadata } from './subscription';
-import { TypeSpec, TypeSystem } from './type-system';
+import { TypeSpec } from './type-system';
 
 export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
   | 'name'
@@ -26,16 +27,11 @@ export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
   | 'schemaDefinitionFile'
 > {}
 
-export interface ApiProps<
-  T extends TypeSystem
-> {
+export interface ApiProps<Fragments extends readonly ApiFragment[]> {
   readonly name: string;
   readonly userPool: UserPool<any, any>;
-  readonly types: ApiFragment<T>;
-  readonly caching?: PerResolverCachingConfiguration<T> | FullRequestCachingConfiguration;
-  readonly subscribe?: {
-    [subscriptionName in keyof T[SubscriptionRoot.FQN]['resolvers']]?: Subscriptions<T[SubscriptionRoot.FQN]['type']>[];
-  };
+  readonly fragments: Fragments;
+  readonly caching?: CachingConfiguration;
   readonly overrideProps?: Build<OverrideApiProps>;
 }
 
@@ -47,36 +43,33 @@ export interface ApiProps<
  * @typeparam Types - map of names to types in this API
  */
 export class Api<
-  T extends TypeSystem,
-  Q extends keyof T,
-  M extends keyof T,
-  S extends keyof T,
+  Fragments extends readonly ApiFragment[],
 > extends Construct implements Resource<appsync.CfnGraphQLApi> {
   public readonly resource: Build<appsync.CfnGraphQLApi>;
 
-  public readonly Types: {
-    // eumerate through to clean up the type siganture ("Compaction").
-    [t in keyof T]: {
-      [k in keyof T[t]]: T[t][k]
-    };
-  };
-  public readonly QueryFQN: Q;
-  public readonly QuerySpec: T['Query'];
-  public readonly MutationFQN: M;
-  public readonly MutationSpec: T['Mutation'];
-  public readonly SubscriptionFQN: S;
-  public readonly SubscriptionSpec: T['Subscription'];
+  public readonly fragments: Fragments;
 
-  constructor(scope: Scope, id: string, props: ApiProps<T>) {
+  public readonly types: ApiFragments.Reduce<Fragments>;
+
+  public readonly query: this['types']['Query'];
+  public readonly mutation: this['types']['Mutation'];
+  public readonly subscription: this['types']['Subscription'];
+
+  constructor(scope: Scope, id: string, props: ApiProps<Fragments>) {
     super(scope, id);
-    this.Types = props.types.Types;
 
-    this.QueryFQN = QueryRoot.FQN as Q;
-    this.QuerySpec = this.Types[this.QueryFQN] as any;
-    this.MutationFQN = MutationRoot.FQN as M;
-    this.MutationSpec = this.Types[this.MutationFQN] as any;
-    this.SubscriptionFQN = SubscriptionRoot.FQN as S;
-    this.SubscriptionSpec = this.Types[this.SubscriptionFQN] as any;
+    this.fragments = props.fragments;
+    this.types = ApiFragments.reduce(...props.fragments);
+    this.query = (this.types as any).Query;
+    this.mutation = (this.types as any).Mutation;
+    this.subscription = (this.types as any).Subscription;
+
+    const self: {
+      types: Record<string, TypeSpec>;
+      query: TypeSpec;
+      mutation: TypeSpec;
+      subscription: TypeSpec;
+    } = this as any;
 
     this.resource = Build.concat(
       CDK,
@@ -133,14 +126,14 @@ export class Api<
       const seenDataTypes = new Set<string>();
       const seenInputTypes = new Set<string>();
 
-      if (isUseful(this.QuerySpec)) {
-        parseType(this.QuerySpec.type);
+      if (isUseful(self.query as TypeSpec)) {
+        parseType(self.query.type);
       }
-      if (isUseful(this.MutationSpec)) {
-        parseType(this.MutationSpec.type);
+      if (isUseful(self.mutation)) {
+        parseType(self.mutation.type);
       }
-      if (isUseful(this.SubscriptionSpec)) {
-        parseType(this.SubscriptionSpec.type);
+      if (isUseful(self.subscription)) {
+        parseType(self.subscription.type);
       }
 
       return api;
@@ -160,7 +153,7 @@ export class Api<
         } else if (ShapeGuards.isRecordShape(shape)) {
           seenDataTypes.add(shape.FQN!);
 
-          const typeSpec = props.types.Types[shape.FQN!];
+          const typeSpec = (self.types as Record<string, TypeSpec>)[shape.FQN!];
           if (typeSpec === undefined) {
             throw new Error(`could not find type ${shape.FQN} in the TypeIndex`);
           }
@@ -397,16 +390,6 @@ export class Api<
                       ttl: cache.ttl
                     };
                   }
-                  if (props.caching && isPerResolverCachingConfiguration(props.caching)) {
-                    // override the resolver level caching with one overriden by the API root.
-                    const cache: any = (props.caching.resolvers?.[selfType.FQN] as any)?.[fieldName];
-                    if (cache !== undefined) {
-                      cachingConfig = {
-                        cachingKeys: cache.keys,
-                        ttl: cache.ttl
-                      };
-                    }
-                  }
                 }
                 if (cachingConfig !== undefined) {
                   return {
@@ -427,46 +410,24 @@ export class Api<
     });
   }
 
-  // public query(): GqlQuery<this> {
-
-  // }
+  public Query<T extends Record<string, GqlResult>>(f: (client: ApiClient<this, typeof QueryRoot>) => T): Promise<{
+    [i in keyof T]: T[i][ApiClient.result]
+  }> {
+    return null as any;
+  }
 }
 
-type Gql<T> =
-  T extends FunctionShape<infer Args, infer Returns> ? [
-    { [a in keyof Args]: Value.Of<Args[a]>; },
-    Gql<Returns>
-  ] :
-  T extends RecordShape<infer M, any> ? {
-    [m in keyof M]?: Gql<M[m]>;
-  } :
-  T extends UnionShape<infer U> ? {
-    [i in keyof U]: Gql<DistributeUnionShape<T>>
-  }[keyof U] :
-  T extends ArrayShape<infer I> ? {
-    [i in keyof I]: Gql<I>
-  }[keyof I] :
-  T extends Shape ? true :
-  never
-;
 
-
-
-type GqlQuery<T extends Api<TypeSystem, any, any, any>> = {
-  Query: (q: {
-    [q in keyof T['QuerySpec']['fields']]: Gql<T['QuerySpec']['fields'][q]>
-  }) => void;
-};
 
 type Directives = {
   [field in string]?: string[]; // directives
 };
 
-const generateSchemaHeader = (api: Api<any, any, any, any>) => `schema {
+const generateSchemaHeader = (api: Api<any>) => `schema {
   ${[
-    isUseful(api.QuerySpec) ? `query: ${api.QuerySpec.type.FQN}` : undefined,
-    isUseful(api.MutationSpec) ? `mutation: ${api.MutationSpec.type.FQN}` : undefined,
-    isUseful(api.SubscriptionSpec) ? `subscription: ${api.SubscriptionSpec.type.FQN}` : undefined,
+    isUseful(api.query) ? `query: ${api.query.type.FQN}` : undefined,
+    isUseful(api.mutation) ? `mutation: ${api.mutation.type.FQN}` : undefined,
+    isUseful(api.subscription) ? `subscription: ${api.subscription.type.FQN}` : undefined,
   ].filter(_ => _ !== undefined).join(',\n  ')}
 }`;
 

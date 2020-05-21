@@ -21,8 +21,6 @@ import Lambda = require('../../lib/lambda');
 import assert = require('@aws-cdk/assert');
 import { DynamoDSL } from '../../lib/dynamodb/dsl/dynamo-repr';
 
-// throw Object.entries(s).join('\n');
-
 export class User extends Record('User', {
   id: ID,
   alias: string,
@@ -307,12 +305,12 @@ export const PostApi = (scope: Scope) => {
 
   return {
     postStore,
-    postApi: ApiFragment.concat(
+    postApi: [
       postQueries,
       postMutations,
       relatedPosts,
       postSubscriptions
-    )
+    ]
   };
 };
 
@@ -346,26 +344,18 @@ const MyApi = new Api(stack, 'MyApi', {
   name: 'MyApi',
   // authorize with this user pool
   userPool,
-  types: ApiFragment.concat(
+  fragments: [
     createUser,
     getUser,
-    postApi
-  ),
+    ...postApi
+  ],
   caching: {
     behavior: CachingBehavior.PER_RESOLVER_CACHING,
     instanceType: CachingInstanceType.T2_SMALL,
     ttl: 60,
-    resolvers: {
-      Query: {
-        getPost: {
-          keys: [
-            'id'
-          ]
-        }
-      }
-    }
   }
 });
+
 
 it('should', () => {
   Build.resolve(MyApi.resource);

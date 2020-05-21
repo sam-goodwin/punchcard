@@ -3,9 +3,6 @@ import { ApiFragment } from './api-fragment';
 import { AuthMetadata } from './auth';
 import { CacheMetadata } from './caching';
 import { FieldResolver } from './resolver';
-import { MutationRoot, QueryRoot, SubscriptionRoot } from './root';
-import { SubscriptionImpl } from './subscription';
-import { TypeSystem } from './type-system';
 
 export interface FixedTraitClass<
   T extends RecordShape<any, string>,
@@ -14,7 +11,7 @@ export interface FixedTraitClass<
   readonly type: T;
   readonly fields: F
 
-  new(impl: TraitImpl<T, F, boolean>): TraitFragment<T, F>;
+  new(impl: TraitImpl<T, F, boolean>): ApiFragment<T, F>;
 }
 
 export interface TraitClass<
@@ -22,7 +19,7 @@ export interface TraitClass<
   ReturnsValue extends boolean = true
 > {
   readonly fields: Fields;
-  new<T extends RecordShape<any, string>>(type: T, impl: TraitImpl<T, Fields, ReturnsValue>): TraitFragment<T, Fields>;
+  new<T extends RecordShape<any, string>>(type: T, impl: TraitImpl<T, Fields, ReturnsValue>): ApiFragment<T, Fields>;
 }
 
 export function Trait<
@@ -43,7 +40,7 @@ export function Trait(a: any, b?: any): any {
   if (b !== undefined) {
     const type = a as RecordShape<any, string>;
     const fields = b as RecordMembers;
-    return class Fragment extends TraitFragment<typeof type, typeof fields>  {
+    return class Fragment extends ApiFragment<typeof type, typeof fields>  {
       // public static readonly type: T = type;
       public static readonly fields: typeof fields = fields;
 
@@ -53,7 +50,7 @@ export function Trait(a: any, b?: any): any {
     };
   } else {
     const fields = a as RecordMembers;
-    return class Fragment<T extends RecordShape<any, string>> extends TraitFragment<T, typeof fields>  {
+    return class Fragment<T extends RecordShape<any, string>> extends ApiFragment<T, typeof fields>  {
       // public static readonly type: T = type;
       public static readonly fields: typeof fields = fields;
 
@@ -79,49 +76,4 @@ export type TraitImpl<
   ;
 };
 
-/**
- * A Trait Fragment
- */
-export class TraitFragment<
-  T extends RecordShape<any, string>,
-  F extends RecordMembers
-> extends ApiFragment<{
-  [fqn in T['FQN']]: {
-    type: T;
-    fields: F & T['Members'];
-    resolvers: TraitImpl<T, F>;
-  };
-} & TypeSystem & TypeSystem.Collect<F>> {
-  constructor(
-    public readonly type: T,
-    public readonly fields: F,
-    public readonly resolvers: TraitImpl<T, F> | SubscriptionImpl<F>
-  ) {
-    super({
-      ...{
-        [MutationRoot.FQN]: {
-          type: MutationRoot,
-          fields: {},
-          resolvers: {}
-        },
-        [QueryRoot.FQN]: {
-          type: QueryRoot,
-          fields: {},
-          resolvers: {}
-        },
-        [SubscriptionRoot.FQN]: {
-          type: SubscriptionRoot,
-          fields: {},
-          resolvers: {}
-        },
-      },
-      ...{
-        [type.FQN]: {
-          type,
-          fields,
-          resolvers
-        },
-      }
-    } as any);
-  }
-}
+

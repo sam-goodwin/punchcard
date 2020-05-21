@@ -1,5 +1,6 @@
 import { Shape } from '@punchcard/shape';
 import { FunctionShape } from '@punchcard/shape/lib/function';
+import { ApiFragment, ApiFragments } from './api-fragment';
 import { TypeSystem } from './type-system';
 
 export type CachingKeys =
@@ -55,7 +56,11 @@ export enum CachingInstanceType {
 /**
  * @see https://docs.aws.amazon.com/appsync/latest/devguide/enabling-caching.html
  */
-export interface BaseCachingConfiguration {
+export interface CachingConfiguration {
+  /**
+   * Caching Behavior.
+   */
+  readonly behavior: CachingBehavior;
   /**
    * @default true
    */
@@ -74,42 +79,6 @@ export interface BaseCachingConfiguration {
    * Valid values are between `1` and `3600` seconds.
    */
   readonly ttl: number;
-}
-
-export function isFullRequestCachingConfiguration(a: any): a is PerResolverCachingConfiguration<TypeSystem> {
-  return a.behavior === CachingBehavior.PER_RESOLVER_CACHING;
-}
-export interface FullRequestCachingConfiguration extends BaseCachingConfiguration {
-  readonly behavior: CachingBehavior.FULL_REQUEST_CACHING;
-}
-
-export function isPerResolverCachingConfiguration(a: any): a is PerResolverCachingConfiguration<TypeSystem> {
-  return a.behavior === CachingBehavior.PER_RESOLVER_CACHING;
-}
-export interface PerResolverCachingConfiguration<T extends TypeSystem> extends BaseCachingConfiguration {
-  readonly behavior: CachingBehavior.PER_RESOLVER_CACHING;
-  /**
-   * Caching configuration for individual resolvers.
-   */
-  readonly resolvers?: {
-    readonly [FQN in keyof T]?: {
-      readonly [field in keyof T[FQN]['resolvers']]?: {
-        /**
-         * TTL of items in the cache.
-         *
-         * Maximum: 1
-         * Minimum: 3600
-         */
-        readonly ttl?: number;
-        /**
-         * Caching Key
-         */
-        readonly keys?: (T[FQN]['fields'][field] extends FunctionShape<infer Args, any> ?
-          (keyof Args) | CachingKeys :
-          CachingKeys)[];
-      }
-    }
-  }
 }
 
 export interface CacheMetadata<T extends Shape> {
@@ -132,3 +101,4 @@ export interface CacheMetadata<T extends Shape> {
     )[];
   },
 }
+
