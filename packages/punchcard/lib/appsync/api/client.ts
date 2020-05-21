@@ -1,4 +1,4 @@
-import { ArrayShape, FunctionShape, PrimitiveShapes, RecordMembers, RecordShape, Value } from '@punchcard/shape';
+import { ArrayShape, FunctionShape, PrimitiveShapes, RecordMembers, RecordShape, UnionShape, Value } from '@punchcard/shape';
 import { Api } from './api';
 
 export namespace ApiClient {
@@ -50,8 +50,48 @@ type GqlFieldSelector<
         selection: (selection: GqlFieldSelector<API, M>) => T
       ) => Next<API, Fields, UnselectedFields, Result, Field, T[ApiClient.result]> :
 
+    Fields[Field] extends UnionShape<RecordShape[]> ?
+      <T extends GqlResult>(
+        selection: (selection: GqlUnionSelector<API, Fields[Field], UnionNames<Fields[Field]>, {}>) => T
+      ) => Next<API, Fields, UnselectedFields, Result, Field, T[ApiClient.result]>
+      :
+
     () => Next<API, Fields, UnselectedFields, Result, Field, Value.Of<Fields[Field]>>
 };
+
+type GqlUnionSelector<
+  API extends Api<any>,
+  U extends UnionShape<RecordShape[]>,
+  UnselectedTypes extends string,
+  Result extends object
+> = {
+
+  on<FQN extends UnselectedTypes, T extends GqlResult>(
+    type: FQN,
+    selection: (selection: GqlFieldSelector<API, GqlFields<API, UnionType<U, Extract<FQN, string>>>>) => T
+  ): {
+    [ApiClient.result]: keyof Result extends never ? {
+        __typename: FQN;
+      } & T[ApiClient.result] :
+      Result | {
+        __typename: FQN;
+      } & T[ApiClient.result]
+    ;
+  } & GqlUnionSelector<API, U, Exclude<UnselectedTypes, FQN>,
+    keyof Result extends never ? {
+        __typename: FQN;
+      } & T[ApiClient.result] :
+      Result | {
+        __typename: FQN;
+      } & T[ApiClient.result]
+    >
+};
+
+type UnionNames<U extends UnionShape<RecordShape[]>> =
+  Extract<U['Items'][Extract<keyof U['Items'], number>]['FQN'], string>;
+
+type UnionType<U extends UnionShape<RecordShape[]>, FQN extends UnionNames<U>> =
+  Extract<U['Items'][Extract<keyof U['Items'], number>], { FQN: FQN; }>;
 
 type Next<
   API extends Api<any>,

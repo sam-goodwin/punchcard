@@ -204,7 +204,6 @@ export class Api<
       function interpretResolverPipeline(typeSpec: TypeSpec): Directives {
         const directives: Directives = {};
         const typeName = typeSpec.type.FQN;
-        const selfType = typeSpec.type;
         const self = VObject.fromExpr(typeSpec.type, VExpression.text('$context.source'));
         for (const [fieldName, resolver] of Object.entries(typeSpec.resolvers) as [string, FieldResolver<any, any, any>][]) {
           directives[fieldName] = [];
@@ -416,8 +415,6 @@ export class Api<
     return null as any;
   }
 }
-
-
 
 type Directives = {
   [field in string]?: string[]; // directives

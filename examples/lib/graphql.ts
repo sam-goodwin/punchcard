@@ -1,13 +1,11 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, Record, optional, nothing, union, UnionToIntersection, RecordShape, Shape, Value, RecordMembers, ArrayShape, StringShape, PrimitiveShapes } from '@punchcard/shape';
-import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType, $context, $if, QueryRoot } from 'punchcard/lib/appsync';
+import { array, string, Record, optional, } from '@punchcard/shape';
+import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType, $context, $if } from 'punchcard/lib/appsync';
 import { Scope } from 'punchcard/lib/core/construct';
-import { VFunction, FunctionShape } from '@punchcard/shape/lib/function';
-import { ApiFragment } from 'punchcard/lib/appsync/api/api-fragment';
+import { VFunction } from '@punchcard/shape/lib/function';
 import { $util } from 'punchcard/lib/appsync/lang/util';
 import { UserPool } from 'punchcard/lib/cognito/user-pool';
-import { FirehoseEvent } from 'punchcard/lib/firehose';
 
 /*
 type Post {
@@ -26,6 +24,7 @@ class Post extends Record('Post', {
   content: string,
   tags: array(string)
 }) {}
+
 
 /*
 "Traits" are like interfaces in TypeScript.
@@ -202,7 +201,6 @@ const MyApi = new Api(stack, 'MyApi', {
     ttl: 60,
   }
 });
-
 
 async function main() {
   const res = await MyApi.Query(client => ({
