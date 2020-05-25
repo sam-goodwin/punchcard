@@ -19,7 +19,7 @@ export function Subscription<F extends Fields = Fields>(fields: F): Subscription
     public static readonly type = SubscriptionRoot;
 
     constructor(impl: SubscriptionImpl<F>) {
-      super(impl);
+      super(impl as any);
     }
   };
 }

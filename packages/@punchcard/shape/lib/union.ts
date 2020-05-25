@@ -20,4 +20,9 @@ export class UnionShape<T extends Shape[]> extends Shape {
  */
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends ((k: infer I)=>void) ? I : never;
 
-export type DistributeUnionShape<T extends Shape> = T extends UnionShape<infer U> ? T | U[keyof U] : T;
+export type DistributeUnionShape<T extends Shape> = T extends UnionShape<infer U> ?
+  T | {
+    [u in Extract<keyof U, number>]: DistributeUnionShape<U[u]>
+  }[Extract<keyof U, number>] :
+  T
+;

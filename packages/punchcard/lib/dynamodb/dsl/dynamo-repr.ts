@@ -1,4 +1,4 @@
-import { array, ArrayShape, BinaryShape, bool, boolean, BoolShape, integer, IntegerShape, map, MapShape, number, NumberShape, RecordShape, set, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape } from '@punchcard/shape';
+import { array, ArrayShape, BinaryShape, bool, boolean, BoolShape, integer, IntegerShape, map, MapShape, number, NumberShape, RecordShape, set, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
 import { AttributeValue } from '@punchcard/shape-dynamodb';
 import { getState, VInteger, VList, VObject, VString, VTL, vtl } from '../../appsync';
 import { DynamoExpr } from './dynamo-expr';
@@ -19,6 +19,7 @@ export namespace DynamoDSL {
         DynamoDSL.List<I> :
     T extends MapShape<infer V> ? DynamoDSL.Map<V> :
     T extends RecordShape<infer M> ? DynamoDSL.Record<T> :
+    // T extends UnionShape<> ?
     Object<T>
   ;
   export function of<T extends Shape>(type: T, expr: DynamoExpr): Repr<T> {

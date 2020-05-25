@@ -1,4 +1,4 @@
-import { ArrayShape, Fields, FunctionShape, RecordShape, Shape, ShapeGuards, UnionToIntersection } from '@punchcard/shape';
+import { Fields, RecordShape, Shape, ShapeGuards, UnionToIntersection } from '@punchcard/shape';
 import { SubscriptionImpl } from './subscription';
 import { TraitImpl } from './trait';
 import { TypeSpec } from './type-system';

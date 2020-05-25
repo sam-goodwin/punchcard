@@ -242,6 +242,7 @@ export function Record<T extends Fields>(a: any, b?: any) {
 
   const shape = new RecordShape<T, any>(members, {}, FQN);
   Object.assign(NewType, shape);
+  (NewType as any).equals = shape.equals.bind(NewType);
   (NewType as any).visit = shape.visit.bind(NewType);
   (NewType as any).apply = shape.apply.bind(NewType);
   (NewType as any).getMetadata = shape.getMetadata.bind(NewType);
@@ -381,4 +382,3 @@ export function Omit<T extends Fields, FQN extends string | undefined, M extends
   }
   return Record(fqn!, members) as any;
 }
-

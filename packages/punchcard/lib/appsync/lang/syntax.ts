@@ -1,50 +1,55 @@
+import { UnionToIntersection } from '@punchcard/shape';
 import { ElseBranch, IfBranch } from './statement';
-import { VBool, VNothing, VObject } from './vtl-object';
+import { VBool, VNothing, VObject, VUnion } from './vtl-object';
 
-export function $if<T extends VObject>(
-  condition: VBool,
-  then: () => Generator<any, T>,
-  elseIf: IfBranch<T> | ElseBranch<T>
-): Generator<any, T>;
+export type IsUnion<T extends VObject> = UnionToIntersection<VObject.TypeOf<T>['FQN']> extends never ? true : false;
 
-export function $if(
-  condition: VBool,
-  then: () => Generator<any, void>,
-  elseIf: IfBranch<void> | ElseBranch<void>
-): Generator<any, VNothing>;
+type VNothingIfVoid<T extends VObject | void> = T extends VObject ? T : VNothing;
 
-export function $if(
-  condition: VBool,
-  then: () => Generator<any, VObject | void>
-): Generator<any, VNothing>;
+export class If<T extends VObject | void = VObject | void, U extends VObject = VObject> {
+  constructor(
+    public readonly condition: VBool,
+    public readonly then: () => Generator<any, T>,
+    public readonly parent?: If<VObject | void, VObject>
+  ) {}
 
-export function *$if<T>(
-  condition: VBool,
-  then: () => Generator<any, T>,
-  elseIf?: IfBranch<T> | ElseBranch<T>
-): Generator<any, T> {
-  return (yield new IfBranch(condition, then, elseIf)) as T;
+  [Symbol.iterator](): Generator<any, VUnion<(VNothing | U)[]>> {
+    const self: If = this as any;
+    return (function*() {
+      return yield toIfBranch(self);
+    })();
+  }
+
+  public elseIf<T2 extends VObject | void>(
+    condition: VBool,
+    then: () => Generator<any, T2>
+  ): VNothingIfVoid<T2> extends U ? If<T2, U> : If<T2, VNothingIfVoid<T> | VNothingIfVoid<T2>> {
+    return new If(condition, then, this as any) as any;
+  }
+
+  public else<T2 extends VObject | void>(then: () => Generator<any, T2>):
+    VNothingIfVoid<T2> extends U ?
+      Generator<any, T2> :
+      Generator<any, VUnion<U[]>> {
+    const self: If = this as any;
+    return (function*() {
+      return yield toIfBranch(self, new ElseBranch(then));
+    })() as any;
+  }
 }
 
-export function $elseIf(
-  condition: VBool,
-  then: () => Generator<any, VObject>
-): IfBranch<VNothing>;
-
-export function $elseIf<T>(
-  condition: VBool,
-  then: () => Generator<any, T>,
-  elseIf: IfBranch<T> | ElseBranch<T>
-): IfBranch<T>;
-
-export function $elseIf(
-  condition: VBool,
-  then: () => Generator<any, VObject>,
-  elseIf?: IfBranch<VObject | void> | ElseBranch<VObject | void>
-): IfBranch<VObject | void> {
-  return new IfBranch(condition, then, elseIf);
+function toIfBranch(next: If, elseIf?: IfBranch | ElseBranch): IfBranch {
+  const branch = new IfBranch(next.condition, next.then, elseIf);
+  if (next.parent !== undefined) {
+    return toIfBranch(next.parent!, branch);
+  } else {
+    return branch;
+  }
 }
 
-export function $else<T>(then: () => Generator<any, T>): ElseBranch<T> {
-  return new ElseBranch(then);
+export function $if<T extends VObject | void>(
+  condition: VBool,
+  then: () => Generator<any, T>
+): If<T, VNothingIfVoid<T>> {
+  return new If(condition, then);
 }

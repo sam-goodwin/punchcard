@@ -201,28 +201,28 @@ const MyApi = new Api(stack, 'MyApi', {
   }
 });
 
-async function main() {
-  const res = await MyApi.Query(client => ({
-    namedQuery: client.getPost({id: 'id'}, _ => _
-      .content()
-      .title()
-      .relatedPosts({tags: ['a', 'b']}, _ => _
-        .id()
-        .tags()
-        .relatedPosts({tags: ['a']}, _ => _
-          .id()
-        )
-        .content()
-        .title()
-      )
-    ),
+// async function main() {
+//   const res = await MyApi.Query(client => ({
+//     namedQuery: client.getPost({id: 'id'}, _ => _
+//       .content()
+//       .title()
+//       .relatedPosts({tags: ['a', 'b']}, _ => _
+//         .id()
+//         .tags()
+//         .relatedPosts({tags: ['a']}, _ => _
+//           .id()
+//         )
+//         .content()
+//         .title()
+//       )
+//     ),
 
-    namedQuery2: client.getPost({id: 'id'}, _ => _
-      .content()
-    )
-  }));
+//     namedQuery2: client.getPost({id: 'id'}, _ => _
+//       .content()
+//     )
+//   }));
 
-  const ids: string[][] = res.namedQuery.getPost.relatedPosts.map(post => post.relatedPosts.map(post => post.id))
+//   const ids: string[][] = res.namedQuery.getPost.relatedPosts.map(post => post.relatedPosts.map(post => post.id))
 
-  const content = res.namedQuery2.getPost.content;
-}
+//   const content = res.namedQuery2.getPost.content;
+// }

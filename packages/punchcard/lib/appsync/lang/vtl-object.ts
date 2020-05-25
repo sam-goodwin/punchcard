@@ -5,7 +5,6 @@ import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { UnionShape } from '@punchcard/shape/lib/union';
 import { VExpression } from './expression';
 import { ElseBranch, forLoop, IfBranch, stash } from './statement';
-import { $else, $elseIf, $if } from './syntax';
 import { $util } from './util';
 import { VTL, vtl } from './vtl';
 
@@ -42,6 +41,10 @@ export class VObject<T extends Shape = Shape> {
 
 export namespace VObject {
   export function *of<T extends Shape>(type: T, value: VObject.Like<T>): VTL<VObject.Of<T>> {
+    if (VExpression.isExpression(value)) {
+      return VObject.fromExpr(type, value);
+    }
+
     if (ShapeGuards.isAnyShape(type)) {
       // TODO: support any
       throw new Error(`unsupported VTL type: any`);
@@ -58,6 +61,9 @@ export namespace VObject {
       const record: VObject = yield* vtl(type)`{}`;
       for (const [fieldName, fieldType] of Object.entries(type.Members)) {
         const fieldValue = (value as any)[fieldName];
+        if (fieldValue === undefined) {
+          console.log(fieldName, fieldValue, value);
+        }
         yield* vtl`$util.qr(${record}.put("${fieldName}", ${yield* of(fieldType, fieldValue)}))`;
       }
       return record as VObject.Of<T>;
@@ -76,17 +82,25 @@ export namespace VObject {
         // return an instance of the union
         return VObject.fromExpr(type as T, itemValue[VObjectExpr]) as VObject.Of<T>;
       }
+      console.log(type);
+      console.log(value, typeof value);
       throw new Error(`value did not match item in the UnionShape: ${type.Items.map(i => i.Kind).join(',')}`);
     }
 
     // stringify primitives
-    const str =
-      ShapeGuards.isLiteralShape(type) ? JSON.stringify(type.Value) :
-      ShapeGuards.isNumberShape(type) ? (value as number).toString(10) :
-      ShapeGuards.isTimestampShape(type) ? (value as Date).toISOString() :
-      (value as any).toString();
+    try {
+      const str =
+        ShapeGuards.isLiteralShape(type) ? JSON.stringify(type.Value) :
+        ShapeGuards.isNumberShape(type) ? (value as number).toString(10) :
+        ShapeGuards.isTimestampShape(type) ? (value as Date).toISOString() :
+        (value as any).toString();
 
-    return yield* vtl(type)`${str}`;
+      return yield* vtl(type)`${str}`;
+    } catch (err) {
+      console.error(err);
+      console.log(value);
+      throw err;
+    }
   }
 
   export function isLike<T extends Shape>(shape: T, value: any): value is VObject.Like<T> {
@@ -180,7 +194,7 @@ export namespace VObject {
     T extends MapShape<infer I> ? {
       [key: string]: Like<I>;
     } :
-    T extends UnionShape<infer I> ? {
+    T extends UnionShape<infer I> ? VUnion<VObject.Of<I[Extract<keyof I, number>]>[]> | {
       [i in Extract<keyof I, number>]: Like<I[i]>;
     }[Extract<keyof I, number>] :
     VObject.Of<T> | Value.Of<T>
@@ -619,81 +633,11 @@ export namespace VUnion {
   export type OtherwiseBlock<T> = () => Generator<any, T>;
   export type UnionCase<U extends VObject[]> = VObject.TypeOf<U[Extract<keyof U, number>]>;
 
-  function toCondition(m: Match): VBool {
-    const shape = m.matchType;
-    const type = $util.typeOf(m.value);
-
-    const s =
-      ShapeGuards.isTimestampShape(shape) ? 'String' :
-      ShapeGuards.isStringShape(shape) ? 'String' :
-      ShapeGuards.isNumberShape(shape) ? 'Number' :
-      ShapeGuards.isNothingShape(shape) ? 'Null' :
-      ShapeGuards.isArrayShape(shape) ? 'List' :
-      ShapeGuards.isSetShape(shape) ? 'List' :
-      ShapeGuards.isBoolShape(shape) ? 'Boolean' :
-      ShapeGuards.isRecordShape(shape) ? 'Map' :
-      ShapeGuards.isMapShape(shape) ? 'Map' :
-      undefined
-    ;
-    if (s === undefined) {
-      throw new Error(`cannot match on type: ${shape.Kind}`);
-    }
-
-    return type.equals(s as string);
-  }
-
-  function parseMatch(m: Match, elseIf?: IfBranch | ElseBranch): Generator<any, any> {
-    const assertCondition = toCondition(m);
-    const assertedValue = VObject.fromExpr(m.matchType, VObject.getExpr(m.value));
-    if (elseIf) {
-      return m.parent === undefined ?
-        $if(assertCondition, () => m.block(assertedValue), elseIf) :
-        parseMatch(m.parent, $elseIf(assertCondition, () => m.block(assertedValue), elseIf))
-      ;
-    } else {
-      return m.parent === undefined ?
-        $if(assertCondition, () => m.block(assertedValue)) :
-        parseMatch(m.parent, $elseIf(assertCondition, () => m.block(assertedValue)))
-      ;
-    }
-  }
-
-  export class Otherwise<Returns = any> implements Generator<any, Returns> {
-    private _generator: Generator;
-
-    constructor(
-      public readonly parent: Match<any, Returns, any>,
-      public readonly block: VUnion.OtherwiseBlock<Returns>
-    ) {}
-
-    public get generator() {
-      if (!this._generator) {
-        this._generator = this[Symbol.iterator]();
-      }
-      return this._generator;
-    }
-
-    public next(...args: [] | [any]): IteratorResult<any, Returns> {
-      return this.generator.next(...args);
-    }
-    public return(value: Returns): IteratorResult<any, Returns> {
-      return this.generator.return(value);
-    }
-    public throw(e: any): IteratorResult<any, Returns> {
-      return this.generator.throw(e);
-    }
-    public [Symbol.iterator](): Generator<any, Returns, unknown> {
-      return parseMatch(this.parent, $else(this.block));
-    }
-  }
-
   export class Match<
     U extends VObject[] = VObject[],
     Returns = any,
     Excludes extends UnionCase<U> = UnionCase<U>
-  > implements VTL<Returns, any> {
-    private _generator: Generator<any, Returns>;
-
+  > {
     constructor(
       public readonly parent: Match<U, any, any> | undefined,
       public readonly value: VObject<Shape>,
@@ -701,22 +645,6 @@ export namespace VUnion {
       public readonly block: VUnion.CaseBlock<any, Returns>
     ) {}
 
-    public get generator() {
-      if (!this._generator) {
-        this._generator = this[Symbol.iterator]();
-      }
-      return this._generator;
-    }
-
-    public next(...args: [] | [any]): IteratorResult<any, Returns> {
-      return this.generator.next(...args);
-    }
-    public return(value: Returns): IteratorResult<any, Returns> {
-      return this.generator.return(value);
-    }
-    public throw(e: any): IteratorResult<any, Returns> {
-      return this.generator.throw(e);
-    }
     public [Symbol.iterator](): Generator<any, Returns, unknown> {
       return parseMatch(this as any as Match);
     }
@@ -748,6 +676,53 @@ export namespace VUnion {
     > {
       return new Otherwise(this, block as any) as any;
     }
+  }
+
+  export class Otherwise<Returns = any> {
+    constructor(
+      public readonly parent: Match<any, Returns, any>,
+      public readonly block: VUnion.OtherwiseBlock<Returns>
+    ) {}
+
+    public [Symbol.iterator](): Generator<any, Returns, unknown> {
+      return parseMatch(this.parent, new ElseBranch(this.block));
+    }
+  }
+
+  function parseMatch(m: Match, elseIf?: IfBranch | ElseBranch): Generator<any, any> {
+    const assertCondition = toCondition(m);
+    const assertedValue = VObject.fromExpr(m.matchType, VObject.getExpr(m.value));
+    return (function*() {
+      const branch = new IfBranch(assertCondition, () => m.block(assertedValue), elseIf);
+      if (m.parent) {
+        yield* parseMatch(m.parent, branch);
+      } else {
+        return yield branch;
+      }
+    })();
+  }
+
+  function toCondition(m: Match): VBool {
+    const shape = m.matchType;
+    const type = $util.typeOf(m.value);
+
+    const s =
+      ShapeGuards.isTimestampShape(shape) ? 'String' :
+      ShapeGuards.isStringShape(shape) ? 'String' :
+      ShapeGuards.isNumberShape(shape) ? 'Number' :
+      ShapeGuards.isNothingShape(shape) ? 'Null' :
+      ShapeGuards.isArrayShape(shape) ? 'List' :
+      ShapeGuards.isSetShape(shape) ? 'List' :
+      ShapeGuards.isBoolShape(shape) ? 'Boolean' :
+      ShapeGuards.isRecordShape(shape) ? 'Map' :
+      ShapeGuards.isMapShape(shape) ? 'Map' :
+      undefined
+    ;
+    if (s === undefined) {
+      throw new Error(`cannot match on type: ${shape.Kind}`);
+    }
+
+    return type.equals(s as string);
   }
 }
 

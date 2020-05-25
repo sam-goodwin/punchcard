@@ -5,6 +5,7 @@ export * from './guards';
 export * from './hash-code';
 export * from './hash-set';
 export * from './infer';
+export * from './interface';
 export * from './kind';
 export * from './literal';
 export * from './mapper';

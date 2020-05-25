@@ -7,11 +7,12 @@ import { FieldResolver } from './resolver';
 export interface FixedTraitClass<
   T extends RecordShape<any, string>,
   F extends Fields,
+  ReturnsValue extends boolean = true
 > {
   readonly type: T;
   readonly fields: F
 
-  new(impl: TraitImpl<T, F, boolean>): ApiFragment<T, F>;
+  new(impl: TraitImpl<T, F, ReturnsValue>): ApiFragment<T, F>;
 }
 
 export interface TraitClass<

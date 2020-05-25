@@ -40,7 +40,7 @@ export class VExpression {
       return VExpression.text(`${obj.toString(10)}`);
     } else if (typeof obj === 'boolean') {
       return VExpression.text(`${obj}`);
-    } else if (typeof obj === 'undefined') {
+    } else if (typeof obj === 'undefined' || obj === null) {
       return VExpression.text('null');
     } else if ((obj as any) instanceof Date) {
       return VExpression.text(`"${(obj as any).toISOString()}"`);

@@ -51,6 +51,7 @@ export class InterpreterState {
       } else if (VObject.isObject(expr)) {
         state.write(VObject.getExpr(expr));
       } else {
+        // console.log(expr);
         const t = expr.visit(state);
         if (typeof t === 'string') {
           state.write(t);
@@ -68,7 +69,7 @@ export class InterpreterState {
     const id = props?.id || `$${props?.local ? '': 'context.stash.'}${this.newId()}`;
 
     this.write(`#set(${id} = `, value, ')').writeLine();
-    return id!;
+    return id;
   }
 
   public indent(): InterpreterState {
@@ -121,7 +122,7 @@ export function interpretProgram(
       if (VObject.isObject(err)) {
         state.write(err);
       } else {
-        state.write($util.error(err.message));
+        throw err;
       }
       return undefined;
     }
@@ -173,9 +174,14 @@ export function parseIf(
     state.indent().writeLine();
     const value = interpretProgram(branch.then(), state, interpreter);
     if (value) {
-      state.stash(value, {
-        id: returnId
-      });
+      try {
+        state.stash(value, {
+          id: returnId
+        });
+      } catch (err) {
+        console.log(branch);
+        throw err;
+      }
     }
     state.unindent().writeLine();
     branchYieldValues.push(value);

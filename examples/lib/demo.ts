@@ -1,81 +1,89 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, Record, optional, union, number, } from '@punchcard/shape';
+import { array, string, Record, optional, union, number, Fields, StringShape, RecordShape, Value, Interface, VFunction, } from '@punchcard/shape';
 import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType, $context, $if, VRecord, VObject } from 'punchcard/lib/appsync';
-import { Scope } from 'punchcard/lib/core/construct';
-import { VFunction } from '@punchcard/shape/lib/function';
 import { $util } from 'punchcard/lib/appsync/lang/util';
-import { UserPool } from 'punchcard/lib/cognito/user-pool';
+import { DynamoDSL } from 'punchcard/lib/dynamodb/dsl/dynamo-repr';
 
-class Dog extends Record('Dog', {
-  breed: string,
-  onlyOnDog: string
+class Post extends Record('Post', {
+  id: ID,
+  title: string,
+  content: string
 }) {}
 
-class Cat extends Record('Cat', {
-  breed: string,
-  onlyOnCat: string
+class PostMutations extends Mutation({
+  addPost: VFunction({
+    args: {
+      title: string,
+      content: string
+    },
+    returns: Post
+  }),
+
+  updatePost: VFunction({
+    args: {
+      id: ID,
+      content: string
+    },
+    returns: Post
+  })
 }) {}
 
-class AnimalQueries extends Query({
-  animals: union(Dog, Cat)
+class PostQueries extends Query({
+  getPost: VFunction({
+    args: {
+      id: ID
+    },
+    returns: Post
+  })
 }) {}
 
 const app = new Core.App();
-const stack = app.stack('stack');
+const stack = app.stack('demo');
+
+const postStore = new DynamoDB.Table(stack, 'PostStore', {
+  data: Post,
+  key: {
+    partition: 'id'
+  }
+});
 
 const api = new Api(stack, 'Api', {
-  name: 'AnimalApi',
-  userPool: null as any,
+  name: 'PostApi',
   fragments: [
-    new AnimalQueries({
-      animals: {
-        *resolve() {
-          return [{}] as any as VObject.Of<typeof Dog>
+    new PostMutations({
+      addPost: {
+        *resolve({title, content}) {
+          return yield* postStore.put({
+            id: yield* $util.autoId(),
+            title,
+            content
+          });
+        }
+      },
+      updatePost: {
+        *resolve({id, content}) {
+          return yield* postStore.update({
+            key: {
+              id
+            },
+            *transaction(post) {
+              yield* post.content.set(content);
+            },
+            condition: item => DynamoDSL.expect(item.id.equals(id))
+          })
+        }
+      }
+    }),
+    new PostQueries({
+      getPost: {
+        *resolve({id}) {
+          return yield* postStore.get({
+            id
+          });
         }
       }
     })
   ]
-});
+})
 
-async function main() {
-  const result = (await api.Query(client => ({
-    a: client
-      .animals(_ => _
-        .on('Cat', _ => _
-          .breed()
-          .onlyOnCat()
-        )
-        .on('Dog', _ => _
-          .breed()
-          .onlyOnDog()
-        )
-      )
-  }))).a.animals;
-
-  // compiles - available on both Dog and Cat
-  result.breed;
-
-  // doesn't compile ...
-  // result.onlyOnCat;
-  // result.onlyOnDog;
-
-  // discrimate on the union
-  if (result.__typename === 'Cat') {
-    result.onlyOnCat;
-  } else {
-    result.onlyOnDog;
-  }
-}
-
-function add<T, K extends string, V>(t: T, key: K, value: V): asserts t is typeof t & {
-  [k in K]: V
-} {
-  (t as any)[key] = value;
-}
-
-const obj: {} = {}
-add(obj, 'a', 1);
-add(obj, 'b', 2 as const);
-obj.a; // number
-obj.b; // 2

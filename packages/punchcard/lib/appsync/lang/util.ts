@@ -108,7 +108,6 @@ export namespace $util.dynamodb {
   export function toDynamoDBExtended<T extends VObject>(object: T): VTL<VObject.Of<AttributeValue.ShapeOf<VObject.TypeOf<T>>>>;
   export function toDynamoDBExtended<T extends Shape>(type: T, obj: VObject.Like<T>): VTL<VObject.Of<AttributeValue.ShapeOf<T>>>;
   export function *toDynamoDBExtended(a: any, b?: any) {
-    console.log('a', a, b);
     const stashProps: StashProps = {
       local: true // use local variables for intermediate stashes
     };

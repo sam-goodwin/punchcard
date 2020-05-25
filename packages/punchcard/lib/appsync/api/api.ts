@@ -1,7 +1,7 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
-import { ArrayShape, DistributeUnionShape, FunctionShape, isOptional, Meta, PrimitiveShapes, Shape, ShapeGuards, StringShape, UnionShape, UnionToIntersection, Value } from '@punchcard/shape';
-import { Fields, RecordShape } from '@punchcard/shape/lib/record';
+import { isOptional, Meta, Shape, ShapeGuards, UnionShape } from '@punchcard/shape';
+import { RecordShape } from '@punchcard/shape/lib/record';
 import { UserPool } from '../../cognito/user-pool';
 import { Build } from '../../core/build';
 import { CDK } from '../../core/cdk';
@@ -29,7 +29,7 @@ export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
 
 export interface ApiProps<Fragments extends readonly ApiFragment[]> {
   readonly name: string;
-  readonly userPool: UserPool<any, any>;
+  readonly userPool?: UserPool<any, any>;
   readonly fragments: Fragments;
   readonly caching?: CachingConfiguration;
   readonly overrideProps?: Build<OverrideApiProps>;
@@ -273,7 +273,15 @@ export class Api<
                 // map undefined to VNothing
                 .map(r => r === undefined ? new VNothing(VExpression.text('null')) : r as VObject)
                 // filter duplicates
-                .filter((r, index, self) => self.findIndex(v => VObject.getType(r).equals(VObject.getType(v))) === index)
+                .filter((r, index, self) => self.findIndex(v => {
+                  try {
+                    return VObject.getType(r).equals(VObject.getType(v));
+                  } catch(err) {
+                    console.error(err);
+                    console.log(VObject.getType(r));
+                    throw err;
+                  }
+                }) === index)
               ;
 
               // derive a VObject to represent the returned value of the if-else-then branches
@@ -283,7 +291,7 @@ export class Api<
               );
 
               if (!allUndefined) {
-                return state.stash(returnValue);
+                return VObject.fromExpr(VObject.getType(returnValue), VExpression.text(state.stash(returnValue)));
               } else {
                 return new VNothing(VExpression.text('null'));
               }

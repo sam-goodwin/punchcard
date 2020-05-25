@@ -4,9 +4,9 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, array, map, Record, RecordShape, string, StringShape } from '@punchcard/shape';
+import { any, array, map, optional, Record, RecordShape, string } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VList, VObject, VTL, vtl } from '../appsync';
+import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VObject, VString, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -200,6 +200,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
 
     return call(this.dataSourceProps((table, role) => table.grantReadData(role), props), request, this.dataType);
   }
+  // TODO: https://docs.aws.amazon.com/appsync/latest/devguide/resolver-mapping-template-reference-dynamodb.html#aws-appsync-resolver-mapping-template-reference-dynamodb-condition-handling
 
   public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
     function* stringList(id: string) {
@@ -208,7 +209,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
         id
       })`[]`;
     }
-    const CONDITION = yield* stringList('$CONDITION');
+    const condition = yield* stringList('$CONDITION');
     const ADD = yield* stringList('$ADD');
     const DELETE = yield* stringList('$DELETE');
     const SET = yield* stringList('$SET');
@@ -216,13 +217,13 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     // map of id -> attribute-value
     const expressionValues = yield* vtl(map(any), {
       local: true,
-      id: '${VALUES}'
+      id: '$VALUES'
     })`{}`;
 
     // map of name -> id
     const expressionNames = yield* vtl(map(string), {
       local: true,
-      id: '${NAMES}'
+      id: '$NAMES'
     })`{}`;
 
     const fields: any = {};
@@ -235,6 +236,12 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     }
     yield* request.transaction(fields);
 
+    const UpdateItemRequestCondition = Record({
+      expression: string,
+      expressionNames: map(string),
+      expressionValues: map(any)
+    });
+
     const UpdateItemRequest = Record({
       version: string,
       operation: string,
@@ -242,14 +249,14 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       update: Record({
         expression: string,
         expressionNames: map(string),
-        expressionValues: map(string)
+        expressionValues: map(any)
       }),
-      condition: string
+      condition: optional(UpdateItemRequestCondition)
     });
 
     const expression = yield* vtl(string, {
       local: true,
-      id: '${CONDITION}'
+      id: '$EXPRESSION'
     })``;
 
     for (const [name, list] of Object.entries({
@@ -260,7 +267,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       (yield* getState()).writeLine();
       yield* vtl`## DynamoDB Update Expressions - ${name}`;
       yield* $if(VBool.not(list.isEmpty()), function*() {
-        yield* vtl`#set(${expression} = "${expression}${name} #foreach($item in ${list})$item#if($foreach.hasNext), #end ")`;
+        yield* vtl`#set(${expression} = "${expression} ${name} #foreach($item in ${list})$item#if($foreach.hasNext), #end#end")`;
       });
     }
 
@@ -273,10 +280,15 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
         expressionNames,
         expressionValues
       },
-      condition: yield* vtl(string, {
-        local: true,
-        id: '$condition'
-      })`#foreach( $i in ${CONDITION} )($i)#if( $foreach.hasNext ) and #end`,
+      condition: yield* $if(VBool.not(condition.isEmpty()), function*() {
+        yield* vtl`#set($conditionExpression = "#foreach($item in ${condition})($item)#if($foreach.hasNext) and #end#end")`;
+
+        return yield* VObject.of(UpdateItemRequestCondition, {
+          expression: new VString(VExpression.text('$conditionExpression')),
+          expressionNames,
+          expressionValues
+        });
+      })
     }));
 
     return yield* call(
