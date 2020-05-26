@@ -28,7 +28,7 @@ export namespace ShapeGuards {
       throw new Error(`${a} is not of type: CollectionShape`);
     }
   };
-  export const isArrayShape = (a: any): a is ArrayShape<Shape> => a.Kind === 'arrayShape';
+  export const isArrayShape = (a: any): a is ArrayShape<Shape> => isShape(a) && a.Kind === 'arrayShape';
   export const assertArrayShape = (a: any): asserts a is ArrayShape<Shape> => {
     if (!isArrayShape(a)) {
       throw new Error(`${a} is not of type: ArrayShape`);
@@ -53,7 +53,7 @@ export namespace ShapeGuards {
     }
   };
 
-  export const isMapShape = (a: any): a is MapShape<Shape> => a.Kind === 'mapShape';
+  export const isMapShape = (a: any): a is MapShape<Shape> => isShape(a) && a.Kind === 'mapShape';
   export const assertMapShape = (a: any): asserts a is MapShape<Shape> => {
     if (!isMapShape(a)) {
       throw new Error(`${a} is not of type: MapShape`);

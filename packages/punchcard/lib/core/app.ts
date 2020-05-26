@@ -7,7 +7,6 @@ import { Code } from './code';
 
 import type * as cdk from '@aws-cdk/core';
 import type * as webpack from 'webpack';
-import { Construct } from './construct';
 
 /**
  * Erase webpack and the CDK from the runtime bundle./
@@ -19,12 +18,6 @@ erasure.erasePattern(/^(webpack|@aws-cdk.*)$/);
  * so that developers can tune the webpack configuration of bundling without
  */
 export const Webpack: Build<typeof import('webpack')> = Build.lazy(() => require('webpack')) as any;
-
-
-const a = Build.of('a');
-const i = a.map(s => s.length);
-
-
 
 export class App {
   /**

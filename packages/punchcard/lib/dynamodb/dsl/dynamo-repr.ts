@@ -142,7 +142,11 @@ export namespace DynamoDSL {
     constructor(type: T, expr: DynamoExpr) {
       super(type, expr);
     }
-    public *increment(amount?: number | VInteger): VTL<void> {}
+    public *increment(amount?: number | VInteger): VTL<void> {
+      const thisPath = yield* toPath(this.expr);
+      const valueId = yield* addValue(this.type, amount === undefined ? 1 : amount);
+      yield* vtl`$util.qr($ADD.add("${thisPath} ${valueId}"))`;
+    }
 
     public gt(value: VObject.Like<T> | Numeric<T>): Bool {
       return new Bool(new DynamoExpr.Operator(this.type, this as Object<Shape>, '>', value));
@@ -173,7 +177,7 @@ export namespace DynamoDSL {
     }
 
     public push(...values: VObject.Like<T>[]): VTL<void>;
-    public push(list: VList<T> | DynamoDSL.List<T>): VTL<void>;
+    public push(list: VList<VObject.Of<T>> | DynamoDSL.List<T>): VTL<void>;
     public *push(...args: any[]) {
       const { valueId, thisPath } = yield* prepareList(this.type, this.expr, args);
       yield* vtl`$util.qr($SET.add("${thisPath} = list_append(${thisPath}, ${valueId})"))`;
@@ -195,14 +199,14 @@ export namespace DynamoDSL {
     }
 
     public add(...values: VObject.Like<T>[]): VTL<void>;
-    public add(list: VList<T> | DynamoDSL.Set<T>): VTL<void>;
+    public add(list: VList<VObject.Of<T>> | DynamoDSL.Set<T>): VTL<void>;
     public *add(...args: any[]) {
       const { valueId, thisPath } = yield* prepareList(this.type, this.expr, args);
       yield* vtl`$util.qr($ADD.add("${thisPath} ${valueId}"))`;
     }
 
     public remove(...values: VObject.Like<T>[]): VTL<void>;
-    public remove(list: VList<T> | DynamoDSL.Set<T>): VTL<void>;
+    public remove(list: VList<VObject.Of<T>> | DynamoDSL.Set<T>): VTL<void>;
     public *remove(...args: any[]) {
       const { valueId, thisPath } = yield* prepareList(this.type, this.expr, args);
       yield* vtl`$util.qr($ADD.add("${thisPath} ${valueId}"))`;
@@ -236,7 +240,7 @@ export namespace DynamoDSL {
 
       this.M = {} as this['M'];
       for (const [name, field] of Objekt.entries(type.Members)) {
-        (this.M as any)[name] = new DynamoExpr.Reference(this as Object<Shape>, field, name);
+        (this.M as any)[name] = of(field, new DynamoExpr.Reference(this as Object<Shape>, field, name));
       }
     }
   }

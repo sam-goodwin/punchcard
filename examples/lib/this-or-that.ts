@@ -1,14 +1,15 @@
 import { Core, DynamoDB } from 'punchcard';
 
-import { array, string, Record, optional, integer, timestamp, VFunction, } from '@punchcard/shape';
-import { ID, Api, Mutation, Subscription, Query, Trait } from 'punchcard/lib/appsync';
+import { array, string, Record, optional, integer, timestamp, VFunction, map, } from '@punchcard/shape';
+import { ID, Api, Mutation, Subscription, Query, Trait, $if, VObject, vtl, VString } from 'punchcard/lib/appsync';
 import { $util } from 'punchcard/lib/appsync/lang/util';
+import { DynamoDSL } from 'punchcard/lib/dynamodb/dsl/dynamo-repr';
 
 // define the schema
 
 export class Candidate extends Record('Candidate', {
   id: ID,
-  pollCandidatesId: optional(ID),
+  pollId: optional(ID),
   image: optional(string),
   name: optional(string),
   upvotes: integer
@@ -16,36 +17,31 @@ export class Candidate extends Record('Candidate', {
 
 export class CreateCandidateInput extends Record('CandidateInput', {
   image: optional(string),
-  name: optional(string),
+  name: string,
 }) {}
 
 // Polls
-export class Poll extends Record('Poll', {
+export class PollData extends Record({
   id: ID,
   name: string,
-  type: string,
-  itemType: string,
-  createdAt: timestamp
+  createdAt: timestamp,
+  candidates: map(Candidate)
 }) {}
 
-export class PollCandidates extends Trait(Poll, {
-  candidates: VFunction({
-    args: {
-      nextToken: optional(string),
-      limit: optional(integer)
-    },
-    returns: Record({
-      candidates: array(Candidate),
-      nextToken: optional(string)
-    })
-  }),
+export class Poll extends Record('Poll', {
+  ...PollData.Members,
+  candidates: array(Candidate)
 }) {}
+
+export function createPoll(pollData: VObject.Of<typeof PollData>): VObject.Like<typeof Poll> {
+  return {
+    ...pollData,
+    candidates: pollData.candidates.values()
+  };
+}
 
 export class CreatePollInput extends Record('CreatePollInput', {
   name: string,
-  type: string,
-  itemType: string,
-  createdAt: timestamp,
   candidates: array(CreateCandidateInput)
 }) {}
 
@@ -67,14 +63,17 @@ export class PollQueries extends Query({
 
 // Votes
 export class VoteType extends Record('VoteType', {
-  id: ID,
-  clientId: ID
+  pollId: ID,
+  candidateId: ID,
+  clientId: ID,
+  upvotes: integer
 }) {}
 
 export class UpVote extends Mutation({
   upVote: VFunction({
     args: {
-      id: ID,
+      pollId: ID,
+      candidateId: ID,
       clientId: ID
     },
     returns: VoteType
@@ -92,22 +91,14 @@ export class VoteUpdates extends Subscription({
 
 // implement the backend
 
-const app = new Core.App();
+export const app = new Core.App();
 const stack = app.stack('this-or-that');
 
 // dynamodb stores
 const pollStore = new DynamoDB.Table(stack, 'PollStore', {
-  data: Poll,
+  data: PollData,
   key: {
     partition: 'id'
-  }
-});
-
-const byItemType = pollStore.globalIndex({
-  indexName: 'byItemType',
-  key: {
-    partition: 'itemType',
-    sort: 'createdAt'
   }
 });
 
@@ -117,11 +108,27 @@ const pollMutations = new PollMutations({
       const id = yield* $util.autoId();
       const createdAt = yield* $util.time.nowISO8601();
 
-      return yield* pollStore.put({
+      const candidates = yield* vtl(map(Candidate))`{}`;
+
+      yield* input.candidates.forEach(function*(item) {
+        const candidateId = yield* $util.autoId();
+        const candidate = yield* VObject.of(Candidate, {
+          id: yield* $util.autoId(),
+          upvotes: 0,
+          pollId: id,
+          ...item
+        });
+        yield* candidates.put(candidateId, candidate);
+      });
+
+      const post = yield* pollStore.put({
+        ...input,
         id,
         createdAt,
-        ...input
+        candidates: candidates,
       });
+
+      return createPoll(post);
     }
   }
 });
@@ -129,59 +136,31 @@ const pollMutations = new PollMutations({
 const pollQueries = new PollQueries({
   getPoll: {
     *resolve({id}) {
-      return yield* pollStore.get({id});
+      return createPoll(yield* pollStore.get({id}));
     }
   }
 });
 
-// const pollCandidates = new PollCandidates({
-//   candidates: {
-//     *resolve({nextToken, limit}) {
-//       const query = yield* candidateStore.query({
-//         key: {
-//           id: this.id
-//         },
-//         limit,
-//         nextToken
-//       });
-
-//       return {
-//         nextToken: query.nextToken,
-//         candidates: query.items
-//       };
-//     }
-//   }
-// });
-
-const candidateStore = new DynamoDB.Table(stack, 'CandidateStore', {
-  data: Candidate,
-  key: {
-    partition: 'id',
-  }
-});
-
-const candidateByPollId = candidateStore.globalIndex({
-  indexName: 'byPollId',
-  key: {
-    partition: 'pollCandidatesId'
-  },
-});
-
 const upVote = new UpVote({
   upVote: {
-    *resolve({id, clientId}) {
-      yield* candidateStore.update({
+    *resolve({pollId, candidateId, clientId}) {
+      const post = yield* pollStore.update({
         key: {
-          id
+          id: pollId
         },
-        *transaction(candidate) {
-          yield* candidate.upvotes.increment();
-        }
+        *transaction(poll) {
+          yield* poll.candidates.get(candidateId).M.upvotes.increment();
+        },
+        *condition(poll) {
+          yield* DynamoDSL.expect(poll.id.exists());
+        },
       });
 
       return {
-        id,
-        clientId
+        pollId,
+        candidateId,
+        clientId,
+        upvotes: post.candidates.get(candidateId).upvotes
       }
     }
   }
@@ -204,7 +183,3 @@ const api = new Api(stack, 'ThisOrThatApi', {
     pollQueries
   ]
 });
-
-api.Query(client => ({
-  a: client.getPoll
-}))

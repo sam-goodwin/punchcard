@@ -13,7 +13,7 @@ export class If<T extends VObject | void = VObject | void, U extends VObject = V
     public readonly parent?: If<VObject | void, VObject>
   ) {}
 
-  [Symbol.iterator](): Generator<any, VUnion<(VNothing | U)[]>> {
+  [Symbol.iterator](): Generator<any, VUnion<VNothing | U>> {
     const self: If = this as any;
     return (function*() {
       return yield toIfBranch(self);
@@ -30,7 +30,7 @@ export class If<T extends VObject | void = VObject | void, U extends VObject = V
   public else<T2 extends VObject | void>(then: () => Generator<any, T2>):
     VNothingIfVoid<T2> extends U ?
       Generator<any, T2> :
-      Generator<any, VUnion<U[]>> {
+      Generator<any, VUnion<U>> {
     const self: If = this as any;
     return (function*() {
       return yield toIfBranch(self, new ElseBranch(then));

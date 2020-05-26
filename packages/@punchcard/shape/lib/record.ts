@@ -281,12 +281,13 @@ export function Extend<
   fqn: FQN,
   members: RowLacks<M, keyof T['Members']>
 ): Extend<T['Members'], FQN, M> {
-  const originalMembers = new Set(Object.keys(type.Members));
-  for (const m of Object.keys(members)) {
-    if (originalMembers.has(m)) {
-      throw new Error(`attempted to override Record's member: ${m}`);
-    }
-  }
+  // const originalMembers = new Set(Object.keys(type.Members));
+  // for (const m of Object.keys(members)) {
+  //   if (originalMembers.has(m)) {
+  //     console.log(type, type.Members);
+  //     throw new Error(`attempted to override Record's member: ${m}`);
+  //   }
+  // }
   return Record(fqn!, {
     ...type.Members,
     ...members
@@ -302,7 +303,7 @@ export type Extend<T extends Fields, FQN extends string | undefined, M extends F
 /**
  * Picks members from a `Record` to create a new `RecordType`.
  */
-export type PickRecord<T extends Fields, FQN extends string | undefined, K extends (keyof T)[]> =
+export type PickRecord<T extends Fields, FQN extends string | undefined, K extends (keyof T)[] | ReadonlyArray<keyof T>> =
   RecordType<
     Pick<T, Extract<K[keyof K], string>>,
     FQN

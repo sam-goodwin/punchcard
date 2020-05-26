@@ -75,7 +75,7 @@ export namespace $context {
   }
 
   export type Claims = {
-    'cognito:groups': VList<StringShape>;
+    'cognito:groups': VList<VString>;
     'cognito:username': VString;
   } & {
     [k in keyof typeof StandardClaims]: VObject.Of<(typeof StandardClaims)[k]>

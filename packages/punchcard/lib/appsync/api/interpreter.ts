@@ -50,14 +50,16 @@ export class InterpreterState {
         state.write(`${expr}`);
       } else if (VObject.isObject(expr)) {
         state.write(VObject.getExpr(expr));
-      } else {
-        // console.log(expr);
+      } else if (VExpression.isExpression(expr)) {
         const t = expr.visit(state);
         if (typeof t === 'string') {
           state.write(t);
         } else if (isInterpreterState(t)) {
           state = t;
         }
+        return t;
+      } else {
+        return state;
       }
     }
   }

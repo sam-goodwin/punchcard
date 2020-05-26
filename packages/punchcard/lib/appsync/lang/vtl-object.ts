@@ -162,18 +162,16 @@ export namespace VObject {
     T extends RecordShape ? VRecord<T> & {
       [field in keyof T['Members']]: Of<T['Members'][field]>;
     } :
-    T extends ArrayShape<infer I> ? VList<I> :
-    T extends SetShape<infer I> ? VList<I> :
-    T extends MapShape<infer I> ? VMap<I> : // maps are not supported in GraphQL
+    T extends ArrayShape<infer I> ? VList<Of<I>> :
+    T extends SetShape<infer I> ? VList<Of<I>> :
+    T extends MapShape<infer I> ? VMap<Of<I>> : // maps are not supported in GraphQL
     T extends BoolShape ? VBool :
     T extends AnyShape ? VAny :
     T extends IntegerShape ? VInteger :
     T extends NumberShape ? VFloat :
     T extends StringShape ? VString :
     T extends TimestampShape ? VTimestamp :
-    T extends UnionShape<infer U> ? VUnion<{
-      [u in keyof U]: U[u] extends Shape ? Of<U[u]> : never
-    }> :
+    T extends UnionShape<infer U> ? VUnion<Of<U[Extract<keyof U, number>]>> :
     T extends NothingShape ? VNothing :
 
     VObject<T>
@@ -194,7 +192,7 @@ export namespace VObject {
     T extends MapShape<infer I> ? {
       [key: string]: Like<I>;
     } :
-    T extends UnionShape<infer I> ? VUnion<VObject.Of<I[Extract<keyof I, number>]>[]> | {
+    T extends UnionShape<infer I> ? VUnion<VObject.Of<I[Extract<keyof I, number>]>> | {
       [i in Extract<keyof I, number>]: Like<I[i]>;
     }[Extract<keyof I, number>] :
     VObject.Of<T> | Value.Of<T>
@@ -485,7 +483,7 @@ export class VString extends VObject.NewType(string) {
    * @param limit the result threshold, as described above
    * @returns the array of strings computed by splitting this string around matches of the given regular expression
    */
-  public split(regex: string | RegExp | VString, limit?: number | VInteger): VList<StringShape> {
+  public split(regex: string | RegExp | VString, limit?: number | VInteger): VList<VString> {
     return new VList(string, VExpression.call(
       this, 'split', cleanArgs(
         typeof regex !== 'string' && !VObject.isObject(regex) ? regex.source : regex,
@@ -548,8 +546,9 @@ export class VString extends VObject.NewType(string) {
 
 export class VTimestamp extends VObject.NewType(timestamp) {}
 
-export class VList<T extends Shape = Shape> extends VObject<ArrayShape<T>> {
-  constructor(shape: T, expression: VExpression) {
+export class VList<T extends VObject = VObject> extends VObject<ArrayShape<VObject.TypeOf<T>>> {
+  public readonly t: T;
+  constructor(shape: VObject.TypeOf<T>, expression: VExpression) {
     super(array(shape), expression);
   }
 
@@ -561,35 +560,39 @@ export class VList<T extends Shape = Shape> extends VObject<ArrayShape<T>> {
     return new VBool(VExpression.concat(this, '.isEmpty()'));
   }
 
-  public get(index: number | VInteger): VObject.Of<T> {
-    return VObject.fromExpr(this[VObjectType].Items, VExpression.concat(this, '.get(', index, ')'));
+  public get(index: number | VInteger): T {
+    return VObject.fromExpr(this[VObjectType].Items, VExpression.concat(this, '.get(', index, ')')) as any;
   }
 
-  public *set(index: number | VInteger, value: VObject.Like<T>): VTL<void> {
+  public *set(index: number | VInteger, value: VObject.Like<VObject.TypeOf<T>>): VTL<void> {
     yield* vtl`$util.qr(${this}.set(${index}, ${yield* VObject.of(this[VObjectType].Items, value)}))`;
   }
 
-  public *add(value: VObject.Like<T>): VTL<void> {
+  public *add(value: VObject.Like<VObject.TypeOf<T>>): VTL<void> {
     yield* vtl`$util.qr(${this}.add(${yield* VObject.of(this[VObjectType].Items, value)}))`;
   }
 
-  public *forEach(f: (item: VObject.Of<T>) => VTL<void>): VTL<void> {
+  public *forEach(f: (item: T) => VTL<void>): VTL<void> {
     yield* forLoop(this, f as any);
   }
 }
 
-export class VMap<T extends Shape = Shape> extends VObject<MapShape<T>> {
-  constructor(shape: MapShape<T>, expression: VExpression) {
+export class VMap<T extends VObject = VObject> extends VObject<MapShape<VObject.TypeOf<T>>> {
+  constructor(shape: MapShape<VObject.TypeOf<T>>, expression: VExpression) {
     super(shape, expression);
   }
 
-  public get(key: string | VString): VObject.Of<T> {
-    return VObject.fromExpr(this[VObjectType].Items, VExpression.concat(
-      this, '.get(', key, ')'
-    )) as VObject.Of<T>;
+  public values(): VList<T> {
+    return new VList(this[VObjectType].Items, VExpression.concat(this, '.values()'));
   }
 
-  public *put(key: string | VString, value: VObject.Of<T>): VTL<void> {
+  public get(key: string | VString): T {
+    return VObject.fromExpr(this[VObjectType].Items, VExpression.concat(
+      this, '.get(', key, ')'
+    )) as any as T;
+  }
+
+  public *put(key: string | VString, value: T): VTL<void> {
     yield* vtl(nothing)`$util.qr(${this}.put(${key}, ${value}))`;
   }
 }
@@ -610,9 +613,7 @@ export namespace VRecord {
   export type Class<T extends VRecord = any> = (new(members: VRecord.GetMembers<T>) => T);
 }
 
-export class VUnion<U extends VObject[]> extends VObject<UnionShape<{
-  [u in keyof U]: u extends number ? VObject.TypeOf<U[u]> : never
-}>> {
+export class VUnion<U extends VObject> extends VObject<UnionShape<VObject.TypeOf<U>[]>> {
   public *assertIs<T extends VUnion.UnionCase<U>>(item: T, msg?: string | VString): VTL<VObject.Of<T>, any> {
     return yield* this.match(item, function*(i) {
       return i;
@@ -631,10 +632,10 @@ export class VUnion<U extends VObject[]> extends VObject<UnionShape<{
 export namespace VUnion {
   export type CaseBlock<I extends Shape, T> = (i: VObject.Of<I>) => Generator<any, T>;
   export type OtherwiseBlock<T> = () => Generator<any, T>;
-  export type UnionCase<U extends VObject[]> = VObject.TypeOf<U[Extract<keyof U, number>]>;
+  export type UnionCase<U extends VObject> = VObject.TypeOf<U>;
 
   export class Match<
-    U extends VObject[] = VObject[],
+    U extends VObject = VObject,
     Returns = any,
     Excludes extends UnionCase<U> = UnionCase<U>
   > {
@@ -651,7 +652,7 @@ export namespace VUnion {
 
     public match<
       M extends Exclude<
-        VObject.TypeOf<U[Extract<keyof U, number>]>,
+        VObject.TypeOf<U>,
         Excludes
       >,
       T
@@ -759,7 +760,7 @@ export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public integerShape(shape: IntegerShape, expr: VExpression): VInteger {
     return new VInteger(expr);
   }
-  public mapShape(shape: MapShape<Shape>, expr: VExpression): VMap<Shape> {
+  public mapShape(shape: MapShape<Shape>, expr: VExpression): VMap<VObject> {
     return new VMap(shape, expr);
   }
   public nothingShape(shape: NothingShape, expr: VExpression): VNothing {
@@ -768,7 +769,7 @@ export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public numberShape(shape: NumberShape, expr: VExpression): VFloat {
     return new VFloat(expr);
   }
-  public setShape(shape: SetShape<Shape>, expr: VExpression): VList<Shape> {
+  public setShape(shape: SetShape<Shape>, expr: VExpression): VList<VObject> {
     return new VList(shape, expr);
   }
   public stringShape(shape: StringShape, expr: VExpression): VString {

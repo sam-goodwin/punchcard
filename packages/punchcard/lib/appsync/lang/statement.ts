@@ -137,7 +137,7 @@ export function isElseBranch(a: any): a is ElseBranch<VObject | void> {
   return a.branchType === 'else';
 }
 
-export function *forLoop<T extends VList>(list: T, then: (item: VObject.TypeOf<T>['Items']) => VTL<void>): VTL<void> {
+export function *forLoop<T extends VList>(list: T, then: (item: ReturnType<T['get']>) => VTL<void>): VTL<void> {
   return (yield new ForLoop(list, then as any)) as void;
 }
 

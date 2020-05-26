@@ -1,6 +1,6 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
-import { isOptional, Meta, Shape, ShapeGuards, UnionShape } from '@punchcard/shape';
+import { isOptional, Meta, Shape, ShapeGuards, timestamp, UnionShape } from '@punchcard/shape';
 import { RecordShape } from '@punchcard/shape/lib/record';
 import { UserPool } from '../../cognito/user-pool';
 import { Build } from '../../core/build';
@@ -124,7 +124,6 @@ export class Api<
       const dataSources = new core.Construct(api, '_DataSources');
 
       const seenDataTypes = new Set<string>();
-      const seenInputTypes = new Set<string>();
 
       if (isUseful(self.query as TypeSpec)) {
         parseType(self.query.type);
@@ -139,26 +138,61 @@ export class Api<
       return api;
 
       function parseType(shape: Shape): void {
-        if (shape.FQN === undefined) {
-          throw new Error(`shapes must define a FQN for AppSync: ${shape}`);
-        }
-        if (seenDataTypes.has(shape.FQN)) {
-          return;
-        }
         if (ShapeGuards.isArrayShape(shape)) {
           // recurse into the Items to discover any custom types
           parseType(shape.Items);
-        } else if (ShapeGuards.isTimestampShape(shape)) {
-          blocks.push('scalar Timestamp');
         } else if (ShapeGuards.isRecordShape(shape)) {
-          seenDataTypes.add(shape.FQN!);
+          if (!seenDataTypes.has(shape.FQN!)) {
+            seenDataTypes.add(shape.FQN!);
 
-          const typeSpec = (self.types as Record<string, TypeSpec>)[shape.FQN!];
-          if (typeSpec === undefined) {
-            throw new Error(`could not find type ${shape.FQN} in the TypeIndex`);
+            const typeSpec = (self.types as Record<string, TypeSpec>)[shape.FQN!];
+            if (typeSpec === undefined) {
+              throw new Error(`could not find type ${shape.FQN} in the TypeIndex`);
+            }
+            const directives = interpretResolverPipeline(typeSpec);
+            generateTypeSignature(typeSpec, directives);
+
+            Object.values(typeSpec.fields).forEach(parseType);
           }
-          const directives = interpretResolverPipeline(typeSpec);
-          generateTypeSignature(typeSpec, directives);
+        } else if (ShapeGuards.isUnionShape(shape)) {
+          shape.Items.forEach(parseType);
+          if(!isOptional(shape)) {
+            if (shape.FQN === undefined) {
+              throw new Error(`un-named union types are not supported`);
+            }
+            if (!seenDataTypes.has(shape.FQN!)) {
+              seenDataTypes.add(shape.FQN!);
+              blocks.push(`union ${shape.FQN} = ${shape.Items.map(i => i.FQN!).filter(i => i !== undefined).join(' | ')};`);
+            }
+          }
+        } else if (ShapeGuards.isFunctionShape(shape)) {
+          Object.values(shape.args).forEach(parseInputType);
+          parseType(shape.returns);
+        }
+      }
+
+      function parseInputType(shape: Shape): void {
+        if (ShapeGuards.isRecordShape(shape)) {
+          if (shape.FQN === undefined) {
+            console.error('un-named input type', shape);
+            throw new Error(`un-named input type`);
+          }
+          if (!seenDataTypes.has(shape.FQN!)) {
+            seenDataTypes.add(shape.FQN!);
+            Object.values(shape.Members).forEach(parseInputType);
+            const inputSpec = `input ${shape.FQN} {\n${Object.entries(shape.Members).map(([fieldName, fieldShape]) => {
+              return `  ${fieldName}: ${getTypeAnnotation(fieldShape)}`;
+            }).join('\n')}\n}`;
+            blocks.push(inputSpec);
+          }
+        } else if (ShapeGuards.isCollectionShape(shape)) {
+          parseInputType(shape.Items);
+        } else if (ShapeGuards.isUnionShape(shape)) {
+          if (!isOptional(shape)) {
+            console.error('un-named input type', shape);
+            throw new Error(`union types not supported as input types`);
+          }
+          shape.Items.forEach(parseInputType);
         }
       }
 
@@ -167,38 +201,16 @@ export class Api<
         const fields = fieldShapes.map(([fieldName, fieldShape]) => {
           const fieldDirectives = (directives[fieldName] || []).join('\n    ');
           if (ShapeGuards.isFunctionShape(fieldShape)) {
-            parseType(fieldShape.returns);
-
             const args = Object.entries(fieldShape.args);
-            return `  ${fieldName}(${`${args.map(([argName, argShape]) => {
-              const typeAnnotation = getTypeAnnotation(argShape);
-              if (ShapeGuards.isRecordShape(argShape)) {
-                // generate an Input type for records
-                generateInputTypeSignature(argShape);
-              }
-              return `${argName}: ${typeAnnotation}`;
-            }).join(',')}`}): ${getTypeAnnotation(fieldShape.returns)}${fieldDirectives ? `\n    ${fieldDirectives}` : ''}`;
+            return `  ${fieldName}(${`${args.map(([argName, argShape]) =>
+              `${argName}: ${getTypeAnnotation(argShape)}`
+            ).join(',')}`}): ${getTypeAnnotation(fieldShape.returns)}${fieldDirectives ? `\n    ${fieldDirectives}` : ''}`;
           } else {
             return `  ${fieldName}: ${getTypeAnnotation(fieldShape)}${fieldDirectives ? `\n    ${fieldDirectives}` : ''}`;
           }
         }).join('\n');
 
         blocks.push(`type ${typeSpec.type.FQN} {\n${fields}\n}`);
-      }
-
-      function generateInputTypeSignature(shape: RecordShape): void {
-        if (seenInputTypes.has(shape.FQN!)) {
-          return;
-        }
-        seenInputTypes.add(shape.FQN!);
-        const inputSpec = `input ${shape.FQN} {\n${Object.entries(shape.Members).map(([fieldName, fieldShape]) => {
-          if (!isScalar(fieldShape)) {
-            throw new Error(`Input type ${shape.FQN} contains non-scalar type ${fieldShape.FQN} for field ${fieldName}`);
-          }
-          return `  ${fieldName}: ${getTypeAnnotation(fieldShape)}`;
-        }).join('\n')}\n}`;
-
-        blocks.push(inputSpec);
       }
 
       function interpretResolverPipeline(typeSpec: TypeSpec): Directives {
@@ -254,7 +266,7 @@ export class Api<
               const itemId = `$${state.newId('item')}`;
 
               state.write(VExpression.concat(
-                '#forEach( ', itemId, ' in ', stmt.list, ')'
+                '#foreach( ', itemId, ' in ', stmt.list, ')'
               )).indent().writeLine();
 
               interpretProgram(
@@ -262,7 +274,7 @@ export class Api<
                 state,
                 interpret
               );
-              state.unindent().writeLine().write('#end');
+              state.unindent().writeLine().write('#end').writeLine();
               return undefined;
             } else if (StatementGuards.isIf(stmt)) {
               const [returnId, branchYieldValues] = parseIf(stmt, state, interpret);
@@ -273,20 +285,12 @@ export class Api<
                 // map undefined to VNothing
                 .map(r => r === undefined ? new VNothing(VExpression.text('null')) : r as VObject)
                 // filter duplicates
-                .filter((r, index, self) => self.findIndex(v => {
-                  try {
-                    return VObject.getType(r).equals(VObject.getType(v));
-                  } catch(err) {
-                    console.error(err);
-                    console.log(VObject.getType(r));
-                    throw err;
-                  }
-                }) === index)
+                .filter((r, index, self) => self.findIndex(v => VObject.getType(r).equals(VObject.getType(v))) === index)
               ;
 
               // derive a VObject to represent the returned value of the if-else-then branches
               const returnValue = returnedValues.length === 1 ? returnedValues[0] : new VUnion(
-                new UnionShape(returnedValues.map(v => VObject.getType(v))),
+                new UnionShape(returnedValues.map(v => VObject.getType(v)), undefined),
                 VExpression.text(returnId)
               );
 
@@ -446,7 +450,9 @@ function getTypeAnnotation(shape: Shape): string {
 
   const isNullable = isOptional(shape);
 
-  shape = isNullable ? (shape as UnionShape<Shape[]>).Items.find(i => !ShapeGuards.isNothingShape(i))! : shape;
+  if (isNullable && ShapeGuards.isUnionShape(shape)) {
+    shape = (shape as UnionShape<Shape[]>).Items.find(i => !ShapeGuards.isNothingShape(i))!;
+  }
 
   return `${getTypeName()}${isNullable === true ? '' : '!'}`;
 
@@ -460,25 +466,22 @@ function getTypeAnnotation(shape: Shape): string {
     } else if (ShapeGuards.isStringShape(shape)) {
       return 'String';
     } else if (ShapeGuards.isTimestampShape(shape)) {
-      return 'Timestamp';
+      return 'AWSDateTime';
+    } else if (ShapeGuards.isAnyShape(shape)) {
+      return 'AWSJSON';
     } else if (ShapeGuards.isBoolShape(shape)) {
       return 'Boolean';
     } else if (ShapeGuards.isNumberShape(shape)) {
       return ShapeGuards.isIntegerShape(shape) ? 'Int' : 'Float';
     } else if (ShapeGuards.isRecordShape(shape)) {
       if (shape.FQN === undefined) {
-        throw new Error(`Only records wit a FQN are supported as types in Graphql. class A extends Record('FQN', { .. }) {}`);
+        throw new Error(`Only records with a FQN are supported as types in Graphql. class A extends Record('FQN', { .. }) {}`);
       }
       return shape.FQN!;
-    } else {
+    } else if (ShapeGuards.isUnionShape(shape) && shape.FQN !== undefined) {
+      return shape.FQN!;
+    } {
       throw new Error(`shape type ${shape.FQN} is not supported by GraphQL`);
     }
   }
-}
-
-function isScalar(shape: Shape) {
-  return ShapeGuards.isStringShape(shape)
-    || ShapeGuards.isNumberShape(shape)
-    || ShapeGuards.isBoolShape(shape)
-    || ShapeGuards.isTimestampShape(shape);
 }

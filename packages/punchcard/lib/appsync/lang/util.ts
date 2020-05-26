@@ -4,7 +4,7 @@ import { VExpression } from './expression';
 import { stash } from './statement';
 import { StashProps } from './statement';
 import { VTL, vtl } from './vtl';
-import { VBool, VFloat, VInteger, VList, VMap, VNever, VObject, VString, VTimestamp } from './vtl-object';
+import { VBinary, VBool, VFloat, VInteger, VList, VMap, VNever, VObject, VString, VTimestamp } from './vtl-object';
 
 /**
  * https://docs.aws.amazon.com/appsync/latest/devguide/resolver-util-reference.html
@@ -133,9 +133,9 @@ export namespace $util.dynamodb {
       return yield* toList(shape);
     } else if (ShapeGuards.isSetShape(shape)) {
       if (VObject.isList(value)) {
-        return ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isTimestampShape(shape.Items) ? toStringSet(value as VList<StringShape>) :
-          ShapeGuards.isNumberShape(shape.Items) ? toNumberSet(value as VList<NumberShape>) :
-          ShapeGuards.isBinaryShape(shape.Items) ? toBinarySet(value as VList<BinaryShape>) :
+        return ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isTimestampShape(shape.Items) ? toStringSet(value as VList<VString>) :
+          ShapeGuards.isNumberShape(shape.Items) ? toNumberSet(value as VList<VInteger>) :
+          ShapeGuards.isBinaryShape(shape.Items) ? toBinarySet(value as VList<VBinary>) :
           yield* toList(shape);
       } else {
         const tag =
@@ -257,7 +257,7 @@ export namespace $util.dynamodb {
    * ```
    * @param list of strings to convert to a DynamoDB binary set.
    */
-  export function toBinarySet(list: VList<StringShape | BinaryShape>): VObject.Of<typeof AttributeValue.BinarySet> {
+  export function toBinarySet(list: VList<VString> | VList<VBinary>): VObject.Of<typeof AttributeValue.BinarySet> {
     return VObject.fromExpr(AttributeValue.BinarySet, VExpression.call('$util.dynamodb.toBinarySet', [list]));
   }
   /**
@@ -265,7 +265,7 @@ export namespace $util.dynamodb {
    *
    * @param list of strings to convert to a DynamoDB binary set.
    */
-  export function toBinarySetJson(list: VList<StringShape>): VString {
+  export function toBinarySetJson(list: VList<VString> | VList<VBinary>): VString {
     return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toBinarySet', [list]));
   }
 
@@ -296,7 +296,7 @@ export namespace $util.dynamodb {
    * ```
    * @param list of numbers to convert to a DynamoDB number set.
    */
-  export function toNumberSet(list: VList<NumberShape>): VObject.Of<typeof AttributeValue.NumberSet> {
+  export function toNumberSet(list: VList<VInteger>): VObject.Of<typeof AttributeValue.NumberSet> {
     return VObject.fromExpr(AttributeValue.NumberSet, VExpression.call('$util.dynamodb.toNumberSet', [list]));
   }
   /**
@@ -304,7 +304,7 @@ export namespace $util.dynamodb {
    *
    * @param list of numbers to convert to a DynamoDB number set JSON string.
    */
-  export function toNumberSetJson(value: VList<NumberShape>): VString {
+  export function toNumberSetJson(value: VList<VInteger>): VString {
     return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toNumberSetJson', [value]));
   }
 
@@ -336,7 +336,7 @@ export namespace $util.dynamodb {
    * ```
    * @param list list of strings to convert to a DynamoDB string set.
    */
-  export function toStringSet(list: VList<StringShape | TimestampShape>): VObject.Of<typeof AttributeValue.StringSet> {
+  export function toStringSet(list: VList<VString | VTimestamp>): VObject.Of<typeof AttributeValue.StringSet> {
     return VObject.fromExpr(AttributeValue.StringSet, VExpression.call('$util.dynamodb.toStringSet', [list]));
   }
   /**
@@ -344,7 +344,7 @@ export namespace $util.dynamodb {
    *
    * @param list list of strings to convert to a DynamoDB string set JSON string.
    */
-  export function toStringSetJson(list: VList<StringShape>): VString {
+  export function toStringSetJson(list: VList<VString>): VString {
     return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toStringSetJson', [list]));
   }
 
@@ -371,18 +371,18 @@ export namespace $util.dynamodb {
    * ```
    * @param list to convert to a DynamoDB list object.
    */
-  export function toList<T extends Shape>(list: VList<T>): VObject.Of<AttributeValue.List<AppSyncDynamoDBFormat<T>>> {
+  export function toList<T extends VObject>(list: VList<T>): VObject.Of<AttributeValue.List<AppSyncDynamoDBFormat<VObject.TypeOf<T>>>> {
     return VObject.fromExpr(
       appSyncDynamoDBFormat(VObject.getType(list)),
       VExpression.call('$util.dynamodb.toList', [list])
-    ) as VObject.Of<AttributeValue.List<AppSyncDynamoDBFormat<T>>>;
+    ) as VObject.Of<AttributeValue.List<AppSyncDynamoDBFormat<VObject.TypeOf<T>>>>;
   }
   /**
    * The same as `$util.dynamodb.toList`, but returns the DynamoDB attribute value as a JSON encoded string.
    *
    * @param list to convert to a DynamoDB list object JSON string.
    */
-  export function toListJson<T extends Shape>(list: VList<T>): VString {
+  export function toListJson<T extends VObject>(list: VList<T>): VString {
     return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toListJson', [list]));
   }
 
@@ -408,17 +408,17 @@ export namespace $util.dynamodb {
    * ```
    * @param map to convert to a DynamoDB map.
    */
-  export function toMap<T extends Shape>(map: VMap<T>): VObject.Of<AttributeValue.Map<AppSyncDynamoDBFormat<T>>> {
+  export function toMap<T extends VObject>(map: VMap<T>): VObject.Of<AttributeValue.Map<AppSyncDynamoDBFormat<VObject.TypeOf<T>>>> {
     return VObject.fromExpr(
       appSyncDynamoDBFormat(VObject.getType(map)),
       VExpression.call('$util.dynamodb.toMap', [map])
-    ) as VObject.Of<AttributeValue.Map<AppSyncDynamoDBFormat<T>>>;
+    ) as VObject.Of<AttributeValue.Map<AppSyncDynamoDBFormat<VObject.TypeOf<T>>>>;
   }
   /**
    * The same as `$util.dynamodb.toMap`, but returns the DynamoDB attribute value as a JSON encoded string.
    * @param map to convert to a DynamoDB map.
    */
-  export function toMapJson<T extends Shape>(map: VMap<T>): VString {
+  export function toMapJson<T extends VObject>(map: VMap<T>): VString {
     return new VString(VExpression.call('$util.dynamodb.toMapJson', [map]));
   }
 

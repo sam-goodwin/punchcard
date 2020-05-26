@@ -10,6 +10,8 @@ import { keyType } from './util';
 
 import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
+import { VTL } from '../appsync/lang/vtl';
+import { QueryRequest, QueryResponse } from './query-request';
 
 export interface IndexProps<SourceTable extends Table<any, any>, Projection extends RecordShape, Key extends DDB.KeyOf<Projection>> {
   /**
@@ -126,6 +128,10 @@ export class Index<SourceTable extends Table<RecordShape, any>, Projection exten
         table.addLocalSecondaryIndex(definition);
       }
     }));
+  }
+
+  public query<Q extends QueryRequest<Projection, Key>>(request: Q): VTL<QueryResponse<Q, Projection, Key>> {
+    return null as any;
   }
 
   /**

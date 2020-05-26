@@ -6,7 +6,7 @@ import type * as cdk from '@aws-cdk/core';
 
 import { any, array, map, optional, Record, RecordShape, string } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VObject, VString, VTL, vtl } from '../appsync';
+import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VInteger, VObject, VString, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -17,6 +17,7 @@ import { DynamoExpr } from './dsl/dynamo-expr';
 import { DynamoDSL } from './dsl/dynamo-repr';
 import { toAttributeValueJson } from './dsl/to-attribute-value';
 import { UpdateRequest } from './dsl/update-request';
+import { QueryRequest, QueryResponse } from './query-request';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
@@ -115,8 +116,7 @@ export interface TableProps<DataType extends RecordShape, Key extends DDB.KeyOf<
  * @typeparam DataType type of data in the Table.
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
-export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>>
-    extends Construct implements Resource<dynamodb.Table> {
+export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> extends Construct implements Resource<dynamodb.Table> {
   /**
    * The DynamoDB Table Construct.
    */
@@ -173,6 +173,8 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       const dataType = this.dataType;
 
       return new dynamodb.Table(scope, id, {
+        // default to pay per request - better
+        billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
         ...extraTableProps,
         partitionKey: {
           name: partitionKeyName,
@@ -200,9 +202,28 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
 
     return call(this.dataSourceProps((table, role) => table.grantReadData(role), props), request, this.dataType);
   }
-  // TODO: https://docs.aws.amazon.com/appsync/latest/devguide/resolver-mapping-template-reference-dynamodb.html#aws-appsync-resolver-mapping-template-reference-dynamodb-condition-handling
+
+  public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
+    // TODO: address redundancy between this and `get`.
+    const PutItemRequest = Record({
+      version: string,
+      operation: string,
+      key: this.keyShape,
+      attributeValues: this.attributeValuesShape
+    });
+
+    const request = VObject.fromExpr(PutItemRequest, VExpression.json({
+      version: '2017-02-28',
+      operation: 'PutItem',
+      key: toAttributeValueJson(this.keyShape, value),
+      attributeValues: toAttributeValueJson(this.attributeValuesShape, value)
+    }));
+
+    return call(this.dataSourceProps((table, role) => table.grantWriteData(role), props), request, this.dataType);
+  }
 
   public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
+    // TODO: https://docs.aws.amazon.com/appsync/latest/devguide/resolver-mapping-template-reference-dynamodb.html#aws-appsync-resolver-mapping-template-reference-dynamodb-condition-handling
     function* stringList(id: string) {
       return yield* vtl(array(string), {
         local: true,
@@ -298,23 +319,8 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     );
   }
 
-  public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
-    // TODO: address redundancy between this and `get`.
-    const PutItemRequest = Record({
-      version: string,
-      operation: string,
-      key: this.keyShape,
-      attributeValues: this.attributeValuesShape
-    });
-
-    const request = VObject.fromExpr(PutItemRequest, VExpression.json({
-      version: '2017-02-28',
-      operation: 'PutItem',
-      key: toAttributeValueJson(this.keyShape, value),
-      attributeValues: toAttributeValueJson(this.attributeValuesShape, value)
-    }));
-
-    return call(this.dataSourceProps((table, role) => table.grantWriteData(role), props), request, this.dataType);
+  public query<Q extends QueryRequest<DataType, Key>>(request: Q): VTL<QueryResponse<Q, DataType, Key>> {
+    return null as any;
   }
 
   /**

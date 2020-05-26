@@ -1,14 +1,22 @@
 import { Shape } from './shape';
 
-export function union<T extends Shape[]>(...items: T) : UnionShape<T> {
-  return new UnionShape(items);
+export function union<T extends Shape[]>(...items: T): UnionShape<T>;
+export function union<FQN extends string, T extends Shape[]>(fqn: FQN, ...items: T): UnionShape<T, FQN>;
+export function union(a: any, ...b: any[]) {
+  if (typeof a === 'string') {
+    return new UnionShape(b, a);
+  } else {
+    return new UnionShape([a, ...b], undefined);
+  }
 }
 
-export class UnionShape<T extends Shape[]> extends Shape {
-  public readonly FQN: 'union' = 'union';
+export class UnionShape<T extends Shape[], FQN extends string | undefined = undefined> extends Shape {
   public readonly Kind: 'unionShape' = 'unionShape';
 
-  constructor(public readonly Items: T) {
+  constructor(
+    public readonly Items: T,
+    public readonly FQN: FQN = undefined as FQN
+  ) {
     super();
   }
 }
