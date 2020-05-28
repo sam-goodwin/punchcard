@@ -146,7 +146,7 @@ export class VExpression {
     return new VExpression((ctx) => ctx.write(...expressions));
   }
 
-  constructor(public readonly visit: ((state: InterpreterState) => string | InterpreterState | void)) {}
+  constructor(public readonly visit: ((state: InterpreterState) => InterpreterState | void)) {}
 }
 
 type CallArg = (VExpression | VObject | string | number | boolean);

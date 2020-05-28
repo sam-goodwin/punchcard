@@ -4,7 +4,7 @@ import { DataSourceBindCallback } from '../api/data-source';
 import { InterpreterState } from '../api/interpreter';
 import { VExpression } from './expression';
 import { VTL } from './vtl';
-import { VBool, VList, VNothing, VObject } from './vtl-object';
+import { VBool, VInteger, VList, VNothing, VObject } from './vtl-object';
 
 /**
  * A piece of logic executed by AppSync with Velocity Templates.
@@ -137,7 +137,7 @@ export function isElseBranch(a: any): a is ElseBranch<VObject | void> {
   return a.branchType === 'else';
 }
 
-export function *forLoop<T extends VList>(list: T, then: (item: ReturnType<T['get']>) => VTL<void>): VTL<void> {
+export function *forLoop<T extends VList>(list: T, then: (item: ReturnType<T['get']>, index: VInteger, hasNext: VBool) => VTL<void>): VTL<void> {
   return (yield new ForLoop(list, then as any)) as void;
 }
 
@@ -146,6 +146,6 @@ export class ForLoop {
 
   constructor(
     public readonly list: VList,
-    public readonly then: (item: VObject) => VTL<void>
+    public readonly then: (item: VObject, index: VInteger, hasNext: VBool) => VTL<void>
   ) {}
 }

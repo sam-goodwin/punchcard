@@ -8,16 +8,13 @@ import { DynamoDSL } from 'punchcard/lib/dynamodb/dsl/dynamo-repr';
 // define the schema
 
 export class Candidate extends Record('Candidate', {
-  id: ID,
-  pollId: optional(ID),
-  image: optional(string),
-  name: optional(string),
+  candidateId: ID,
+  answer: optional(string),
   upvotes: integer
 }) {}
 
 export class CreateCandidateInput extends Record('CandidateInput', {
-  image: optional(string),
-  name: string,
+  answer: string,
 }) {}
 
 // Polls
@@ -83,7 +80,7 @@ export class UpVote extends Mutation({
 export class VoteUpdates extends Subscription({
   onUpdateById: VFunction({
     args: {
-      id: ID
+      pollId: ID
     },
     returns: optional(VoteType)
   })
@@ -92,7 +89,7 @@ export class VoteUpdates extends Subscription({
 // implement the backend
 
 export const app = new Core.App();
-const stack = app.stack('this-or-that');
+const stack = app.stack('straw-poll');
 
 // dynamodb stores
 const pollStore = new DynamoDB.Table(stack, 'PollStore', {
@@ -110,25 +107,27 @@ const pollMutations = new PollMutations({
 
       const candidates = yield* vtl(map(Candidate))`{}`;
 
-      yield* input.candidates.forEach(function*(item) {
-        const candidateId = yield* $util.autoId();
+      yield* input.candidates.forEach(function*(item, index) {
+        const candidateId = index.toString();
         const candidate = yield* VObject.of(Candidate, {
-          id: yield* $util.autoId(),
+          candidateId,
           upvotes: 0,
-          pollId: id,
-          ...item
+          answer: item.answer
         });
         yield* candidates.put(candidateId, candidate);
       });
 
-      const post = yield* pollStore.put({
+      const poll = yield* pollStore.put({
         ...input,
         id,
         createdAt,
         candidates: candidates,
       });
 
-      return createPoll(post);
+      return yield* VObject.of(Poll, {
+        ...poll,
+        candidates: poll.candidates.values()
+      });
     }
   }
 });
@@ -136,7 +135,12 @@ const pollMutations = new PollMutations({
 const pollQueries = new PollQueries({
   getPoll: {
     *resolve({id}) {
-      return createPoll(yield* pollStore.get({id}));
+      const poll = yield* pollStore.get({id});
+
+      return yield* VObject.of(Poll, {
+        ...poll,
+        candidates: poll.candidates.values()
+      });
     }
   }
 });
@@ -152,16 +156,16 @@ const upVote = new UpVote({
           yield* poll.candidates.get(candidateId).M.upvotes.increment();
         },
         *condition(poll) {
-          yield* DynamoDSL.expect(poll.id.exists());
+          yield* DynamoDSL.expect(poll.candidates.has(candidateId));
         },
       });
 
-      return {
+      return yield* VObject.of(VoteType, {
         pollId,
         candidateId,
         clientId,
         upvotes: post.candidates.get(candidateId).upvotes
-      }
+      });
     }
   }
 });
@@ -174,8 +178,8 @@ const voteUpdates = new VoteUpdates({
   }
 })
 
-const api = new Api(stack, 'ThisOrThatApi', {
-  name: 'ThisOrThatApi',
+const api = new Api(stack, 'StrawPoll', {
+  name: 'StrawPoll',
   fragments: [
     upVote,
     voteUpdates,

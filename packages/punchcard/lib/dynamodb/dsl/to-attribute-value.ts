@@ -40,6 +40,7 @@ export function toAttributeValueJson<S extends Shape>(
     });
   } else if (ShapeGuards.isRecordShape(shape)) {
     if (VObject.isObject(obj)) {
+      console.error(obj);
       throw new Error('support top-level object');
     } else {
       const record = obj as {[key: string]: VObject.Like<Shape>; };

@@ -10,7 +10,7 @@ import { Resource } from '../../core/resource';
 import { toAuthDirectives } from '../lang';
 import { VExpression } from '../lang/expression';
 import { StatementGuards } from '../lang/statement';
-import { VNothing, VObject, VUnion } from '../lang/vtl-object';
+import { VBool, VInteger, VNothing, VObject, VUnion } from '../lang/vtl-object';
 import { ApiFragment, ApiFragments } from './api-fragment';
 import { AuthMetadata } from './auth';
 import { CacheMetadata, CachingConfiguration } from './caching';
@@ -269,8 +269,12 @@ export class Api<
                 '#foreach( ', itemId, ' in ', stmt.list, ')'
               )).indent().writeLine();
 
+              const item = VObject.fromExpr(VObject.getType(stmt.list).Items, VExpression.text(itemId));
+              const index = new VInteger(VExpression.text('$foreach.index'));
+              const hasNext = new VBool(VExpression.text('$foreach.hasNext'));
+
               interpretProgram(
-                stmt.then(VObject.fromExpr(VObject.getType(stmt.list).Items, VExpression.text(itemId))),
+                stmt.then(item, index, hasNext),
                 state,
                 interpret
               );
@@ -278,7 +282,6 @@ export class Api<
               return undefined;
             } else if (StatementGuards.isIf(stmt)) {
               const [returnId, branchYieldValues] = parseIf(stmt, state, interpret);
-
               const allUndefined = branchYieldValues.filter(v => v !== undefined).length === 0;
 
               const returnedValues = branchYieldValues
@@ -307,7 +310,7 @@ export class Api<
               const responseMappingTemplate = `#set($context.stash.${name} = $context.result)\n`;
               // clear template state
               const stageName = `${fieldFQN}${stageCount += 1}`;
-              const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, fieldFQN);
+              const dataSourceProps = Build.resolve(stmt.dataSourceProps)(dataSources, stageName);
               // TODO: de-duplicate data sources
               const dataSource = new appsync.CfnDataSource(scope, `DataSource(${stageName})`, {
                 ...dataSourceProps,
@@ -350,6 +353,12 @@ export class Api<
           } = {
             kind: 'UNIT'
           };
+
+          if (result !== undefined && !VObject.isObject(result)) {
+            const err = new Error('result must be undefined or a VObject');
+            console.error('result is not a VObject', result, err);
+            throw err;
+          }
 
           if (functions.length === 0 && result === undefined && initState.template.length === 0) {
             // we don't need a resolver pipeline

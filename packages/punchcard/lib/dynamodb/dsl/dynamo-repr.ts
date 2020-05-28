@@ -221,6 +221,10 @@ export namespace DynamoDSL {
       return DynamoDSL.of(this.item, new DynamoExpr.GetMapItem(this, key));
     }
 
+    public has(key: string | VString): DynamoDSL.Bool {
+      return this.get(key).exists();
+    }
+
     public *put(key: string | VString, value: VObject.Like<T>): VTL<void> {
       const state = yield* getState();
       const thisPath = yield* toPath(this.expr);

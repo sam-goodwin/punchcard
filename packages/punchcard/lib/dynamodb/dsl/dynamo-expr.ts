@@ -1,5 +1,5 @@
 import { Shape } from '@punchcard/shape';
-import { getState, VInteger, VObject, VObjectExpr, VString, vtl } from '../../appsync';
+import { VInteger, VObject, VString } from '../../appsync';
 import type { DynamoDSL } from './dynamo-repr';
 
 export type DynamoExpr<T extends Shape = Shape> =

@@ -10,9 +10,9 @@ export type FieldResolver<Self extends RecordShape, T extends Shape, ReturnsValu
       (
         args: { [arg in keyof Args]: VObject.Of<Args[arg]>; },
         self: SelfType<Self>
-      ) => VTL<VObject.Like<DistributeUnionShape<Returns>>> :
+      ) => VTL<VObject.Of<DistributeUnionShape<Returns>>> :
       // no args if it is not a Function type
-      (self: VObject.Of<Self>) => VTL<VObject.Like<DistributeUnionShape<T>>>
+      (self: VObject.Of<Self>) => VTL<VObject.Of<DistributeUnionShape<T>>>
     ;
   } : ThisType<SelfType<Self>> & {
     readonly resolve?: T extends FunctionShape<infer Args, any> ?

@@ -1,5 +1,5 @@
 import { Shape } from '@punchcard/shape';
-import { getState, VObject, VObjectExpr, vtl, VTL } from '../../appsync';
+import { getState, VObject, vtl, VTL } from '../../appsync';
 import { $util } from '../../appsync/lang/util';
 import { DynamoExpr } from './dynamo-expr';
 import { DynamoGuards } from './guards';
@@ -22,14 +22,14 @@ export function *toPath(expr: DynamoExpr): Generator<any, string> {
     const prev = yield* toPath(expr.list.expr);
     const index = typeof expr.index === 'number' ?
       expr.index :
-      expr.index[VObjectExpr].visit(state)
+      VObject.getExpr(expr.index).visit(state)
     ;
     return `${prev}[${index}]`;
   } else if (DynamoExpr.isGetMapItem(expr)) {
     const prev = yield* toPath(expr.map.expr);
     const key = typeof expr.key === 'string' ?
       `"${expr.key}"` :
-      expr.key[VObjectExpr].visit(state) as string // todo: visit doesn't always return a string
+      expr.key
     ;
     const id = state.newId('#');
     yield* vtl`$util.qr($NAMES.put("${id}", ${key}))`;

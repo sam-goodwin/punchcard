@@ -278,14 +278,14 @@ export namespace $util.dynamodb {
    * @param number to convert to a DynamoDB number object.
    */
   export function toNumber(number: VInteger | VFloat | number): VObject.Of<typeof AttributeValue.Number> {
-    return VObject.fromExpr(AttributeValue.Number, VExpression.call('$util.dynamodb.toNumber', [typeof number === 'number' ? number.toString(10) : number]));
+    return VObject.fromExpr(AttributeValue.Number, VExpression.call('$util.dynamodb.toNumber', [number]));
   }
   /**
    * The same as `$util.dynamodb.toNumber`, but returns the DynamoDB attribute value as a JSON encoded string.
    * @param number to convert to a DynamoDB number object.
    */
   export function toNumberJson(number: VInteger | VFloat | number): VString {
-    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toNumberJson', [typeof number === 'number' ? number.toString(10) : number]));
+    return VObject.fromExpr(string, VExpression.call('$util.dynamodb.toNumberJson', [number]));
   }
   /**
    * Converts a list of numbers to the DynamoDB number set format. This returns an object that describes the DynamoDB attribute value.

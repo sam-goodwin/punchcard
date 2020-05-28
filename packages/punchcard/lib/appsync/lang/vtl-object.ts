@@ -8,22 +8,31 @@ import { ElseBranch, forLoop, IfBranch, stash } from './statement';
 import { $util } from './util';
 import { VTL, vtl } from './vtl';
 
-export const VObjectType = Symbol.for('VObjectType');
-export const VObjectExpr = Symbol.for('VObjectExpr');
+const VObjectType = Symbol.for('VObjectType');
+const VObjectExpr = Symbol.for('VObjectExpr');
 
 export class VObject<T extends Shape = Shape> {
-  public readonly [VObjectType]: T;
-  public readonly [VObjectExpr]: VExpression;
-  constructor(_type: T, _expr: VExpression) {
-    this[VObjectType] = _type;
-    this[VObjectExpr] = _expr;
+  #type: T;
+  #expr: VExpression;
+  constructor(type: T, expr: VExpression) {
+    this.#type = type;
+    this.#expr = expr;
   }
+
+  public [VObjectType](): T {
+    return this.#type;
+  }
+
+  public [VObjectExpr](): VExpression {
+    return this.#expr;
+  }
+
   public hashCode(): VInteger {
     return new VInteger(VExpression.call(this, 'hashCode', []));
   }
 
   public as<T extends Shape>(t: T): VObject.Of<T> {
-    return VObject.fromExpr(t, this[VObjectExpr]);
+    return VObject.fromExpr(t, this[VObjectExpr]());
   }
 
   public notEquals(other: this | Value.Of<T>): VBool {
@@ -80,7 +89,7 @@ export namespace VObject {
         // write to VTL using the item's type
         const itemValue = yield* of(itemType, value);
         // return an instance of the union
-        return VObject.fromExpr(type as T, itemValue[VObjectExpr]) as VObject.Of<T>;
+        return VObject.fromExpr(type as T, VObject.getExpr(itemValue)) as VObject.Of<T>;
       }
       console.log(type);
       console.log(value, typeof value);
@@ -131,12 +140,32 @@ export namespace VObject {
     return shape.visit(Visitor.defaultInstance as any, expr) as any;
   }
 
-  export function getType<T extends VObject>(t: T): T[typeof VObjectType] {
-    return t[VObjectType];
+  const _global = Symbol.for('VObject');
+  function _weakMap(): WeakMap<VObject, {
+    type: Shape;
+    expr: VExpression
+  }> {
+    const g = global as any;
+    if (g[_global] === undefined) {
+      g[_global] = new WeakMap();
+    }
+    return g[_global];
+  }
+
+  export function assertIsVObject(a: any): asserts a is VObject {
+    if (!_weakMap().has(a)) {
+      const err = new Error(`no entry in global weakmap for VObject`);
+      console.error('object is not a VObject', a, err);
+      throw err;
+    }
+  }
+
+  export function getType<T extends VObject>(t: T): TypeOf<T> {
+    return t[VObjectType]() as TypeOf<T>;
   }
 
   export function getExpr<T extends VObject>(t: T): VExpression {
-    return t[VObjectExpr];
+    return t[VObjectExpr]();
   }
 
   export function NewType<T extends Shape>(type: T): new(expr: VExpression) => VObject<T> {
@@ -146,7 +175,7 @@ export namespace VObject {
       }
     };
   }
-  export type TypeOf<T extends VObject> = T[typeof VObjectType];
+  export type TypeOf<T extends VObject> = T extends VObject<infer S> ? S : never;
 
   export function isObject(a: any): a is VObject {
     return a && a[VObjectExpr] !== undefined;
@@ -561,18 +590,22 @@ export class VList<T extends VObject = VObject> extends VObject<ArrayShape<VObje
   }
 
   public get(index: number | VInteger): T {
-    return VObject.fromExpr(this[VObjectType].Items, VExpression.concat(this, '.get(', index, ')')) as any;
+    return VObject.fromExpr(VObject.getType(this).Items, VExpression.concat(this, '.get(', index, ')')) as any;
   }
 
   public *set(index: number | VInteger, value: VObject.Like<VObject.TypeOf<T>>): VTL<void> {
-    yield* vtl`$util.qr(${this}.set(${index}, ${yield* VObject.of(this[VObjectType].Items, value)}))`;
+    yield* vtl`$util.qr(${this}.set(${index}, ${yield* VObject.of(VObject.getType(this).Items, value)}))`;
+  }
+
+  public push(value: VObject.Like<VObject.TypeOf<T>>) {
+    return this.add(value);
   }
 
   public *add(value: VObject.Like<VObject.TypeOf<T>>): VTL<void> {
-    yield* vtl`$util.qr(${this}.add(${yield* VObject.of(this[VObjectType].Items, value)}))`;
+    yield* vtl`$util.qr(${this}.add(${yield* VObject.of(VObject.getType(this).Items, value)}))`;
   }
 
-  public *forEach(f: (item: T) => VTL<void>): VTL<void> {
+  public *forEach(f: (item: T, index: VInteger) => VTL<void>): VTL<void> {
     yield* forLoop(this, f as any);
   }
 }
@@ -583,11 +616,11 @@ export class VMap<T extends VObject = VObject> extends VObject<MapShape<VObject.
   }
 
   public values(): VList<T> {
-    return new VList(this[VObjectType].Items, VExpression.concat(this, '.values()'));
+    return new VList(VObject.getType(this).Items, VExpression.concat(this, '.values()'));
   }
 
   public get(key: string | VString): T {
-    return VObject.fromExpr(this[VObjectType].Items, VExpression.concat(
+    return VObject.fromExpr(VObject.getType(this).Items, VExpression.concat(
       this, '.get(', key, ')'
     )) as any as T;
   }
@@ -637,7 +670,7 @@ export namespace VUnion {
   export class Match<
     U extends VObject = VObject,
     Returns = any,
-    Excludes extends UnionCase<U> = UnionCase<U>
+    Excludes = UnionCase<U>
   > {
     constructor(
       public readonly parent: Match<U, any, any> | undefined,
@@ -664,7 +697,7 @@ export namespace VUnion {
       T | Returns | undefined,
       M | Excludes
     > {
-      return new Match(this, this.value, match, then);
+      return new Match(this, this.value, match as any, then);
     }
 
     public otherwise<T>(
