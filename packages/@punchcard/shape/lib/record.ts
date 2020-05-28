@@ -281,13 +281,6 @@ export function Extend<
   fqn: FQN,
   members: RowLacks<M, keyof T['Members']>
 ): Extend<T['Members'], FQN, M> {
-  // const originalMembers = new Set(Object.keys(type.Members));
-  // for (const m of Object.keys(members)) {
-  //   if (originalMembers.has(m)) {
-  //     console.log(type, type.Members);
-  //     throw new Error(`attempted to override Record's member: ${m}`);
-  //   }
-  // }
   return Record(fqn!, {
     ...type.Members,
     ...members

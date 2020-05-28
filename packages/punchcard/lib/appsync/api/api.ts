@@ -17,7 +17,7 @@ import { CacheMetadata, CachingConfiguration } from './caching';
 import { ApiClient, GqlResult } from './client';
 import { InterpreterState, interpretProgram, parseIf } from './interpreter';
 import { FieldResolver } from './resolver';
-import { QueryRoot } from './root';
+import { QueryRoot, MutationRoot } from './root';
 import { SubscribeMetadata } from './subscription';
 import { TypeSpec } from './type-system';
 
@@ -431,6 +431,12 @@ export class Api<
   }
 
   public Query<T extends Record<string, GqlResult>>(f: (client: ApiClient<this, typeof QueryRoot>) => T): Promise<{
+    [i in keyof T]: T[i][ApiClient.result]
+  }> {
+    return null as any;
+  }
+
+  public Mutate<T extends Record<string, GqlResult>>(f: (client: ApiClient<this, typeof MutationRoot>) => T): Promise<{
     [i in keyof T]: T[i][ApiClient.result]
   }> {
     return null as any;

@@ -8,8 +8,17 @@ import { DynamoDSL } from 'punchcard/lib/dynamodb/dsl/dynamo-repr';
 // define the schema
 
 export class Candidate extends Record('Candidate', {
+  /**
+   * ID of the Candidate.
+   */
   candidateId: ID,
+  /**
+   * Answer
+   */
   answer: optional(string),
+  /**
+   * Number of votes for this candidate.
+   */
   upvotes: integer
 }) {}
 
@@ -26,8 +35,16 @@ export class PollData extends Record({
 }) {}
 
 export class Poll extends Record('Poll', {
-  ...PollData.Members,
-  candidates: array(Candidate)
+  /**
+   * ID of the Poll.
+   */
+  id: ID,
+  name: string,
+  createdAt: timestamp,
+  /**
+   * Poll Candidates.
+   */
+  candidates: array(Candidate),
 }) {}
 
 export function createPoll(pollData: VObject.Of<typeof PollData>): VObject.Like<typeof Poll> {
@@ -43,6 +60,9 @@ export class CreatePollInput extends Record('CreatePollInput', {
 }) {}
 
 export class PollMutations extends Mutation({
+  /**
+   * Add a Poll.
+   */
   addPoll: VFunction({
     args: {
       input: CreatePollInput
@@ -52,8 +72,16 @@ export class PollMutations extends Mutation({
 }) {}
 
 export class PollQueries extends Query({
+  /**
+   * Get a Poll by ID.
+   */
   getPoll: VFunction({
-    args: { id: ID },
+    args: {
+      /**
+       * ID of the Poll.
+       */
+      id: ID
+    },
     returns: optional(Poll)
   })
 }) {}
@@ -187,3 +215,24 @@ const api = new Api(stack, 'StrawPoll', {
     pollQueries
   ]
 });
+
+// Demo: Query Language
+async function main() {
+  const {query1} = await api.Query(client => ({
+    query1: client.getPoll({id: 'id'}, poll => poll
+      .id()
+      .candidates(c => c
+        .upvotes()))
+  }));
+  console.log(query1.candidates[0].upvotes);
+
+  const {mutation1} = await api.Mutate(client => ({
+    mutation1: client.upVote({
+      candidateId: 'a',
+      clientId: 'me',
+      pollId: 'pollId'
+    }, vote => vote
+      .pollId())
+  }))
+  console.log(mutation1.pollId);
+}
