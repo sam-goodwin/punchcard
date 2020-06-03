@@ -1,4 +1,5 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
+import { EnumShape } from './enum';
 import { FunctionArgs, FunctionShape } from './function';
 import { IsInstance } from './is-instance';
 import { LiteralShape } from './literal';
@@ -38,6 +39,17 @@ export namespace Validator {
   }
 
   class Visitor implements ShapeVisitor<Validator<any>[], string> {
+    public enumShape(shape: EnumShape<any, any>, context: string): Validator<any>[] {
+      const values = Object.values(shape.Values);
+      return [(item: any, path: string) => {
+        if (typeof item !== 'string') {
+          return [new Error(`expected string value for enum, got ${item} at ${path}`)];
+        } else if (values.indexOf(item) === -1) {
+          return [new Error(`expected one of (${values.join(',')}), got ${item} at ${path}`)];
+        }
+        return [];
+      }];
+    }
     public unionShape(shape: UnionShape<Shape[]>, context: string): Validator<any>[] {
       const isTypes = shape.Items.map(item => [IsInstance.of(item), Validator.of(item)] as const);
       return [(item: any, path: string) => {

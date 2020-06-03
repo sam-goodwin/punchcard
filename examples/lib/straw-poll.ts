@@ -1,12 +1,18 @@
-import { Core, DynamoDB } from 'punchcard';
+import { Core, DynamoDB, SQS } from 'punchcard';
 
-import { array, string, Record, optional, integer, timestamp, VFunction, map, } from '@punchcard/shape';
+import { array, string, Record, optional, integer, timestamp, VFunction, map, number, boolean, union, Enum, } from '@punchcard/shape';
 import { ID, Api, Mutation, Subscription, Query, Trait, $if, VObject, vtl, VString } from 'punchcard/lib/appsync';
 import { $util } from 'punchcard/lib/appsync/lang/util';
 import { DynamoDSL } from 'punchcard/lib/dynamodb/dsl/dynamo-repr';
 
 // define the schema
-
+/**
+ * type Candidate {
+ *   candidate: ID!
+ *   answer: String
+ *   upvotes: Int
+ * }
+ */
 export class Candidate extends Record('Candidate', {
   /**
    * ID of the Candidate.
@@ -59,6 +65,11 @@ export class CreatePollInput extends Record('CreatePollInput', {
   candidates: array(CreateCandidateInput)
 }) {}
 
+/**
+ * type Mutation {
+ *   addPoll(input: CreatePollInput!): Poll!
+ * }
+ */
 export class PollMutations extends Mutation({
   /**
    * Add a Poll.
@@ -86,12 +97,18 @@ export class PollQueries extends Query({
   })
 }) {}
 
+export const VoteDirection = Enum('VoteDirection', {
+  Up: 'UP',
+  Down: 'DOWN'
+} as const);
+
 // Votes
 export class VoteType extends Record('VoteType', {
   pollId: ID,
   candidateId: ID,
   clientId: ID,
-  upvotes: integer
+  upvotes: integer,
+  direction: VoteDirection
 }) {}
 
 export class UpVote extends Mutation({
@@ -99,7 +116,8 @@ export class UpVote extends Mutation({
     args: {
       pollId: ID,
       candidateId: ID,
-      clientId: ID
+      clientId: ID,
+      direction: VoteDirection
     },
     returns: VoteType
   })
@@ -117,7 +135,7 @@ export class VoteUpdates extends Subscription({
 // implement the backend
 
 export const app = new Core.App();
-const stack = app.stack('straw-poll');
+const stack = app.stack('straw-poll'); // CFN stack
 
 // dynamodb stores
 const pollStore = new DynamoDB.Table(stack, 'PollStore', {
@@ -143,6 +161,10 @@ const pollMutations = new PollMutations({
           answer: item.answer
         });
         yield* candidates.put(candidateId, candidate);
+      });
+
+      yield* $if(id.isEmpty(), function*() {
+        throw $util.error('baddy');
       });
 
       const poll = yield* pollStore.put({
@@ -175,13 +197,17 @@ const pollQueries = new PollQueries({
 
 const upVote = new UpVote({
   upVote: {
-    *resolve({pollId, candidateId, clientId}) {
+    *resolve({pollId, candidateId, clientId, direction}) {
       const post = yield* pollStore.update({
         key: {
           id: pollId
         },
         *transaction(poll) {
-          yield* poll.candidates.get(candidateId).M.upvotes.increment();
+          yield* $if(direction.equals('UP'), function*() {
+            yield* poll.candidates.get(candidateId).M.upvotes.increment();
+          }).else(function*() {
+            yield* poll.candidates.get(candidateId).M.upvotes.increment(-1);
+          })
         },
         *condition(poll) {
           yield* DynamoDSL.expect(poll.candidates.has(candidateId));
@@ -192,6 +218,7 @@ const upVote = new UpVote({
         pollId,
         candidateId,
         clientId,
+        direction,
         upvotes: post.candidates.get(candidateId).upvotes
       });
     }
@@ -204,7 +231,8 @@ const voteUpdates = new VoteUpdates({
       upVote.subscription('upVote')
     ]
   }
-})
+});
+
 
 const api = new Api(stack, 'StrawPoll', {
   name: 'StrawPoll',
@@ -212,27 +240,10 @@ const api = new Api(stack, 'StrawPoll', {
     upVote,
     voteUpdates,
     pollMutations,
-    pollQueries
+    pollQueries,
   ]
 });
 
-// Demo: Query Language
 async function main() {
-  const {query1} = await api.Query(client => ({
-    query1: client.getPoll({id: 'id'}, poll => poll
-      .id()
-      .candidates(c => c
-        .upvotes()))
-  }));
-  console.log(query1.candidates[0].upvotes);
 
-  const {mutation1} = await api.Mutate(client => ({
-    mutation1: client.upVote({
-      candidateId: 'a',
-      clientId: 'me',
-      pollId: 'pollId'
-    }, vote => vote
-      .pollId())
-  }))
-  console.log(mutation1.pollId);
 }

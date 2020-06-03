@@ -107,20 +107,20 @@ export namespace Mapper {
           })
         } as any;
       } else if (ShapeGuards.isSetShape(shape)) {
-        if (ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isNumberShape(shape.Items) || ShapeGuards.isBinaryShape(shape.Items)) {
+        if (ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isNumberShape(shape.Items) || ShapeGuards.isBinaryShape(shape.Items) || ShapeGuards.isEnumShape(shape.Items)) {
           const key =
-            ShapeGuards.isStringShape(shape.Items) ? 'SS' :
+            ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isEnumShape(shape.Items) ? 'SS' :
             ShapeGuards.isBinaryShape(shape.Items) ? 'BS' :
             'NS';
 
           const read =
-            ShapeGuards.isStringShape(shape.Items) ? (s: any) => s as string :
+            ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isEnumShape(shape.Items) ? (s: any) => s as string :
             ShapeGuards.isBinaryShape(shape.Items) ? (b: any) => b as Buffer :
             (n: any) => parseFloat(n)
             ;
 
           const write =
-            ShapeGuards.isStringShape(shape.Items) ? (s: string) => s :
+            ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isEnumShape(shape.Items) ? (s: string) => s :
             ShapeGuards.isBinaryShape(shape.Items) ? (b: Buffer) => b :
             (n: any) => n.toString()
             ;
@@ -163,7 +163,7 @@ export namespace Mapper {
             };
           }
         } as any;
-      } else if (ShapeGuards.isStringShape(shape)) {
+      } else if (ShapeGuards.isStringShape(shape) || ShapeGuards.isEnumShape(shape)) {
         return {
           read: (value: { S: string }) => {
             assertHasKey('S', value);

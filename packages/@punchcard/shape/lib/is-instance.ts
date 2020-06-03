@@ -1,4 +1,5 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
+import { EnumShape } from './enum';
 import { Equals } from './equals';
 import { FunctionShape } from './function';
 import { LiteralShape } from './literal';
@@ -25,6 +26,9 @@ export interface IsInstanceProps {
 }
 
 export class IsInstanceVisitor implements ShapeVisitor<IsInstance<Shape>, IsInstanceProps> {
+  public enumShape(shape: EnumShape<any, any>, context: IsInstanceProps): IsInstance<Shape> {
+    return (a => Object.values(shape.Values).indexOf(a) !== -1) as IsInstance<Shape>;
+  }
   public arrayShape(shape: ArrayShape<Shape>, props: IsInstanceProps): IsInstance<Shape> {
     const isItem: IsInstance<Shape> = IsInstance.of(shape.Items, props);
 

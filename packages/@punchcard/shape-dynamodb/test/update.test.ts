@@ -6,6 +6,33 @@ import { MyType } from './mock';
 
 const _ = DSL.of(MyType);
 
+test('enumProperty = literal', () => {
+  expect(Update.compile([
+    _.direction.set('UP')
+  ])).toEqual({
+    UpdateExpression: 'SET #1=:1',
+    ExpressionAttributeNames: {
+      '#1': 'direction'
+    },
+    ExpressionAttributeValues: {
+      ':1': {
+        S: 'UP'
+      }
+    },
+  });
+});
+
+test('enumProperty = reference', () => {
+  expect(Update.compile([
+    _.direction.set(_.direction)
+  ])).toEqual({
+    UpdateExpression: 'SET #1=#1',
+    ExpressionAttributeNames: {
+      '#1': 'direction'
+    }
+  });
+});
+
 test('stringProperty = stringLiteral', () => {
   expect(Update.compile([
     _.id.set('value')

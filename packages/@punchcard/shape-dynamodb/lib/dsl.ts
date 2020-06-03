@@ -1,4 +1,4 @@
-import { RecordShape, RecordType, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
+import { EnumShape, RecordShape, RecordType, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { AnyShape, BinaryShape, bool, BoolShape, IntegerShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
@@ -36,6 +36,7 @@ export namespace DSL {
         DSL.Union<T> :
       DSL.Union<T> :
 
+    T extends EnumShape ? Enum<T> :
     T extends RecordShape<any> ? DSL.Struct<T> :
     T extends MapShape<infer V> ? DSL.Map<V> :
     T extends SetShape<infer I> ? DSL.Set<I> :
@@ -59,6 +60,9 @@ export namespace DSL {
   }
 
   export const DslVisitor: ShapeVisitor<Node, ExpressionNode<any>> = {
+    enumShape: (shape, expr) => {
+      return new Enum(shape, expr);
+    },
     literalShape: (shape, expression) => {
       return shape.Type.visit(DslVisitor as any, expression);
     },
@@ -531,10 +535,7 @@ export namespace DSL {
 
   export class Binary extends Object<BinaryShape> {}
 
-  export class String extends Ord<StringShape> {
-    constructor(expression: ExpressionNode<StringShape>, shape?: StringShape) {
-      super(shape || string, expression);
-    }
+  export class StringLike<T extends StringShape | EnumShape> extends Ord<T> {
     public beginsWith(value: Expression<StringShape>): Bool {
       return String.beginsWith(this, value);
     }
@@ -542,19 +543,25 @@ export namespace DSL {
       return this.size;
     }
   }
+
+  export class String extends StringLike<StringShape> {
+    constructor(expression: ExpressionNode<StringShape>, shape?: StringShape) {
+      super(shape || string, expression);
+    }
+  }
   export namespace String {
     export class BeginsWith extends FunctionCall<BoolShape> {
       public readonly [SubNodeType] = 'string-begins-with';
 
-      constructor(lhs: ExpressionNode<StringShape>, rhs: ExpressionNode<StringShape>) {
+      constructor(lhs: ExpressionNode<StringShape | EnumShape>, rhs: ExpressionNode<StringShape | EnumShape>) {
         super('begins_with', bool, [lhs, rhs]);
       }
     }
-
-    export function beginsWith(lhs: Expression<StringShape>, rhs: Expression<StringShape>) {
+    export function beginsWith(lhs: Expression<StringShape | EnumShape>, rhs: Expression<StringShape | EnumShape>) {
       return new Bool(new String.BeginsWith(resolveExpression(string, lhs), resolveExpression(string, rhs)));
     }
   }
+  export class Enum<E extends EnumShape> extends StringLike<E> {}
 
   export class List<T extends Shape> extends Object<ArrayShape<T>> {
     constructor(type: ArrayShape<T>, expression: ExpressionNode<ArrayShape<T>>) {

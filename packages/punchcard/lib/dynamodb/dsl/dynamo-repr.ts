@@ -142,6 +142,7 @@ export namespace DynamoDSL {
     constructor(type: T, expr: DynamoExpr) {
       super(type, expr);
     }
+
     public *increment(amount?: number | VInteger): VTL<void> {
       const thisPath = yield* toPath(this.expr);
       const valueId = yield* addValue(this.type, amount === undefined ? 1 : amount);

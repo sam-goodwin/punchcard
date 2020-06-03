@@ -1,4 +1,4 @@
-import { AnyShape, ArrayShape, BinaryShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, RecordShape, SetShape, StringShape, UnionShape } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BinaryShape, EnumShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, RecordShape, SetShape, StringShape, UnionShape } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { ToJsonSchemaVisitor } from './visitor';
 
@@ -13,6 +13,7 @@ export type JsonSchema =
   | ObjectSchema<any>
   | SetSchema<any>
   | StringSchema
+  | EnumSchema<any>
   | TimestampSchema
   | OneOf<Shape[]>
   ;
@@ -29,6 +30,7 @@ export namespace JsonSchema {
     T extends NothingShape ? NothingSchema :
     T extends NumberShape ? NumberSchema<Meta.GetData<T>> :
     T extends StringShape ? StringSchema<Meta.GetData<T>> :
+    T extends EnumShape<infer V, any> ? EnumSchema<V[keyof V]> :
 
     T extends ArrayShape<infer I> ? ArraySchema<I> :
     T extends MapShape<infer V> ? MapSchema<V> :
@@ -73,6 +75,11 @@ export type BinarySchema<C extends BinarySchemaConstraints> = {
   type: 'string';
   format: 'base64';
 } & Pick<C, 'maxLength' | 'minLength'>;
+
+export interface EnumSchema<T extends string> {
+  type: 'string';
+  enum: T[];
+}
 
 export interface StringSchemaConstraints {
   maxLength?: number;

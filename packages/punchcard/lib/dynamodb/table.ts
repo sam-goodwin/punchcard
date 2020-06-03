@@ -194,6 +194,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       operation: string,
       key: this.keyShape
     });
+
     const request = VObject.fromExpr(GetItemRequest, VExpression.json({
       version: '2017-02-28',
       operation: 'GetItem',

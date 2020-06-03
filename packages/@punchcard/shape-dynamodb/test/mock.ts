@@ -1,4 +1,4 @@
-import { any, binary, bool, integer, number, optional, Record, string, timestamp } from '@punchcard/shape';
+import { any, binary, bool, Enum, integer, number, optional, Record, string, timestamp, Value } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import '../lib';
@@ -10,6 +10,14 @@ export class Nested extends Record('Nested', {
    */
   a: string
 }) {}
+
+export type Direction = Value.Of<typeof Direction>;
+export const Direction = Enum('Direction', {
+  Up: 'UP',
+  Down: 'DOWN',
+  Left: 'LEFT',
+  Right: 'RIGHT'
+} as const);
 
 export class MyType extends Record('MyType', {
   /**
@@ -32,5 +40,6 @@ export class MyType extends Record('MyType', {
 
   binaryField: binary,
   binarySet: set(binary),
-  anyField: any
+  anyField: any,
+  direction: Direction
 }) {}

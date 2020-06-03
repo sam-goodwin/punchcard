@@ -1,7 +1,8 @@
-import { any, array, binary, BinaryShape, boolean, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, ShapeGuards, ShapeVisitor, timestamp, Value } from '@punchcard/shape';
+import { any, array, binary, BinaryShape, boolean, EnumShape, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, ShapeGuards, ShapeVisitor, timestamp, Value } from '@punchcard/shape';
 import { AnyShape, ArrayShape, BoolShape, IntegerShape, MapShape, NumberShape, RecordShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
 import { string, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
+import { IsInstance } from '@punchcard/shape/lib/is-instance';
 import { UnionShape } from '@punchcard/shape/lib/union';
 import { VExpression } from './expression';
 import { ElseBranch, forLoop, IfBranch, stash } from './statement';
@@ -68,6 +69,9 @@ export namespace VObject {
       return arr as VObject.Of<T>;
     } else if (ShapeGuards.isRecordShape(type)) {
       const record: VObject = yield* vtl(type)`{}`;
+      if (type.FQN !== undefined) {
+        yield* vtl`$util.qr(${record}.put("__typename", "${type.FQN!}"))`;
+      }
       for (const [fieldName, fieldType] of Object.entries(type.Members)) {
         const fieldValue = (value as any)[fieldName];
         if (fieldValue === undefined) {
@@ -120,6 +124,7 @@ export namespace VObject {
       ShapeGuards.isBoolShape(shape) ? typeof value === 'boolean' :
       ShapeGuards.isNumberShape(shape) ? typeof value === 'number' :
       ShapeGuards.isStringShape(shape) ? typeof value === 'string' :
+      ShapeGuards.isEnumShape(shape) ? typeof value === 'string' && IsInstance.of(shape)(value) :
       ShapeGuards.isNothingShape(shape) ? typeof value === 'undefined' :
       ShapeGuards.isUnionShape(shape) ? shape.Items.find(item => isLike(item, value)) !== undefined :
       ShapeGuards.isMapShape(shape) ?
@@ -202,6 +207,7 @@ export namespace VObject {
     T extends TimestampShape ? VTimestamp :
     T extends UnionShape<infer U> ? VUnion<Of<U[Extract<keyof U, number>]>> :
     T extends NothingShape ? VNothing :
+    T extends EnumShape ? VEnum<T> :
 
     VObject<T>
   ;
@@ -243,6 +249,10 @@ export const ID = string.apply(IDTrait);
 export class VAny extends VObject.NewType(any) {}
 
 const VNumeric = <N extends NumberShape>(type: N) => class extends VObject.NewType(type) {
+  // public multiply(value: VInteger): VTL<> {
+
+  // }
+
   public *minus(value: VObject.Like<N>): VTL<this> {
     return (yield* stash(VObject.fromExpr(type, VExpression.concat(
       this, ' - ', VObject.isObject(value) ? value : value.toString(10)
@@ -314,7 +324,7 @@ export interface VString {
   hashCode(): VInteger;
 }
 
-export class VString extends VObject.NewType(string) {
+export class VStringLike<T extends StringShape | EnumShape> extends VObject<T> {
   /**
    * Compares two strings lexicographically. The comparison is based on the Unicode value
    * of each character in the strings. The character sequence represented by this String
@@ -573,6 +583,14 @@ export class VString extends VObject.NewType(string) {
   }
 }
 
+export class VString extends VStringLike<StringShape> {
+  constructor(expr: VExpression) {
+    super(string, expr);
+  }
+}
+
+export class VEnum<E extends EnumShape> extends VStringLike<E> {}
+
 export class VTimestamp extends VObject.NewType(timestamp) {}
 
 export class VList<T extends VObject = VObject> extends VObject<ArrayShape<VObject.TypeOf<T>>> {
@@ -762,13 +780,16 @@ export namespace VUnion {
 
 export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public static defaultInstance = new Visitor();
-  public unionShape(shape: UnionShape<Shape[]>, expr: VExpression): VObject<Shape> {
+
+  public enumShape(shape: EnumShape<any, any>, expr: VExpression): VEnum<EnumShape> {
+    return new VEnum(shape, expr);
+  }
+  public unionShape(shape: UnionShape<Shape[]>, expr: VExpression): VUnion<VObject<Shape>> {
     return new VUnion(shape, expr);
   }
   public literalShape(shape: LiteralShape<Shape, any>, expr: VExpression): VObject<Shape> {
     return shape.Type.visit(this, expr);
   }
-
   public functionShape(shape: FunctionShape<FunctionArgs, Shape>): VObject<Shape> {
     throw new Error("Method not implemented.");
   }

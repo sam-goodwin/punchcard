@@ -1,9 +1,11 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
+import { EnumShape } from './enum';
 import { FunctionShape } from './function';
 import { HashSet } from './hash-set';
 import { LiteralShape } from './literal';
 import { AnyShape, BinaryShape, BoolShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { Fields, RecordShape} from './record';
+import { Shape } from './shape';
 import { UnionShape } from './union';
 
 export namespace Value {
@@ -25,6 +27,7 @@ export namespace Value {
     T extends UnionShape<infer U> ? {
       [u in keyof U]: Of<U[u]>
     }[Extract<keyof U, number>]:
+    T extends EnumShape<infer E, any> ? E[keyof E] :
 
     T extends ArrayShape<infer I> ? Of<I>[] :
     T extends MapShape<infer V> ? { [key: string]: Of<V>; } :

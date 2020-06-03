@@ -1,4 +1,4 @@
-import { any, AnyShape, array, ArrayShape, AssertIsShape, binary, BinaryShape, boolean, BoolShape, literal, LiteralShape, map, MapShape, NothingShape, NumberShape, RequiredKeys, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape, union, UnionShape, Value } from '@punchcard/shape';
+import { any, AnyShape, array, ArrayShape, AssertIsShape, binary, BinaryShape, boolean, BoolShape, EnumShape, literal, LiteralShape, map, MapShape, NothingShape, NumberShape, RequiredKeys, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape, union, UnionShape, Value } from '@punchcard/shape';
 import { Record, RecordShape, RecordType} from '@punchcard/shape/lib/record';
 
 // tslint:disable: ban-types
@@ -19,6 +19,7 @@ export namespace AttributeValue {
     setAsList: false
   }> =
     T extends StringShape | TimestampShape ? typeof AttributeValue.String :
+    T extends EnumShape ? AttributeValue.Enum<T> :
     T extends NumberShape ? typeof AttributeValue.Number :
     T extends BoolShape ? typeof AttributeValue.Bool :
     T extends BinaryShape ? typeof AttributeValue.Binary :
@@ -133,6 +134,12 @@ export namespace AttributeValue {
   export class String extends Record({
     S: string
   }) {}
+  export interface Enum<E extends EnumShape> {
+    S: E
+  }
+  export const Enum = <E extends EnumShape>(e: E) => Record({
+    S: e
+  });
   export class StringSet extends Record({
     SS: array(string)
   }) {}

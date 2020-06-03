@@ -1,6 +1,6 @@
 import 'jest';
 
-import { any, binary, integer, nothing, number, NumberShape, optional, Record, string, StringShape, union } from '@punchcard/shape';
+import { any, binary, Enum, nothing, number, NumberShape, optional, Record, string, StringShape, union } from '@punchcard/shape';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema, NumberSchema, OneOf } from '../lib';
@@ -40,6 +40,10 @@ class MyType extends Record('MyType', {
     .apply(MaxLength(1))
   ,
 
+  enum: Enum({
+    Up: 'UP'
+  } as const),
+
   any,
 
   nothing,
@@ -68,9 +72,14 @@ it('should render JSON schema', () => {
       'map',
       'stringOrNumber',
       'binary',
+      'enum',
       'any',
     ],
     properties: {
+      enum: {
+        type: 'string',
+        enum: ['UP']
+      },
       id: {
         type: 'string',
         maxLength: 1,
@@ -202,6 +211,10 @@ it('should render JSON schema', () => {
             type: 'string'
           }
         }
+      },
+      enum: {
+        type: 'string',
+        enum: 'UP'[]
       },
       array: {
         type: 'array',

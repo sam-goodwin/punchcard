@@ -1,5 +1,13 @@
 import 'jest';
-import { array, boolean, Equals, map, number, Record, string, timestamp, union } from '../lib';
+import { array, boolean, Enum, Equals, map, number, Record, string, timestamp, union } from '../lib';
+
+it('enum', () => {
+  const eq = Equals.of(Enum({
+    Up: 'Up'
+  }));
+  expect(eq('Up', 'Up')).toBe(true);
+  expect(eq('Up', 'UP')).toBe(false);
+});
 
 it('string', () => {
   const eq = Equals.of(string);

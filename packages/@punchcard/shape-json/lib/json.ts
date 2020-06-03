@@ -1,4 +1,4 @@
-import { Equals, isOptional, LiteralShape, UnionShape } from '@punchcard/shape';
+import { EnumShape, Equals, isOptional, LiteralShape, UnionShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
@@ -49,6 +49,7 @@ export namespace Json {
     T extends LiteralShape<infer L, infer V> ? {
       [i in keyof L]: From<L, V>;
     }[keyof L] :
+    T extends EnumShape<infer E> ? E[keyof E] :
 
     T extends ArrayShape<infer I> ? Of<I>[] :
     T extends MapShape<infer V> ? { [key: string]: Of<V>; } :
@@ -115,6 +116,19 @@ export namespace Json {
   }
 
   export class MapperVisitor implements ShapeVisitor<Mapper<any, any>> {
+    public enumShape(shape: EnumShape<any, any>, context: undefined): Mapper<any, any> {
+      const isInstance = IsInstance.of(shape);
+      return {
+        read: s => {
+          if (isInstance(s)) {
+            return s;
+          } else {
+            throw new Error(`expected a value of the enum, ${Object.values(shape.Values).join(',')}`);
+          }
+        },
+        write: s => s
+      };
+    }
     public literalShape(shape: LiteralShape<Shape, any>, context: undefined): Mapper<any, any> {
       const valueMapper = shape.Type.visit(this, context) as Mapper<any, any>;
       const isEqual = Equals.of(shape.Type);

@@ -1,4 +1,5 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
+import { EnumShape } from './enum';
 import { FunctionArgs, FunctionShape } from './function';
 import { IsInstance } from './is-instance';
 import { LiteralShape } from './literal';
@@ -35,6 +36,9 @@ export namespace HashCode {
   }
 
   export class Visitor implements ShapeVisitor<HashCode<any>> {
+    public enumShape(shape: EnumShape<any, any>, context: undefined): HashCode<any> {
+      return this.stringShape();
+    }
     public literalShape(shape: LiteralShape<Shape, any>, context: undefined): HashCode<any> {
       const typeHc = HashCode.of(shape.Type);
       const hashCode = typeHc(shape.Value);
@@ -162,7 +166,7 @@ export namespace HashCode {
         return result;
       }) as any;
     }
-    public stringShape(shape: StringShape): HashCode<any> {
+    public stringShape(): HashCode<any> {
       return s => stringHashCode(s as string);
     }
     public timestampShape(shape: TimestampShape): HashCode<any> {

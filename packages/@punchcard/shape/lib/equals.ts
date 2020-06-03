@@ -1,4 +1,5 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
+import { EnumShape } from './enum';
 import { FunctionArgs, FunctionShape } from './function';
 import { IsInstance } from './is-instance';
 import { LiteralShape } from './literal';
@@ -32,6 +33,9 @@ export namespace Equals {
   }
 
   export class Visitor implements ShapeVisitor<Equals<any>> {
+    public enumShape(shape: EnumShape<any, any>, context: undefined): Equals<any> {
+      return (a, b) => a === b;
+    }
     public literalShape(shape: LiteralShape<Shape, any>, context: undefined): Equals<any> {
       return Equals.of(shape.Type);
     }

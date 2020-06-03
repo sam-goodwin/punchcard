@@ -71,6 +71,9 @@ it('should read attribute values', () => {
       },
       anyField: {
         S: 'any'
+      },
+      direction: {
+        S: 'UP'
       }
     }
   });
@@ -99,7 +102,8 @@ it('should read attribute values', () => {
     stringSet: new Set(['1', '2']),
     binaryField: Buffer.from('binaryField', 'utf8'),
     binarySet: HashSet.of(binary).add(Buffer.from('binarySet', 'utf8')),
-    anyField: 'any'
+    anyField: 'any',
+    direction: 'UP'
   });
 
   expect(actual).toEqual(expected);

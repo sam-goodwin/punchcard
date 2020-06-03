@@ -14,10 +14,10 @@ import { VBool, VInteger, VNothing, VObject, VUnion } from '../lang/vtl-object';
 import { ApiFragment, ApiFragments } from './api-fragment';
 import { AuthMetadata } from './auth';
 import { CacheMetadata, CachingConfiguration } from './caching';
-import { ApiClient, GqlResult } from './client';
+import { GqlApiClient, GqlResult } from './client';
 import { InterpreterState, interpretProgram, parseIf } from './interpreter';
 import { FieldResolver } from './resolver';
-import { QueryRoot, MutationRoot } from './root';
+import { MutationRoot, QueryRoot } from './root';
 import { SubscribeMetadata } from './subscription';
 import { TypeSpec } from './type-system';
 
@@ -142,8 +142,11 @@ export class Api<
           // recurse into the Items to discover any custom types
           parseType(shape.Items);
         } else if (ShapeGuards.isRecordShape(shape)) {
-          if (!seenDataTypes.has(shape.FQN!)) {
-            seenDataTypes.add(shape.FQN!);
+          if (shape.FQN === undefined) {
+            throw new Error(`un-named record types are not supported`);
+          }
+          if (!seenDataTypes.has(shape.FQN)) {
+            seenDataTypes.add(shape.FQN);
 
             const typeSpec = (self.types as Record<string, TypeSpec>)[shape.FQN!];
             if (typeSpec === undefined) {
@@ -168,6 +171,14 @@ export class Api<
         } else if (ShapeGuards.isFunctionShape(shape)) {
           Object.values(shape.args).forEach(parseInputType);
           parseType(shape.returns);
+        } else if (ShapeGuards.isEnumShape(shape)) {
+          if (shape.FQN === undefined) {
+            throw new Error(`un-named enum types are not supported`);
+          }
+          if (!seenDataTypes.has(shape.FQN)) {
+            seenDataTypes.add(shape.FQN);
+            blocks.push(`enum ${shape.FQN} {\n  ${Object.values(shape.Values).join('\n  ')}\n}`);
+          }
         }
       }
 
@@ -430,14 +441,14 @@ export class Api<
     });
   }
 
-  public Query<T extends Record<string, GqlResult>>(f: (client: ApiClient<this, typeof QueryRoot>) => T): Promise<{
-    [i in keyof T]: T[i][ApiClient.result]
+  public Query<T extends Record<string, GqlResult>>(f: (client: GqlApiClient<this, typeof QueryRoot>) => T): Promise<{
+    [i in keyof T]: T[i][GqlApiClient.result]
   }> {
     return null as any;
   }
 
-  public Mutate<T extends Record<string, GqlResult>>(f: (client: ApiClient<this, typeof MutationRoot>) => T): Promise<{
-    [i in keyof T]: T[i][ApiClient.result]
+  public Mutate<T extends Record<string, GqlResult>>(f: (client: GqlApiClient<this, typeof MutationRoot>) => T): Promise<{
+    [i in keyof T]: T[i][GqlApiClient.result]
   }> {
     return null as any;
   }
@@ -495,8 +506,10 @@ function getTypeAnnotation(shape: Shape): string {
       return shape.FQN!;
     } else if (ShapeGuards.isUnionShape(shape) && shape.FQN !== undefined) {
       return shape.FQN!;
+    } else if (ShapeGuards.isEnumShape(shape) && shape.FQN !== undefined) {
+      return shape.FQN!;
     } {
-      throw new Error(`shape type ${shape.FQN} is not supported by GraphQL`);
+      throw new Error(`shape type ${shape.Kind} is not supported by GraphQL`);
     }
   }
 }

@@ -1,12 +1,18 @@
-import { AnyShape, BinaryShape, BoolShape, IntegerShape, isOptional, LiteralShape, Meta, NeverShape, NumberShape, RecordShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
+import { AnyShape, BinaryShape, BoolShape, EnumShape, IntegerShape, isOptional, LiteralShape, Meta, NeverShape, NumberShape, RecordShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
-import { AnySchema, ArraySchema, BinarySchema, BoolSchema, IntegerSchema, JsonSchema, MapSchema, NothingSchema, NumberSchema, ObjectSchema, SetSchema, StringSchema, TimestampSchema } from './json-schema';
+import { AnySchema, ArraySchema, BinarySchema, BoolSchema, EnumSchema, IntegerSchema, JsonSchema, MapSchema, NothingSchema, NumberSchema, ObjectSchema, SetSchema, StringSchema, TimestampSchema } from './json-schema';
 
 /**
  * Transforms a Shape into its corresponding JSON Schema representation.
  */
 export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema, undefined> {
+  public enumShape(shape: EnumShape<any, any>, context: undefined): EnumSchema<any> {
+    return {
+      type: 'string',
+      enum: Object.values(shape.Values)
+    };
+  }
   public neverShape(shape: NeverShape, context: undefined): JsonSchema {
     throw new Error("JSON schema does not support never types");
   }

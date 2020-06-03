@@ -2,7 +2,7 @@ import 'jest';
 
 import { AnyShape, optional, string, Value } from '@punchcard/shape';
 import { AttributeValue } from '../lib';
-import { MyType } from './mock';
+import { Direction, MyType } from './mock';
 
 it('should map Shape AST to AttributeValue AST', () => {
   const s: AttributeValue.ShapeOf<typeof MyType> = null as any;
@@ -13,6 +13,9 @@ it('should map Shape AST to AttributeValue AST', () => {
       id: AttributeValue.String,
       count?: AttributeValue.Nothing | AttributeValue.Number,
       integer: AttributeValue.Number,
+      directon: {
+        S: Direction;
+      },
 
       nested: {
         M: {

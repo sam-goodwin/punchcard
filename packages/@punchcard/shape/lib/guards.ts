@@ -1,4 +1,5 @@
 import { ArrayShape, CollectionShape, MapShape, SetShape } from './collection';
+import { EnumShape, EnumValues } from './enum';
 import { FunctionArgs, FunctionShape } from './function';
 import { LiteralShape } from './literal';
 import { Decorated } from './metadata';
@@ -118,6 +119,13 @@ export namespace ShapeGuards {
   export const assertUnionShape = (a: any): asserts a is UnionShape<Shape[]> => {
     if (!isUnionShape(a)) {
       throw new Error(`${a} is not of type: UnionShape`);
+    }
+  };
+
+  export const isEnumShape = (a: any): a is EnumShape<EnumValues, string | undefined> => isShape(a) && a.Kind === 'enumShape';
+  export const assertEnumShape = (a: any): asserts a is EnumShape<EnumValues, string | undefined> => {
+    if (!isEnumShape(a)) {
+      throw new Error(`${a} is not of type: EnumShape`);
     }
   };
 

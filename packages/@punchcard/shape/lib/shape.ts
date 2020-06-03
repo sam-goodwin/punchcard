@@ -12,11 +12,9 @@ import { ShapeVisitor } from './visitor';
  */
 export abstract class Shape {
   public readonly [Value.Tag]: any;
-
   public readonly NodeType: 'shape' = 'shape';
 
   public abstract readonly FQN: string | undefined;
-
   public abstract readonly Kind: keyof ShapeVisitor;
 
   public readonly [Decorated.Data]?: {} = {};
@@ -39,4 +37,7 @@ export abstract class Shape {
 }
 export namespace Shape {
   export type Primitive = PrimitiveShapes;
+
+  export type Class = typeof Class;
+  export const Class = Symbol.for('Shape.Class');
 }

@@ -1,4 +1,4 @@
-import { AnyShape, ArrayShape, BinaryShape, BoolShape, Decorated, IntegerShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, RecordShape, SetShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape, Trait, UnionShape } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BinaryShape, BoolShape, Decorated, EnumShape, IntegerShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, RecordShape, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, Trait, UnionShape } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 
 import { KeysOfType } from 'typelevel-ts';
@@ -64,6 +64,9 @@ export function schema<T extends RecordShape<any>>(shape: T): Columns<T> {
 export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
   public static readonly instance = new SchemaVisitor();
 
+  public enumShape(shape: EnumShape<any, any>, context: null): glue.Type {
+    return glue.Schema.STRING;
+  }
   public literalShape(shape: LiteralShape<Shape, any>, context: null): glue.Type {
     return shape.Type.visit(this, context);
   }

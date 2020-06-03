@@ -1,9 +1,14 @@
-import { array, Description, integer, map, number, Record, set, string } from '@punchcard/shape';
+import { array, Description, Enum, integer, map, number, Record, set, string } from '@punchcard/shape';
 import { char, double, float, glue, varchar } from '../lib';
 
 import Glue = require('../lib');
 
 // tslint:disable: member-access
+
+const Direction = Enum('Direction', {
+  Up: 'UP',
+  Down: 'Down'
+} as const);
 
 class Nested extends Record('Nested', {
   name: string
@@ -26,6 +31,8 @@ class Data extends Record('Data', {
 
   char: char(10),
   varchar: varchar(10),
+
+  enum: Direction
 }) {}
 
 const schema = Glue.schema(Data);
@@ -79,6 +86,10 @@ test('Glue Schema from Shape', () => {
     varchar: {
       name: 'varchar',
       type: glue.Schema.varchar(10)
+    },
+    enum: {
+      name: 'enum',
+      type: glue.Schema.STRING
     }
   });
 

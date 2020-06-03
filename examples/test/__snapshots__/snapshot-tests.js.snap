@@ -2963,6 +2963,573 @@ Object {
 }
 `;
 
+exports[`straw-poll stack straw-poll should match snapshot 1`] = `
+Object {
+  "Resources": Object {
+    "PollStore9D5823C2": Object {
+      "DeletionPolicy": "Retain",
+      "Properties": Object {
+        "AttributeDefinitions": Array [
+          Object {
+            "AttributeName": "id",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": Array [
+          Object {
+            "AttributeName": "id",
+            "KeyType": "HASH",
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "StrawPollApiDA23AE9A": Object {
+      "Properties": Object {
+        "AuthenticationType": "AWS_IAM",
+        "LogConfig": Object {
+          "CloudWatchLogsRoleArn": Object {
+            "Fn::GetAtt": Array [
+              "StrawPollCloudWatchRole164EEC36",
+              "Arn",
+            ],
+          },
+          "FieldLogLevel": "ALL",
+        },
+        "Name": "StrawPoll",
+      },
+      "Type": "AWS::AppSync::GraphQLApi",
+    },
+    "StrawPollApiDataSourcesMutationaddPoll1RoleCB2AF897": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "StrawPollApiDataSourcesMutationaddPoll1RoleDefaultPolicy78D5C991": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "PollStore9D5823C2",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "StrawPollApiDataSourcesMutationaddPoll1RoleDefaultPolicy78D5C991",
+        "Roles": Array [
+          Object {
+            "Ref": "StrawPollApiDataSourcesMutationaddPoll1RoleCB2AF897",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "StrawPollApiDataSourcesMutationupVote1Role4F2BA985": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "StrawPollApiDataSourcesMutationupVote1RoleDefaultPolicyD031CF0B": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "PollStore9D5823C2",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "StrawPollApiDataSourcesMutationupVote1RoleDefaultPolicyD031CF0B",
+        "Roles": Array [
+          Object {
+            "Ref": "StrawPollApiDataSourcesMutationupVote1Role4F2BA985",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "StrawPollApiDataSourcesQuerygetPoll1Role0D62635C": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "StrawPollApiDataSourcesQuerygetPoll1RoleDefaultPolicyCBD395F0": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "PollStore9D5823C2",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "StrawPollApiDataSourcesQuerygetPoll1RoleDefaultPolicyCBD395F0",
+        "Roles": Array [
+          Object {
+            "Ref": "StrawPollApiDataSourcesQuerygetPoll1Role0D62635C",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "StrawPollCloudWatchRole164EEC36": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "StrawPollCloudWatchRoleDefaultPolicy1D4F6822": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:DescribeLogStreams",
+              ],
+              "Effect": "Allow",
+              "Resource": "arn:aws:logs:*:*:*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "StrawPollCloudWatchRoleDefaultPolicy1D4F6822",
+        "Roles": Array [
+          Object {
+            "Ref": "StrawPollCloudWatchRole164EEC36",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "StrawPollDataSourceMutationaddPoll1635F6C6B": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollApiDA23AE9A",
+            "ApiId",
+          ],
+        },
+        "DynamoDBConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "TableName": Object {
+            "Ref": "PollStore9D5823C2",
+          },
+        },
+        "Name": "Mutation_addPoll1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollApiDataSourcesMutationaddPoll1RoleCB2AF897",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "StrawPollDataSourceMutationupVote1039185A7": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollApiDA23AE9A",
+            "ApiId",
+          ],
+        },
+        "DynamoDBConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "TableName": Object {
+            "Ref": "PollStore9D5823C2",
+          },
+        },
+        "Name": "Mutation_upVote1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollApiDataSourcesMutationupVote1Role4F2BA985",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "StrawPollDataSourceQuerygetPoll1E5317BCA": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollApiDA23AE9A",
+            "ApiId",
+          ],
+        },
+        "DynamoDBConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "TableName": Object {
+            "Ref": "PollStore9D5823C2",
+          },
+        },
+        "Name": "Query_getPoll1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollApiDataSourcesQuerygetPoll1Role0D62635C",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "StrawPollResolveMutationaddPollEEE02ABB": Object {
+      "DependsOn": Array [
+        "StrawPollSchema71E8F18D",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollApiDA23AE9A",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollDataSourceMutationaddPoll1635F6C6B",
+            "Name",
+          ],
+        },
+        "FieldName": "addPoll",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "#set($context.stash.var1 = $util.autoId())
+#set($context.stash.var2 = $util.time.nowISO8601())
+#set($context.stash.var3 = {})
+#foreach( $item1 in $context.arguments.input.candidates)
+  #set($context.stash.var4 = {})
+  $util.qr($context.stash.var4.put(\\"__typename\\", \\"Candidate\\"))
+  $util.qr($context.stash.var4.put(\\"candidateId\\", \\"$foreach.index\\"))
+  $util.qr($context.stash.var4.put(\\"answer\\", $item1.answer))
+  #set($context.stash.var5 = 0)
+  $util.qr($context.stash.var4.put(\\"upvotes\\", $context.stash.var5))
+  #set($context.stash.var6 = $util.qr($context.stash.var3.put(\\"$foreach.index\\", $context.stash.var4)))
+  
+#end
+#if($context.stash.var1.isEmpty())
+  $util.error(\\"baddy\\")
+#end
+{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"PutItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.stash.var1)
+  },
+  \\"attributeValues\\": {
+    \\"name\\": $util.dynamodb.toDynamoDBJson($context.arguments.input.name),
+    \\"createdAt\\": $util.dynamodb.toDynamoDBJson($context.stash.var2),
+    \\"candidates\\": $util.dynamodb.toDynamoDBJson($context.stash.var3)
+  }
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var7 = $context.result)
+
+#set($context.stash.var8 = {})
+$util.qr($context.stash.var8.put(\\"__typename\\", \\"Poll\\"))
+$util.qr($context.stash.var8.put(\\"id\\", $context.stash.var7.id))
+$util.qr($context.stash.var8.put(\\"name\\", $context.stash.var7.name))
+$util.qr($context.stash.var8.put(\\"createdAt\\", $context.stash.var7.createdAt))
+$util.qr($context.stash.var8.put(\\"candidates\\", $context.stash.var7.candidates.values()))
+$util.toJson($context.stash.var8)",
+        "TypeName": "Mutation",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "StrawPollResolveMutationupVote63A6C9B5": Object {
+      "DependsOn": Array [
+        "StrawPollSchema71E8F18D",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollApiDA23AE9A",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollDataSourceMutationupVote1039185A7",
+            "Name",
+          ],
+        },
+        "FieldName": "upVote",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "#set($CONDITION = [])
+#set($ADD = [])
+#set($DELETE = [])
+#set($SET = [])
+#set($VALUES = {})
+#set($NAMES = {})
+$util.qr($NAMES.put(\\"#1\\", \\"candidates\\"))
+$util.qr($NAMES.put(\\"#2\\", $context.arguments.candidateId))
+$util.qr($CONDITION.add(\\"attribute_exists(#1.#2)\\"))
+$util.qr($NAMES.put(\\"#3\\", \\"candidates\\"))
+$util.qr($NAMES.put(\\"#4\\", $context.arguments.candidateId))
+$util.qr($NAMES.put(\\"#5\\", \\"upvotes\\"))
+#set($var1 = $util.dynamodb.toNumber(1))
+$util.qr($VALUES.put(\\":1\\", $var1))
+$util.qr($ADD.add(\\"#3.#4.#5 :1\\"))
+#set($EXPRESSION = \\"\\")
+
+## DynamoDB Update Expressions - SET
+#if(!$SET.isEmpty())
+  #set($EXPRESSION = \\"$EXPRESSION SET #foreach($item in $SET)$item#if($foreach.hasNext), #end#end\\")
+  
+#end
+
+## DynamoDB Update Expressions - ADD
+#if(!$ADD.isEmpty())
+  #set($EXPRESSION = \\"$EXPRESSION ADD #foreach($item in $ADD)$item#if($foreach.hasNext), #end#end\\")
+  
+#end
+
+## DynamoDB Update Expressions - DELETE
+#if(!$DELETE.isEmpty())
+  #set($EXPRESSION = \\"$EXPRESSION DELETE #foreach($item in $DELETE)$item#if($foreach.hasNext), #end#end\\")
+  
+#end
+#if(!$CONDITION.isEmpty())
+  #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
+  #set($context.stash.var2 = {})
+  $util.qr($context.stash.var2.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var2.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var2.put(\\"expressionValues\\", $VALUES))
+  #set($local4 = $context.stash.var2)
+  
+#end
+#set($context.stash.var3 = $local4)
+{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"UpdateItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.arguments.pollId)
+  },
+  \\"update\\": {
+    \\"expression\\": $util.toJson($EXPRESSION),
+    \\"expressionNames\\": $util.toJson($NAMES),
+    \\"expressionValues\\": $util.toJson($VALUES)
+  },
+  \\"condition\\": $util.toJson($context.stash.var3)
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var4 = $context.result)
+
+#set($context.stash.var5 = {})
+$util.qr($context.stash.var5.put(\\"__typename\\", \\"VoteType\\"))
+$util.qr($context.stash.var5.put(\\"pollId\\", $context.arguments.pollId))
+$util.qr($context.stash.var5.put(\\"candidateId\\", $context.arguments.candidateId))
+$util.qr($context.stash.var5.put(\\"clientId\\", $context.arguments.clientId))
+$util.qr($context.stash.var5.put(\\"upvotes\\", $context.stash.var4.candidates.get($context.arguments.candidateId).upvotes))
+$util.toJson($context.stash.var5)",
+        "TypeName": "Mutation",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "StrawPollResolveQuerygetPoll41F2001C": Object {
+      "DependsOn": Array [
+        "StrawPollSchema71E8F18D",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollApiDA23AE9A",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollDataSourceQuerygetPoll1E5317BCA",
+            "Name",
+          ],
+        },
+        "FieldName": "getPoll",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"GetItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.arguments.id)
+  }
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result)
+
+#set($context.stash.var2 = {})
+$util.qr($context.stash.var2.put(\\"__typename\\", \\"Poll\\"))
+$util.qr($context.stash.var2.put(\\"id\\", $context.stash.var1.id))
+$util.qr($context.stash.var2.put(\\"name\\", $context.stash.var1.name))
+$util.qr($context.stash.var2.put(\\"createdAt\\", $context.stash.var1.createdAt))
+$util.qr($context.stash.var2.put(\\"candidates\\", $context.stash.var1.candidates.values()))
+$util.toJson($context.stash.var2)",
+        "TypeName": "Query",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "StrawPollSchema71E8F18D": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "StrawPollApiDA23AE9A",
+            "ApiId",
+          ],
+        },
+        "Definition": "type Query {
+  getPoll(id: ID!): Poll
+}
+type Poll {
+  id: ID!
+  name: String!
+  createdAt: AWSDateTime!
+  candidates: [Candidate!]!
+}
+type Candidate {
+  candidateId: ID!
+  answer: String
+  upvotes: Int!
+}
+type Mutation {
+  upVote(pollId: ID!,candidateId: ID!,clientId: ID!): VoteType!
+  addPoll(input: CreatePollInput!): Poll!
+}
+type VoteType {
+  pollId: ID!
+  candidateId: ID!
+  clientId: ID!
+  upvotes: Int!
+}
+input CandidateInput {
+  answer: String!
+}
+input CreatePollInput {
+  name: String!
+  candidates: [CandidateInput!]!
+}
+type Subscription {
+  onUpdateById(pollId: ID!): VoteType
+    @aws_subscribe(mutations:[\\"upVote\\"])
+}
+schema {
+  query: Query,
+  mutation: Mutation,
+  subscription: Subscription
+}",
+      },
+      "Type": "AWS::AppSync::GraphQLSchema",
+    },
+  },
+}
+`;
+
 exports[`stream-processing stack stream-processing should match snapshot 1`] = `
 Object {
   "Resources": Object {

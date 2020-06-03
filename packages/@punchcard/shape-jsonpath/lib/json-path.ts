@@ -1,4 +1,4 @@
-import { LiteralShape, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
+import { EnumShape, LiteralShape, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { AnyShape, BinaryShape, bool, BoolShape, IntegerShape, NeverShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
@@ -20,6 +20,12 @@ export namespace JsonPath {
     T extends AnyShape ? JsonPath.Any<T> :
     T extends NumberShape ? JsonPath.Number :
     T extends StringShape ? JsonPath.String :
+
+    T extends EnumShape ? JsonPath.String :
+
+    T extends LiteralShape<infer S> ? {
+      [k in keyof T]: Of<S>
+    }[keyof T] :
 
     T extends ArrayShape<infer I> ? JsonPath.Array<I> :
     T extends MapShape<infer V> ? JsonPath.Map<V> :
@@ -423,6 +429,9 @@ export namespace JsonPath {
 }
 
 class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
+  public enumShape(shape: EnumShape<any, any>, expr: JsonPath.ExpressionNode<any>) {
+    return this.stringShape(string, expr);
+  }
   public literalShape(shape: LiteralShape<Shape, any>, expr: JsonPath.ExpressionNode<any>): any {
     return shape.Type.visit(this, expr);
   }
@@ -431,10 +440,8 @@ class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
     if (items.length === 1) {
       return items[0].visit(this, expr);
     }
-
     throw new Error("Method not implemented.");
   }
-
   public neverShape(shape: NeverShape, context: JsonPath.ExpressionNode<any>) {
     throw new Error("NeverShape is not supported by JSON Path");
   }

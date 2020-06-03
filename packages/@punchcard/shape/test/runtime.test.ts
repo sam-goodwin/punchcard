@@ -1,6 +1,6 @@
 import 'jest';
 
-import { any, array, bool, Equals, HashCode, HashSet, map, number, optional, Record, set, string, Value } from '../lib';
+import { any, array, bool, Enum, Equals, HashCode, HashSet, map, number, optional, Record, set, string, Value } from '../lib';
 
 // tslint:disable: member-access
 class Nested extends Record('Nested', {
@@ -32,6 +32,9 @@ class MyType extends Record('MyType', {
   complexSet: set(Nested),
   map: map(string),
   complexMap: map(Nested),
+  enum: Enum({
+    Up: 'Up'
+  } as const)
 }) {
   public getId() {
     return this.id || 'default';
@@ -67,6 +70,7 @@ const myType = new MyType({
       b: 'b'
     })
   },
+  enum: 'Up',
   set: new Set<string>().add('value'),
   complexSet: HashSet.of(Nested)
     .add(new Nested({
@@ -167,6 +171,7 @@ describe('Extend', () => {
         b: 'b'
       })
     },
+    enum: 'Up',
     set: new Set<string>().add('value'),
     complexSet: HashSet.of(Nested)
       .add(new Nested({

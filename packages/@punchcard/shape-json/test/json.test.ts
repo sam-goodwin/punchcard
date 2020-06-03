@@ -1,6 +1,6 @@
 import 'jest';
 
-import { bool, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, optional, Pattern, Record, string, union } from '@punchcard/shape';
+import { bool, Enum, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, optional, Pattern, Record, string, union } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import { Json } from '../lib';
@@ -41,7 +41,10 @@ class MyType extends Record('MyType', {
   union: union(string, number),
 
   null: nothing,
-  optional: optional(string)
+  optional: optional(string),
+  enum: Enum({
+    Up: 'Up'
+  } as const)
 }) {}
 
 const mapper = Json.mapper(MyType);
@@ -64,7 +67,8 @@ const jsonRepr = {
       a: 'complexMap'
     }
   },
-  null: undefined
+  null: undefined,
+  enum: 'Up' as const
 };
 
 const runtimeRepr = new MyType({
@@ -85,7 +89,8 @@ const runtimeRepr = new MyType({
       a: 'complexMap'
     })
   },
-  null: undefined
+  null: undefined,
+  enum: 'Up'
 });
 
 test('should read shape from json', () => {
