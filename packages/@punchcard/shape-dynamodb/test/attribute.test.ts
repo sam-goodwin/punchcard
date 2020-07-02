@@ -1,6 +1,6 @@
 import 'jest';
 
-import { AnyShape, optional, string, Value } from '@punchcard/shape';
+import { Value } from '@punchcard/shape';
 import { AttributeValue } from '../lib';
 import { Direction, MyType } from './mock';
 

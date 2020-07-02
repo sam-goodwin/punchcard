@@ -1,4 +1,4 @@
-import { AnyShape, BinaryShape, BoolShape, EnumShape, IntegerShape, isOptional, LiteralShape, Meta, NeverShape, NumberShape, RecordShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
+import { AnyShape, BinaryShape, BoolShape, EnumShape, IntegerShape, isOptional, LiteralShape, Meta, NeverShape, NumberShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, TypeShape, UnionShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { AnySchema, ArraySchema, BinarySchema, BoolSchema, EnumSchema, IntegerSchema, JsonSchema, MapSchema, NothingSchema, NumberSchema, ObjectSchema, SetSchema, StringSchema, TimestampSchema } from './json-schema';
@@ -107,7 +107,7 @@ export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema, undefined> 
     };
   }
 
-  public recordShape(shape: RecordShape<any>): ObjectSchema<any> {
+  public recordShape(shape: TypeShape<any>): ObjectSchema<any> {
     const required = (Object.entries(shape.Members) as [string, Shape][])
       .map(([name, member]) => {
         return isOptional(member) || ShapeGuards.isNothingShape(member) ? [] : [name];

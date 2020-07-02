@@ -1,7 +1,7 @@
 import 'jest';
 import sinon = require('sinon');
 
-import { Record, timestamp } from '@punchcard/shape';
+import { timestamp, Type } from '@punchcard/shape';
 
 import glue = require('@aws-cdk/aws-glue');
 import core = require('@aws-cdk/core');
@@ -14,7 +14,7 @@ const database = stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'database'
 }));
 
-class MyTable extends Record({
+class MyTable extends Type({
   timestamp
 }) {}
 

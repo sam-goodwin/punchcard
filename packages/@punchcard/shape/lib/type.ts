@@ -47,7 +47,7 @@ export namespace Fields {
  * @typeparam M record members (key-value pairs of shapes)
  * @typeparam I instance type of this Record (the value type)
  */
-export class RecordShape<M extends Fields = Fields, FQN extends string | undefined = string | undefined> extends Shape {
+export class TypeShape<M extends Fields = Fields, FQN extends string | undefined = string | undefined> extends Shape {
   public readonly Kind: 'recordShape' = 'recordShape';
 
   /**
@@ -70,8 +70,8 @@ export class RecordShape<M extends Fields = Fields, FQN extends string | undefin
     return Object.values(this.Metadata);
   }
 }
-export namespace RecordShape {
-  export type GetMembers<T extends RecordShape<any>> = T extends RecordShape<infer M> ? M : never;
+export namespace TypeShape {
+  export type GetMembers<T extends TypeShape<any>> = T extends TypeShape<infer M> ? M : never;
 }
 
 /**
@@ -106,7 +106,7 @@ export type RecordValues<M extends Fields> = {
   [m in RequiredKeys<M>]-?: Value.Of<Pointer.Resolve<M[m]>>;
 };
 
-export interface RecordType<M extends Fields = Fields, FQN extends string | undefined = string | undefined> extends RecordShape<M, FQN> {
+export interface TypeClass<M extends Fields = Fields, FQN extends string | undefined = string | undefined> extends TypeShape<M, FQN> {
   /**
    * Constructor takes values for each member.
    */
@@ -192,10 +192,10 @@ export interface RecordType<M extends Fields = Fields, FQN extends string | unde
  * @param members key-value pairs of members and their shape (type).
  */
 // export function Record<T extends RecordMembers = any>(members: T): RecordType<T>;
-export function Record<FQN extends string, T extends Fields = any>(members: T): RecordType<T, undefined>;
-export function Record<FQN extends string, T extends Fields = any>(fqn: FQN, members: T): RecordType<T, FQN>;
+export function Type<FQN extends string, T extends Fields = any>(members: T): TypeClass<T, undefined>;
+export function Type<FQN extends string, T extends Fields = any>(fqn: FQN, members: T): TypeClass<T, FQN>;
 
-export function Record<T extends Fields>(a: any, b?: any) {
+export function Type<T extends Fields>(a: any, b?: any) {
   const FQN = typeof a === 'string' ? a : undefined;
   const members = typeof b === 'undefined' ? a : b;
 // export function Record<T extends RecordMembers = any>(members: T): RecordType<T> {
@@ -240,7 +240,7 @@ export function Record<T extends Fields>(a: any, b?: any) {
     }
   }
 
-  const shape = new RecordShape<T, any>(members, {}, FQN);
+  const shape = new TypeShape<T, any>(members, {}, FQN);
   Object.assign(NewType, shape);
   (NewType as any).equals = shape.equals.bind(NewType);
   (NewType as any).visit = shape.visit.bind(NewType);
@@ -273,7 +273,7 @@ export function Record<T extends Fields>(a: any, b?: any) {
  * @param members new Record members
  */
 export function Extend<
-  T extends RecordType,
+  T extends TypeClass,
   FQN extends string | undefined,
   M extends Fields
 >(
@@ -281,7 +281,7 @@ export function Extend<
   fqn: FQN,
   members: RowLacks<M, keyof T['Members']>
 ): Extend<T['Members'], FQN, M> {
-  return Record(fqn!, {
+  return Type(fqn!, {
     ...type.Members,
     ...members
   }) as any;
@@ -290,14 +290,14 @@ export function Extend<
 /**
  * Combine two sets of Members into a single `RecordType`.
  */
-export type Extend<T extends Fields, FQN extends string | undefined, M extends Fields> = RecordType<Compact<T & M>, FQN>;
+export type Extend<T extends Fields, FQN extends string | undefined, M extends Fields> = TypeClass<Compact<T & M>, FQN>;
 
 
 /**
  * Picks members from a `Record` to create a new `RecordType`.
  */
 export type PickRecord<T extends Fields, FQN extends string | undefined, K extends (keyof T)[] | ReadonlyArray<keyof T>> =
-  RecordType<
+  TypeClass<
     Pick<T, Extract<K[keyof K], string>>,
     FQN
   >;
@@ -332,14 +332,14 @@ export function Pick<T extends Fields, FQN extends string | undefined, M extends
       throw new Error(`attempted to select non-existent member: ${key}`);
     }
   }
-  return Record(fqn!, members) as any;
+  return Type(fqn!, members) as any;
 }
 
 /**
  * Omits members from a `Record` to create a new `RecordType`
  */
 export type OmitRecord<T extends Fields, FQN extends string | undefined, K extends (keyof T)[]> =
-  RecordType<
+  TypeClass<
     Omit<T, Extract<K[keyof K], string>>,
     FQN
   >;
@@ -374,5 +374,5 @@ export function Omit<T extends Fields, FQN extends string | undefined, M extends
       throw new Error(`attempted to select non-existent member: ${key}`);
     }
   }
-  return Record(fqn!, members) as any;
+  return Type(fqn!, members) as any;
 }

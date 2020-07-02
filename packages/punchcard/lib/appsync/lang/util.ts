@@ -1,4 +1,4 @@
-import { AnyShape, ArrayShape, BinaryShape, bool, boolean, BoolShape, CollectionShape, Fields, FunctionShape, literal, LiteralShape, map, MapShape, NeverShape, NothingShape, NumberShape, Pointer, Record, RecordShape, RecordType, set, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, union, UnionShape } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BinaryShape, bool, boolean, BoolShape, CollectionShape, Fields, FunctionShape, literal, LiteralShape, map, MapShape, NeverShape, NothingShape, NumberShape, Pointer, set, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, Type, TypeClass, TypeShape, union, UnionShape } from '@punchcard/shape';
 import { AttributeValue } from '@punchcard/shape-dynamodb';
 import { VExpression } from './expression';
 import { stash } from './statement';
@@ -456,7 +456,7 @@ export namespace $util.dynamodb {
     T extends SetShape<infer I> ? AttributeValue.List<ToDynamoDBJson<I>> :
     T extends ArrayShape<infer I> ? AttributeValue.List<ToDynamoDBJson<I>> :
     T extends MapShape<infer V> ? AttributeValue.Map<ToDynamoDBJson<V>> :
-    T extends RecordShape<infer M> ? AttributeValue.Struct<{
+    T extends TypeShape<infer M> ? AttributeValue.Struct<{
       [m in keyof M]: ToDynamoDBJson<M[m]>;
     }> :
     AttributeValue // <- never?
@@ -505,7 +505,7 @@ export namespace $util.time {
 
 type _HasSet<T extends Shape> =
   T extends SetShape<any> ? true :
-  T extends RecordShape<infer F> ? Extract<{
+  T extends TypeShape<infer F> ? Extract<{
     [f in keyof F]: HasSet<F[f]>
   }[keyof F], boolean> :
   T extends CollectionShape<infer I> ? Extract<{

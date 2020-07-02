@@ -3,8 +3,8 @@ import { EnumShape } from './enum';
 import { FunctionArgs, FunctionShape } from './function';
 import { LiteralShape } from './literal';
 import { AnyShape, BinaryShape, BoolShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
-import { Fields, RecordShape } from './record';
 import type { Shape } from './shape';
+import { Fields, TypeShape } from './type';
 import { UnionShape } from './union';
 
 export interface ShapeVisitor<T = unknown, C = undefined> {
@@ -19,7 +19,7 @@ export interface ShapeVisitor<T = unknown, C = undefined> {
   neverShape(shape: NeverShape, context: C): T;
   nothingShape(shape: NothingShape, context: C): T;
   numberShape(shape: NumberShape, context: C): T;
-  recordShape(shape: RecordShape<Fields>, context: C): T;
+  recordShape(shape: TypeShape<Fields>, context: C): T;
   setShape(shape: SetShape<Shape>, context: C): T;
   stringShape(shape: StringShape, context: C): T;
   timestampShape(shape: TimestampShape, context: C): T;

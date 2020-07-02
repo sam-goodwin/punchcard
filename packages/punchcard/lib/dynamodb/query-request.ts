@@ -1,9 +1,9 @@
-import { DistributeUnionShape, NothingShape, PickRecord, RecordShape, UnionShape } from '@punchcard/shape';
+import { DistributeUnionShape, NothingShape, PickRecord, TypeShape, UnionShape, Value } from '@punchcard/shape';
 import { DDB } from '@punchcard/shape-dynamodb';
 import { VBool, VInteger, VList, VNothing, VObject, VString, VTL, VUnion } from '../appsync';
 import { DynamoDSL } from './dsl/dynamo-repr';
 
-export interface QueryRequest<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> {
+export interface QueryRequest<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> {
   where: QueryCondition<DataType, Key>;
   nextToken?: string | VString | VNothing | VUnion<VString | VNothing>;
   limit?: number | VInteger | VNothing | VUnion<VInteger | VNothing>;
@@ -13,15 +13,15 @@ export interface QueryRequest<DataType extends RecordShape, Key extends DDB.KeyO
   select?: (keyof DataType['Members'])[] | ReadonlyArray<keyof DataType['Members']>
 }
 
-export type QueryCondition<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> = Key['sort'] extends string ? {
-  [p in Key['partition']]: VObject.Of<Exclude<DistributeUnionShape<DataType['Members'][p]>, UnionShape<any> | NothingShape>>
+export type QueryCondition<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> = Key['sort'] extends string ? {
+  [p in Key['partition']]: VObject.Like<Exclude<DistributeUnionShape<DataType['Members'][p]>, UnionShape<any> | NothingShape>>
 } & {
   [s in Key['sort']]?: (s: DynamoDSL.Repr<DataType['Members'][s]>) => DynamoDSL.Bool
 } : never;
 
 export type QueryResponse<
   Request extends QueryRequest<DataType, Key>,
-  DataType extends RecordShape,
+  DataType extends TypeShape,
   Key extends DDB.KeyOf<DataType>
 > = {
   items: VList<Request['select'] extends (keyof DataType['Members'])[] | ReadonlyArray<keyof DataType['Members']> ?

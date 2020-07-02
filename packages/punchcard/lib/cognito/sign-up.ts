@@ -1,4 +1,4 @@
-import { RecordShape } from '@punchcard/shape';
+import { TypeShape } from '@punchcard/shape';
 import { Dependency } from '../core/dependency';
 import { TriggerHandler } from './trigger-function';
 import { TriggerRequest } from './trigger-request';
@@ -7,7 +7,7 @@ import { TriggerSource } from './trigger-source';
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html
  */
-export interface SignUpTriggers<A extends RecordShape, D extends Dependency<any>> {
+export interface SignUpTriggers<A extends TypeShape, D extends Dependency<any>> {
   /**
    * The pre sign-up Lambda function is triggered just before Amazon Cognito signs up a
    * new user. It allows you to perform custom validation to accept or deny the registration
@@ -62,7 +62,7 @@ export interface SignUpTriggers<A extends RecordShape, D extends Dependency<any>
   >;
 }
 
-export interface PreSignUpRequest<A extends RecordShape> extends TriggerRequest<A> {
+export interface PreSignUpRequest<A extends TypeShape> extends TriggerRequest<A> {
   /**
    * One or more key-value pairs that you can provide as custom input to the Lambda function that
    * you specify for the pre sign-up trigger. You can pass this data to your Lambda function by using
@@ -123,7 +123,7 @@ export interface PreSignUpResponse {
  *
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-post-confirmation.html
  */
-export interface PostConfirmationRequest<A extends RecordShape> extends TriggerRequest<A> {
+export interface PostConfirmationRequest<A extends TypeShape> extends TriggerRequest<A> {
   /**
    * One or more key-value pairs that you can provide as custom input to the
    * Lambda function that you specify for the post confirmation trigger. You
@@ -147,7 +147,7 @@ export interface PostConfirmationResponse {}
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-migrate-user.html
  */
-export interface UserMigrationRequest<A extends RecordShape> extends TriggerRequest<A> {
+export interface UserMigrationRequest<A extends TypeShape> extends TriggerRequest<A> {
   /**
    * The username entered by the user.
    */

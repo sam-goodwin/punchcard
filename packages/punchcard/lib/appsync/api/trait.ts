@@ -1,11 +1,11 @@
-import { Fields, RecordShape } from '@punchcard/shape';
+import { Fields, TypeShape } from '@punchcard/shape';
 import { ApiFragment } from './api-fragment';
 import { AuthMetadata } from './auth';
 import { CacheMetadata } from './caching';
 import { FieldResolver } from './resolver';
 
 export interface FixedTraitClass<
-  T extends RecordShape<any, string>,
+  T extends TypeShape<any, string>,
   F extends Fields,
   ReturnsValue extends boolean = true
 > {
@@ -20,11 +20,11 @@ export interface TraitClass<
   ReturnsValue extends boolean = true
 > {
   readonly fields: F;
-  new<T extends RecordShape<any, string>>(type: T, impl: TraitImpl<T, F, ReturnsValue>): ApiFragment<T, F>;
+  new<T extends TypeShape<any, string>>(type: T, impl: TraitImpl<T, F, ReturnsValue>): ApiFragment<T, F>;
 }
 
 export function Trait<
-  T extends RecordShape<any, string> = RecordShape<any, string>,
+  T extends TypeShape<any, string> = TypeShape<any, string>,
   F extends Fields = Fields
 >(
   type: T,
@@ -39,7 +39,7 @@ export function Trait<
 
 export function Trait(a: any, b?: any): any {
   if (b !== undefined) {
-    const type = a as RecordShape<any, string>;
+    const type = a as TypeShape<any, string>;
     const fields = b as Fields;
     return class Fragment extends ApiFragment<typeof type, typeof fields>  {
       // public static readonly type: T = type;
@@ -51,7 +51,7 @@ export function Trait(a: any, b?: any): any {
     };
   } else {
     const fields = a as Fields;
-    return class Fragment<T extends RecordShape<any, string>> extends ApiFragment<T, typeof fields>  {
+    return class Fragment<T extends TypeShape<any, string>> extends ApiFragment<T, typeof fields>  {
       // public static readonly type: T = type;
       public static readonly fields: typeof fields = fields;
 
@@ -66,7 +66,7 @@ export function Trait(a: any, b?: any): any {
  * Implementation of the field resolvers in a Trait.
  */
 export type TraitImpl<
-  Self extends RecordShape,
+  Self extends TypeShape,
   F extends Fields,
   ReturnsValue extends boolean = true
 > = {

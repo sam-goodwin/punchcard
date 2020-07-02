@@ -1,4 +1,4 @@
-import { AnyShape, ArrayShape, BinaryShape, BoolShape, Decorated, EnumShape, IntegerShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, RecordShape, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, Trait, UnionShape } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BinaryShape, BoolShape, Decorated, EnumShape, IntegerShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, Trait, TypeShape, UnionShape } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 
 import { KeysOfType } from 'typelevel-ts';
@@ -32,19 +32,19 @@ function getComment<T extends Shape>(member: T): GetComment<T> {
   return undefined as GetComment<T>;
 }
 
-type Column<K extends keyof T['Members'], T extends RecordShape<any>> = {
+type Column<K extends keyof T['Members'], T extends TypeShape<any>> = {
   name: K;
   type: glue.Type;
   comment: GetComment<T['Members'][K]>;
 };
 
-export type PartitionKeys<T extends RecordShape<any>> = KeysOfType<T['Members'], Decorated<any, { isPartition: true; }>>;
+export type PartitionKeys<T extends TypeShape<any>> = KeysOfType<T['Members'], Decorated<any, { isPartition: true; }>>;
 
-export type Columns<T extends RecordShape<any>> = {
+export type Columns<T extends TypeShape<any>> = {
   readonly [K in keyof T['Members']]: Column<K, T>;
 };
 
-export function schema<T extends RecordShape<any>>(shape: T): Columns<T> {
+export function schema<T extends TypeShape<any>>(shape: T): Columns<T> {
   const columns: { [name: string]: Column<any, any>; } = {};
   for (const [name, member] of Object.entries(shape.Members) as [string, Shape][]) {
     const type = member.visit(SchemaVisitor.instance, null);
@@ -94,7 +94,7 @@ export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
   public boolShape(shape: BoolShape): glue.Type {
     return glue.Schema.BOOLEAN;
   }
-  public recordShape(shape: RecordShape<any>): glue.Type {
+  public recordShape(shape: TypeShape<any>): glue.Type {
     return glue.Schema.struct(Object.entries(shape.Members)
       .map(([name, member]) => ({
         name,

@@ -1,17 +1,17 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, integer, Record, any, Shape, Minimum } from '@punchcard/shape';
+import { array, string, integer, Type, any, Shape, Minimum } from '@punchcard/shape';
 import { CDK } from 'punchcard/lib/core/cdk';
 
 export const app = new Core.App();
 const stack = app.stack('invoke-function');
 
-class Struct extends Record({
+class Struct extends Type({
   key: string,
   number: integer
 }) {}
 
-class Item extends Record({
+class Item extends Type({
   id: string,
   count: integer
     .apply(Minimum(0)),

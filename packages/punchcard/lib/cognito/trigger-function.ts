@@ -1,4 +1,4 @@
-import { AnyShape, RecordShape } from '@punchcard/shape';
+import { AnyShape, TypeShape } from '@punchcard/shape';
 import { Client } from '../core';
 import { Scope } from '../core/construct';
 import { Dependency } from '../core/dependency';
@@ -15,14 +15,14 @@ export type TriggerHandler<
   Source extends TriggerSource,
   Request extends TriggerRequest<A>,
   Response,
-  A extends RecordShape,
+  A extends TypeShape,
   D extends Dependency<any>
 > = (event: TriggerEvent<Request, Source>, client: Client<D>) => Promise<Response>;
 
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools-working-with-aws-lambda-triggers.html
  */
-export interface TriggerHandlers<A extends RecordShape, D extends Dependency<any>> extends
+export interface TriggerHandlers<A extends TypeShape, D extends Dependency<any>> extends
   CustomAuthenticationTriggers<A, D>,
   AuthenticationTriggers<A, D>,
   SignUpTriggers<A, D>,
@@ -32,7 +32,7 @@ export interface TriggerFunctionProps<
   D extends Dependency<any>> extends Omit<Lambda.FunctionProps<AnyShape, AnyShape, D>, 'request' | 'response'
 > {}
 export class TriggerFunction<
-  A extends RecordShape,
+  A extends TypeShape,
   D extends Dependency<any>
 > extends Lambda.Function<AnyShape, AnyShape, D> {
   constructor(

@@ -2,13 +2,13 @@ import { Core, Lambda } from 'punchcard';
 
 import * as Analytics from '@punchcard/data-lake';
 
-import { Record, string, array, integer, timestamp } from '@punchcard/shape';
+import { Type, string, array, integer, timestamp } from '@punchcard/shape';
 import { char } from '@punchcard/shape-hive';
 
 export const app = new Core.App();
 const stack = app.stack('data-lake');
 
-class DataPoint extends Record({
+class DataPoint extends Type({
   key: string,
   value: char(10),
   data_points: array(integer),

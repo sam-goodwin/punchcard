@@ -5,7 +5,7 @@ export interface FunctionArgs {
 }
 
 export interface FunctionShapeProps<Args extends FunctionArgs, Returns extends Shape> {
-  args: Args;
+  params: Args;
   returns: Returns;
 }
 
@@ -23,8 +23,9 @@ export class FunctionShape<Args extends FunctionArgs = FunctionArgs, Returns ext
   }
 }
 
-export function VFunction<Args extends FunctionArgs, Returns extends Shape>(
-  props: FunctionShapeProps<Args, Returns>
+export function Fn<Args extends FunctionArgs, Returns extends Shape>(
+  args: Args,
+  returns: Returns
 ): FunctionShape<Args, Returns> {
-  return new FunctionShape(props.args, props.returns);
+  return new FunctionShape(args, returns);
 }

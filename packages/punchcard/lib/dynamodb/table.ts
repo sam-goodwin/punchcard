@@ -4,7 +4,7 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, array, map, optional, Record, RecordShape, string } from '@punchcard/shape';
+import { any, array, map, optional, string, Type, TypeShape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
 import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VInteger, VObject, VString, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';
@@ -48,7 +48,7 @@ export interface BaseTableProps {
  * @typeparam DataType type of data in the Table.
  * @typeparam Key partition and optional sort keys of the Table (members of DataType)
  */
-export interface TableProps<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> extends BaseTableProps {
+export interface TableProps<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> extends BaseTableProps {
   /**
    * Type of data in the Table.
    */
@@ -116,7 +116,7 @@ export interface TableProps<DataType extends RecordShape, Key extends DDB.KeyOf<
  * @typeparam DataType type of data in the Table.
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
-export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>> extends Construct implements Resource<dynamodb.Table> {
+export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> extends Construct implements Resource<dynamodb.Table> {
   /**
    * The DynamoDB Table Construct.
    */
@@ -132,7 +132,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
    */
   public readonly key: Key;
 
-  private _keyShape: RecordShape; // cache
+  private _keyShape: TypeShape; // cache
   private get keyShape() {
     if (!this._keyShape) {
       const keyMembers: any = {
@@ -141,12 +141,12 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
       if (this.key.sort) {
         keyMembers[this.key.sort] = this.dataType.Members[this.key.sort as any];
       }
-      this._keyShape = Record(keyMembers);
+      this._keyShape = Type(keyMembers);
     }
     return this._keyShape;
   }
 
-  private _attributeValuesShape: RecordShape; // cache
+  private _attributeValuesShape: TypeShape; // cache
   private get attributeValuesShape() {
     if (!this._attributeValuesShape) {
       const keyShape = this.keyShape;
@@ -154,7 +154,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
         ...this.dataType.Members
       };
       Object.keys(keyShape.Members).forEach(k => delete attributeValues[k]);
-      this._attributeValuesShape = Record(attributeValues);
+      this._attributeValuesShape = Type(attributeValues);
     }
     return this._attributeValuesShape;
   }
@@ -189,7 +189,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
   }
 
   public get(key: KeyGraphQLRepr<DataType, Key>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
-    const GetItemRequest = Record({
+    const GetItemRequest = Type({
       version: string,
       operation: string,
       key: this.keyShape
@@ -206,7 +206,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
 
   public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
     // TODO: address redundancy between this and `get`.
-    const PutItemRequest = Record({
+    const PutItemRequest = Type({
       version: string,
       operation: string,
       key: this.keyShape,
@@ -258,17 +258,17 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
     }
     yield* request.transaction(fields);
 
-    const UpdateItemRequestCondition = Record({
+    const UpdateItemRequestCondition = Type({
       expression: string,
       expressionNames: map(string),
       expressionValues: map(any)
     });
 
-    const UpdateItemRequest = Record({
+    const UpdateItemRequest = Type({
       version: string,
       operation: string,
       key: this.keyShape,
-      update: Record({
+      update: Type({
         expression: string,
         expressionNames: map(string),
         expressionValues: map(any)
@@ -374,7 +374,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
    * ```
    * @param projection type of projected data (subset of the Table's properties)
    */
-  public projectTo<Projection extends RecordShape>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
+  public projectTo<Projection extends TypeShape>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
     return new Projected(this, projection) as any;
   }
 
@@ -444,7 +444,7 @@ export class Table<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>
   }
 }
 
-export type KeyGraphQLRepr<DataType extends RecordShape, K extends DDB.KeyOf<DataType>> = {
+export type KeyGraphQLRepr<DataType extends TypeShape, K extends DDB.KeyOf<DataType>> = {
   [k in Extract<K[keyof K], string>]: VObject.Of<DataType['Members'][k]>;
 };
 
@@ -458,7 +458,7 @@ export namespace Table {
     useCallerCredentials?: boolean;
   }
 
-  export function NewType<DataType extends RecordShape, Key extends DDB.KeyOf<DataType>>(
+  export function NewType<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>>(
     input: {
       data: DataType,
       key: Key
@@ -477,19 +477,19 @@ export namespace Table {
    *
    * Unavailable methods: `put`, `putBatch`, `delete`, `update`.
    */
-  export interface ReadOnly<A extends RecordShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'batchPut' | 'delete' | 'update'> {}
+  export interface ReadOnly<A extends TypeShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'batchPut' | 'delete' | 'update'> {}
 
   /**
    * A DynamoDB Table with write-only permissions.
    *
    * Unavailable methods: `batchGet`, `get`, `scan`, `query`
    */
-  export interface WriteOnly<A extends RecordShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
+  export interface WriteOnly<A extends TypeShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
 
   /**
    * A DynamODB Table with read and write permissions.
    */
-  export interface ReadWrite<A extends RecordShape, K extends DDB.KeyOf<A>> extends TableClient<A, K> {}
+  export interface ReadWrite<A extends TypeShape, K extends DDB.KeyOf<A>> extends TableClient<A, K> {}
 }
 
 export namespace Table {
@@ -497,7 +497,7 @@ export namespace Table {
   export type Key<T extends Table<any, any>> = T extends Table<any, infer K> ? K : never;
 }
 
-type AssertValidProjection<T extends RecordShape, P extends RecordShape> = T['Members'] extends P['Members'] ? P : never;
+type AssertValidProjection<T extends TypeShape, P extends TypeShape> = T['Members'] extends P['Members'] ? P : never;
 
 /**
  * Represents a Projection of some DynamoDB Table.
@@ -507,7 +507,7 @@ type AssertValidProjection<T extends RecordShape, P extends RecordShape> = T['Me
  * @typeparam SourceTable the projected table
  * @typeparam Projection the type of projected data
  */
-export class Projected<SourceTable extends Table<any, any>, Projection extends RecordShape> {
+export class Projected<SourceTable extends Table<any, any>, Projection extends TypeShape> {
   constructor(public readonly sourceTable: SourceTable, public readonly projection: Projection) {}
 
   public globalIndex<IndexKey extends DDB.KeyOf<Projection>>(

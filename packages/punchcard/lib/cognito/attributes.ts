@@ -1,6 +1,8 @@
 import { BoolShape, IntegerShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape';
 import { StandardClaims } from './standard-claims';
 
+import type { StandardAttribute } from '@aws-cdk/aws-cognito';
+
 /**
  * Valid shapes that represent Attributes
  */
@@ -17,5 +19,5 @@ export interface CustomAttributes {
 }
 
 export type RequiredAttributes = {
-  [k in keyof StandardClaims]?: boolean;
+  [k in keyof StandardClaims]?: StandardAttribute;
 };

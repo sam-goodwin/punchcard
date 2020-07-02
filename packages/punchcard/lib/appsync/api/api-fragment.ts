@@ -1,10 +1,10 @@
-import { Fields, RecordShape, Shape, ShapeGuards, UnionToIntersection } from '@punchcard/shape';
+import { Fields, Shape, ShapeGuards, TypeShape, UnionToIntersection } from '@punchcard/shape';
 import { SubscriptionImpl } from './subscription';
 import { TraitImpl } from './trait';
 import { TypeSpec } from './type-system';
 
 export class ApiFragment<
-  T extends RecordShape<{}, string> = RecordShape<{}, string>,
+  T extends TypeShape<{}, string> = TypeShape<{}, string>,
   F extends Fields = {}
 > {
   constructor(
@@ -29,7 +29,7 @@ export namespace ApiFragments {
   > & {
     fields: Extract<{
       [i in Extract<keyof F, number>]: F[i]['type']
-    }[Extract<keyof F, number>], RecordShape<Fields, FQN>>['Members']
+    }[Extract<keyof F, number>], TypeShape<Fields, FQN>>['Members']
   };
 
   export type ListTypeNames<
@@ -61,7 +61,7 @@ export namespace ApiFragments {
 
     return index as Reduce<Fragments>;
 
-    function getTypes(shape: Shape): RecordShape<any, string>[] {
+    function getTypes(shape: Shape): TypeShape<any, string>[] {
       if (ShapeGuards.isFunctionShape(shape)) {
         return getTypes(shape.returns);
       } else if (ShapeGuards.isArrayShape(shape)) {

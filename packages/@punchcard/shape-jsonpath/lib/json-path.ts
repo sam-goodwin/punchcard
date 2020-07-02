@@ -2,8 +2,8 @@ import { EnumShape, LiteralShape, ShapeGuards, ShapeVisitor, UnionShape, Value }
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { AnyShape, BinaryShape, bool, BoolShape, IntegerShape, NeverShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
-import { RecordShape } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
+import { TypeShape } from '@punchcard/shape/lib/type';
 import { Writer } from './writer';
 
 const Objekt = Object;
@@ -29,7 +29,7 @@ export namespace JsonPath {
 
     T extends ArrayShape<infer I> ? JsonPath.Array<I> :
     T extends MapShape<infer V> ? JsonPath.Map<V> :
-    T extends RecordShape<any> ? JsonPath.Struct<T> & {
+    T extends TypeShape<any> ? JsonPath.Struct<T> & {
       [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
     } :
     T extends SetShape<infer V> ? JsonPath.Array<V> :
@@ -51,9 +51,9 @@ export namespace JsonPath {
     JsonPath.Object<T>
     ;
 
-  export type Root<T extends RecordShape> = Struct<T>[Fields];
+  export type Root<T extends TypeShape> = Struct<T>[Fields];
 
-  export function of<T extends RecordShape>(shape: T): Root<T> {
+  export function of<T extends TypeShape>(shape: T): Root<T> {
     const result: any = {};
     for (const [name, member] of Objekt.entries(shape.Members) as [string, Shape][]) {
       result[name] = member.visit(visitor as any, new Id(member, `$['${name}']`));
@@ -399,7 +399,7 @@ export namespace JsonPath {
   export const Fields = Symbol.for('@punchcard/shape-jsonpath.JsonPath.Fields');
   export type Fields = typeof Fields;
 
-  export class Struct<T extends RecordShape<any>> extends Object<T> {
+  export class Struct<T extends TypeShape<any>> extends Object<T> {
     public readonly [Fields]: {
       [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
     };
@@ -474,7 +474,7 @@ class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
   public boolShape(shape: BoolShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Bool {
     return new JsonPath.Bool(expression, shape);
   }
-  public recordShape(shape: RecordShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Struct<RecordShape<any>> {
+  public recordShape(shape: TypeShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Struct<TypeShape<any>> {
     return new Proxy(new JsonPath.Struct(shape, expression), {
       get: (target, prop) => {
         if (typeof prop === 'string') {

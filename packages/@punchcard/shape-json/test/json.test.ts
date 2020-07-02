@@ -1,19 +1,19 @@
 import 'jest';
 
-import { bool, Enum, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, optional, Pattern, Record, string, union } from '@punchcard/shape';
+import { bool, Enum, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, optional, Pattern, string, Type, union } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import { Json } from '../lib';
 
 // tslint:disable: member-access
 
-class Nested extends Record('Nested', {
+class Nested extends Type('Nested', {
   /**
    * A docs.
    */
   a: optional(string)
 }) {}
-class MyType extends Record('MyType', {
+class MyType extends Type('MyType', {
   /**
    * Field documentation.
    */
@@ -101,7 +101,7 @@ test('should write shape to json', () => {
   expect(mapper.write(runtimeRepr)).toEqual(jsonRepr);
 });
 
-class Empty extends Record('Empty', {}) {}
+class Empty extends Type('Empty', {}) {}
 
 test('should support empty record', () => {
   expect(() => Json.mapper(Empty)).not.toThrow();

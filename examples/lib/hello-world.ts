@@ -1,5 +1,5 @@
 import { Core, Lambda, DynamoDB, SQS } from 'punchcard';
-import { string, integer, Record } from '@punchcard/shape';
+import { string, integer, Type } from '@punchcard/shape';
 import { Dependency } from 'punchcard/lib/core';
 
 export const app = new Core.App();
@@ -8,7 +8,7 @@ const stack = app.stack('hello-world');
 /**
  * State of a counter.
  */
-class Counter extends Record({
+class Counter extends Type({
   /**
    * The hash key of the Counter
    */

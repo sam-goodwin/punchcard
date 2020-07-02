@@ -1,7 +1,6 @@
-import { EnumShape, RecordShape, RecordType, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
+import { EnumShape, ShapeGuards, ShapeVisitor, TypeShape, UnionShape, Value } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
-import { AnyShape, BinaryShape, bool, BoolShape, IntegerShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { AnyShape, BinaryShape, bool, BoolShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
@@ -37,7 +36,7 @@ export namespace DSL {
       DSL.Union<T> :
 
     T extends EnumShape ? Enum<T> :
-    T extends RecordShape<any> ? DSL.Struct<T> :
+    T extends TypeShape<any> ? DSL.Struct<T> :
     T extends MapShape<infer V> ? DSL.Map<V> :
     T extends SetShape<infer I> ? DSL.Set<I> :
     T extends ArrayShape<infer I> ? DSL.List<I> :
@@ -45,9 +44,9 @@ export namespace DSL {
     DSL.Object<T>
     ;
 
-  export type Root<T extends RecordShape<any>> = Struct<T>['fields'];
+  export type Root<T extends TypeShape<any>> = Struct<T>['fields'];
 
-  export function of<T extends RecordShape<any>>(shape: T): Root<T> {
+  export function of<T extends TypeShape<any>>(shape: T): Root<T> {
     const result: any = {};
     for (const [name, member] of Objekt.entries(shape.Members)) {
       result[name] = (member as Shape).visit(DslVisitor, new RootProperty(member as Shape, name));
@@ -105,7 +104,7 @@ export namespace DSL {
     boolShape: (shape: BoolShape, expression: ExpressionNode<any>): Bool => {
       return new Bool(expression, shape);
     },
-    recordShape: (shape: RecordShape<any>, expression: ExpressionNode<any>): Struct<any> => {
+    recordShape: (shape: TypeShape<any>, expression: ExpressionNode<any>): Struct<any> => {
       return new Struct(shape, expression);
     },
     mapShape: (shape: MapShape<any>, expression: ExpressionNode<any>): Map<any> => {
@@ -651,7 +650,7 @@ export namespace DSL {
     }
   }
 
-  export class Struct<T extends RecordShape<any>> extends Object<T> {
+  export class Struct<T extends TypeShape<any>> extends Object<T> {
     public readonly fields: {
       [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
     };

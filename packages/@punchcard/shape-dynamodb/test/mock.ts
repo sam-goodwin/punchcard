@@ -1,10 +1,10 @@
-import { any, binary, bool, Enum, integer, number, optional, Record, string, timestamp, Value } from '@punchcard/shape';
+import { any, binary, bool, Enum, integer, number, optional, string, timestamp, Type, Value } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import '../lib';
 
 // tslint:disable: member-access
-export class Nested extends Record('Nested', {
+export class Nested extends Type('Nested', {
   /**
    * This is a nested string.
    */
@@ -19,7 +19,7 @@ export const Direction = Enum('Direction', {
   Right: 'RIGHT'
 } as const);
 
-export class MyType extends Record('MyType', {
+export class MyType extends Type('MyType', {
   /**
    * Field documentation.
    */

@@ -1,4 +1,4 @@
-import { array, Description, Enum, integer, map, number, Record, set, string } from '@punchcard/shape';
+import { array, Description, Enum, integer, map, number, set, string, Type } from '@punchcard/shape';
 import { char, double, float, glue, varchar } from '../lib';
 
 import Glue = require('../lib');
@@ -10,11 +10,11 @@ const Direction = Enum('Direction', {
   Down: 'Down'
 } as const);
 
-class Nested extends Record('Nested', {
+class Nested extends Type('Nested', {
   name: string
 }) {}
 
-class Data extends Record('Data', {
+class Data extends Type('Data', {
   id: string
     .apply(Description('this is a comment')),
 

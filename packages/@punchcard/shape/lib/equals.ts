@@ -4,8 +4,8 @@ import { FunctionArgs, FunctionShape } from './function';
 import { IsInstance } from './is-instance';
 import { LiteralShape } from './literal';
 import { AnyShape, BinaryShape, BoolShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
-import { RecordShape } from './record';
 import { Shape } from './shape';
+import { TypeShape } from './type';
 import { UnionShape } from './union';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
@@ -141,7 +141,7 @@ export namespace Equals {
     public boolShape(shape: BoolShape): Equals<BoolShape> {
       return (a, b) => a === b;
     }
-    public recordShape(shape: RecordShape<any>): Equals<RecordShape<any>> {
+    public recordShape(shape: TypeShape<any>): Equals<TypeShape<any>> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
           [name]: of((member as any))

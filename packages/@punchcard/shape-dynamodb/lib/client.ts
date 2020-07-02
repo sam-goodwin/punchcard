@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { AssertIsKey, RecordShape, Value } from '@punchcard/shape';
+import { TypeShape, Value } from '@punchcard/shape';
 import { Compact } from 'typelevel-ts';
 import { DSL } from './dsl';
 import { Condition } from './filter';
@@ -8,7 +8,7 @@ import { Mapper } from './mapper';
 import { Update } from './update';
 import { Writer } from './writer';
 
-export interface BaseClientProps<T extends RecordShape, K extends DDB.KeyOf<T>> {
+export interface BaseClientProps<T extends TypeShape, K extends DDB.KeyOf<T>> {
   /**
    * Record typr of the table's properties.
    */
@@ -35,7 +35,7 @@ export interface BaseClientProps<T extends RecordShape, K extends DDB.KeyOf<T>> 
   client?: AWS.DynamoDB;
 }
 
-export class BaseClient<T extends RecordShape<any>, K extends DDB.KeyOf<T>> {
+export class BaseClient<T extends TypeShape<any>, K extends DDB.KeyOf<T>> {
   public readonly client: AWS.DynamoDB;
   public readonly mapper: Mapper<T>;
   public readonly tableName: string;
@@ -158,9 +158,9 @@ export class BaseClient<T extends RecordShape<any>, K extends DDB.KeyOf<T>> {
   }
 }
 
-export interface TableClientProps<T extends RecordShape, K extends DDB.KeyOf<T>> extends Omit<BaseClientProps<T, K>, 'indexName'> {}
+export interface TableClientProps<T extends TypeShape, K extends DDB.KeyOf<T>> extends Omit<BaseClientProps<T, K>, 'indexName'> {}
 
-export class TableClient<T extends RecordShape, K extends DDB.KeyOf<T>> extends BaseClient<T, K> {
+export class TableClient<T extends TypeShape, K extends DDB.KeyOf<T>> extends BaseClient<T, K> {
   constructor(config: TableClientProps<T, K>)  {
     super(config);
   }
@@ -273,7 +273,7 @@ export class TableClient<T extends RecordShape, K extends DDB.KeyOf<T>> extends 
   }
 }
 
-export interface IndexClientProps<T extends RecordShape<any>, K extends DDB.KeyOf<T>> extends TableClientProps<T, K> {
+export interface IndexClientProps<T extends TypeShape<any>, K extends DDB.KeyOf<T>> extends TableClientProps<T, K> {
   /**
    * Name of the DynamoDB Index.
    * Required for the IndexClient.
@@ -284,47 +284,47 @@ export interface IndexClientProps<T extends RecordShape<any>, K extends DDB.KeyO
 /**
  * Client to Query and Scan a DynamoDB Index.
  */
-export class IndexClient<T extends RecordShape, K extends DDB.KeyOf<T>> extends BaseClient<T, K> {
+export class IndexClient<T extends TypeShape, K extends DDB.KeyOf<T>> extends BaseClient<T, K> {
   constructor(config: IndexClientProps<T, K>) {
     super(config);
   }
 }
 
 export namespace DDB {
-  type _QueryOutput<T extends RecordShape<any>, K extends KeyOf<T>> = Compact<
+  type _QueryOutput<T extends TypeShape<any>, K extends KeyOf<T>> = Compact<
     Omit<AWS.DynamoDB.QueryOutput, 'Items' | 'LastEvaulatedKey'> & {
       Items?: Value.Of<T>[];
       LastEvaluatedKey?: KeyValue<T, K>
     }>;
-  export interface QueryOutput<T extends RecordShape<any>, K extends KeyOf<T>> extends _QueryOutput<T, K> {}
+  export interface QueryOutput<T extends TypeShape<any>, K extends KeyOf<T>> extends _QueryOutput<T, K> {}
 
   export type HashKey<T> = keyof T;
   export type SortKey<T> = [keyof T, keyof T];
-  export interface KeyOf<T extends RecordShape> {
+  export interface KeyOf<T extends TypeShape> {
     partition: keyof T['Members'];
     sort?: keyof T['Members'] | undefined;
   }
 
-  export type KeyNames<T extends RecordShape<any>, K extends KeyOf<T>> =
+  export type KeyNames<T extends TypeShape<any>, K extends KeyOf<T>> =
     K extends { partition: infer PK, sort?: undefined } ? PK :
     K extends { partition: infer PK, sort: infer SK } ? PK | SK :
     never;
 
-  export type KeyValue<T extends RecordShape<any>, K extends KeyOf<T>> = {
+  export type KeyValue<T extends TypeShape<any>, K extends KeyOf<T>> = {
     [k in KeyNames<T, K>]: Value.Of<T['Members'][k]>;
   };
 
   export type HashKeyName<K> = K extends { partition: infer H; } ? H : never;
 
-  export type HashKeyValue<T extends RecordShape<any>, K extends KeyOf<T>> = Value.Of<HashKeyShape<T, K>>;
-  export type HashKeyShape<T extends RecordShape<any>, K extends KeyOf<T>> = T['Members'][HashKeyName<K>];
+  export type HashKeyValue<T extends TypeShape<any>, K extends KeyOf<T>> = Value.Of<HashKeyShape<T, K>>;
+  export type HashKeyShape<T extends TypeShape<any>, K extends KeyOf<T>> = T['Members'][HashKeyName<K>];
 
   export type SortKeyName<K> = K extends { sort?: infer S; } ? S : undefined;
 
-  export type SortKeyValue<T extends RecordShape<any>, K extends KeyOf<T>> = Value.Of<SortKeyShape<T, K>>;
-  export type SortKeyShape<T extends RecordShape<any>, K extends KeyOf<T>> = T['Members'][SortKeyName<K>];
+  export type SortKeyValue<T extends TypeShape<any>, K extends KeyOf<T>> = Value.Of<SortKeyShape<T, K>>;
+  export type SortKeyShape<T extends TypeShape<any>, K extends KeyOf<T>> = T['Members'][SortKeyName<K>];
 
-  export type QueryCondition<T extends RecordShape<any>, K extends KeyOf<T>> =
+  export type QueryCondition<T extends TypeShape<any>, K extends KeyOf<T>> =
     SortKeyName<K> extends undefined ? {
       [k in HashKeyName<K>]: HashKeyValue<T, K>;
     } : {
@@ -333,7 +333,7 @@ export namespace DDB {
       [k in SortKeyName<K>]?: (i: DSL.Of<SortKeyShape<T, K>>) => DSL.Bool
     }
     ;
-  export interface QueryProps<T extends RecordShape<any>, K extends KeyOf<T>> {
+  export interface QueryProps<T extends TypeShape<any>, K extends KeyOf<T>> {
     filter?: DDB.Condition<T>;
 
     Limit?: number;
@@ -342,8 +342,8 @@ export namespace DDB {
     ScanIndexForward?: boolean;
   }
 
-  export type Condition<T extends RecordShape<any>> = (item: DSL.Root<T>) => DSL.Bool;
-  export interface Update<T extends RecordShape<any>> {
+  export type Condition<T extends TypeShape<any>> = (item: DSL.Root<T>) => DSL.Bool;
+  export interface Update<T extends TypeShape<any>> {
     actions: (item: DSL.Root<T>) => DSL.Action[];
     if?: DDB.Condition<T>;
   }

@@ -1,9 +1,9 @@
 import 'jest';
 
-import { any, array, bool, Enum, Equals, HashCode, HashSet, map, number, optional, Record, set, string, Value } from '../lib';
+import { any, array, bool, Enum, Equals, HashCode, HashSet, map, number, optional, set, string, Type, Value } from '../lib';
 
 // tslint:disable: member-access
-class Nested extends Record('Nested', {
+class Nested extends Type('Nested', {
   /**
    * Documentation for `a`
    */
@@ -15,7 +15,7 @@ class Nested extends Record('Nested', {
   b: string,
 }) {}
 
-class MyType extends Record('MyType', {
+class MyType extends Type('MyType', {
   /**
    * Field documentation.
    */

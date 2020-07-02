@@ -1,9 +1,9 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { array, string, Record, optional, } from '@punchcard/shape';
+import { array, string, Type, optional, } from '@punchcard/shape';
 import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType, $context, $if } from 'punchcard/lib/appsync';
 import { Scope } from 'punchcard/lib/core/construct';
-import { VFunction } from '@punchcard/shape/lib/function';
+import { Fn } from '@punchcard/shape/lib/function';
 import { $util } from 'punchcard/lib/appsync/lang/util';
 import { UserPool } from 'punchcard/lib/cognito/user-pool';
 
@@ -15,7 +15,7 @@ type Post {
   tags: [string!]!
 }
 */
-class Post extends Record('Post', {
+class Post extends Type('Post', {
   /**
    * ID of the Post.
    */
@@ -35,26 +35,15 @@ interface PostQueryAPI {
 They don't have an implementation until you instantiate them. 
 */
 const PostQueryAPI = Query({
-  getPost: VFunction({
-    args: { id: ID },
-    returns: Post
-  }),
+  getPost: Fn({ id: ID }, Post),
 });
 
 const PostMutationApi = Mutation({
-  addPost: VFunction({
-    args: { title: string, content: string, tags: array(string) },
-    returns: Post
-  })
+  addPost: Fn({ title: string, content: string, tags: array(string) }, Post)
 });
 
 const RelatedPostsAPI = Trait(Post, {
-  relatedPosts: VFunction({
-    args: {
-      tags: array(string)
-    },
-    returns: array(Post)
-  })
+  relatedPosts: Fn({ tags: array(string) }, array(Post))
 });
 
 const PostSubscriptionsApi = Subscription({
@@ -200,29 +189,3 @@ const MyApi = new Api(stack, 'MyApi', {
     ttl: 60,
   }
 });
-
-// async function main() {
-//   const res = await MyApi.Query(client => ({
-//     namedQuery: client.getPost({id: 'id'}, _ => _
-//       .content()
-//       .title()
-//       .relatedPosts({tags: ['a', 'b']}, _ => _
-//         .id()
-//         .tags()
-//         .relatedPosts({tags: ['a']}, _ => _
-//           .id()
-//         )
-//         .content()
-//         .title()
-//       )
-//     ),
-
-//     namedQuery2: client.getPost({id: 'id'}, _ => _
-//       .content()
-//     )
-//   }));
-
-//   const ids: string[][] = res.namedQuery.getPost.relatedPosts.map(post => post.relatedPosts.map(post => post.id))
-
-//   const content = res.namedQuery2.getPost.content;
-// }

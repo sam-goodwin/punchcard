@@ -1,16 +1,16 @@
 import 'jest';
 
-import { any, binary, Enum, nothing, number, NumberShape, optional, Record, string, StringShape, union } from '@punchcard/shape';
+import { any, binary, Enum, nothing, number, NumberShape, optional, string, StringShape, Type, union } from '@punchcard/shape';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 import { JsonSchema, NumberSchema, OneOf } from '../lib';
 
 // tslint:disable: member-access
-class Nested extends Record('Nested', {
+class Nested extends Type('Nested', {
   a: optional(string)
 }) {}
 
-class MyType extends Record('MyType', {
+class MyType extends Type('MyType', {
   /**
    * Field documentation.
    */

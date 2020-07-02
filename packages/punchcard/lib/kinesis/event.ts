@@ -1,4 +1,4 @@
-import { array, number, Record, string } from "@punchcard/shape";
+import { array, number, string, Type } from "@punchcard/shape";
 
 /**
  * Payload sent to Lambda Function subscribed to a Kinesis Stream.
@@ -25,7 +25,7 @@ export interface Event {
 }
 
 export namespace Event {
-  export class Kinesis extends Record({
+  export class Kinesis extends Type({
     kinesisSchemaVersion: string,
     partitionKey: string,
     sequenceNumber: string,
@@ -33,7 +33,7 @@ export namespace Event {
     approximateArrivalTimestamp: number,
   }) {}
 
-  export class DataRecord extends Record({
+  export class DataRecord extends Type({
     kinesis: Kinesis,
     eventSource: string,
     eventVersion: string,
@@ -44,7 +44,7 @@ export namespace Event {
     eventSourceARN: string
   }) {}
 
-  export class Payload extends Record({
+  export class Payload extends Type({
     Records: array(DataRecord)
   }) {}
 }

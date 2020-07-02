@@ -1,12 +1,12 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
 
-import { any, string, integer, Record, Minimum } from '@punchcard/shape';
+import { any, string, integer, Type, Minimum } from '@punchcard/shape';
 import { CDK } from 'punchcard/lib/core/cdk';
 
 export const app = new Core.App();
 const stack = app.stack('invoke-function-example');
 
-class TableRecord extends Record({
+class TableRecord extends Type({
   id: string,
   count: integer
     .apply(Minimum(0)),
@@ -23,7 +23,7 @@ const table = new DynamoDB.Table(stack, 'my-table', {
   }))
 });
 
-class IncrementRequest extends Record({
+class IncrementRequest extends Type({
   id: string
 }) {}
 

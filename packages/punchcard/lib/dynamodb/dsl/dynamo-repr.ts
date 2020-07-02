@@ -1,4 +1,4 @@
-import { array, ArrayShape, BinaryShape, bool, boolean, BoolShape, integer, IntegerShape, map, MapShape, number, NumberShape, RecordShape, set, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape, UnionShape } from '@punchcard/shape';
+import { array, ArrayShape, BinaryShape, bool, boolean, BoolShape, integer, IntegerShape, map, MapShape, number, NumberShape, set, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape, TypeShape, UnionShape } from '@punchcard/shape';
 import { AttributeValue } from '@punchcard/shape-dynamodb';
 import { getState, VInteger, VList, VObject, VString, VTL, vtl } from '../../appsync';
 import { DynamoExpr } from './dynamo-expr';
@@ -18,7 +18,7 @@ export namespace DynamoDSL {
         DynamoDSL.Set<I> :
         DynamoDSL.List<I> :
     T extends MapShape<infer V> ? DynamoDSL.Map<V> :
-    T extends RecordShape<infer M> ? DynamoDSL.Record<T> :
+    T extends TypeShape<infer M> ? DynamoDSL.Record<T> :
     // T extends UnionShape<> ?
     Object<T>
   ;
@@ -138,7 +138,21 @@ export namespace DynamoDSL {
       return Bool.or(this, ...bs);
     }
   }
-  class Numeric<T extends IntegerShape | NumberShape> extends Object<T> {
+  class Ord<T extends Shape> extends Object<T> {
+    public gt(value: VObject.Like<T> | DynamoDSL.Repr<T>): Bool {
+      return new Bool(new DynamoExpr.Operator(this.type, this as Object<Shape>, '>', value));
+    }
+    public gte(value: VObject.Like<T> | DynamoDSL.Repr<T>): Bool {
+      return new Bool(new DynamoExpr.Operator(this.type, this as Object<Shape>, '>=', value));
+    }
+    public lt(value: VObject.Like<T> | DynamoDSL.Repr<T>): Bool {
+      return new Bool(new DynamoExpr.Operator(this.type, this as Object<Shape>, '<', value));
+    }
+    public lte(value: VObject.Like<T> | DynamoDSL.Repr<T>): Bool {
+      return new Bool(new DynamoExpr.Operator(this.type, this as Object<Shape>, '<=', value));
+    }
+  }
+  class Numeric<T extends IntegerShape | NumberShape> extends Ord<T> {
     constructor(type: T, expr: DynamoExpr) {
       super(type, expr);
     }
@@ -147,10 +161,6 @@ export namespace DynamoDSL {
       const thisPath = yield* toPath(this.expr);
       const valueId = yield* addValue(this.type, amount === undefined ? 1 : amount);
       yield* vtl`$util.qr($ADD.add("${thisPath} ${valueId}"))`;
-    }
-
-    public gt(value: VObject.Like<T> | Numeric<T>): Bool {
-      return new Bool(new DynamoExpr.Operator(this.type, this as Object<Shape>, '>', value));
     }
   }
   export class Int extends Numeric<IntegerShape> {
@@ -163,9 +173,16 @@ export namespace DynamoDSL {
       super(number, expr);
     }
   }
-  export class String extends Object<StringShape> {
+  export class String extends Ord<StringShape> {
     constructor(expr: DynamoExpr) {
       super(string, expr);
+    }
+
+    public startsWith(prefix: VObject.Like<StringShape>): Bool {
+      return new Bool(new DynamoExpr.FunctionCall(bool, 'starts_with', [{
+        type: string,
+        value: prefix
+      }]));
     }
   }
   export class List<T extends Shape> extends Object<ArrayShape<T>> {
@@ -235,7 +252,7 @@ export namespace DynamoDSL {
       yield* vtl`$util.qr($SET.add("${thisPath}.${keyId} = ${valueId}"))`;
     }
   }
-  export class Record<T extends RecordShape> extends Object<T> {
+  export class Record<T extends TypeShape> extends Object<T> {
     readonly M: {
       [field in keyof T['Members']]: DynamoDSL.Repr<T['Members'][field]>;
     };

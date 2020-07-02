@@ -1,5 +1,5 @@
 import 'jest';
-import { any, binary, Enum, integer, isOptional, literal, nothing, number, optional, Record, string, timestamp, union } from '../lib';
+import { any, binary, Enum, integer, isOptional, literal, nothing, number, optional, string, timestamp, Type, union } from '../lib';
 import { array, map, set } from '../lib/collection';
 import { ShapeGuards } from '../lib/guards';
 
@@ -67,7 +67,7 @@ test('isLiteral', () => {
   expect(ShapeGuards.isLiteralShape(integer)).toBe(false);
 });
 
-class MyClass extends Record('MyClass', {
+class MyClass extends Type('MyClass', {
   key: string
 }) {}
 

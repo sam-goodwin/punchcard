@@ -1,10 +1,10 @@
-import { RecordShape } from '@punchcard/shape';
+import { TypeShape } from '@punchcard/shape';
 import { Dependency } from '../core/dependency';
 import { TriggerHandler } from './trigger-function';
 import { TriggerRequest } from './trigger-request';
 import { TriggerSource } from './trigger-source';
 
-export interface CustomMessageTriggers<A extends RecordShape, D extends Dependency<any>> {
+export interface CustomMessageTriggers<A extends TypeShape, D extends Dependency<any>> {
   /**
    * Amazon Cognito invokes this trigger before sending an email or phone verification
    * message or a multi-factor authentication (MFA) code, allowing you to customize
@@ -33,7 +33,7 @@ export interface CustomMessageTriggers<A extends RecordShape, D extends Dependen
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-custom-message.html
  */
-export interface CustomMessageRequest<A extends RecordShape> extends TriggerRequest<A> {
+export interface CustomMessageRequest<A extends TypeShape> extends TriggerRequest<A> {
   /**
    * A string for you to use as the placeholder for the verification code in the custom message.
    */

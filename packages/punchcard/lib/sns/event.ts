@@ -1,12 +1,12 @@
-import { array, map, Record, string } from '@punchcard/shape';
+import { array, map, string, Type } from '@punchcard/shape';
 
 export namespace Event {
-  export class MesssageAttribute extends Record({
+  export class MesssageAttribute extends Type({
     Type: string,
     Value: string
   }) {}
 
-  export class Sns extends Record({
+  export class Sns extends Type({
     SignatureVersion: string,
     Timestamp: string,
     Signature: string,
@@ -20,7 +20,7 @@ export namespace Event {
     Subject: string
   }) {}
 
-  export class Notification extends Record({
+  export class Notification extends Type({
     EventVersion: string,
     EventSubscriptionArn: string,
     EventSource: string,
@@ -30,7 +30,7 @@ export namespace Event {
   /**
    * @see https://docs.aws.amazon.com/lambda/latest/dg/with-sns.html
    */
-  export class Payload extends Record({
+  export class Payload extends Type({
     Records: array(Notification)
   }) {}
 }

@@ -1,5 +1,5 @@
 import { any, array, binary, BinaryShape, boolean, EnumShape, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, ShapeGuards, ShapeVisitor, timestamp, Value } from '@punchcard/shape';
-import { AnyShape, ArrayShape, BoolShape, IntegerShape, MapShape, NumberShape, RecordShape, SetShape, Shape, StringShape, TimestampShape } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BoolShape, IntegerShape, MapShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, TypeShape } from '@punchcard/shape';
 import { string, Trait } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { IsInstance } from '@punchcard/shape/lib/is-instance';
@@ -193,7 +193,7 @@ export namespace VObject {
   // export type ShapeOf<T extends VObject> = T extends VObject<infer I> ? I : never;
 
   export type Of<T extends Shape> =
-    T extends RecordShape ? VRecord<T> & {
+    T extends TypeShape ? VRecord<T> & {
       [field in keyof T['Members']]: Of<T['Members'][field]>;
     } :
     T extends ArrayShape<infer I> ? VList<Of<I>> :
@@ -218,8 +218,8 @@ export namespace VObject {
    * Like meaning that is either an expression, or a collection
    * of expressions that share the structure of the target type.
    */
-  export type Like<T extends Shape> = Value.Of<T> | VObject.Of<T> | (
-    T extends RecordShape<infer M> ? {
+  export type Like<T extends Shape> = VObject.Of<T> | Value.Of<T> | (
+    T extends TypeShape<infer M> ? {
       [m in keyof M]: Like<M[m]>;
     } :
     T extends ArrayShape<infer I> ? Like<I>[] :
@@ -648,7 +648,7 @@ export class VMap<T extends VObject = VObject> extends VObject<MapShape<VObject.
   }
 }
 
-export class VRecord<T extends RecordShape = RecordShape> extends VObject<T> {
+export class VRecord<T extends TypeShape = TypeShape> extends VObject<T> {
   constructor(type: T, expr: VExpression) {
     super(type, expr);
     for (const [name, shape] of Object.entries(type.Members) as [string, Shape][]) {
@@ -805,7 +805,7 @@ export class Visitor implements ShapeVisitor<VObject, VExpression> {
   public boolShape(shape: BoolShape, expr: VExpression): VBool {
     return new VBool(expr);
   }
-  public recordShape(shape: RecordShape<any>, expr: VExpression): VRecord {
+  public recordShape(shape: TypeShape<any>, expr: VExpression): VRecord {
     return new VRecord(shape, expr);
   }
   public anyShape(shape: AnyShape, expr: VExpression): VAny {

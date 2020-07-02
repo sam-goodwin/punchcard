@@ -6,12 +6,12 @@ import sinon = require('sinon');
 import { Firehose, Util } from '../../lib';
 import { Build } from '../../lib/core/build';
 
-import { Record, Shape, string } from '@punchcard/shape';
+import { Shape, string, Type } from '@punchcard/shape';
 import { Event } from '../../lib/s3';
 
 Util.setRuntime();
 
-class Data extends Record({
+class Data extends Type({
   key: string
 }) {}
 

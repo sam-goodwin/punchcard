@@ -1,4 +1,4 @@
-import { array, optional, Record, string, StringShape } from '@punchcard/shape';
+import { array, optional, string, Type } from '@punchcard/shape';
 import { StandardClaims } from '../../cognito/standard-claims';
 import { VExpression } from './expression';
 import { VList, VObject, VString } from './vtl-object';
@@ -10,7 +10,7 @@ import './vtl';
  *
  * @see https://docs.aws.amazon.com/appsync/latest/devguide/resolver-context-reference.html#aws-appsync-resolver-context-reference-identity
  */
-export class Identity extends Record({
+export class Identity extends Type({
   /**
    * The AWS account ID of the caller.
    */

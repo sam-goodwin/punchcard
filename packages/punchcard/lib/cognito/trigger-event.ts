@@ -1,11 +1,11 @@
-import { RecordShape } from '@punchcard/shape';
+import { TypeShape } from '@punchcard/shape';
 import { TriggerRequest } from './trigger-request';
 import { TriggerSource } from './trigger-source';
 
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-identity-pools-working-with-aws-lambda-triggers.html#cognito-user-pools-lambda-trigger-sample-event-parameter-shared
  */
-export interface TriggerEvent<T extends TriggerRequest<RecordShape> = TriggerRequest<RecordShape>, Source extends TriggerSource = TriggerSource> {
+export interface TriggerEvent<T extends TriggerRequest<TypeShape> = TriggerRequest<TypeShape>, Source extends TriggerSource = TriggerSource> {
   /**
    * The version number of your Lambda function.
    */

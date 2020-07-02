@@ -5,8 +5,8 @@ import { HashSet } from '@punchcard/shape/lib/hash-set';
 import { IsInstance } from '@punchcard/shape/lib/is-instance';
 import { Mapper, ValidatingMapper } from '@punchcard/shape/lib/mapper';
 import { AnyShape, BinaryShape, BoolShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
-import { Fields, RecordShape, RecordType } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
+import { Fields, TypeShape } from '@punchcard/shape/lib/type';
 import { Value } from '@punchcard/shape/lib/value';
 import { ShapeVisitor } from '@punchcard/shape/lib/visitor';
 
@@ -24,14 +24,14 @@ export namespace Json {
     T extends MapShape<infer I> ? Record<string, {
       [i in keyof I]: From<I, V[string]>
     }[keyof I]> :
-    T extends RecordShape<infer M> ? {
+    T extends TypeShape<infer M> ? {
       [f in keyof M]: From<M[f], V[f]>
     } :
     T extends TimestampShape ? string :
     V
   ;
   export type Of<T> =
-    T extends RecordShape<infer M> ? {
+    T extends TypeShape<infer M> ? {
       [m in keyof Fields.Natural<M>]: Of<Fields.Natural<M>[m]>;
     } :
     // use the instance type if this type can be constructed (for class A extends Record({}) {})
@@ -229,7 +229,7 @@ export namespace Json {
         write: (b: boolean) => b
       };
     }
-    public recordShape(shape: RecordShape<any>): Mapper<any, any> {
+    public recordShape(shape: TypeShape<any>): Mapper<any, any> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
           [name]: mapper((member as any), {

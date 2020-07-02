@@ -1,4 +1,4 @@
-import { RecordShape } from '@punchcard/shape';
+import { TypeShape } from '@punchcard/shape';
 import { Dependency } from '../core/dependency';
 import { TriggerHandler } from './trigger-function';
 import { TriggerRequest } from './trigger-request';
@@ -8,7 +8,7 @@ import { TriggerSource } from './trigger-source';
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html
  */
-export interface AuthenticationTriggers<A extends RecordShape, D extends Dependency<any>> {
+export interface AuthenticationTriggers<A extends TypeShape, D extends Dependency<any>> {
   /**
    * Amazon Cognito invokes this trigger when a user attempts to sign in, allowing
    * custom validation to accept or deny the authentication request.
@@ -80,7 +80,7 @@ export interface AuthenticationTriggers<A extends RecordShape, D extends Depende
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-authentication.html
  */
-export interface PreAuthenticationRequest<A extends RecordShape> extends TriggerRequest<A> {
+export interface PreAuthenticationRequest<A extends TypeShape> extends TriggerRequest<A> {
   /**
    * This boolean is populated when `PreventUserExistenceErrors` is set to `ENABLED`
    * for your User Pool client.
@@ -139,7 +139,7 @@ export interface PreAuthenticationResponse {
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-post-authentication.html
  */
-export interface PostAuthenticationRequest<A extends RecordShape> extends TriggerRequest<A> {
+export interface PostAuthenticationRequest<A extends TypeShape> extends TriggerRequest<A> {
   /**
    * This flag indicates if the user has signed in on a new device. It is set only if the
    * remembered devices value of the user pool is set to `Always` or `User Opt-In`.
@@ -180,7 +180,7 @@ export interface GroupConfiguraion {
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-pre-token-generation.html
  */
-export interface PreTokenGenerationRequest<A extends RecordShape> extends TriggerRequest<A> {
+export interface PreTokenGenerationRequest<A extends TypeShape> extends TriggerRequest<A> {
   /**
    * The input object containing the current group configuration.
    */

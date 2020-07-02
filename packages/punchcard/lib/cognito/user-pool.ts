@@ -1,6 +1,6 @@
 import type * as cognito from '@aws-cdk/aws-cognito';
 
-import { Meta, Optional, RecordShape, RecordType, Shape, ShapeGuards } from '@punchcard/shape';
+import { Meta, Optional, Shape, ShapeGuards, TypeClass, TypeShape } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
@@ -18,7 +18,7 @@ export interface UserPoolProps<R extends RequiredAttributes = {}, C extends Cust
   buildProps?: Build<cognito.UserPoolProps>;
   passwordPolicy?: cognito.PasswordPolicy;
   signInAliases?: cognito.SignInAliases;
-  requiredAttributes?: R;
+  standardAttributes?: R;
   customAttributes?: C;
 }
 
@@ -27,17 +27,17 @@ export class UserPool<R extends RequiredAttributes, C extends CustomAttributes> 
 
   public readonly requiredAttributes: R;
   public readonly customAttributes: C;
-  public readonly attributes: RecordShape<{
+  public readonly attributes: TypeShape<{
     [a in keyof StandardClaims]: R[a] extends true ? StandardClaims[a] : Optional<StandardClaims[a]>;
   } & {
-    custom: Optional<RecordType<C>>;
+    custom: Optional<TypeClass<C>>;
   }>;
 
   private readonly triggers: TriggerFunction<this['attributes'], Dependency<any>>[] = [];
 
   constructor(scope: Scope, id: string, props: UserPoolProps<R, C> = {}) {
     super(scope, id);
-    this.requiredAttributes = (props.requiredAttributes || {}) as R;
+    this.requiredAttributes = (props.standardAttributes || {}) as R;
     this.customAttributes = (props.customAttributes || {}) as C;
     this.resource = CDK.chain(({ cognito }) => this.scope.map(scope => {
       const lambdaTriggers: Partial<cognito.UserPoolTriggers> = {};
@@ -56,7 +56,7 @@ export class UserPool<R extends RequiredAttributes, C extends CustomAttributes> 
       })).reduce((a, b) => ({ ...a, ...b }), {});
 
       return new cognito.UserPool(scope, this.id, {
-        requiredAttributes: props.requiredAttributes,
+        standardAttributes: props.standardAttributes,
         signInAliases: props.signInAliases,
         lambdaTriggers,
         customAttributes,

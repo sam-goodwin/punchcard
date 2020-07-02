@@ -1,20 +1,20 @@
 import 'jest';
 
-import { number, optional, Record, string } from '@punchcard/shape';
+import { number, optional, string, Type } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import '../lib';
 import { JsonPath } from '../lib';
 
 // tslint:disable: member-access
-export class Nested extends Record('Nested', {
+export class Nested extends Type('Nested', {
   /**
    * This is a nested string.
    */
   a: string
 }) {}
 
-export class MyType extends Record('MyType', {
+export class MyType extends Type('MyType', {
   /**
    * Field documentation.
    */

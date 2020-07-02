@@ -1,7 +1,7 @@
 import 'jest';
 
-import { array, integer, map, nothing, number, optional, Pointer, Record, RecordShape, RecordType, set, Shape, Static, string, StringShape, timestamp, union, Value } from '@punchcard/shape';
-import { VFunction } from '@punchcard/shape/lib/function';
+import { array, integer, map, nothing, number, optional, Pointer, set, Shape, Static, string, StringShape, timestamp, Type, TypeShape, union, Value } from '@punchcard/shape';
+import { Fn } from '@punchcard/shape/lib/function';
 import { $if, ID, VTL } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
 import { CachingBehavior, CachingInstanceType } from '../../lib/appsync/api/caching';
@@ -20,7 +20,7 @@ import Lambda = require('../../lib/lambda');
 import assert = require('@aws-cdk/assert');
 import { DynamoDSL } from '../../lib/dynamodb/dsl/dynamo-repr';
 
-export class User extends Record('User', {
+export class User extends Type('User', {
   id: ID,
   alias: string,
 }) {}
@@ -41,26 +41,20 @@ export const GetUserTrait = Query({
   /**
    * Get User by ID.
    */
-  getUser: VFunction({
-    args: { id: ID },
-    returns: User
-  })
+  getUser: Fn({ id: ID }, User)
 });
 
 /**
  * Mutation for creating Users.
  */
 export const CreateUserTrait = Mutation({
-  createUser: VFunction({
-    args: { alias: string },
-    returns: User
-  })
+  createUser: Fn({ alias: string }, User)
 });
 
 /**
  * A Post of some content in some category
  */
-export class Post extends Record('Post', {
+export class Post extends Type('Post', {
   /**
    * ID
    */
@@ -80,33 +74,21 @@ export class PostStore extends DynamoDB.Table.NewType({
 }) {}
 
 export const GetPostTrait = Query({
-  getPost: VFunction({
-    args: { id: ID, },
-    returns: Post
-  })
+  getPost: Fn({ id: ID, }, Post)
 });
 
 export const PostMutations = Mutation({
   /**
    * Function documentation goes here.
    */
-  createPost: VFunction({
-    args: {
-      title: string,
-      content: string,
-    },
-    returns: Post
-  }),
+  createPost: Fn({ title: string, content: string }, Post),
 
-  updatePost: VFunction({
-    args: {
-      id: ID,
-      title: optional(string),
-      content: optional(string),
-      tags: optional(array(string))
-    },
-    returns: Post
-  }),
+  updatePost: Fn({
+    id: ID,
+    title: optional(string),
+    content: optional(string),
+    tags: optional(array(string))
+  }, Post),
 });
 
 export const RelatedPostsTrait = Trait({
@@ -308,8 +290,8 @@ export const PostApi = (scope: Scope) => {
       postQueries,
       postMutations,
       relatedPosts,
-      postSubscriptions
-    ]
+      // postSubscriptions
+    ] as const
   };
 };
 
@@ -317,9 +299,13 @@ const app = new App();
 const stack = app.stack('stack');
 
 const userPool = new UserPool(stack, 'UserPool', {
-  requiredAttributes: {
-    email: true,
-    birthdate: true
+  standardAttributes: {
+    email: {
+      required: true
+    },
+    birthdate: {
+      required: true
+    }
   },
   signInAliases: {
     email: true,
@@ -353,8 +339,7 @@ const MyApi = new Api(stack, 'MyApi', {
     instanceType: CachingInstanceType.T2_SMALL,
     ttl: 60,
   }
-});
-
+} as const);
 
 it('should', () => {
   Build.resolve(MyApi.resource);

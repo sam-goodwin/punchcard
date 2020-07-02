@@ -1,5 +1,5 @@
 import { Core, Lambda, DynamoDB } from 'punchcard';
-import { string, integer, Record, Minimum, optional, array, boolean, nothing, Maximum } from '@punchcard/shape';
+import { string, integer, Type, Minimum, optional, array, boolean, nothing, Maximum } from '@punchcard/shape';
 
 /**
  * Create a new Punchcard Application.
@@ -14,7 +14,7 @@ const stack = app.stack('game-score-service');
 /**
  * Record of data to maintain a user's statistics for a game.
  */
-class UserGameScore extends Record({
+class UserGameScore extends Type({
   /**
    * User ID
    */
@@ -60,7 +60,7 @@ const UserScores = new DynamoDB.Table(stack, 'ScoreStore', {
 /**
  * A request to submit a new game score for a user.
  */
-class SubmitScoreRequest extends Record({
+class SubmitScoreRequest extends Type({
   /**
    * User ID
    */
@@ -190,7 +190,7 @@ class HighScoresKey extends UserGameScore.Pick(['gameTitle', 'topScore']) {}
 /**
  * A request for a game's high scores.
  */
-class GetHighScoresRequest extends Record({
+class GetHighScoresRequest extends Type({
   /**
    * Title of game to query for high scores.
    */

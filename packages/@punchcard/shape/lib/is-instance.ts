@@ -4,8 +4,8 @@ import { Equals } from './equals';
 import { FunctionShape } from './function';
 import { LiteralShape } from './literal';
 import { AnyShape, BinaryShape, BoolShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
-import { RecordShape } from './record';
 import { Shape } from './shape';
+import { TypeShape } from './type';
 import { UnionShape } from './union';
 import { Value } from './value';
 import { ShapeVisitor } from './visitor';
@@ -43,7 +43,7 @@ export class IsInstanceVisitor implements ShapeVisitor<IsInstance<Shape>, IsInst
   public boolShape(shape: BoolShape, props: IsInstanceProps): IsInstance<Shape> {
     return ((a: any) => typeof a === 'boolean') as IsInstance<BoolShape>;
   }
-  public recordShape(shape: RecordShape, props: IsInstanceProps): IsInstance<Shape> {
+  public recordShape(shape: TypeShape, props: IsInstanceProps): IsInstance<Shape> {
     const fields = Object.entries(shape.Members).map(([name, value]) => ({
       [name]: IsInstance.of(value, props)
     })).reduce((a, b) => ({...a, ...b}));

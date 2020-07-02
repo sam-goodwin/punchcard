@@ -1,7 +1,7 @@
-import { RecordShape, TimestampShape, Value } from '@punchcard/shape';
+import { TimestampShape, TypeShape, Value } from '@punchcard/shape';
 
-type IsTimestamp<T extends RecordShape, TS extends keyof T['Members']> = T['Members'][TS] extends TimestampShape ? TS : never;
-export class Schema<T extends RecordShape, TS extends keyof T['Members']> {
+type IsTimestamp<T extends TypeShape, TS extends keyof T['Members']> = T['Members'][TS] extends TimestampShape ? TS : never;
+export class Schema<T extends TypeShape, TS extends keyof T['Members']> {
   public readonly schemaName: string;
   public readonly shape: T;
   public readonly timestampField: TS;

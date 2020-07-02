@@ -1,7 +1,7 @@
 import { Metadata } from './metadata';
 import { IsOptional } from './option';
-import { Fields } from './record';
 import { Shape } from './shape';
+import { Fields } from './type';
 
 /**
  * Helper for extending static interfaces.

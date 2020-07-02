@@ -1,4 +1,4 @@
-import { AnyShape, ArrayShape, BinaryShape, EnumShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, RecordShape, SetShape, StringShape, UnionShape } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BinaryShape, EnumShape, IntegerShape, MapShape, Meta, NothingShape, NumberShape, SetShape, StringShape, TypeShape, UnionShape } from '@punchcard/shape';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { ToJsonSchemaVisitor } from './visitor';
 
@@ -35,7 +35,7 @@ export namespace JsonSchema {
     T extends ArrayShape<infer I> ? ArraySchema<I> :
     T extends MapShape<infer V> ? MapSchema<V> :
     T extends SetShape<infer I> ? SetSchema<I> :
-    T extends RecordShape<infer M> ? ObjectSchema<{
+    T extends TypeShape<infer M> ? ObjectSchema<{
       [m in keyof M]: Of<M[m]>;
     }> :
     T extends UnionShape<infer U> ?

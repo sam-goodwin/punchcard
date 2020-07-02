@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { Pointer, RecordShape, Shape } from '@punchcard/shape';
+import { Pointer, Shape, TypeShape } from '@punchcard/shape';
 import { DDB, IndexClient } from '@punchcard/shape-dynamodb';
 import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
@@ -13,7 +13,7 @@ import type * as iam from '@aws-cdk/aws-iam';
 import { VTL } from '../appsync/lang/vtl';
 import { QueryRequest, QueryResponse } from './query-request';
 
-export interface IndexProps<SourceTable extends Table<any, any>, Projection extends RecordShape, Key extends DDB.KeyOf<Projection>> {
+export interface IndexProps<SourceTable extends Table<any, any>, Projection extends TypeShape, Key extends DDB.KeyOf<Projection>> {
   /**
    * Table this index is for.
    */
@@ -39,7 +39,7 @@ export interface IndexProps<SourceTable extends Table<any, any>, Projection exte
 /**
  * Represents an Index of a DynamoDB Table
  */
-export class Index<SourceTable extends Table<RecordShape, any>, Projection extends RecordShape, Key extends DDB.KeyOf<Projection>> {
+export class Index<SourceTable extends Table<TypeShape, any>, Projection extends TypeShape, Key extends DDB.KeyOf<Projection>> {
   /**
    * Source Table of this Index.
    */
@@ -171,13 +171,13 @@ export namespace Index {
   /**
    * Constrains an Index to a valid Projection of a SourceTable.
    */
-  export type Of<SourceTable extends Table<any, any>, Projection extends RecordShape, Key extends DDB.KeyOf<Projection>>
+  export type Of<SourceTable extends Table<any, any>, Projection extends TypeShape, Key extends DDB.KeyOf<Projection>>
     = Index<
         SourceTable,
         Table.Data<SourceTable>['Members'] extends Projection['Members'] ? Projection : never,
         Key>;
 
-  export interface GlobalProps<Projection extends RecordShape, Key extends DDB.KeyOf<Projection>> {
+  export interface GlobalProps<Projection extends TypeShape, Key extends DDB.KeyOf<Projection>> {
     /**
      * Name of the Secondary Index.
      */
@@ -196,7 +196,7 @@ export namespace Index {
     writerCapacity?: number;
   }
 
-  export interface LocalProps<Projection extends RecordShape, Key extends keyof Projection['Members']> {
+  export interface LocalProps<Projection extends TypeShape, Key extends keyof Projection['Members']> {
     /**
      * Name of the Secondary Index.
      */

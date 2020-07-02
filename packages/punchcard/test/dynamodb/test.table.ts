@@ -6,13 +6,13 @@ import sinon = require('sinon');
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
-import { array, binary, integer, map, number, Optional, optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
+import { array, binary, integer, map, number, Optional, optional, set, Shape, string, timestamp, Type } from '@punchcard/shape';
 import { bigint, double, float, smallint, tinyint } from '@punchcard/shape-hive';
 import { Core, DynamoDB } from '../../lib';
 import { Build } from '../../lib/core/build';
 import { Run } from '../../lib/core/run';
 
-class Struct extends Record('Struct', {
+class Struct extends Type('Struct', {
   key: string
 }) {}
 
@@ -135,7 +135,7 @@ describe('DynamoDB.Table', () => {
     keyTypeTests(type => {
       const stack = Build.of(new core.Stack(new core.App(), 'stack'));
 
-      class Data extends Record('Data', {
+      class Data extends Type('Data', {
         key: type
       }) {}
       const table = new DynamoDB.Table(stack, 'table', {
@@ -151,7 +151,7 @@ describe('DynamoDB.Table', () => {
   function boringTable(stack?: Build<core.Stack>) {
     stack = stack || Build.of(new core.Stack(new core.App(), 'stack'));
 
-    class Data extends Record('Data', {
+    class Data extends Type('Data', {
       key: string
     }) {}
     return new DynamoDB.Table(stack, 'table', {
@@ -172,7 +172,7 @@ describe('SortedTable', () => {
   describe('partition and sort keys must be S, N or B', () => {
     keyTypeTests(type => {
       const stack = Build.of(new core.Stack(new core.App(), 'stack'));
-      class Data extends Record('Data', {
+      class Data extends Type('Data', {
         key: type,
         sortKey: type
       }) {}
@@ -191,7 +191,7 @@ describe('SortedTable', () => {
     });
   });
   function boringTable(stack: Build<core.Stack>) {
-    class Data extends Record('Data', {
+    class Data extends Type('Data', {
       key: string,
       sortKey: string
     }) {}
@@ -216,7 +216,7 @@ describe('SortedTable', () => {
 describe('gloal secondary index', () => {
   it('should', () => {
     const stack = Build.of(new core.Stack(new core.App(), 'stack'));
-    class Data extends Record('Data', {
+    class Data extends Type('Data', {
       /**
        * Docs
        */

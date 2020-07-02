@@ -1,4 +1,4 @@
-import { RecordShape, Shape, ShapeGuards } from '@punchcard/shape';
+import { Shape, ShapeGuards, TypeShape } from '@punchcard/shape';
 import { VExpression, VObject, VRecord } from '../../appsync';
 
 // TODO: clean this piece of shit up!

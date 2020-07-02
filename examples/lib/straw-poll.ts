@@ -1,9 +1,10 @@
 import { Core, DynamoDB, SQS } from 'punchcard';
 
-import { array, string, Record, optional, integer, timestamp, VFunction, map, number, boolean, union, Enum, } from '@punchcard/shape';
-import { ID, Api, Mutation, Subscription, Query, Trait, $if, VObject, vtl, VString } from 'punchcard/lib/appsync';
+import { array, string, Type, optional, integer, timestamp, Fn, map, number, boolean, union, Enum, TypeShape, Fields, Value, } from '@punchcard/shape';
+import { ID, Api, Mutation, Subscription, Query, Trait, $if, VObject, vtl, VString, VTL } from 'punchcard/lib/appsync';
 import { $util } from 'punchcard/lib/appsync/lang/util';
 import { DynamoDSL } from 'punchcard/lib/dynamodb/dsl/dynamo-repr';
+import { Records } from 'punchcard/lib/kinesis';
 
 // define the schema
 /**
@@ -13,7 +14,7 @@ import { DynamoDSL } from 'punchcard/lib/dynamodb/dsl/dynamo-repr';
  *   upvotes: Int
  * }
  */
-export class Candidate extends Record('Candidate', {
+export class Candidate extends Type('Candidate', {
   /**
    * ID of the Candidate.
    */
@@ -28,19 +29,19 @@ export class Candidate extends Record('Candidate', {
   upvotes: integer
 }) {}
 
-export class CreateCandidateInput extends Record('CandidateInput', {
+export class CreateCandidateInput extends Type('CandidateInput', {
   answer: string,
 }) {}
 
 // Polls
-export class PollData extends Record({
+export class PollData extends Type({
   id: ID,
   name: string,
   createdAt: timestamp,
   candidates: map(Candidate)
 }) {}
 
-export class Poll extends Record('Poll', {
+export class Poll extends Type('Poll', {
   /**
    * ID of the Poll.
    */
@@ -60,7 +61,7 @@ export function createPoll(pollData: VObject.Of<typeof PollData>): VObject.Like<
   };
 }
 
-export class CreatePollInput extends Record('CreatePollInput', {
+export class CreatePollInput extends Type('CreatePollInput', {
   name: string,
   candidates: array(CreateCandidateInput)
 }) {}
@@ -74,27 +75,19 @@ export class PollMutations extends Mutation({
   /**
    * Add a Poll.
    */
-  addPoll: VFunction({
-    args: {
-      input: CreatePollInput
-    },
-    returns: Poll
-  }),
+  addPoll: Fn({ input: CreatePollInput }, Poll)
 }) {}
 
 export class PollQueries extends Query({
   /**
    * Get a Poll by ID.
    */
-  getPoll: VFunction({
-    args: {
-      /**
-       * ID of the Poll.
-       */
-      id: ID
-    },
-    returns: optional(Poll)
-  })
+  getPoll: Fn({
+    /**
+     * ID of the Poll.
+     */
+    id: ID
+  }, optional(Poll))
 }) {}
 
 export const VoteDirection = Enum('VoteDirection', {
@@ -103,7 +96,7 @@ export const VoteDirection = Enum('VoteDirection', {
 } as const);
 
 // Votes
-export class VoteType extends Record('VoteType', {
+export class VoteType extends Type('VoteType', {
   pollId: ID,
   candidateId: ID,
   clientId: ID,
@@ -112,24 +105,18 @@ export class VoteType extends Record('VoteType', {
 }) {}
 
 export class UpVote extends Mutation({
-  upVote: VFunction({
-    args: {
-      pollId: ID,
-      candidateId: ID,
-      clientId: ID,
-      direction: VoteDirection
-    },
-    returns: VoteType
-  })
+  upVote: Fn({
+    pollId: ID,
+    candidateId: ID,
+    clientId: ID,
+    direction: VoteDirection
+  }, VoteType)
 }) {}
 
 export class VoteUpdates extends Subscription({
-  onUpdateById: VFunction({
-    args: {
-      pollId: ID
-    },
-    returns: optional(VoteType)
-  })
+  onUpdateById: Fn({
+    pollId: ID
+  }, optional(VoteType))
 }) {}
 
 // implement the backend
@@ -195,6 +182,8 @@ const pollQueries = new PollQueries({
   }
 });
 
+
+
 const upVote = new UpVote({
   upVote: {
     *resolve({pollId, candidateId, clientId, direction}) {
@@ -233,7 +222,6 @@ const voteUpdates = new VoteUpdates({
   }
 });
 
-
 const api = new Api(stack, 'StrawPoll', {
   name: 'StrawPoll',
   fragments: [
@@ -244,6 +232,62 @@ const api = new Api(stack, 'StrawPoll', {
   ]
 });
 
-async function main() {
+// async function main() {
+//   const {a,} = await api.Query(client => ({
+//     a: client.getFriend({id: 'hazza-bazza'}, person => person
+//       .on('Fo', fo => fo
+//         .weapon()
+//       )
+//       .on('Friend', friend => friend
+//         .name()
+//       )
+//     )
+//   }));
 
+//   if (a.__typename === 'Fo') {
+    
+//   }
+// }
+
+
+const resolvers = {
+  Friend: {
+    id: () => {},
+    name: () => {},
+    friends: () => {}
+  }
 }
+
+class Friend extends Type('Friend', {
+  id: string,
+  name: string
+}) {}
+class FriendOfFriend extends Trait(Friend, {
+  friends: array(Friend)
+}) {}
+
+/*
+Table1
+friendId | id | name
+
+Table2
+friendID | relatedFriendId 
+
+
+type Friend {
+  id: String!
+  name: String!
+  friends: [Friend]
+}
+
+query {
+  friend {
+    id
+    friends {
+      id
+      name
+    }
+  }
+}
+
+*/

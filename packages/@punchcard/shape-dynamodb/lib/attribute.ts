@@ -1,5 +1,5 @@
 import { any, AnyShape, array, ArrayShape, AssertIsShape, binary, BinaryShape, boolean, BoolShape, EnumShape, literal, LiteralShape, map, MapShape, NothingShape, NumberShape, RequiredKeys, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape, union, UnionShape, Value } from '@punchcard/shape';
-import { Record, RecordShape, RecordType} from '@punchcard/shape/lib/record';
+import { Type, TypeClass, TypeShape} from '@punchcard/shape/lib/type';
 
 // tslint:disable: ban-types
 
@@ -34,7 +34,7 @@ export namespace AttributeValue {
       I extends NumberShape ? typeof AttributeValue.NumberSet :
       AttributeValue.List<ShapeOf<I, Props>>
       :
-    T extends RecordShape<infer Fields> ? AttributeValue.Struct<{
+    T extends TypeShape<infer Fields> ? AttributeValue.Struct<{
       [field in keyof Fields]: ShapeOf<Fields[field], Props>
     }> :
     T extends UnionShape<infer I> ? UnionShape<{
@@ -113,56 +113,56 @@ export type AttributeValue = (
 );
 
 export namespace AttributeValue {
-  export class Nothing extends Record({
+  export class Nothing extends Type({
     NULL: literal(boolean, true as const)
   }) {}
-  export class Binary extends Record({
+  export class Binary extends Type({
     B: binary
   }) {}
-  export class BinarySet extends Record({
+  export class BinarySet extends Type({
     BS: array(binary)
   }) {}
-  export class Bool extends Record({
+  export class Bool extends Type({
     BOOL: boolean
   }) {}
-  export class Number extends Record({
+  export class Number extends Type({
     N: string
   }) {}
-  export class NumberSet extends Record({
+  export class NumberSet extends Type({
     NS: array(string)
   }) {}
-  export class String extends Record({
+  export class String extends Type({
     S: string
   }) {}
   export interface Enum<E extends EnumShape> {
     S: E
   }
-  export const Enum = <E extends EnumShape>(e: E) => Record({
+  export const Enum = <E extends EnumShape>(e: E) => Type({
     S: e
   });
-  export class StringSet extends Record({
+  export class StringSet extends Type({
     SS: array(string)
   }) {}
 
-  export interface List<T extends AttributeValue> extends RecordShape<{
+  export interface List<T extends AttributeValue> extends TypeShape<{
     L: ArrayShape<T>;
   }> {}
-  export const List = <T extends AttributeValue>(item: T): List<T> => Record({
+  export const List = <T extends AttributeValue>(item: T): List<T> => Type({
     L: array(item)
   }) as any as List<T>;
-  export interface Map<T extends AttributeValue> extends RecordType<{
+  export interface Map<T extends AttributeValue> extends TypeClass<{
     M: MapShape<T>;
   }> {}
-  export const Map = <T extends AttributeValue>(item: T): Map<T> => Record({
+  export const Map = <T extends AttributeValue>(item: T): Map<T> => Type({
     M: map(item)
   }) as any as Map<T>;
   export interface StructFields {
     [fieldName: string]: AttributeValue;
   }
-  export interface Struct<F extends StructFields> extends RecordType<{
-    M: RecordShape<F>;
+  export interface Struct<F extends StructFields> extends TypeClass<{
+    M: TypeShape<F>;
   }> {}
-  export const Struct = <F extends StructFields>(fields: F): Struct<F> => Record({
-    M: Record(fields)
+  export const Struct = <F extends StructFields>(fields: F): Struct<F> => Type({
+    M: Type(fields)
   });
 }

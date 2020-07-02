@@ -4,8 +4,7 @@ import { FunctionShape } from './function';
 import { HashSet } from './hash-set';
 import { LiteralShape } from './literal';
 import { AnyShape, BinaryShape, BoolShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
-import { Fields, RecordShape} from './record';
-import { Shape } from './shape';
+import { Fields, TypeShape } from './type';
 import { UnionShape } from './union';
 
 export namespace Value {
@@ -45,7 +44,7 @@ export namespace Value {
 export namespace Structure {
   export type Of<T> =
     // use the instance type if this type can be constructed (for class A extends Record({}) {})
-    T extends RecordShape ? {
+    T extends TypeShape ? {
       [m in keyof Fields.Natural<T['Members']>]: Of<Fields.Natural<T['Members']>[m]>;
     } :
     Value.Of<T>

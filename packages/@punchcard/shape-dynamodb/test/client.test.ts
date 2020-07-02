@@ -2,11 +2,11 @@ import 'jest';
 
 import sinon = require('sinon');
 
-import { any, array, map, number, optional, Record, string, union } from '@punchcard/shape';
+import { any, array, map, number, optional, string, Type, union } from '@punchcard/shape';
 import { TableClient } from '../lib/client';
 
 // tslint:disable: member-access
-class Type extends Record('Type', {
+class DataType extends Type('Type', {
   key: string,
   count: number,
   list: array(string),
@@ -18,7 +18,7 @@ class Type extends Record('Type', {
 
 const hashTable = new TableClient({
   tableName: 'my-table-name',
-  data: Type,
+  data: DataType,
   key: {
     partition: 'key'
   },
@@ -26,7 +26,7 @@ const hashTable = new TableClient({
 
 const sortedTable = new TableClient({
   tableName: 'my-table-name',
-  data: Type,
+  data: DataType,
   key: {
     partition: 'key',
     sort: 'count'
@@ -61,7 +61,7 @@ test('getItem', async () => {
   const skResult = await sortedTable.get({ key: 'value', count: 1});
 
   expect(hkResult).toEqual(skResult);
-  expect(skResult).toEqual(new Type({
+  expect(skResult).toEqual(new DataType({
     key: 'value',
     count: 1,
     list: ['list value'],
@@ -93,7 +93,7 @@ test('put-if', async () => {
     putItem
   });
 
-  await sortedTable.put(new Type({
+  await sortedTable.put(new DataType({
     key: 'key',
     count: 1,
     list: ['a', 'b'],

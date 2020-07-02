@@ -1,3 +1,4 @@
+import { EnumShape } from './enum';
 import { ShapeGuards } from './guards';
 import { Decorated, Trait } from './metadata';
 import { Shape } from './shape';
@@ -10,6 +11,7 @@ export type PrimitiveShapes =
   | IntegerShape
   | TimestampShape
   | NothingShape
+  | EnumShape
   ;
 
 export class AnyShape extends Shape {

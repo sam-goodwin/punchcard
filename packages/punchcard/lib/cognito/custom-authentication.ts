@@ -1,4 +1,4 @@
-import { RecordShape } from '@punchcard/shape';
+import { TypeShape } from '@punchcard/shape';
 import { Dependency } from '../core/dependency';
 import { TriggerHandler } from './trigger-function';
 import { TriggerRequest } from './trigger-request';
@@ -10,7 +10,7 @@ import { TriggerSource } from './trigger-source';
  *
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html#amazon-cognito-user-pools-custom-authentication-flow
  */
-export interface CustomAuthenticationTriggers<A extends RecordShape, D extends Dependency<any>> {
+export interface CustomAuthenticationTriggers<A extends TypeShape, D extends Dependency<any>> {
   /**
    * Amazon Cognito invokes this trigger to initiate the custom authentication flow.
    *
@@ -99,7 +99,7 @@ export interface ChallengeResult {
  *
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/amazon-cognito-user-pools-authentication-flow.html#amazon-cognito-user-pools-custom-authentication-flow
  */
-interface BaseAuthChallengeRequest<A extends RecordShape> extends TriggerRequest<A> {
+interface BaseAuthChallengeRequest<A extends TypeShape> extends TriggerRequest<A> {
   /**
    * The session element is an array of `ChallengeResult` elements.
    */
@@ -122,7 +122,7 @@ interface BaseAuthChallengeRequest<A extends RecordShape> extends TriggerRequest
  *
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-define-auth-challenge.html
  */
-export interface DefineAuthChallengeRequest<A extends RecordShape> extends BaseAuthChallengeRequest<A> {
+export interface DefineAuthChallengeRequest<A extends TypeShape> extends BaseAuthChallengeRequest<A> {
   /**
    * This boolean is populated when `PreventUserExistenceErrors` is set to `ENABLED`
    * for your User Pool client.
@@ -150,7 +150,7 @@ export interface DefineAuthChallengeResponse {
   failAuthentication: boolean;
 }
 
-export interface CreateAuthChallengeRequest<A extends RecordShape> extends BaseAuthChallengeRequest<A> {
+export interface CreateAuthChallengeRequest<A extends TypeShape> extends BaseAuthChallengeRequest<A> {
   /**
    * The name of the new challenge.
    */
@@ -196,7 +196,7 @@ export interface CreateAuthChallengeResponse {
 /**
  * @see https://docs.aws.amazon.com/cognito/latest/developerguide/user-pool-lambda-verify-auth-challenge-response.html
  */
-export interface VerifyAuthChallengeRequest<A extends RecordShape> extends TriggerRequest<A>, CreateAuthChallengeResponse {
+export interface VerifyAuthChallengeRequest<A extends TypeShape> extends TriggerRequest<A>, CreateAuthChallengeResponse {
   /**
    * The answer from the user's response to the challenge.
    */

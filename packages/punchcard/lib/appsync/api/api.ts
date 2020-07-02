@@ -1,7 +1,6 @@
 import type * as appsync from '@aws-cdk/aws-appsync';
 
 import { isOptional, Meta, Shape, ShapeGuards, timestamp, UnionShape } from '@punchcard/shape';
-import { RecordShape } from '@punchcard/shape/lib/record';
 import { UserPool } from '../../cognito/user-pool';
 import { Build } from '../../core/build';
 import { CDK } from '../../core/cdk';
@@ -27,7 +26,7 @@ export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
   | 'schemaDefinitionFile'
 > {}
 
-export interface ApiProps<Fragments extends readonly ApiFragment[]> {
+export interface ApiProps<Fragments extends readonly ApiFragment<any, any>[]> {
   readonly name: string;
   readonly userPool?: UserPool<any, any>;
   readonly fragments: Fragments;
