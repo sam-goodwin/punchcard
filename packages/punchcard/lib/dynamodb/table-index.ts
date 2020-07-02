@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { RecordType, Shape } from '@punchcard/shape';
+import { Type, TypeShape } from '@punchcard/shape';
 import { DDB, IndexClient } from '@punchcard/shape-dynamodb';
 import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
@@ -10,8 +10,11 @@ import { keyType } from './util';
 
 import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
+import { DataSourceProps } from '../appsync';
+import { VTL } from '../appsync/lang/vtl';
+import { query, QueryRequest, QueryResponse } from './query-request';
 
-export interface IndexProps<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>> {
+export interface IndexProps<SourceTable extends Table<any, any>, Projection extends TypeShape, Key extends DDB.KeyOf<Projection>> {
   /**
    * Table this index is for.
    */
@@ -37,7 +40,7 @@ export interface IndexProps<SourceTable extends Table<any, any>, Projection exte
 /**
  * Represents an Index of a DynamoDB Table
  */
-export class Index<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>> {
+export class Index<SourceTable extends Table<TypeShape, any>, Projection extends TypeShape, Key extends DDB.KeyOf<Projection>> {
   /**
    * Source Table of this Index.
    */
@@ -47,11 +50,6 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
    * Shape of data in the table.
    */
   public readonly projection: Projection;
-
-  /**
-   * Shape of data in the table.
-   */
-  public readonly projectionShape: Shape.Of<Projection>;
 
   /**
    * The table's key (hash key, or hash+sort key pair).
@@ -68,24 +66,37 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
    */
   public readonly indexType: 'global' | 'local';
 
+  private _keyShape: TypeShape; // cache
+  private get keyShape() {
+    if (!this._keyShape) {
+      const keyMembers: any = {
+        [this.key.partition]: this.projection.Members[this.key.partition as any]
+      };
+      if (this.key.sort) {
+        keyMembers[this.key.sort] = this.projection.Members[this.key.sort as any];
+      }
+      this._keyShape = Type(keyMembers);
+    }
+    return this._keyShape;
+  }
+
   constructor(props: IndexProps<SourceTable, Projection, Key>) {
     this.indexName = props.indexName;
     this.indexType = props.indexType;
     this.sourceTable = props.sourceTable;
     this.key = props.key;
-    this.projection = props.projection || props.sourceTable.dataShape;
-    this.projectionShape = Shape.of(this.projection) as any;
+    this.projection = props.projection || props.sourceTable.dataType;
 
-    const type: any = this.projection;
+    const type = this.projection;
 
     CDK.chain(({dynamodb}) => this.sourceTable.resource.map(table => {
       const partitionKey = {
         name: this.key.partition,
-        type: keyType(type.members[this.key.partition])
+        type: keyType(type.Members[this.key.partition as any])
       };
       const sortKey = this.key.sort ? {
         name: this.key.sort,
-        type: keyType(type.members[this.key.sort])
+        type: keyType(type.Members[this.key.sort as any])
       } : undefined;
 
       // the names of both the table and the index's partition+sort keys.
@@ -95,8 +106,9 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
         this.key.sort
       ].filter(_ => _ !== undefined));
 
+      // const projection = ShapeGuards.isShape(props.projection) ? props.projection : props.projection();
       // name of the properties in the projection
-      const PROJECTION_MEMBERS = new Set(Object.keys(props.projection.members));
+      const PROJECTION_MEMBERS = new Set(Object.keys(this.projection.Members));
       for (const KEY of KEY_MEMBERS.values()) {
         if (!PROJECTION_MEMBERS.has(KEY as string)) {
           throw new Error(`invalid projection, missing key: ${KEY}`);
@@ -104,7 +116,7 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
       }
 
       // all properties in the Table
-      const TABLE_MEMBERS = new Set(Object.keys(props.sourceTable.dataType.members));
+      const TABLE_MEMBERS = new Set(Object.keys(props.sourceTable.dataType.Members));
 
       const projectionType =
         PROJECTION_MEMBERS.size === TABLE_MEMBERS.size ? dynamodb.ProjectionType.ALL :
@@ -133,6 +145,17 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
     }));
   }
 
+  public *query<Q extends QueryRequest<Projection, Key>>(request: Q, props?: DataSourceProps): VTL<QueryResponse<Q, Projection, Key>> {
+    return yield* query({
+      dataType: this.projection,
+      key: this.key,
+      keyShape: this.keyShape,
+      request,
+      dataSourceProps: this.sourceTable.dataSourceProps((table, role) => table.grantReadData(role), props),
+      indexName: this.indexName
+    });
+  }
+
   /**
    * Provides access to scan and query the Index.
    */
@@ -153,14 +176,15 @@ export class Index<SourceTable extends Table<any, any>, Projection extends Recor
         ns.set('indexName', this.indexName);
         grant(table, grantable);
       }),
-      bootstrap: Run.of(async (ns, cache) =>
-        new IndexClient({
+      bootstrap: Run.of(async (ns, cache) => {
+        return new IndexClient({
           data: this.projection,
-          key: this.key,
+          key: this.key as any,
           tableName: ns.get('tableName'),
           indexName: ns.get('indexName'),
           client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())
-        }))
+        });
+      })
     };
   }
 }
@@ -169,13 +193,13 @@ export namespace Index {
   /**
    * Constrains an Index to a valid Projection of a SourceTable.
    */
-  export type Of<SourceTable extends Table<any, any>, Projection extends RecordType, Key extends DDB.KeyOf<Projection>>
+  export type Of<SourceTable extends Table<any, any>, Projection extends TypeShape, Key extends DDB.KeyOf<Projection>>
     = Index<
         SourceTable,
-        Table.Data<SourceTable>['members'] extends Projection['members'] ? Projection : never,
+        Table.Data<SourceTable>['Members'] extends Projection['Members'] ? Projection : never,
         Key>;
 
-  export interface GlobalProps<Projection extends RecordType, Key extends DDB.KeyOf<Projection>> {
+  export interface GlobalProps<Projection extends TypeShape, Key extends DDB.KeyOf<Projection>> {
     /**
      * Name of the Secondary Index.
      */
@@ -194,7 +218,7 @@ export namespace Index {
     writerCapacity?: number;
   }
 
-  export interface LocalProps<Projection extends RecordType, Key extends keyof Projection['members']> {
+  export interface LocalProps<Projection extends TypeShape, Key extends keyof Projection['Members']> {
     /**
      * Name of the Secondary Index.
      */

@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
+import { any, AnyShape, Mapper, MapperFactory, Shape, Value } from '@punchcard/shape';
 import { Json } from '@punchcard/shape-json';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
@@ -15,7 +15,7 @@ import type * as iam from '@aws-cdk/aws-iam';
 import type * as sqs from '@aws-cdk/aws-sqs';
 import type * as cdk from '@aws-cdk/core';
 
-export interface QueueProps<T extends ShapeOrRecord = AnyShape> {
+export interface QueueProps<T extends Shape = AnyShape> {
   /**
    * Shape of data in the topic.
    *
@@ -40,7 +40,7 @@ export interface QueueProps<T extends ShapeOrRecord = AnyShape> {
 /**
  * Represents a SQS Queue containtining messages of type, `T`, serialized with some `Codec`.
  */
-export class Queue<T extends ShapeOrRecord = AnyShape> implements Resource<sqs.Queue> {
+export class Queue<T extends Shape = AnyShape> implements Resource<sqs.Queue> {
   public readonly mapper: Mapper<Value.Of<T>, string>;
   public readonly mapperFactory: MapperFactory<string>;
   public readonly resource: Build<sqs.Queue>;

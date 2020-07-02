@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { ShapeOrRecord, Value } from '@punchcard/shape';
+import { Shape, Value } from '@punchcard/shape';
 import { Sink, sink, SinkProps } from '../util/sink';
 import { DeliveryStream } from './delivery-stream';
 
@@ -8,7 +8,7 @@ export interface PutRecordInput<T> {
   Record: T;
 }
 
-export class Client<T extends ShapeOrRecord> implements Sink<T> {
+export class Client<T extends Shape> implements Sink<T> {
   constructor(
       public readonly stream: DeliveryStream<T>,
       public readonly deliveryStreamName: string,

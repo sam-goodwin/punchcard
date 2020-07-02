@@ -3,7 +3,7 @@ import AWS = require('aws-sdk');
 import crypto = require('crypto');
 import path = require('path');
 
-import { integer, Mapper, Record, RecordType, Shape, ShapeGuards, Value } from '@punchcard/shape';
+import { integer, Mapper, Shape, ShapeGuards, Type, TypeShape, Value } from '@punchcard/shape';
 import { Columns, DataType, PartitionKeys, schema } from '@punchcard/shape-hive';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
@@ -23,7 +23,7 @@ import type * as cdk from '@aws-cdk/core';
  * Augmentation of `glue.TableProps`, using a `Shape` to define the
  * schema and partitionKeys.
  */
-export type TableProps<T extends RecordType, P extends RecordType> = {
+export type TableProps<T extends TypeShape, P extends TypeShape> = {
   /**
    * Type of data stored in the Table.
    */
@@ -90,7 +90,7 @@ export type TableProps<T extends RecordType, P extends RecordType> = {
 /**
  * Represents a partitioned Glue Table.
  */
-export class Table<T extends RecordType, P extends RecordType> implements Resource<glue.Table> {
+export class Table<T extends TypeShape, P extends TypeShape> implements Resource<glue.Table> {
   /**
    * Type of compression.
    */
@@ -98,13 +98,13 @@ export class Table<T extends RecordType, P extends RecordType> implements Resour
 
   public readonly columns: {
     readonly type: T;
-    readonly shape: Shape.Of<T>;
+    readonly shape: T;
     readonly schema: Columns<T>;
   };
 
   public readonly partition: {
     type: P;
-    shape: Shape.Of<P>;
+    shape: P;
     keys: Columns<P>;
     get: (value: Value.Of<T>) => Value.Of<P>;
   };
@@ -136,12 +136,12 @@ export class Table<T extends RecordType, P extends RecordType> implements Resour
     this.dataType = codec;
     this.columns = {
       schema: schema(props.columns),
-      shape: Shape.of(props.columns),
+      shape: props.columns,
       type: props.columns
     };
     this.partition = {
       keys: schema(props.partition.keys),
-      shape: Shape.of(props.partition.keys),
+      shape: props.partition.keys,
       type: props.partition.keys,
       get: props.partition.get
     };
@@ -266,30 +266,30 @@ export namespace Table {
   /**
    * Client type aliaes.
    */
-  export interface ReadWrite<T extends RecordType, P extends RecordType> extends Table.Client<T, P> {}
-  export interface ReadOnly<T extends RecordType, P extends RecordType> extends Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'> {}
-  export interface WriteOnly<T extends RecordType, P extends RecordType> extends Omit<Table.Client<T, P>, 'getPartitions'> {}
+  export interface ReadWrite<T extends TypeShape, P extends TypeShape> extends Table.Client<T, P> {}
+  export interface ReadOnly<T extends TypeShape, P extends TypeShape> extends Omit<Table.Client<T, P>, 'batchCreatePartition' | 'createPartition' | 'updatePartition' | 'sink'> {}
+  export interface WriteOnly<T extends TypeShape, P extends TypeShape> extends Omit<Table.Client<T, P>, 'getPartitions'> {}
 
   /**
    * Request and Response aliases.
    */
   export interface GetPartitionsRequest extends Omit<AWS.Glue.GetPartitionsRequest, 'CatalogId' | 'DatabaseName' | 'TableName'> {}
-  export type GetPartitionsResponse<P extends RecordType> = {
+  export type GetPartitionsResponse<P extends TypeShape> = {
     Partitions: ({
       Values: Value.Of<P>;
     } & Omit<AWS.Glue.Partition, 'Values'>)[]
   };
 
-  export type CreatePartitionRequest<P extends RecordType> = {
+  export type CreatePartitionRequest<P extends TypeShape> = {
     Partition: Value.Of<P>,
     Location: string,
     LastAccessTime?: Date
   } &  Omit<AWS.Glue.PartitionInput, 'Values' | 'StorageDescriptor'>;
 
   export interface CreatePartitionResponse extends AWS.Glue.CreatePartitionResponse {}
-  export interface BatchCreatePartitionRequestEntry<T extends RecordType> extends CreatePartitionRequest<T> {}
-  export interface BatchCreatePartitionRequest<T extends RecordType> extends Array<BatchCreatePartitionRequestEntry<T>> {}
-  export interface UpdatePartitionRequest<P extends RecordType> {
+  export interface BatchCreatePartitionRequestEntry<T extends TypeShape> extends CreatePartitionRequest<T> {}
+  export interface BatchCreatePartitionRequest<T extends TypeShape> extends Array<BatchCreatePartitionRequestEntry<T>> {}
+  export interface UpdatePartitionRequest<P extends TypeShape> {
     Partition: Value.Of<P>,
     UpdatedPartition: CreatePartitionRequest<P>
   }
@@ -299,7 +299,7 @@ export namespace Table {
    * * create, update, delete and query partitions.
    * * write objects to the table (properly partitioned S3 Objects and Glue Partitions).
    */
-  export class Client<T extends RecordType, P extends RecordType> implements Sink<Value.Of<T>> {
+  export class Client<T extends TypeShape, P extends TypeShape> implements Sink<Value.Of<T>> {
     /**
      * Mapper for writing a Record as a Buffer.
      */
@@ -309,7 +309,7 @@ export namespace Table {
      * Mappers for reading and writing partition keys to/from strings.
      */
     public readonly partitionMappers: {
-      [K in PartitionKeys<T>]: Mapper<InstanceType<T>[K], string>
+      [K in PartitionKeys<T>]: Mapper<Value.Of<T>[K], string>
     };
 
     private readonly partitions: string[];
@@ -326,7 +326,7 @@ export namespace Table {
       this.mapper = table.dataType.mapper(table.columns.shape);
       this.partitionMappers = {} as any;
       Object.entries(table.partition.shape.Members).forEach(([name, schema]) => {
-        this.partitionMappers[name as PartitionKeys<T>] = partitionKeyMapper(schema.Shape);
+        this.partitionMappers[name as PartitionKeys<T>] = partitionKeyMapper(schema as Shape);
       });
     }
 
@@ -482,25 +482,25 @@ export namespace Partition {
     };
   }
 
-  export class Yearly extends Record({
+  export class Yearly extends Type({
     year: integer,
   }) {
     public static readonly of = (timestamp: Date): Yearly => new Yearly(partition(timestamp));
   }
-  export class Monthly extends Record({
+  export class Monthly extends Type({
     year: integer,
     month: integer,
   }) {
     public static readonly of = (timestamp: Date): Monthly => new Monthly(partition(timestamp));
   }
-  export class Daily extends Record({
+  export class Daily extends Type({
     year: integer,
     month: integer,
     day: integer,
   }) {
     public static readonly of = (timestamp: Date): Daily => new Daily(partition(timestamp));
   }
-  export class Hourly extends Record({
+  export class Hourly extends Type({
     year: integer,
     month: integer,
     day: integer,
@@ -508,7 +508,7 @@ export namespace Partition {
   }) {
     public static readonly of = (timestamp: Date): Hourly => new Hourly(partition(timestamp));
   }
-  export class Minutely extends Record({
+  export class Minutely extends Type({
     year: integer,
     month: integer,
     day: integer,

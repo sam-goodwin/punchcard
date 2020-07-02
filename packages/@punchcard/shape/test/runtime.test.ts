@@ -1,9 +1,9 @@
 import 'jest';
 
-import { any, array, bool, Equals, HashCode, HashSet, map, number, optional, Record, set, Shape, string, Value} from '../lib';
+import { any, array, bool, Enum, Equals, HashCode, HashSet, map, number, optional, set, string, Type, Value } from '../lib';
 
 // tslint:disable: member-access
-class Nested extends Record({
+class Nested extends Type('Nested', {
   /**
    * Documentation for `a`
    */
@@ -15,7 +15,7 @@ class Nested extends Record({
   b: string,
 }) {}
 
-class MyType extends Record({
+class MyType extends Type('MyType', {
   /**
    * Field documentation.
    */
@@ -32,6 +32,9 @@ class MyType extends Record({
   complexSet: set(Nested),
   map: map(string),
   complexMap: map(Nested),
+  enum: Enum({
+    Up: 'Up'
+  } as const)
 }) {
   public getId() {
     return this.id || 'default';
@@ -39,12 +42,9 @@ class MyType extends Record({
 }
 
 // some compile-time checks
-const s = Shape.of(Nested);
-const v: Value.Of<typeof s> = new Nested({a: 'a', b: 'b'});
+const v: Value.Of<typeof Nested> = new Nested({a: 'a', b: 'b'});
 const vv: Value.Of<typeof Nested> = v;
-
 // tslint:disable: no-unused-expression
-v.b;
 v.a;
 v.a?.length;
 
@@ -70,6 +70,7 @@ const myType = new MyType({
       b: 'b'
     })
   },
+  enum: 'Up',
   set: new Set<string>().add('value'),
   complexSet: HashSet.of(Nested)
     .add(new Nested({
@@ -144,7 +145,7 @@ it('should compute hash code', () => {
 });
 
 describe('Extend', () => {
-  class Extended extends MyType.Extend({
+  class Extended extends MyType.Extend('Extended', {
     extendedProp: string
   }) {}
   const extended = new Extended({
@@ -170,6 +171,7 @@ describe('Extend', () => {
         b: 'b'
       })
     },
+    enum: 'Up',
     set: new Set<string>().add('value'),
     complexSet: HashSet.of(Nested)
       .add(new Nested({
@@ -246,7 +248,7 @@ describe('Extend', () => {
 });
 
 describe('Pick', () => {
-  class Picked extends MyType.Pick(['id']) {}
+  class Picked extends MyType.Pick('Picked', ['id']) {}
   const picked = new Picked({
     id: 'id',
   });

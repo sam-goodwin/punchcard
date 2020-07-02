@@ -1,40 +1,32 @@
 import AWS = require('aws-sdk');
 
-import { RecordType, Shape } from '@punchcard/shape';
-import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { Build } from '../core/build';
-import { CDK } from '../core/cdk';
-import { Dependency } from '../core/dependency';
-import { Resource } from '../core/resource';
-import { Run } from '../core/run';
-import { Index } from './table-index';
-import { getKeyNames, keyType } from './util';
-
 import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
+
+import { any, array, map, optional, string, Type, TypeShape } from '@punchcard/shape';
+import { DDB, TableClient } from '@punchcard/shape-dynamodb';
+import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VInteger, VObject, VString, VTL, vtl } from '../appsync';
+import { Build } from '../core/build';
+import { CDK } from '../core/cdk';
+import { Construct, Scope } from '../core/construct';
+import { Dependency } from '../core/dependency';
+import { Resource } from '../core/resource';
+import { Run } from '../core/run';
+import { DynamoExpr } from './dsl/dynamo-expr';
+import { DynamoDSL } from './dsl/dynamo-repr';
+import { toAttributeValueJson } from './dsl/to-attribute-value';
+import { UpdateRequest } from './dsl/update-request';
+import { query, QueryRequest, QueryResponse } from './query-request';
+import { Index } from './table-index';
+import { getKeyNames, keyType } from './util';
 
 /**
  * Subset of the CDK's DynamoDB TableProps that can be overriden.
  */
 export interface TableOverrideProps extends Omit<dynamodb.TableProps, 'partitionKey' | 'sortKey'> {}
 
-/**
- * TableProps for creating a new DynamoDB Table.
- *
- * @typeparam DataType type of data in the Table.
- * @typeparam Key partition and optional sort keys of the Table (members of DataType)
- */
-export interface TableProps<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> {
-  /**
-   * Type of data in the Table.
-   */
-  data: DataType;
-  /**
-   * Partition and (optional) Sort Key of the Table.
-   */
-  key: Key;
-
+export interface BaseTableProps {
   /**
    * Override the table infrastructure props.
    *
@@ -48,6 +40,23 @@ export interface TableProps<DataType extends RecordType, Key extends DDB.KeyOf<D
    * ```
    */
   tableProps?: Build<TableOverrideProps>
+}
+
+/**
+ * TableProps for creating a new DynamoDB Table.
+ *
+ * @typeparam DataType type of data in the Table.
+ * @typeparam Key partition and optional sort keys of the Table (members of DataType)
+ */
+export interface TableProps<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> extends BaseTableProps {
+  /**
+   * Type of data in the Table.
+   */
+  data: DataType;
+  /**
+   * Partition and (optional) Sort Key of the Table.
+   */
+  key: Key;
 }
 
 /**
@@ -107,49 +116,241 @@ export interface TableProps<DataType extends RecordType, Key extends DDB.KeyOf<D
  * @typeparam DataType type of data in the Table.
  * @typeparam Key either a hash key (string literal) or hash+sort key ([string, string] tuple)
  */
-export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>> implements Resource<dynamodb.Table> {
+export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> extends Construct implements Resource<dynamodb.Table> {
   /**
    * The DynamoDB Table Construct.
    */
   public readonly resource: Build<dynamodb.Table>;
 
   /**
-   * RecordType of data in the table.
+   * RecordShape of data in the table.
    */
   public readonly dataType: DataType;
-
-  /**
-   * Shape of data in the table.
-   */
-  public readonly dataShape: Shape.Of<DataType>;
 
   /**
    * The table's key (hash key, or hash+sort key pair).
    */
   public readonly key: Key;
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: TableProps<DataType, Key>) {
-    this.dataType = props.data;
-    this.dataShape = Shape.of(props.data) as any;
+  private _keyShape: TypeShape; // cache
+  private get keyShape() {
+    if (!this._keyShape) {
+      const keyMembers: any = {
+        [this.key.partition]: this.dataType.Members[this.key.partition as any]
+      };
+      if (this.key.sort) {
+        keyMembers[this.key.sort] = this.dataType.Members[this.key.sort as any];
+      }
+      this._keyShape = Type(keyMembers);
+    }
+    return this._keyShape;
+  }
 
+  private _attributeValuesShape: TypeShape; // cache
+  private get attributeValuesShape() {
+    if (!this._attributeValuesShape) {
+      const keyShape = this.keyShape;
+      const attributeValues = {
+        ...this.dataType.Members
+      };
+      Object.keys(keyShape.Members).forEach(k => delete attributeValues[k]);
+      this._attributeValuesShape = Type(attributeValues);
+    }
+    return this._attributeValuesShape;
+  }
+
+  constructor(scope: Scope, id: string, props: TableProps<DataType, Key>) {
+    super(scope, id);
+
+    this.dataType = props.data;
     this.key = props.key;
+
     const [partitionKeyName, sortKeyName] = getKeyNames<DataType>(props.key);
 
-    this.resource = CDK.chain(({dynamodb}) => scope.map(scope => {
+    this.resource = CDK.chain(({dynamodb}) => Scope.resolve(scope).map(scope => {
       const extraTableProps = props.tableProps ? Build.resolve(props.tableProps) : {};
 
+      const dataType = this.dataType;
+
       return new dynamodb.Table(scope, id, {
+        // default to pay per request - better
+        billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
         ...extraTableProps,
         partitionKey: {
           name: partitionKeyName,
-          type: keyType((this.dataShape.Members as any)[partitionKeyName].Shape)
+          type: keyType((dataType.Members as any)[partitionKeyName])
         },
         sortKey: sortKeyName ? {
           name: sortKeyName,
-          type: keyType((this.dataShape.Members as any)[sortKeyName].Shape)
+          type: keyType((dataType.Members as any)[sortKeyName])
         } : undefined
       });
     }));
+  }
+
+  public get(key: KeyGraphQLRepr<DataType, Key>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
+    const GetItemRequest = Type({
+      version: string,
+      operation: string,
+      key: this.keyShape
+    });
+
+    const request = VObject.fromExpr(GetItemRequest, VExpression.json({
+      version: '2017-02-28',
+      operation: 'GetItem',
+      key: toAttributeValueJson(this.keyShape, key)
+    }));
+
+    return call(this.dataSourceProps((table, role) => table.grantReadData(role), props), request, this.dataType);
+  }
+
+  public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
+    // TODO: address redundancy between this and `get`.
+    const PutItemRequest = Type({
+      version: string,
+      operation: string,
+      key: this.keyShape,
+      attributeValues: this.attributeValuesShape
+    });
+
+    const request = VObject.fromExpr(PutItemRequest, VExpression.json({
+      version: '2017-02-28',
+      operation: 'PutItem',
+      key: toAttributeValueJson(this.keyShape, value),
+      attributeValues: toAttributeValueJson(this.attributeValuesShape, value)
+    }));
+
+    return call(this.dataSourceProps((table, role) => table.grantWriteData(role), props), request, this.dataType);
+  }
+
+  public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
+    // TODO: https://docs.aws.amazon.com/appsync/latest/devguide/resolver-mapping-template-reference-dynamodb.html#aws-appsync-resolver-mapping-template-reference-dynamodb-condition-handling
+
+    const condition = yield* stringList('$CONDITION');
+    const ADD = yield* stringList('$ADD');
+    const DELETE = yield* stringList('$DELETE');
+    const SET = yield* stringList('$SET');
+
+    // map of id -> attribute-value
+    const expressionValues = yield* vtl(map(any), {
+      local: true,
+      id: '$VALUES'
+    })`{}`;
+
+    // map of name -> id
+    const expressionNames = yield* vtl(map(string), {
+      local: true,
+      id: '$NAMES'
+    })`{}`;
+
+    const fields: any = {};
+    for (const [name, field] of Object.entries(this.dataType.Members)) {
+      fields[name] = DynamoDSL.of(field, new DynamoExpr.Reference(undefined, field, name));
+    }
+
+    if (request.condition) {
+      yield* request.condition(fields);
+    }
+    yield* request.transaction(fields);
+
+    const UpdateItemRequestCondition = Type({
+      expression: string,
+      expressionNames: map(string),
+      expressionValues: map(any)
+    });
+
+    const UpdateItemRequest = Type({
+      version: string,
+      operation: string,
+      key: this.keyShape,
+      update: Type({
+        expression: string,
+        expressionNames: map(string),
+        expressionValues: map(any)
+      }),
+      condition: optional(UpdateItemRequestCondition)
+    });
+
+    const expression = yield* vtl(string, {
+      local: true,
+      id: '$EXPRESSION'
+    })``;
+
+    for (const [name, list] of Object.entries({
+      SET,
+      ADD,
+      DELETE
+    })) {
+      (yield* getState()).writeLine();
+      yield* vtl`## DynamoDB Update Expressions - ${name}`;
+      yield* $if(VBool.not(list.isEmpty()), function*() {
+        yield* vtl`#set(${expression} = "${expression} ${name} #foreach($item in ${list})$item#if($foreach.hasNext), #end#end")`;
+      });
+    }
+
+    const updateRequest = VObject.fromExpr(UpdateItemRequest, VExpression.json({
+      version: '2017-02-28',
+      operation: 'UpdateItem',
+      key: toAttributeValueJson(this.keyShape, request.key),
+      update: {
+        expression,
+        expressionNames,
+        expressionValues
+      },
+      condition: yield* $if(VBool.not(condition.isEmpty()), function*() {
+        yield* vtl`#set($conditionExpression = "#foreach($item in ${condition})($item)#if($foreach.hasNext) and #end#end")`;
+
+        return yield* VObject.of(UpdateItemRequestCondition, {
+          expression: new VString(VExpression.text('$conditionExpression')),
+          expressionNames,
+          expressionValues
+        });
+      })
+    }));
+
+    return yield* call(
+      this.dataSourceProps((table, role) => table.grantWriteData(role), props),
+      updateRequest,
+      this.dataType
+    );
+  }
+
+  public *query<Q extends QueryRequest<DataType, Key>>(request: Q, props?: DataSourceProps): VTL<QueryResponse<Q, DataType, Key>> {
+    return yield* query({
+      dataType: this.dataType,
+      key: this.key,
+      keyShape: this.keyShape,
+      request,
+      dataSourceProps: this.dataSourceProps((table, role) => table.grantReadData(role), props)
+    });
+  }
+
+  /**
+   * Return an AppSync DataSource for this Table.
+   * @param props
+   */
+  public dataSourceProps(grant: (table: dynamodb.Table, role: iam.IRole) => void, props?: Table.DataSourceProps): Build<DataSourceBindCallback> {
+    return Build.concat(
+      CDK,
+      this.resource,
+      props?.serviceRole || Build.of(undefined)
+    ).map(([cdk, table, serviceRole]) => (scope: cdk.Construct, id: string) => {
+      const role = serviceRole || new cdk.iam.Role(scope, `${id}:Role`, {
+        assumedBy: new cdk.iam.ServicePrincipal('appsync')
+      });
+      grant(table, role);
+      return {
+        type: DataSourceType.AMAZON_DYNAMODB,
+        dynamoDbConfig: {
+          awsRegion: table.stack.region,
+          tableName: table.tableName,
+          useCallerCredentials: props?.useCallerCredentials
+        },
+        description: props?.description,
+        // TODO: are we sure we want to auto-create an IAM Role?
+        serviceRoleArn: role.roleArn
+      };
+    });
   }
 
   /**
@@ -174,7 +375,7 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
    * ```
    * @param projection type of projected data (subset of the Table's properties)
    */
-  public projectTo<Projection extends RecordType>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
+  public projectTo<Projection extends TypeShape>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
     return new Projected(this, projection) as any;
   }
 
@@ -236,7 +437,7 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
       bootstrap: Run.of(async (ns, cache) =>
         new TableClient({
           data: this.dataType,
-          key: this.key,
+          key: this.key as any,
           tableName: ns.get('tableName'),
           client: cache.getOrCreate('aws:dynamodb', () => new AWS.DynamoDB())
         }))
@@ -244,25 +445,52 @@ export class Table<DataType extends RecordType, Key extends DDB.KeyOf<DataType>>
   }
 }
 
+export type KeyGraphQLRepr<DataType extends TypeShape, K extends DDB.KeyOf<DataType>> = {
+  [k in Extract<K[keyof K], string>]: VObject.Of<DataType['Members'][k]>;
+};
+
 export namespace Table {
+  export interface DataSourceProps {
+    description?: string;
+    serviceRole?: Build<iam.IRole>;
+    /**
+     * @default - false
+     */
+    useCallerCredentials?: boolean;
+  }
+
+  export function NewType<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>>(
+    input: {
+      data: DataType,
+      key: Key
+    }): Construct.Class<Table<DataType, Key>, BaseTableProps> {
+      return class extends Table<DataType, Key> {
+        constructor(scope: Scope, id: string, props: BaseTableProps) {
+          super(scope, id, {
+            ...props,
+            ...input
+          });
+        }
+      } as any;
+    }
   /**
    * A DynamoDB Table with read-only permissions.
    *
    * Unavailable methods: `put`, `putBatch`, `delete`, `update`.
    */
-  export interface ReadOnly<A extends RecordType, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'putBatch' | 'delete' | 'update'> {}
+  export interface ReadOnly<A extends TypeShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'put' | 'batchPut' | 'delete' | 'update'> {}
 
   /**
    * A DynamoDB Table with write-only permissions.
    *
    * Unavailable methods: `batchGet`, `get`, `scan`, `query`
    */
-  export interface WriteOnly<A extends RecordType, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
+  export interface WriteOnly<A extends TypeShape, K extends DDB.KeyOf<A>> extends Omit<TableClient<A, K>, 'batchGet' | 'get' | 'scan' | 'query'> {}
 
   /**
    * A DynamODB Table with read and write permissions.
    */
-  export interface ReadWrite<A extends RecordType, K extends DDB.KeyOf<A>> extends TableClient<A, K> {}
+  export interface ReadWrite<A extends TypeShape, K extends DDB.KeyOf<A>> extends TableClient<A, K> {}
 }
 
 export namespace Table {
@@ -270,7 +498,14 @@ export namespace Table {
   export type Key<T extends Table<any, any>> = T extends Table<any, infer K> ? K : never;
 }
 
-type AssertValidProjection<T extends RecordType, P extends RecordType> = T['members'] extends P['members'] ? P : never;
+function* stringList(id: string) {
+  return yield* vtl(array(string), {
+    local: true,
+    id
+  })`[]`;
+}
+
+type AssertValidProjection<T extends TypeShape, P extends TypeShape> = T['Members'] extends P['Members'] ? P : never;
 
 /**
  * Represents a Projection of some DynamoDB Table.
@@ -280,7 +515,7 @@ type AssertValidProjection<T extends RecordType, P extends RecordType> = T['memb
  * @typeparam SourceTable the projected table
  * @typeparam Projection the type of projected data
  */
-export class Projected<SourceTable extends Table<any, any>, Projection extends RecordType> {
+export class Projected<SourceTable extends Table<any, any>, Projection extends TypeShape> {
   constructor(public readonly sourceTable: SourceTable, public readonly projection: Projection) {}
 
   public globalIndex<IndexKey extends DDB.KeyOf<Projection>>(

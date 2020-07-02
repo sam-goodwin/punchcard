@@ -1,7 +1,7 @@
-import { any, array, Record, string } from "@punchcard/shape";
+import { any, array, string, Type } from "@punchcard/shape";
 
 export namespace Event {
-  export class Payload extends Record({
+  export class Payload extends Type({
     "account": string,
     "region": string,
     "detail": any,

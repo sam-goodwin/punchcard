@@ -165,7 +165,7 @@ export namespace DataFormat {
    *
    * @see https://docs.aws.amazon.com/athena/latest/ug/apache.html
    */
-  export const ApacheLogs: DataFormat = {
+  export const APACHE_LOGS: DataFormat = {
     inputFormat: InputFormat.TEXT,
     outputFormat: OutputFormat.HIVE_IGNORE_KEY_TEXT,
     serializationLibrary: SerializationLibrary.REGEXP
@@ -176,7 +176,7 @@ export namespace DataFormat {
    *
    * @see https://docs.aws.amazon.com/athena/latest/ug/avro.html
    */
-  export const Avro: DataFormat = {
+  export const AVRO: DataFormat = {
     inputFormat: InputFormat.AVRO,
     outputFormat: OutputFormat.AVRO,
     serializationLibrary: SerializationLibrary.AVRO
@@ -187,7 +187,7 @@ export namespace DataFormat {
    *
    * @see https://docs.aws.amazon.com/athena/latest/ug/cloudtrail.html
    */
-  export const CloudTrailLogs: DataFormat = {
+  export const CLOUDTRAIL_LOGS: DataFormat = {
     inputFormat: InputFormat.CLOUDTRAIL,
     outputFormat: OutputFormat.HIVE_IGNORE_KEY_TEXT,
     serializationLibrary: SerializationLibrary.CLOUDTRAIL
@@ -210,7 +210,7 @@ export namespace DataFormat {
    *
    * @see https://docs.aws.amazon.com/athena/latest/ug/json.html
    */
-  export const Json: DataFormat = {
+  export const JSON: DataFormat = {
     inputFormat: InputFormat.TEXT,
     outputFormat: OutputFormat.HIVE_IGNORE_KEY_TEXT,
     serializationLibrary: SerializationLibrary.OPENX_JSON
@@ -221,7 +221,7 @@ export namespace DataFormat {
    *
    * @see https://docs.aws.amazon.com/athena/latest/ug/grok.html
    */
-  export const Logstash: DataFormat = {
+  export const LOGSTASH: DataFormat = {
     inputFormat: InputFormat.TEXT,
     outputFormat: OutputFormat.HIVE_IGNORE_KEY_TEXT,
     serializationLibrary: SerializationLibrary.GROK
@@ -232,7 +232,7 @@ export namespace DataFormat {
    *
    * @see https://docs.aws.amazon.com/athena/latest/ug/orc.html
    */
-  export const Orc: DataFormat = {
+  export const ORC: DataFormat = {
     inputFormat: InputFormat.ORC,
     outputFormat: OutputFormat.ORC,
     serializationLibrary: SerializationLibrary.ORC
@@ -243,7 +243,7 @@ export namespace DataFormat {
    *
    * @see https://docs.aws.amazon.com/athena/latest/ug/parquet.html
    */
-  export const Parquet: DataFormat = {
+  export const PARQUET: DataFormat = {
     inputFormat: InputFormat.PARQUET,
     outputFormat: OutputFormat.PARQUET,
     serializationLibrary: SerializationLibrary.PARQUET

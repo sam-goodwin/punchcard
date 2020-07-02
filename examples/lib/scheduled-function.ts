@@ -1,11 +1,11 @@
 import { Core, DynamoDB, Lambda } from 'punchcard';
-import { integer, string, Record, Minimum } from '@punchcard/shape';
+import { integer, string, Type, Minimum } from '@punchcard/shape';
 import { CDK } from 'punchcard/lib/core/cdk';
 
 export const app = new Core.App();
 const stack = app.stack('scheduled-function-example');
 
-class CounterRecord extends Record({
+class CounterRecord extends Type({
   id: string,
   count: integer
     .apply(Minimum(0))

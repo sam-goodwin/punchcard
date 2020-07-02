@@ -1,4 +1,5 @@
-import { ArrayShape, BinaryShape, BoolShape, Decorated, DynamicShape, IntegerShape, MapShape, Member, Meta, NothingShape, NumberShape, RecordShape, RecordType, SetShape, Shape, StringShape, TimestampShape, Trait, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BinaryShape, BoolShape, Decorated, EnumShape, IntegerShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, Trait, TypeShape, UnionShape } from '@punchcard/shape';
+import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 
 import { KeysOfType } from 'typelevel-ts';
 
@@ -15,44 +16,47 @@ export const Partition: {
   }
 };
 
-type GetComment<M extends Member> =
-  M extends Member<any, any, { description: infer D }> ?
+type GetComment<T extends Shape> =
+  T extends Decorated<any, { description: infer D }> ?
     D extends string ?
       D :
       undefined :
     undefined
   ;
 
-function getComment<M extends Member>(member: M): GetComment<M> {
-  return member.Metadata.description;
+function getComment<T extends Shape>(member: T): GetComment<T> {
+  const _member = member as any;
+  if (_member[Decorated.Data]) {
+    return _member[Decorated.Data].description;
+  }
+  return undefined as GetComment<T>;
 }
 
-type Column<K extends keyof T['Members'], T extends RecordShape<any>> = {
+type Column<K extends keyof T['Members'], T extends TypeShape<any>> = {
   name: K;
   type: glue.Type;
   comment: GetComment<T['Members'][K]>;
 };
 
-export type PartitionKeys<T extends RecordType> = KeysOfType<T[RecordShape.Members], Decorated<any, { isPartition: true; }>>;
+export type PartitionKeys<T extends TypeShape<any>> = KeysOfType<T['Members'], Decorated<any, { isPartition: true; }>>;
 
-export type Columns<T extends RecordType> = {
-  readonly [K in keyof T[RecordShape.Members]]: Column<K, Shape.Of<T>>;
+export type Columns<T extends TypeShape<any>> = {
+  readonly [K in keyof T['Members']]: Column<K, T>;
 };
 
-export function schema<T extends RecordType>(type: T): Columns<T> {
-  const shape = Shape.of(type);
+export function schema<T extends TypeShape<any>>(shape: T): Columns<T> {
   const columns: { [name: string]: Column<any, any>; } = {};
-  for (const member of Object.values(shape.Members)) {
-    const type = member.Shape.visit(SchemaVisitor.instance);
+  for (const [name, member] of Object.entries(shape.Members) as [string, Shape][]) {
+    const type = member.visit(SchemaVisitor.instance, null);
     const col = {
-      name: member.Name,
+      name,
       type,
       comment: getComment(member)
     };
     if (!col.comment) {
       delete col.comment;
     }
-    columns[member.Name] = col;
+    columns[name] = col as Column<any, any>;
   }
   return columns as any;
 }
@@ -60,10 +64,25 @@ export function schema<T extends RecordType>(type: T): Columns<T> {
 export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
   public static readonly instance = new SchemaVisitor();
 
+  public enumShape(shape: EnumShape<any, any>, context: null): glue.Type {
+    return glue.Schema.STRING;
+  }
+  public literalShape(shape: LiteralShape<Shape, any>, context: null): glue.Type {
+    return shape.Type.visit(this, context);
+  }
+  public unionShape(shape: UnionShape<Shape[]>, context: null): glue.Type {
+    throw new Error('Union shape is not supported by Hive');
+  }
+  public neverShape(shape: NeverShape, context: null): glue.Type {
+    throw new Error('Never shape is not supported by Hive');
+  }
+  public functionShape(shape: FunctionShape<FunctionArgs, Shape>): glue.Type {
+    throw new Error('Function shape is not supported by Hive');
+  }
   public nothingShape(shape: NothingShape, context: null): glue.Type {
     throw new Error(`Nothing Shape is not supported by Glue.`);
   }
-  public dynamicShape(shape: DynamicShape<any>): glue.Type {
+  public anyShape(shape: AnyShape): glue.Type {
     throw new Error("Dynamic type is not supported by Glue.");
   }
   public arrayShape(shape: ArrayShape<any>): glue.Type {
@@ -75,36 +94,36 @@ export class SchemaVisitor implements ShapeVisitor<glue.Type, null> {
   public boolShape(shape: BoolShape): glue.Type {
     return glue.Schema.BOOLEAN;
   }
-  public recordShape(shape: RecordShape<any>): glue.Type {
-    return glue.Schema.struct(Object.values(shape.Members)
-      .map(member => ({
-        name: member.Name,
-        type: member.Shape.visit(this, null)
+  public recordShape(shape: TypeShape<any>): glue.Type {
+    return glue.Schema.struct(Object.entries(shape.Members)
+      .map(([name, member]) => ({
+        name,
+        type: (member as Shape).visit(this, null)
       })));
   }
   public mapShape(shape: MapShape<any>): glue.Type {
     return glue.Schema.map(glue.Schema.STRING, shape.Items.visit(this, null));
   }
-  public integerShape(shape: IntegerShape): glue.Type {
-    const { glueType } = Meta.get(shape, ['glueType']);
-    switch (glueType) {
-      case 'bigint':
-        return glue.Schema.BIG_INT;
-      case 'smallint':
-        return glue.Schema.SMALL_INT;
-      case 'tinyint':
-        return glue.Schema.TINY_INT;
-      default:
-        return glue.Schema.INTEGER;
-    }
-  }
   public numberShape(shape: NumberShape): glue.Type {
     const { glueType } = Meta.get(shape, ['glueType']);
-    switch (glueType) {
-      case 'float':
-        return glue.Schema.FLOAT;
-      default:
-        return glue.Schema.DOUBLE;
+    if (ShapeGuards.isIntegerShape(shape)) {
+      switch (glueType) {
+        case 'bigint':
+          return glue.Schema.BIG_INT;
+        case 'smallint':
+          return glue.Schema.SMALL_INT;
+        case 'tinyint':
+          return glue.Schema.TINY_INT;
+        default:
+          return glue.Schema.INTEGER;
+      }
+    } else {
+      switch (glueType) {
+        case 'float':
+          return glue.Schema.FLOAT;
+        default:
+          return glue.Schema.DOUBLE;
+      }
     }
   }
   public setShape(shape: SetShape<any>): glue.Type {

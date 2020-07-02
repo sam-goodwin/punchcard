@@ -1,16 +1,16 @@
 import 'jest';
 
-import { any, binary, nothing, number, Optional, optional, Record, Shape, string } from '@punchcard/shape';
+import { any, binary, Enum, nothing, number, NumberShape, optional, string, StringShape, Type, union } from '@punchcard/shape';
 import { Maximum, MaxLength, Minimum, MinLength, MultipleOf, Pattern } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
-import { JsonSchema, NumberSchema } from '../lib';
+import { JsonSchema, NumberSchema, OneOf } from '../lib';
 
 // tslint:disable: member-access
-class Nested extends Record({
+class Nested extends Type('Nested', {
   a: optional(string)
 }) {}
 
-class MyType extends Record({
+class MyType extends Type('MyType', {
   /**
    * Field documentation.
    */
@@ -18,13 +18,13 @@ class MyType extends Record({
     .apply(MaxLength(1))
     .apply(MinLength(0))
     .apply(Pattern('.*'))
-    ,
+  ,
 
   count: number
     .apply(Maximum(1))
     .apply(Minimum(1, true))
     .apply(MultipleOf(2))
-    ,
+  ,
 
   nested: Nested,
   array: array(string),
@@ -32,18 +32,22 @@ class MyType extends Record({
   set: set(string),
   complexSet: set(Nested),
   map: map(string),
-  complexMap: map(Nested)
-    .apply(Optional),
+  complexMap: optional(map(Nested)),
+  optionalUnion: union(nothing, string),
+  stringOrNumber: union(string, number),
 
   binary: binary
-    .apply(MaxLength(1)),
+    .apply(MaxLength(1))
+  ,
+
+  enum: Enum({
+    Up: 'UP'
+  } as const),
 
   any,
 
   nothing,
 }) {}
-
-const type = Shape.of(MyType);
 
 // "stamp" an interface representing the JSON schema of MyType - sick code generation!
 interface MyTypeJsonSchema extends JsonSchema.Of<typeof MyType> {}
@@ -66,11 +70,16 @@ it('should render JSON schema', () => {
       'set',
       'complexSet',
       'map',
+      'stringOrNumber',
       'binary',
+      'enum',
       'any',
-      'nothing'
     ],
     properties: {
+      enum: {
+        type: 'string',
+        enum: ['UP']
+      },
       id: {
         type: 'string',
         maxLength: 1,
@@ -111,6 +120,16 @@ it('should render JSON schema', () => {
           }
         },
         uniqueItems: false
+      },
+      optionalUnion: {
+        type: 'string'
+      },
+      stringOrNumber: {
+        oneOf: [{
+          type: 'string'
+        }, {
+          type: 'number'
+        }]
       },
       set: {
         type: 'array',
@@ -193,6 +212,10 @@ it('should render JSON schema', () => {
           }
         }
       },
+      enum: {
+        type: 'string',
+        enum: 'UP'[]
+      },
       array: {
         type: 'array',
         items: {
@@ -212,6 +235,10 @@ it('should render JSON schema', () => {
         },
         uniqueItems?: false
       },
+      optionalUnion: {
+        type: 'string'
+      },
+      stringOrNumber: OneOf<[StringShape, NumberShape]>,
       set: {
         type: 'array',
         items: {

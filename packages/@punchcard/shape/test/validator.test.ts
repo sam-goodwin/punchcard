@@ -1,9 +1,9 @@
 import 'jest';
 
-import { array, MaxLength, number, Record, string, Validator } from '../lib';
+import { array, MaxLength, number, string, Type, Validator } from '../lib';
 
 // tslint:disable: member-access
-class Mock extends Record({
+class Mock extends Type('Mock', {
   str: string
     .apply(MaxLength(1)),
 

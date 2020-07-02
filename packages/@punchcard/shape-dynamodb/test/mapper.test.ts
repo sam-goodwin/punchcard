@@ -1,6 +1,6 @@
 import 'jest';
 
-import { HashSet, MaxLength, Record } from '@punchcard/shape';
+import { HashSet, MaxLength, Type } from '@punchcard/shape';
 import { binary, string } from '@punchcard/shape/lib/primitive';
 import { Mapper } from '../lib';
 import { MyType, Nested } from './mock';
@@ -72,8 +72,8 @@ it('should read attribute values', () => {
       anyField: {
         S: 'any'
       },
-      unknownField: {
-        N: '1'
+      direction: {
+        S: 'UP'
       }
     }
   });
@@ -103,13 +103,13 @@ it('should read attribute values', () => {
     binaryField: Buffer.from('binaryField', 'utf8'),
     binarySet: HashSet.of(binary).add(Buffer.from('binarySet', 'utf8')),
     anyField: 'any',
-    unknownField: 1
+    direction: 'UP'
   });
 
   expect(actual).toEqual(expected);
 });
 
-class T extends Record({
+class T extends Type('T', {
   id: string.apply(MaxLength(1))
 }) {}
 
@@ -126,7 +126,7 @@ it('should validate', () => {
 });
 
 it('should support empty record', () => {
-  class Empty extends Record({}) {}
+  class Empty extends Type('Empty', {}) {}
 
   expect(() => Mapper.of(Empty)).not.toThrow();
 });

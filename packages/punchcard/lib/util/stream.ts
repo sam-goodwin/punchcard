@@ -1,15 +1,15 @@
-import { RecordType, Value } from '@punchcard/shape';
+import type * as lambda from '@aws-cdk/aws-lambda';
+import type * as cdk from '@aws-cdk/core';
+
+import { TypeShape, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
-import { CDK } from '../core/cdk';
 import { Client, Clients } from '../core/client';
 import { Dependency } from '../core/dependency';
-import * as Lambda from '../lambda';
+import { Duration } from '../core/duration';
 import { Collector } from './collector';
 import { Cons } from './hlist';
 
-import type * as lambda from '@aws-cdk/aws-lambda';
-import type * as cdk from '@aws-cdk/core';
-import { Duration } from '../core/duration';
+import * as Lambda from '../lambda';
 
 export type EventType<E extends Stream<any, any, any, any>> = E extends Stream<infer E, any, any, any> ? E : never;
 export type DataType<E extends Stream<any, any, any, any>> = E extends Stream<any, infer I, any, any> ? I : never;
@@ -23,7 +23,7 @@ export type DependencyType<E extends Stream<any, any, any, any>> = E extends Str
  * @typeparam D runtime dependencies
  * @typeparam C runtime configuration
  */
-export abstract class Stream<E extends RecordType, T, D extends any[], C> {
+export abstract class Stream<E extends TypeShape, T, D extends any[], C> {
   constructor(
       protected readonly previous: Stream<E, any, any, C>,
       protected readonly f: (value: AsyncIterableIterator<any>, clients: Clients<D>) => AsyncIterableIterator<T>,
@@ -137,7 +137,8 @@ export abstract class Stream<E extends RecordType, T, D extends any[], C> {
       depends: input.depends === undefined
         ? Dependency.concat(...this.dependencies)
         : Dependency.concat(input.depends, ...this.dependencies),
-    }, async (event: Value.Of<E>, deps) => {
+    // }, async (event: Value.Of<E>, deps) => {
+    }, async (event: any, deps) => {
       if (input.depends === undefined) {
         for await (const value of this.run(event, deps as any)) {
           await handle(value, undefined as any);

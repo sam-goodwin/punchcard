@@ -78,9 +78,9 @@ export class Duration {
     }
     return Duration.seconds(
       _toInt(seconds)
-      + (_toInt(minutes) * TimeUnit.Minutes.inSeconds)
-      + (_toInt(hours) * TimeUnit.Hours.inSeconds)
-      + (_toInt(days) * TimeUnit.Days.inSeconds)
+      + (_toInt(minutes) * TimeUnit.Minutes.inMillis)
+      + (_toInt(hours) * TimeUnit.Hours.inMillis)
+      + (_toInt(days) * TimeUnit.Days.inMillis)
     );
 
     function _toInt(str: string): number {
@@ -177,13 +177,13 @@ export interface TimeConversionOptions {
 }
 
 class TimeUnit {
-  public static readonly Milliseconds = new TimeUnit('millis', 0.001);
-  public static readonly Seconds = new TimeUnit('seconds', 1);
-  public static readonly Minutes = new TimeUnit('minutes', 60);
-  public static readonly Hours = new TimeUnit('hours', 3_600);
-  public static readonly Days = new TimeUnit('days', 86_400);
+  public static readonly Milliseconds = new TimeUnit('millis', 0.001 * 1000);
+  public static readonly Seconds = new TimeUnit('seconds', 1 * 1000);
+  public static readonly Minutes = new TimeUnit('minutes', 60 * 1000);
+  public static readonly Hours = new TimeUnit('hours', 3_600 * 1000);
+  public static readonly Days = new TimeUnit('days', 86_400 * 1000);
 
-  private constructor(public readonly label: string, public readonly inSeconds: number) {
+  private constructor(public readonly label: string, public readonly inMillis: number) {
   }
 
   public toString() {
@@ -192,8 +192,8 @@ class TimeUnit {
 }
 
 function convert(amount: number, fromUnit: TimeUnit, toUnit: TimeUnit, { integral = true }: TimeConversionOptions) {
-  if (fromUnit.inSeconds === toUnit.inSeconds) { return amount; }
-  const multiplier = fromUnit.inSeconds / toUnit.inSeconds;
+  if (fromUnit.inMillis === toUnit.inMillis) { return amount; }
+  const multiplier = fromUnit.inMillis / toUnit.inMillis;
 
   const value = amount * multiplier;
   if (!Number.isInteger(value) && integral) {

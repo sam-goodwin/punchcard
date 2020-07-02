@@ -1,7 +1,7 @@
 import 'jest';
 import sinon = require('sinon');
 
-import { Record, timestamp } from '@punchcard/shape';
+import { timestamp, Type } from '@punchcard/shape';
 
 import glue = require('@aws-cdk/aws-glue');
 import core = require('@aws-cdk/core');
@@ -14,7 +14,7 @@ const database = stack.map(stack => new glue.Database(stack, 'Database', {
   databaseName: 'database'
 }));
 
-class MyTable extends Record({
+class MyTable extends Type({
   timestamp
 }) {}
 
@@ -144,10 +144,10 @@ it('should createPartition', async () => {
           Name: 'timestamp',
           Type: 'timestamp'
         }],
-        InputFormat: glue.DataFormat.Json.inputFormat.className,
-        OutputFormat: glue.DataFormat.Json.outputFormat.className,
+        InputFormat: glue.DataFormat.JSON.inputFormat.className,
+        OutputFormat: glue.DataFormat.JSON.outputFormat.className,
         SerdeInfo: {
-          SerializationLibrary: glue.DataFormat.Json.serializationLibrary.className,
+          SerializationLibrary: glue.DataFormat.JSON.serializationLibrary.className,
         }
       }
     }
@@ -184,10 +184,10 @@ it('should batchCreatePartition', async () => {
           Name: 'timestamp',
           Type: 'timestamp'
         }],
-        InputFormat: glue.DataFormat.Json.inputFormat.className,
-        OutputFormat: glue.DataFormat.Json.outputFormat.className,
+        InputFormat: glue.DataFormat.JSON.inputFormat.className,
+        OutputFormat: glue.DataFormat.JSON.outputFormat.className,
         SerdeInfo: {
-          SerializationLibrary: glue.DataFormat.Json.serializationLibrary.className,
+          SerializationLibrary: glue.DataFormat.JSON.serializationLibrary.className,
         }
       }
     }]
@@ -231,10 +231,10 @@ it('should updatePartition', async () => {
           Name: 'timestamp',
           Type: 'timestamp'
         }],
-        InputFormat: glue.DataFormat.Json.inputFormat.className,
-        OutputFormat: glue.DataFormat.Json.outputFormat.className,
+        InputFormat: glue.DataFormat.JSON.inputFormat.className,
+        OutputFormat: glue.DataFormat.JSON.outputFormat.className,
         SerdeInfo: {
-          SerializationLibrary: glue.DataFormat.Json.serializationLibrary.className,
+          SerializationLibrary: glue.DataFormat.JSON.serializationLibrary.className,
         }
       }
     }

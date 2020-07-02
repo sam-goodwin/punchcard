@@ -6,14 +6,13 @@ import sinon = require('sinon');
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import iam = require('@aws-cdk/aws-iam');
 import core = require('@aws-cdk/core');
-import { array, binary, integer, map, number, Optional, Record, set, Shape, string, timestamp } from '@punchcard/shape';
+import { array, binary, integer, map, number, Optional, optional, set, Shape, string, timestamp, Type } from '@punchcard/shape';
 import { bigint, double, float, smallint, tinyint } from '@punchcard/shape-hive';
 import { Core, DynamoDB } from '../../lib';
 import { Build } from '../../lib/core/build';
 import { Run } from '../../lib/core/run';
-import { Index } from '../../lib/dynamodb/table-index';
 
-class Struct extends Record({
+class Struct extends Type('Struct', {
   key: string
 }) {}
 
@@ -46,7 +45,7 @@ function keyTypeTests(makeTable: (type: Shape) => void) {
     makeTable(binary);
   });
   it('should not accept optional', () => {
-    expect(() =>  makeTable(string.apply(Optional))).toThrow();
+    expect(() =>  makeTable(optional(string))).toThrow();
   });
   it('should not accept array', () => {
     expect(() =>  makeTable(array(string))).toThrow();
@@ -58,7 +57,7 @@ function keyTypeTests(makeTable: (type: Shape) => void) {
     expect(() =>  makeTable(map(string))).toThrow();
   });
   it('should not accept class', () => {
-    expect(() =>  makeTable(Shape.of(Struct))).toThrow();
+    expect(() =>  makeTable(Struct)).toThrow();
   });
 }
 
@@ -136,7 +135,7 @@ describe('DynamoDB.Table', () => {
     keyTypeTests(type => {
       const stack = Build.of(new core.Stack(new core.App(), 'stack'));
 
-      class Data extends Record({
+      class Data extends Type('Data', {
         key: type
       }) {}
       const table = new DynamoDB.Table(stack, 'table', {
@@ -152,7 +151,7 @@ describe('DynamoDB.Table', () => {
   function boringTable(stack?: Build<core.Stack>) {
     stack = stack || Build.of(new core.Stack(new core.App(), 'stack'));
 
-    class Data extends Record({
+    class Data extends Type('Data', {
       key: string
     }) {}
     return new DynamoDB.Table(stack, 'table', {
@@ -173,7 +172,7 @@ describe('SortedTable', () => {
   describe('partition and sort keys must be S, N or B', () => {
     keyTypeTests(type => {
       const stack = Build.of(new core.Stack(new core.App(), 'stack'));
-      class Data extends Record({
+      class Data extends Type('Data', {
         key: type,
         sortKey: type
       }) {}
@@ -192,7 +191,7 @@ describe('SortedTable', () => {
     });
   });
   function boringTable(stack: Build<core.Stack>) {
-    class Data extends Record({
+    class Data extends Type('Data', {
       key: string,
       sortKey: string
     }) {}
@@ -217,7 +216,7 @@ describe('SortedTable', () => {
 describe('gloal secondary index', () => {
   it('should', () => {
     const stack = Build.of(new core.Stack(new core.App(), 'stack'));
-    class Data extends Record({
+    class Data extends Type('Data', {
       /**
        * Docs
        */
@@ -235,20 +234,21 @@ describe('gloal secondary index', () => {
       }
     });
 
-    class DataProjection extends Data.Pick(['a', 'b', 'c']) {}
+    class DataProjection extends Data.Pick('DataProjection', ['a', 'b', 'c']) {}
+
+    const proj = table.projectTo(DataProjection);
 
     const successfulProjection = table
       .projectTo(DataProjection)
       .globalIndex({
         indexName: 'name',
         key: {
-          partition: 'a',
-          sort: 'c'
+          partition: 'a'
         }
       });
 
     // this does not compile since it is an invalid projection
-    // class IncompatibleProjection extends Record({z: string}) {}
+    // class IncompatibleProjection extends Record('Data', {z: string}) {}
     // const failsCompileCheck = table.projectTo(IncompatibleProjection).globalIndex({
     //   indexName: 'illegal',
     //   key: {
@@ -264,7 +264,7 @@ describe('gloal secondary index', () => {
       },
     });
 
-    class HashedByA extends Data.Pick(['a', 'b']) {}
+    class HashedByA extends Data.Pick('A', ['a', 'b']) {}
     table.projectTo(HashedByA).globalIndex({
       indexName: 'project-hashed',
       key: {
