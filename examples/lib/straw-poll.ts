@@ -1,10 +1,9 @@
 import { Core, DynamoDB, SQS } from 'punchcard';
 
 import { array, string, Type, optional, integer, timestamp, Fn, map, number, boolean, union, Enum, TypeShape, Fields, Value, } from '@punchcard/shape';
-import { ID, Api, Mutation, Subscription, Query, Trait, $if, VObject, vtl, VString, VTL } from 'punchcard/lib/appsync';
+import { ID, Api, Mutation, Subscription, Query, Trait, $if, VObject, vtl, VString, VTL, VList } from 'punchcard/lib/appsync';
 import { $util } from 'punchcard/lib/appsync/lang/util';
 import { DynamoDSL } from 'punchcard/lib/dynamodb/dsl/dynamo-repr';
-import { Records } from 'punchcard/lib/kinesis';
 
 // define the schema
 /**
@@ -61,6 +60,14 @@ export function createPoll(pollData: VObject.Of<typeof PollData>): VObject.Like<
   };
 }
 
+export function *createPolls(pollData: VList<VObject.Of<typeof PollData>>): VTL<VList<VObject.Of<typeof Poll>>> {
+  const polls = yield* vtl(array(Poll))`[]`;
+  yield * pollData.forEach(function*(poll) {
+    yield* polls.add(createPoll(poll));
+  });
+  return polls;
+}
+
 export class CreatePollInput extends Type('CreatePollInput', {
   name: string,
   candidates: array(CreateCandidateInput)
@@ -78,6 +85,11 @@ export class PollMutations extends Mutation({
   addPoll: Fn({ input: CreatePollInput }, Poll)
 }) {}
 
+export class GetPollsResponse extends Type({
+  polls: array(Poll),
+  nextToken: optional(string)
+}) {}
+
 export class PollQueries extends Query({
   /**
    * Get a Poll by ID.
@@ -87,7 +99,11 @@ export class PollQueries extends Query({
      * ID of the Poll.
      */
     id: ID
-  }, optional(Poll))
+  }, optional(Poll)),
+
+  getPolls: Fn({
+    nextToken: optional(string)
+  }, GetPollsResponse)
 }) {}
 
 export const VoteDirection = Enum('VoteDirection', {
@@ -169,6 +185,14 @@ const pollMutations = new PollMutations({
   }
 });
 
+const pollIndex = pollStore.globalIndex({
+  indexName: 'by-',
+  key: {
+    partition: 'id',
+    sort: 'createdAt'
+  }
+});
+
 const pollQueries = new PollQueries({
   getPoll: {
     *resolve({id}) {
@@ -179,10 +203,24 @@ const pollQueries = new PollQueries({
         candidates: poll.candidates.values()
       });
     }
+  },
+  getPolls: {
+    *resolve() {
+      const {items, nextToken} = yield* pollIndex.query({
+        where: {
+          id: 'id',
+          createdAt: t => t.gt(new Date())
+        },
+      });
+      const polls = yield* createPolls(items);
+
+      return yield* VObject.of(GetPollsResponse, {
+        polls,
+        nextToken
+      });
+    }
   }
 });
-
-
 
 const upVote = new UpVote({
   upVote: {
@@ -222,7 +260,7 @@ const voteUpdates = new VoteUpdates({
   }
 });
 
-const api = new Api(stack, 'StrawPoll', {
+new Api(stack, 'StrawPoll', {
   name: 'StrawPoll',
   fragments: [
     upVote,
@@ -231,63 +269,3 @@ const api = new Api(stack, 'StrawPoll', {
     pollQueries,
   ]
 });
-
-// async function main() {
-//   const {a,} = await api.Query(client => ({
-//     a: client.getFriend({id: 'hazza-bazza'}, person => person
-//       .on('Fo', fo => fo
-//         .weapon()
-//       )
-//       .on('Friend', friend => friend
-//         .name()
-//       )
-//     )
-//   }));
-
-//   if (a.__typename === 'Fo') {
-    
-//   }
-// }
-
-
-const resolvers = {
-  Friend: {
-    id: () => {},
-    name: () => {},
-    friends: () => {}
-  }
-}
-
-class Friend extends Type('Friend', {
-  id: string,
-  name: string
-}) {}
-class FriendOfFriend extends Trait(Friend, {
-  friends: array(Friend)
-}) {}
-
-/*
-Table1
-friendId | id | name
-
-Table2
-friendID | relatedFriendId 
-
-
-type Friend {
-  id: String!
-  name: String!
-  friends: [Friend]
-}
-
-query {
-  friend {
-    id
-    friends {
-      id
-      name
-    }
-  }
-}
-
-*/

@@ -1,6 +1,6 @@
 import AWS = require('aws-sdk');
 
-import { Pointer, Shape, TypeShape } from '@punchcard/shape';
+import { Type, TypeShape } from '@punchcard/shape';
 import { DDB, IndexClient } from '@punchcard/shape-dynamodb';
 import { CDK } from '../core/cdk';
 import { Dependency } from '../core/dependency';
@@ -10,8 +10,9 @@ import { keyType } from './util';
 
 import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
+import { DataSourceProps } from '../appsync';
 import { VTL } from '../appsync/lang/vtl';
-import { QueryRequest, QueryResponse } from './query-request';
+import { query, QueryRequest, QueryResponse } from './query-request';
 
 export interface IndexProps<SourceTable extends Table<any, any>, Projection extends TypeShape, Key extends DDB.KeyOf<Projection>> {
   /**
@@ -64,6 +65,20 @@ export class Index<SourceTable extends Table<TypeShape, any>, Projection extends
    * Type of index (`global` or `local`).
    */
   public readonly indexType: 'global' | 'local';
+
+  private _keyShape: TypeShape; // cache
+  private get keyShape() {
+    if (!this._keyShape) {
+      const keyMembers: any = {
+        [this.key.partition]: this.projection.Members[this.key.partition as any]
+      };
+      if (this.key.sort) {
+        keyMembers[this.key.sort] = this.projection.Members[this.key.sort as any];
+      }
+      this._keyShape = Type(keyMembers);
+    }
+    return this._keyShape;
+  }
 
   constructor(props: IndexProps<SourceTable, Projection, Key>) {
     this.indexName = props.indexName;
@@ -130,8 +145,15 @@ export class Index<SourceTable extends Table<TypeShape, any>, Projection extends
     }));
   }
 
-  public query<Q extends QueryRequest<Projection, Key>>(request: Q): VTL<QueryResponse<Q, Projection, Key>> {
-    return null as any;
+  public *query<Q extends QueryRequest<Projection, Key>>(request: Q, props?: DataSourceProps): VTL<QueryResponse<Q, Projection, Key>> {
+    return yield* query({
+      dataType: this.projection,
+      key: this.key,
+      keyShape: this.keyShape,
+      request,
+      dataSourceProps: this.sourceTable.dataSourceProps((table, role) => table.grantReadData(role), props),
+      indexName: this.indexName
+    });
   }
 
   /**

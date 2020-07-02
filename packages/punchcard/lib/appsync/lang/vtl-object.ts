@@ -486,7 +486,7 @@ export class VStringLike<T extends StringShape | EnumShape> extends VObject<T> {
   public matches(regex: string | RegExp | VString): VBool {
     return new VBool(VExpression.call(
       this, 'matches', [
-        typeof regex !== 'string' && !VObject.isObject(regex) ? regex.source : regex
+        typeof regex !== 'string' && !VObject.isObject(regex) ? (regex as RegExp).source : regex
       ]));
   }
   /**
@@ -525,7 +525,7 @@ export class VStringLike<T extends StringShape | EnumShape> extends VObject<T> {
   public split(regex: string | RegExp | VString, limit?: number | VInteger): VList<VString> {
     return new VList(string, VExpression.call(
       this, 'split', cleanArgs(
-        typeof regex !== 'string' && !VObject.isObject(regex) ? regex.source : regex,
+        typeof regex !== 'string' && !VObject.isObject(regex) ? (regex as RegExp).source : regex,
         limit
     )));
   }
@@ -594,7 +594,6 @@ export class VEnum<E extends EnumShape> extends VStringLike<E> {}
 export class VTimestamp extends VObject.NewType(timestamp) {}
 
 export class VList<T extends VObject = VObject> extends VObject<ArrayShape<VObject.TypeOf<T>>> {
-  public readonly t: T;
   constructor(shape: VObject.TypeOf<T>, expression: VExpression) {
     super(array(shape), expression);
   }

@@ -4,7 +4,7 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, array, map, optional, string, Type, TypeShape } from '@punchcard/shape';
+import { any, array, boolean, integer, map, optional, Pick, string, Type, TypeShape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
 import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VInteger, VObject, VString, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';
@@ -17,7 +17,7 @@ import { DynamoExpr } from './dsl/dynamo-expr';
 import { DynamoDSL } from './dsl/dynamo-repr';
 import { toAttributeValueJson } from './dsl/to-attribute-value';
 import { UpdateRequest } from './dsl/update-request';
-import { QueryRequest, QueryResponse } from './query-request';
+import { query, QueryRequest, QueryResponse } from './query-request';
 import { Index } from './table-index';
 import { getKeyNames, keyType } from './util';
 
@@ -225,12 +225,7 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
 
   public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
     // TODO: https://docs.aws.amazon.com/appsync/latest/devguide/resolver-mapping-template-reference-dynamodb.html#aws-appsync-resolver-mapping-template-reference-dynamodb-condition-handling
-    function* stringList(id: string) {
-      return yield* vtl(array(string), {
-        local: true,
-        id
-      })`[]`;
-    }
+
     const condition = yield* stringList('$CONDITION');
     const ADD = yield* stringList('$ADD');
     const DELETE = yield* stringList('$DELETE');
@@ -320,15 +315,21 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
     );
   }
 
-  public query<Q extends QueryRequest<DataType, Key>>(request: Q): VTL<QueryResponse<Q, DataType, Key>> {
-    return null as any;
+  public *query<Q extends QueryRequest<DataType, Key>>(request: Q, props?: DataSourceProps): VTL<QueryResponse<Q, DataType, Key>> {
+    return yield* query({
+      dataType: this.dataType,
+      key: this.key,
+      keyShape: this.keyShape,
+      request,
+      dataSourceProps: this.dataSourceProps((table, role) => table.grantReadData(role), props)
+    });
   }
 
   /**
    * Return an AppSync DataSource for this Table.
    * @param props
    */
-  private dataSourceProps(grant: (table: dynamodb.Table, role: iam.IRole) => void, props?: Table.DataSourceProps): Build<DataSourceBindCallback> {
+  public dataSourceProps(grant: (table: dynamodb.Table, role: iam.IRole) => void, props?: Table.DataSourceProps): Build<DataSourceBindCallback> {
     return Build.concat(
       CDK,
       this.resource,
@@ -495,6 +496,13 @@ export namespace Table {
 export namespace Table {
   export type Data<T extends Table<any, any>> = T extends Table<infer D, any> ? D : never;
   export type Key<T extends Table<any, any>> = T extends Table<any, infer K> ? K : never;
+}
+
+function* stringList(id: string) {
+  return yield* vtl(array(string), {
+    local: true,
+    id
+  })`[]`;
 }
 
 type AssertValidProjection<T extends TypeShape, P extends TypeShape> = T['Members'] extends P['Members'] ? P : never;

@@ -1,4 +1,4 @@
-import { array, ArrayShape, BinaryShape, bool, boolean, BoolShape, integer, IntegerShape, map, MapShape, number, NumberShape, set, SetShape, Shape, ShapeGuards, string, StringShape, TimestampShape, TypeShape, UnionShape } from '@punchcard/shape';
+import { array, ArrayShape, BinaryShape, bool, boolean, BoolShape, integer, IntegerShape, map, MapShape, number, NumberShape, set, SetShape, Shape, ShapeGuards, string, StringShape, timestamp, TimestampShape, TypeShape, UnionShape } from '@punchcard/shape';
 import { AttributeValue } from '@punchcard/shape-dynamodb';
 import { getState, VInteger, VList, VObject, VString, VTL, vtl } from '../../appsync';
 import { DynamoExpr } from './dynamo-expr';
@@ -11,6 +11,7 @@ export namespace DynamoDSL {
   export type Repr<T extends Shape> =
     T extends StringShape ? DynamoDSL.String :
     T extends IntegerShape ? DynamoDSL.Int :
+    T extends TimestampShape ? DynamoDSL.Timestamp :
     T extends NumberShape ? DynamoDSL.Number :
     T extends ArrayShape<infer I> ? DynamoDSL.List<I> :
     T extends SetShape<infer I> ?
@@ -173,6 +174,13 @@ export namespace DynamoDSL {
       super(number, expr);
     }
   }
+
+  export class Timestamp extends Ord<TimestampShape> {
+    constructor(expr: DynamoExpr) {
+      super(timestamp, expr);
+    }
+  }
+
   export class String extends Ord<StringShape> {
     constructor(expr: DynamoExpr) {
       super(string, expr);
