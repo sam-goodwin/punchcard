@@ -85,7 +85,7 @@ export class PollMutations extends Mutation({
   addPoll: Fn({ input: CreatePollInput }, Poll)
 }) {}
 
-export class GetPollsResponse extends Type({
+export class GetPollsResponse extends Type('GetPollsResponse', {
   polls: array(Poll),
   nextToken: optional(string)
 }) {}

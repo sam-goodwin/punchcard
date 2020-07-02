@@ -9,9 +9,9 @@ const Objekt = Object;
 
 export namespace DynamoDSL {
   export type Repr<T extends Shape> =
+    T extends TimestampShape ? DynamoDSL.Timestamp :
     T extends StringShape ? DynamoDSL.String :
     T extends IntegerShape ? DynamoDSL.Int :
-    T extends TimestampShape ? DynamoDSL.Timestamp :
     T extends NumberShape ? DynamoDSL.Number :
     T extends ArrayShape<infer I> ? DynamoDSL.List<I> :
     T extends SetShape<infer I> ?
@@ -20,7 +20,6 @@ export namespace DynamoDSL {
         DynamoDSL.List<I> :
     T extends MapShape<infer V> ? DynamoDSL.Map<V> :
     T extends TypeShape<infer M> ? DynamoDSL.Record<T> :
-    // T extends UnionShape<> ?
     Object<T>
   ;
   export function of<T extends Shape>(type: T, expr: DynamoExpr): Repr<T> {
@@ -36,6 +35,8 @@ export namespace DynamoDSL {
       return new DynamoDSL.Map(type.Items, expr) as Repr<T>;
     } else if (ShapeGuards.isRecordShape(type)) {
       return new DynamoDSL.Record(type, expr) as Repr<T>;
+    } else if (ShapeGuards.isTimestampShape(type)) {
+      return new DynamoDSL.Timestamp(expr) as Repr<T>;
     }
     return new DynamoDSL.Object(type, expr) as Repr<T>;
   }

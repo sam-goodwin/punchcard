@@ -4,7 +4,7 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, array, boolean, integer, map, optional, Pick, string, Type, TypeShape } from '@punchcard/shape';
+import { any, array, map, optional, string, Type, TypeShape } from '@punchcard/shape';
 import { DDB, TableClient } from '@punchcard/shape-dynamodb';
 import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VInteger, VObject, VString, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';

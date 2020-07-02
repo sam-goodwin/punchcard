@@ -122,6 +122,6 @@ export function *query<DataType extends TypeShape, Key extends DDB.KeyOf<DataTyp
   return yield* call(
     props.dataSourceProps,
     queryRequest,
-    QueryResponse(Array.isArray(props.request.select) ? props.dataType : Pick(props.dataType, undefined, props.request.select as string[]))
+    QueryResponse(Array.isArray(props.request.select) ? Pick(props.dataType, undefined, props.request.select as string[]) : props.dataType)
   ) as any;
 }
