@@ -85,11 +85,6 @@ export class PollMutations extends Mutation({
   addPoll: Fn({ input: CreatePollInput }, Poll)
 }) {}
 
-export class GetPollsResponse extends Type('GetPollsResponse', {
-  polls: array(Poll),
-  nextToken: optional(string)
-}) {}
-
 export class PollQueries extends Query({
   /**
    * Get a Poll by ID.
@@ -100,10 +95,6 @@ export class PollQueries extends Query({
      */
     id: ID
   }, optional(Poll)),
-
-  getPolls: Fn({
-    nextToken: optional(string)
-  }, GetPollsResponse)
 }) {}
 
 export const VoteDirection = Enum('VoteDirection', {
@@ -185,14 +176,6 @@ const pollMutations = new PollMutations({
   }
 });
 
-const pollIndex = pollStore.globalIndex({
-  indexName: 'by-',
-  key: {
-    partition: 'id',
-    sort: 'createdAt'
-  }
-});
-
 const pollQueries = new PollQueries({
   getPoll: {
     *resolve({id}) {
@@ -201,22 +184,6 @@ const pollQueries = new PollQueries({
       return yield* VObject.of(Poll, {
         ...poll,
         candidates: poll.candidates.values()
-      });
-    }
-  },
-  getPolls: {
-    *resolve() {
-      const {items, nextToken} = yield* pollIndex.query({
-        where: {
-          id: 'id',
-          createdAt: t => t.gt(new Date())
-        },
-      });
-      const polls = yield* createPolls(items);
-
-      return yield* VObject.of(GetPollsResponse, {
-        polls,
-        nextToken
       });
     }
   }

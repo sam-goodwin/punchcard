@@ -1038,6 +1038,16 @@ Object {
               },
             },
             Object {
+              "Action": "kinesis:DescribeStream",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "LakeDatabasedataPointsStreamF9D85971",
+                  "Arn",
+                ],
+              },
+            },
+            Object {
               "Action": Array [
                 "s3:GetObject*",
                 "s3:GetBucket*",
@@ -1489,6 +1499,7 @@ Object {
             "AttributeType": "N",
           },
         ],
+        "BillingMode": "PAY_PER_REQUEST",
         "GlobalSecondaryIndexes": Array [
           Object {
             "IndexName": "high-scores",
@@ -1505,10 +1516,6 @@ Object {
             "Projection": Object {
               "ProjectionType": "ALL",
             },
-            "ProvisionedThroughput": Object {
-              "ReadCapacityUnits": 5,
-              "WriteCapacityUnits": 5,
-            },
           },
         ],
         "KeySchema": Array [
@@ -1521,10 +1528,6 @@ Object {
             "KeyType": "RANGE",
           },
         ],
-        "ProvisionedThroughput": Object {
-          "ReadCapacityUnits": 5,
-          "WriteCapacityUnits": 5,
-        },
       },
       "Type": "AWS::DynamoDB::Table",
       "UpdateReplacePolicy": "Retain",
@@ -1771,7 +1774,7 @@ Object {
       },
       "Type": "AWS::IAM::Policy",
     },
-    "MyApiDataSourceMutationaddPost1B208957": Object {
+    "MyApiDataSourceMutationaddPost1E64AD9C6": Object {
       "Properties": Object {
         "ApiId": Object {
           "Fn::GetAtt": Array [
@@ -1790,7 +1793,7 @@ Object {
         "Name": "Mutation_addPost1",
         "ServiceRoleArn": Object {
           "Fn::GetAtt": Array [
-            "MyApiDataSourcesMutationaddPostRoleE097C31F",
+            "MyApiDataSourcesMutationaddPost1Role5454CE8B",
             "Arn",
           ],
         },
@@ -1798,7 +1801,7 @@ Object {
       },
       "Type": "AWS::AppSync::DataSource",
     },
-    "MyApiDataSourcePostrelatedPostsCB9CEB80": Object {
+    "MyApiDataSourcePostrelatedPosts180328305": Object {
       "Properties": Object {
         "ApiId": Object {
           "Fn::GetAtt": Array [
@@ -1817,7 +1820,7 @@ Object {
         "Name": "Post_relatedPosts1",
         "ServiceRoleArn": Object {
           "Fn::GetAtt": Array [
-            "MyApiDataSourcesPostrelatedPostsRoleA6DD673A",
+            "MyApiDataSourcesPostrelatedPosts1RoleC208A0EC",
             "Arn",
           ],
         },
@@ -1825,7 +1828,7 @@ Object {
       },
       "Type": "AWS::AppSync::DataSource",
     },
-    "MyApiDataSourceQuerygetPostFCC2B475": Object {
+    "MyApiDataSourceQuerygetPost10B9473D8": Object {
       "Properties": Object {
         "ApiId": Object {
           "Fn::GetAtt": Array [
@@ -1844,7 +1847,7 @@ Object {
         "Name": "Query_getPost1",
         "ServiceRoleArn": Object {
           "Fn::GetAtt": Array [
-            "MyApiDataSourcesQuerygetPostRoleB10DD6FD",
+            "MyApiDataSourcesQuerygetPost1Role15C4E688",
             "Arn",
           ],
         },
@@ -1852,7 +1855,24 @@ Object {
       },
       "Type": "AWS::AppSync::DataSource",
     },
-    "MyApiDataSourcesMutationaddPostRoleDefaultPolicy4D3C7F97": Object {
+    "MyApiDataSourcesMutationaddPost1Role5454CE8B": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesMutationaddPost1RoleDefaultPolicyDD84E53D": Object {
       "Properties": Object {
         "PolicyDocument": Object {
           "Statement": Array [
@@ -1879,16 +1899,16 @@ Object {
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "MyApiDataSourcesMutationaddPostRoleDefaultPolicy4D3C7F97",
+        "PolicyName": "MyApiDataSourcesMutationaddPost1RoleDefaultPolicyDD84E53D",
         "Roles": Array [
           Object {
-            "Ref": "MyApiDataSourcesMutationaddPostRoleE097C31F",
+            "Ref": "MyApiDataSourcesMutationaddPost1Role5454CE8B",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "MyApiDataSourcesMutationaddPostRoleE097C31F": Object {
+    "MyApiDataSourcesPostrelatedPosts1RoleC208A0EC": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [
@@ -1905,24 +1925,7 @@ Object {
       },
       "Type": "AWS::IAM::Role",
     },
-    "MyApiDataSourcesPostrelatedPostsRoleA6DD673A": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": Object {
-                "Service": "appsync.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "MyApiDataSourcesPostrelatedPostsRoleDefaultPolicyA0FE6E5F": Object {
+    "MyApiDataSourcesPostrelatedPosts1RoleDefaultPolicy08B55495": Object {
       "Properties": Object {
         "PolicyDocument": Object {
           "Statement": Array [
@@ -1939,16 +1942,16 @@ Object {
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "MyApiDataSourcesPostrelatedPostsRoleDefaultPolicyA0FE6E5F",
+        "PolicyName": "MyApiDataSourcesPostrelatedPosts1RoleDefaultPolicy08B55495",
         "Roles": Array [
           Object {
-            "Ref": "MyApiDataSourcesPostrelatedPostsRoleA6DD673A",
+            "Ref": "MyApiDataSourcesPostrelatedPosts1RoleC208A0EC",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "MyApiDataSourcesQuerygetPostRoleB10DD6FD": Object {
+    "MyApiDataSourcesQuerygetPost1Role15C4E688": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [
@@ -1965,7 +1968,7 @@ Object {
       },
       "Type": "AWS::IAM::Role",
     },
-    "MyApiDataSourcesQuerygetPostRoleDefaultPolicy66D08614": Object {
+    "MyApiDataSourcesQuerygetPost1RoleDefaultPolicy1FCBC18A": Object {
       "Properties": Object {
         "PolicyDocument": Object {
           "Statement": Array [
@@ -1994,16 +1997,16 @@ Object {
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "MyApiDataSourcesQuerygetPostRoleDefaultPolicy66D08614",
+        "PolicyName": "MyApiDataSourcesQuerygetPost1RoleDefaultPolicy1FCBC18A",
         "Roles": Array [
           Object {
-            "Ref": "MyApiDataSourcesQuerygetPostRoleB10DD6FD",
+            "Ref": "MyApiDataSourcesQuerygetPost1Role15C4E688",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "MyApiFunctionMutationaddPost3E391EAE": Object {
+    "MyApiNone7A81D43E": Object {
       "Properties": Object {
         "ApiId": Object {
           "Fn::GetAtt": Array [
@@ -2011,88 +2014,11 @@ Object {
             "ApiId",
           ],
         },
-        "DataSourceName": Object {
-          "Fn::GetAtt": Array [
-            "MyApiDataSourceMutationaddPost1B208957",
-            "Name",
-          ],
-        },
-        "FunctionVersion": "2018-05-29",
-        "Name": "Mutation_addPost1",
-        "RequestMappingTemplate": "#if($util.isNull($context.identity.user))
-  $util.error(user must be logged in)
-#end
-#set($context.stash.var1 = $util.autoId())
-{
-  \\"version\\": \\"2017-02-28\\",
-  \\"operation\\": \\"PutItem\\",
-  \\"key\\": {
-    \\"id\\": $util.dynamodb.toDynamoDBJson($context.stash.var1)
-  },
-  \\"attributeValues\\": {
-    \\"title\\": $util.dynamodb.toDynamoDBJson($context.arguments.title),
-    \\"content\\": $util.dynamodb.toDynamoDBJson($context.arguments.content),
-    \\"tags\\": $util.dynamodb.toDynamoDBJson($context.arguments.tags)
-  }
-}",
-        "ResponseMappingTemplate": "#set($context.stash.var2 = $context.result){}
-",
+        "Description": "Empty Data Source",
+        "Name": "NONE",
+        "Type": "NONE",
       },
-      "Type": "AWS::AppSync::FunctionConfiguration",
-    },
-    "MyApiFunctionPostrelatedPosts02913462": Object {
-      "Properties": Object {
-        "ApiId": Object {
-          "Fn::GetAtt": Array [
-            "MyApi3597551C",
-            "ApiId",
-          ],
-        },
-        "DataSourceName": Object {
-          "Fn::GetAtt": Array [
-            "MyApiDataSourcePostrelatedPostsCB9CEB80",
-            "Name",
-          ],
-        },
-        "FunctionVersion": "2018-05-29",
-        "Name": "Post_relatedPosts1",
-        "RequestMappingTemplate": "{
-  \\"version\\": \\"2017-02-28\\",
-  \\"operation\\": \\"Invoke\\",
-  \\"payload\\": $util.toJson($context.arguments.tags)
-}",
-        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result){}
-",
-      },
-      "Type": "AWS::AppSync::FunctionConfiguration",
-    },
-    "MyApiFunctionQuerygetPost4E6A0A0C": Object {
-      "Properties": Object {
-        "ApiId": Object {
-          "Fn::GetAtt": Array [
-            "MyApi3597551C",
-            "ApiId",
-          ],
-        },
-        "DataSourceName": Object {
-          "Fn::GetAtt": Array [
-            "MyApiDataSourceQuerygetPostFCC2B475",
-            "Name",
-          ],
-        },
-        "FunctionVersion": "2018-05-29",
-        "Name": "Query_getPost1",
-        "RequestMappingTemplate": "{
-  \\"version\\": \\"2017-02-28\\",
-  \\"operation\\": \\"GetItem\\",
-  \\"key\\": {
-    \\"id\\": $util.dynamodb.toDynamoDBJson($context.arguments.id)
-  }
-}",
-        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result){}
-",
-      },
-      "Type": "AWS::AppSync::FunctionConfiguration",
+      "Type": "AWS::AppSync::DataSource",
     },
     "MyApiResolveMutationaddPostF92111DC": Object {
       "DependsOn": Array [
@@ -2105,20 +2031,30 @@ Object {
             "ApiId",
           ],
         },
-        "FieldName": "addPost",
-        "Kind": "PIPELINE",
-        "PipelineConfig": Object {
-          "Functions": Array [
-            Object {
-              "Fn::GetAtt": Array [
-                "MyApiFunctionMutationaddPost3E391EAE",
-                "FunctionId",
-              ],
-            },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourceMutationaddPost1E64AD9C6",
+            "Name",
           ],
         },
-        "RequestMappingTemplate": "$util.toJson($context.stash.var2)",
-        "ResponseMappingTemplate": "$util.toJson($context.stash.var2)",
+        "FieldName": "addPost",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "#set($context.stash.var1 = $util.autoId())
+{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"PutItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.stash.var1)
+  },
+  \\"attributeValues\\": {
+    \\"title\\": $util.dynamodb.toDynamoDBJson($context.arguments.title),
+    \\"content\\": $util.dynamodb.toDynamoDBJson($context.arguments.content),
+    \\"tags\\": $util.dynamodb.toDynamoDBJson($context.arguments.tags)
+  }
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var2 = $context.result)
+
+$util.toJson($context.stash.var2)",
         "TypeName": "Mutation",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -2134,20 +2070,22 @@ Object {
             "ApiId",
           ],
         },
-        "FieldName": "relatedPosts",
-        "Kind": "PIPELINE",
-        "PipelineConfig": Object {
-          "Functions": Array [
-            Object {
-              "Fn::GetAtt": Array [
-                "MyApiFunctionPostrelatedPosts02913462",
-                "FunctionId",
-              ],
-            },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcePostrelatedPosts180328305",
+            "Name",
           ],
         },
-        "RequestMappingTemplate": "$util.toJson($context.stash.var1)",
-        "ResponseMappingTemplate": "$util.toJson($context.stash.var1)",
+        "FieldName": "relatedPosts",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"Invoke\\",
+  \\"payload\\": $util.toJson($context.arguments.tags)
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result)
+
+$util.toJson($context.stash.var1)",
         "TypeName": "Post",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -2169,20 +2107,24 @@ Object {
           ],
           "Ttl": 60,
         },
-        "FieldName": "getPost",
-        "Kind": "PIPELINE",
-        "PipelineConfig": Object {
-          "Functions": Array [
-            Object {
-              "Fn::GetAtt": Array [
-                "MyApiFunctionQuerygetPost4E6A0A0C",
-                "FunctionId",
-              ],
-            },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourceQuerygetPost10B9473D8",
+            "Name",
           ],
         },
-        "RequestMappingTemplate": "$util.toJson($context.stash.var1)",
-        "ResponseMappingTemplate": "$util.toJson($context.stash.var1)",
+        "FieldName": "getPost",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"GetItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.arguments.id)
+  }
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result)
+
+$util.toJson($context.stash.var1)",
         "TypeName": "Query",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -2198,13 +2140,24 @@ Object {
             "ApiId",
           ],
         },
-        "FieldName": "newPost",
-        "Kind": "PIPELINE",
-        "PipelineConfig": Object {
-          "Functions": Array [],
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiNone7A81D43E",
+            "Name",
+          ],
         },
-        "RequestMappingTemplate": "{}",
-        "ResponseMappingTemplate": "{}",
+        "FieldName": "newPost",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "#if($context.identity.username.equalsIgnoreCase(\\"sam\\"))
+  $util.error(\\"sam is not allowed\\")
+#end
+{
+  \\"version\\": \\"2017-02-28\\",
+  \\"payload\\": {
+    
+  }
+}",
+        "ResponseMappingTemplate": "null",
         "TypeName": "Subscription",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -2217,21 +2170,21 @@ Object {
             "ApiId",
           ],
         },
-        "Definition": "type Post {
+        "Definition": "type Query {
+  getPost(id: ID!): Post!
+}
+type Post {
   id: ID!
   title: String!
   content: String!
   tags: [String!]!
   relatedPosts(tags: [String!]!): [Post!]!
 }
-type Query {
-  getPost(id: ID!): Post!
-}
 type Mutation {
   addPost(title: String!,content: String!,tags: [String!]!): Post!
 }
 type Subscription {
-  newPost: Post!
+  newPost: Post
     @aws_subscribe(mutations:[\\"addPost\\"])
 }
 schema {
@@ -2251,19 +2204,91 @@ schema {
             "AttributeType": "S",
           },
         ],
+        "BillingMode": "PAY_PER_REQUEST",
         "KeySchema": Array [
           Object {
             "AttributeName": "id",
             "KeyType": "HASH",
           },
         ],
-        "ProvisionedThroughput": Object {
-          "ReadCapacityUnits": 5,
-          "WriteCapacityUnits": 5,
-        },
       },
       "Type": "AWS::DynamoDB::Table",
       "UpdateReplacePolicy": "Retain",
+    },
+    "UserPool6BA7E5F2": Object {
+      "Properties": Object {
+        "AccountRecoverySetting": Object {
+          "RecoveryMechanisms": Array [
+            Object {
+              "Name": "verified_phone_number",
+              "Priority": 1,
+            },
+            Object {
+              "Name": "verified_email",
+              "Priority": 2,
+            },
+          ],
+        },
+        "AdminCreateUserConfig": Object {
+          "AllowAdminCreateUserOnly": true,
+        },
+        "EmailVerificationMessage": "The verification code to your new account is {####}",
+        "EmailVerificationSubject": "Verify your new account",
+        "SmsConfiguration": Object {
+          "ExternalId": "graphqlUserPool8D7802F2",
+          "SnsCallerArn": Object {
+            "Fn::GetAtt": Array [
+              "UserPoolsmsRole4EA729DD",
+              "Arn",
+            ],
+          },
+        },
+        "SmsVerificationMessage": "The verification code to your new account is {####}",
+        "VerificationMessageTemplate": Object {
+          "DefaultEmailOption": "CONFIRM_WITH_CODE",
+          "EmailMessage": "The verification code to your new account is {####}",
+          "EmailSubject": "Verify your new account",
+          "SmsMessage": "The verification code to your new account is {####}",
+        },
+      },
+      "Type": "AWS::Cognito::UserPool",
+    },
+    "UserPoolsmsRole4EA729DD": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Condition": Object {
+                "StringEquals": Object {
+                  "sts:ExternalId": "graphqlUserPool8D7802F2",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "cognito-idp.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": "sns:Publish",
+                  "Effect": "Allow",
+                  "Resource": "*",
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "sns-publish",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
     },
   },
 }
@@ -2533,16 +2558,13 @@ Object {
             "AttributeType": "S",
           },
         ],
+        "BillingMode": "PAY_PER_REQUEST",
         "KeySchema": Array [
           Object {
             "AttributeName": "key",
             "KeyType": "HASH",
           },
         ],
-        "ProvisionedThroughput": Object {
-          "ReadCapacityUnits": 5,
-          "WriteCapacityUnits": 5,
-        },
       },
       "Type": "AWS::DynamoDB::Table",
       "UpdateReplacePolicy": "Retain",
@@ -3375,12 +3397,23 @@ $util.toJson($context.stash.var8)",
 $util.qr($NAMES.put(\\"#1\\", \\"candidates\\"))
 $util.qr($NAMES.put(\\"#2\\", $context.arguments.candidateId))
 $util.qr($CONDITION.add(\\"attribute_exists(#1.#2)\\"))
-$util.qr($NAMES.put(\\"#3\\", \\"candidates\\"))
-$util.qr($NAMES.put(\\"#4\\", $context.arguments.candidateId))
-$util.qr($NAMES.put(\\"#5\\", \\"upvotes\\"))
-#set($var1 = $util.dynamodb.toNumber(1))
-$util.qr($VALUES.put(\\":1\\", $var1))
-$util.qr($ADD.add(\\"#3.#4.#5 :1\\"))
+#if($context.arguments.direction == \\"UP\\")
+  $util.qr($NAMES.put(\\"#3\\", \\"candidates\\"))
+  $util.qr($NAMES.put(\\"#4\\", $context.arguments.candidateId))
+  $util.qr($NAMES.put(\\"#5\\", \\"upvotes\\"))
+  #set($var1 = $util.dynamodb.toNumber(1))
+  $util.qr($VALUES.put(\\":1\\", $var1))
+  $util.qr($ADD.add(\\"#3.#4.#5 :1\\"))
+  
+#{else}
+  $util.qr($NAMES.put(\\"#6\\", \\"candidates\\"))
+  $util.qr($NAMES.put(\\"#7\\", $context.arguments.candidateId))
+  $util.qr($NAMES.put(\\"#8\\", \\"upvotes\\"))
+  #set($var2 = $util.dynamodb.toNumber(-1))
+  $util.qr($VALUES.put(\\":2\\", $var2))
+  $util.qr($ADD.add(\\"#6.#7.#8 :2\\"))
+  
+#end
 #set($EXPRESSION = \\"\\")
 
 ## DynamoDB Update Expressions - SET
@@ -3402,14 +3435,14 @@ $util.qr($ADD.add(\\"#3.#4.#5 :1\\"))
 #end
 #if(!$CONDITION.isEmpty())
   #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
-  #set($context.stash.var2 = {})
-  $util.qr($context.stash.var2.put(\\"expression\\", $conditionExpression))
-  $util.qr($context.stash.var2.put(\\"expressionNames\\", $NAMES))
-  $util.qr($context.stash.var2.put(\\"expressionValues\\", $VALUES))
-  #set($local4 = $context.stash.var2)
+  #set($context.stash.var3 = {})
+  $util.qr($context.stash.var3.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var3.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var3.put(\\"expressionValues\\", $VALUES))
+  #set($local5 = $context.stash.var3)
   
 #end
-#set($context.stash.var3 = $local4)
+#set($context.stash.var4 = $local5)
 {
   \\"version\\": \\"2017-02-28\\",
   \\"operation\\": \\"UpdateItem\\",
@@ -3421,17 +3454,18 @@ $util.qr($ADD.add(\\"#3.#4.#5 :1\\"))
     \\"expressionNames\\": $util.toJson($NAMES),
     \\"expressionValues\\": $util.toJson($VALUES)
   },
-  \\"condition\\": $util.toJson($context.stash.var3)
+  \\"condition\\": $util.toJson($context.stash.var4)
 }",
-        "ResponseMappingTemplate": "#set($context.stash.var4 = $context.result)
+        "ResponseMappingTemplate": "#set($context.stash.var5 = $context.result)
 
-#set($context.stash.var5 = {})
-$util.qr($context.stash.var5.put(\\"__typename\\", \\"VoteType\\"))
-$util.qr($context.stash.var5.put(\\"pollId\\", $context.arguments.pollId))
-$util.qr($context.stash.var5.put(\\"candidateId\\", $context.arguments.candidateId))
-$util.qr($context.stash.var5.put(\\"clientId\\", $context.arguments.clientId))
-$util.qr($context.stash.var5.put(\\"upvotes\\", $context.stash.var4.candidates.get($context.arguments.candidateId).upvotes))
-$util.toJson($context.stash.var5)",
+#set($context.stash.var6 = {})
+$util.qr($context.stash.var6.put(\\"__typename\\", \\"VoteType\\"))
+$util.qr($context.stash.var6.put(\\"pollId\\", $context.arguments.pollId))
+$util.qr($context.stash.var6.put(\\"candidateId\\", $context.arguments.candidateId))
+$util.qr($context.stash.var6.put(\\"clientId\\", $context.arguments.clientId))
+$util.qr($context.stash.var6.put(\\"upvotes\\", $context.stash.var5.candidates.get($context.arguments.candidateId).upvotes))
+$util.qr($context.stash.var6.put(\\"direction\\", $context.arguments.direction))
+$util.toJson($context.stash.var6)",
         "TypeName": "Mutation",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -3498,7 +3532,7 @@ type Candidate {
   upvotes: Int!
 }
 type Mutation {
-  upVote(pollId: ID!,candidateId: ID!,clientId: ID!): VoteType!
+  upVote(pollId: ID!,candidateId: ID!,clientId: ID!,direction: VoteDirection!): VoteType!
   addPoll(input: CreatePollInput!): Poll!
 }
 type VoteType {
@@ -3506,6 +3540,11 @@ type VoteType {
   candidateId: ID!
   clientId: ID!
   upvotes: Int!
+  direction: VoteDirection!
+}
+enum VoteDirection {
+  UP
+  DOWN
 }
 input CandidateInput {
   answer: String!
@@ -4734,6 +4773,16 @@ Object {
               "Resource": Object {
                 "Fn::GetAtt": Array [
                   "StreamKey238BEC37",
+                  "Arn",
+                ],
+              },
+            },
+            Object {
+              "Action": "kinesis:DescribeStream",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "Stream790BDEE4",
                   "Arn",
                 ],
               },
