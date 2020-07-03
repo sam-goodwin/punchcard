@@ -22,10 +22,10 @@ export namespace Json {
       [i in keyof I]: From<I, V[Extract<keyof V, number>]>
     }[keyof I][] :
     T extends MapShape<infer I> ? Record<string, {
-      [i in keyof I]: From<I, V[string]>
+      [i in keyof I]: From<I, V[keyof V]>
     }[keyof I]> :
     T extends TypeShape<infer M> ? {
-      [f in keyof M]: From<M[f], V[f]>
+      [f in keyof M]: From<M[f], V[Extract<f, keyof V>]>
     } :
     T extends TimestampShape ? string :
     V

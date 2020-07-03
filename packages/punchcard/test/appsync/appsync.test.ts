@@ -333,15 +333,16 @@ const MyApi = new Api(stack, 'MyApi', {
     createUser,
     getUser,
     ...postApi
-  ],
+  ]  as const,
   caching: {
     behavior: CachingBehavior.PER_RESOLVER_CACHING,
     instanceType: CachingInstanceType.T2_SMALL,
     ttl: 60,
   }
-} as const);
+});
 
 it('should', () => {
   Build.resolve(MyApi.resource);
   const _stack = Build.resolve(stack);
+  expect((_stack as any)._toCloudFormation()).toMatchSnapshot();
 });

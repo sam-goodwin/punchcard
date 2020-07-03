@@ -4,7 +4,7 @@ import { TraitImpl } from './trait';
 import { TypeSpec } from './type-system';
 
 export class ApiFragment<
-  T extends TypeShape<{}, string> = TypeShape<{}, string>,
+  T extends TypeShape<any, any> = TypeShape<{}, string>,
   F extends Fields = {}
 > {
   constructor(
@@ -59,7 +59,7 @@ export namespace ApiFragments {
       merge(fragment);
     }
 
-    return index as Reduce<Fragments>;
+    return index as any as Reduce<Fragments>;
 
     function getTypes(shape: Shape): TypeShape<any, string>[] {
       if (ShapeGuards.isFunctionShape(shape)) {

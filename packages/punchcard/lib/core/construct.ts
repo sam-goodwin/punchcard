@@ -17,7 +17,7 @@ export type Scope = Construct | Build<cdk.Construct>;
 export namespace Scope {
   export function resolve<S extends Scope>(scope: S): Build<cdk.Construct> {
     if (Build.isBuild(scope)) {
-      return scope;
+      return scope as any as Build<cdk.Construct>;
     } else {
       return (scope as Construct).scope;
     }

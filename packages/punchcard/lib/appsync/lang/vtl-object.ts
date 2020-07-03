@@ -12,20 +12,29 @@ import { VTL, vtl } from './vtl';
 const VObjectType = Symbol.for('VObjectType');
 const VObjectExpr = Symbol.for('VObjectExpr');
 
+function weakMap(): WeakMap<any, {
+  type: Shape;
+  expr: VExpression;
+}> {
+  if (!(global as any)[VObjectType]) {
+    (global as any)[VObjectType] = new WeakMap();
+  }
+  return (global as any)[VObjectType];
+}
+
 export class VObject<T extends Shape = Shape> {
-  #type: T;
-  #expr: VExpression;
   constructor(type: T, expr: VExpression) {
-    this.#type = type;
-    this.#expr = expr;
+    weakMap().set(this, {
+      type,
+      expr
+    });
   }
 
-  public [VObjectType](): T {
-    return this.#type;
+  public get [VObjectType](): T {
+    return weakMap().get(this)!.type as T;
   }
-
-  public [VObjectExpr](): VExpression {
-    return this.#expr;
+  public get [VObjectExpr](): VExpression {
+    return weakMap().get(this)!.expr;
   }
 
   public hashCode(): VInteger {
@@ -33,7 +42,7 @@ export class VObject<T extends Shape = Shape> {
   }
 
   public as<T extends Shape>(t: T): VObject.Of<T> {
-    return VObject.fromExpr(t, this[VObjectExpr]());
+    return VObject.fromExpr(t, this[VObjectExpr]);
   }
 
   public notEquals(other: this | Value.Of<T>): VBool {
@@ -166,11 +175,11 @@ export namespace VObject {
   }
 
   export function getType<T extends VObject>(t: T): TypeOf<T> {
-    return t[VObjectType]() as TypeOf<T>;
+    return t[VObjectType] as TypeOf<T>;
   }
 
   export function getExpr<T extends VObject>(t: T): VExpression {
-    return t[VObjectExpr]();
+    return t[VObjectExpr];
   }
 
   export function NewType<T extends Shape>(type: T): new(expr: VExpression) => VObject<T> {

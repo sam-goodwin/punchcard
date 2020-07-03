@@ -42,7 +42,7 @@ export interface ApiProps<Fragments extends readonly ApiFragment<any, any>[]> {
  * @typeparam Types - map of names to types in this API
  */
 export class Api<
-  Fragments extends readonly ApiFragment[],
+  Fragments extends readonly ApiFragment<any, any>[],
 > extends Construct implements Resource<appsync.CfnGraphQLApi> {
   public readonly resource: Build<appsync.CfnGraphQLApi>;
 
