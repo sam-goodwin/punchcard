@@ -133,6 +133,8 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
   public readonly keyMapper: Mapper<any>;
   public readonly attributeValuesMapper: Mapper<any>;
 
+  private streamViewType: dynamodb.StreamViewType;
+
   /**
    * The table's key (hash key, or hash+sort key pair).
    */
@@ -194,7 +196,8 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
         sortKey: sortKeyName ? {
           name: sortKeyName,
           type: keyType((dataType.Members as any)[sortKeyName])
-        } : undefined
+        } : undefined,
+        stream: this.streamViewType as any
       });
     }));
   }
@@ -390,16 +393,22 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
     return new Projected(this, projection) as any;
   }
 
-  public stream(): Stream<{
-    old?: Value.Of<DataType>;
-    new?: Value.Of<DataType>;
+  public stream(type: 'KEYS_ONLY' | 'NEW_AND_OLD_IMAGES' | 'NEW_IMAGE' | 'OLD_IMAGE' = 'NEW_AND_OLD_IMAGES'): Stream<{
+    keys: DDB.KeyValue<DataType, Key>;
+    oldImage?: Value.Of<DataType>;
+    newImage?: Value.Of<DataType>;
     event: Value.Of<typeof Event.Payload>
   }, []> {
+    if (this.streamViewType) {
+      throw new Error(`stream already configured to ${this.streamViewType}`);
+    }
+    this.streamViewType = type as dynamodb.StreamViewType ;
     const keyMapper = this.keyMapper;
-    const attributeValuesMapper = this.attributeValuesMapper;
+    const valueMapper = this.valueMapper;
     class Root extends Stream<{
-      old?: Value.Of<DataType>;
-      new?: Value.Of<DataType>;
+      keys: DDB.KeyValue<DataType, Key>;
+      oldImage?: Value.Of<DataType>;
+      newImage?: Value.Of<DataType>;
       event: Value.Of<typeof Event.Payload>
     }, []> {
       /**
@@ -410,16 +419,17 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
        */
       public async *run(event: Event.Payload) {
         for (const record of event.Records) {
-          const key = keyMapper.read(record.dynamodb.Keys!);
-          const newImage = record.dynamodb.NewImage ? attributeValuesMapper.read(record.dynamodb.NewImage!) : undefined;
-          const oldImage = record.dynamodb.OldImage ? attributeValuesMapper.read(record.dynamodb.OldImage!) : undefined;
+          const keys = keyMapper.read({M: record.dynamodb.Keys!});
+          const newImage = record.dynamodb.NewImage ? valueMapper.read({M: record.dynamodb.NewImage!}) : undefined;
+          const oldImage = record.dynamodb.OldImage ? valueMapper.read({M: record.dynamodb.OldImage!}) : undefined;
           yield {
+            keys,
             newImage: {
-              ...key,
+              ...keys,
               ...newImage
             },
             oldImage: {
-              ...key,
+              ...keys,
               ...oldImage
             },
             event

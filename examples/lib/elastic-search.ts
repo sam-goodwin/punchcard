@@ -1,4 +1,4 @@
-import { Core, Lambda, ElasticSearch } from 'punchcard';
+import { Core, Lambda, ElasticSearch, DynamoDB } from 'punchcard';
 import { string, Type, optional, integer, Maximum, Minimum, array, timestamp } from '@punchcard/shape';
 
 import * as uuid from 'uuid';
@@ -33,6 +33,13 @@ class Post extends Type({
   postTime: timestamp
 }) {}
 
+const postStore = new DynamoDB.Table(stack, 'PostStore', {
+  data: Post,
+  key: {
+    partition: 'postID'
+  },
+});
+
 const postIndex = esCluster.addIndex({
   indexName: 'posts',
   mappings: Post,
@@ -43,12 +50,18 @@ const postIndex = esCluster.addIndex({
   }
 });
 
+postStore.stream().forBatch(stack, 'ForEachPost', {
+  depends: postIndex.writeAccess()
+}, async (batch, postIndex) => {
+  await postIndex.index(...batch.map(_ => _.newImage!));
+});
+
 // schedule a Lambda function to increment counts in DynamoDB and send SQS messages with each update.
 Lambda.schedule(stack, 'Index', {
   schedule: Lambda.Schedule.rate(Core.Duration.minutes(1)),
-  depends: postIndex.writeAccess()
-}, async (_, postIndex) => {
-  await postIndex.index(new Post({
+  depends: postStore.writeAccess()
+}, async (_, postStore) => {
+  await postStore.put(new Post({
     postID: uuid(),
     content: 'hello world',
     postTime: new Date()
