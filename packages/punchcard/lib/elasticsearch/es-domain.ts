@@ -8,8 +8,6 @@ import type * as es from '@aws-cdk/aws-elasticsearch';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as kms from '@aws-cdk/aws-kms';
 
-import { CloudFormationCustomResourceEvent, CloudFormationCustomResourceResponse } from 'aws-lambda';
-
 import { any, AnyShape, TypeShape } from '@punchcard/shape';
 
 import { Dependency, Duration } from '../core';
@@ -152,7 +150,7 @@ export class Domain extends Construct implements Resource<es.CfnDomain> {
         vpc,
         vpcSubnets
       }))
-    }, async (event: CloudFormationCustomResourceEvent, es, context) => {
+    }, async (event: any, es, context) => {
       console.log(event);
       try {
         if (event.RequestType === 'Create') {
