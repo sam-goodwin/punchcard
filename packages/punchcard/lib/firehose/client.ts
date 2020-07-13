@@ -45,6 +45,13 @@ export class Client<T extends Shape> implements Sink<T> {
         return redrive;
       }
       return [];
-    }, props, 500);
+    }, props || {
+      retry: {
+        backoffMs: 100,
+        maxBackoffMs: 1000,
+        attemptsLeft: 3
+      },
+      strictOrdering: false
+    }, 500);
   }
 }

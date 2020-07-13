@@ -1,6 +1,6 @@
 import { any, array, binary, BinaryShape, boolean, EnumShape, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, ShapeGuards, ShapeVisitor, timestamp, Value } from '@punchcard/shape';
 import { AnyShape, ArrayShape, BoolShape, IntegerShape, MapShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, TypeShape } from '@punchcard/shape';
-import { string, Trait } from '@punchcard/shape';
+import { string } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { IsInstance } from '@punchcard/shape/lib/is-instance';
 import { UnionShape } from '@punchcard/shape/lib/union';
@@ -243,15 +243,9 @@ export namespace VObject {
   );
 }
 
-export const IDTrait: {
-  [Trait.Data]: {
-    graphqlType: 'ID'
-  }
-} = {
-  [Trait.Data]: {
-    graphqlType: 'ID'
-  }
-};
+export const IDTrait = {
+  graphqlType: 'ID'
+} as const;
 
 export const ID = string.apply(IDTrait);
 

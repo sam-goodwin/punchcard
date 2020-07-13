@@ -1,10 +1,8 @@
-import { integer, Maximum, MaxLength, Minimum, MinLength, number, string, Trait } from "@punchcard/shape";
+import { integer, Maximum, MaxLength, Minimum, MinLength, number, string } from "@punchcard/shape";
 
-export function HiveType<T extends string>(glueType: T): Trait<any, { glueType: T; }> {
+export function HiveType<T extends string>(glueType: T): { glueType: T; } {
   return {
-    [Trait.Data]: {
-      glueType
-    }
+    glueType
   };
 }
 

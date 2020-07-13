@@ -4,7 +4,6 @@ import { FunctionArgs, FunctionShape } from './function';
 import { IsInstance } from './is-instance';
 import { LiteralShape } from './literal';
 import { Meta } from './metadata';
-import { Trait } from './metadata';
 import { AnyShape, BinaryShape, BoolShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { Shape } from './shape';
 import { TypeShape } from './type';
@@ -138,40 +137,52 @@ export namespace Validator {
   const visitor = new Visitor();
 }
 
-export interface Maximum<M extends number, E extends boolean = false> extends Trait<any, {maximum: M, exclusiveMaximum: E}> {}
-export interface Minimum<M extends number, E extends boolean = false> extends Trait<any, {minimum: M, exclusiveMinimum: E}> {}
-export interface MultipleOf<M extends number> extends Trait<any, {multipleOf: M}> {}
+export interface Maximum<M extends number, E extends boolean = false> {
+  maximum: M;
+  exclusiveMaximum: E;
+}
+export interface Minimum<M extends number, E extends boolean = false> {
+  minimum: M;
+  exclusiveMinimum: E;
+}
+export interface MultipleOf<M extends number> {
+  multipleOf: M;
+}
 
 export function Maximum<L extends number, E extends boolean = false>(length: L, exclusive?: E): Maximum<L, E> {
   return {
-    [Trait.Data]: {
-      maximum: length,
-      exclusiveMaximum: (exclusive === true) as E
-    }
+    maximum: length,
+    exclusiveMaximum: (exclusive === true) as E
   };
 }
 
 export function Minimum<L extends number, E extends boolean = false>(length: L, exclusive?: E): Minimum<L, E> {
   return {
-    [Trait.Data]: {
-      minimum: length,
-      exclusiveMinimum: (exclusive === true) as E
-    }
+    minimum: length,
+    exclusiveMinimum: (exclusive === true) as E
   };
 }
 export function MultipleOf<M extends number>(multipleOf: M): MultipleOf<M> {
   return {
-    [Trait.Data]: {
-      multipleOf
-    }
+    multipleOf
   };
 }
 
 export const Even = MultipleOf(2);
 
-export interface MaxLength<L extends number, E extends boolean> extends Trait<any, { maxLength: L, exclusiveMaximum: E; } & ValidationMetadata<Shape>> {}
-export interface MinLength<L extends number, E extends boolean> extends Trait<any, { minLength: L, exclusiveMinimum: E; } & ValidationMetadata<Shape>> {}
-export interface Pattern<P extends string> extends Trait<StringShape, { pattern: P } & ValidationMetadata<StringShape>> {}
+export type MaxLength<L extends number, E extends boolean> = {
+  maxLength: L;
+  exclusiveMaximum: E;
+} & ValidationMetadata<Shape>;
+
+export type MinLength<L extends number, E extends boolean> = {
+  minLength: L;
+  exclusiveMinimum: E;
+} & ValidationMetadata<Shape>;
+
+export type Pattern<P extends string> = {
+  pattern: P;
+} & ValidationMetadata<StringShape>;
 
 function validateLength(path: string, s: string | Buffer, length: number, operation: '<' | '<=' | '>' | '>=') {
   const isValid =
@@ -188,35 +199,29 @@ function validateLength(path: string, s: string | Buffer, length: number, operat
 
 export function MaxLength<L extends number, E extends boolean = false>(length: L, exclusive: E = false as any): MaxLength<L, E> {
   return {
-    [Trait.Data]: {
-      maxLength: length,
-      exclusiveMaximum: exclusive === true,
-      validator: [(s: string | Buffer, path: string) => validateLength(path, s, length, exclusive ? '<' : '<=')]
-    } as any
-  };
+    maxLength: length,
+    exclusiveMaximum: exclusive === true,
+    validator: [(s: string | Buffer, path: string) => validateLength(path, s, length, exclusive ? '<' : '<=')]
+  } as any;
 }
 
 export function MinLength<L extends number, E extends boolean = false>(length: L, exclusive: E = false as any): MinLength<L, E> {
   return {
-    [Trait.Data]: {
-      minLength: length,
-      exclusiveMinimum: exclusive === true,
-      validator: [(s: string | Buffer, path: string) => validateLength(path, s, length, exclusive ? '>' : '>=')]
-    } as any
-  };
+    minLength: length,
+    exclusiveMinimum: exclusive === true,
+    validator: [(s: string | Buffer, path: string) => validateLength(path, s, length, exclusive ? '>' : '>=')]
+  } as any;
 }
 
 export function Pattern<P extends string>(pattern: P): Pattern<P> {
   const regex = new RegExp(pattern);
   return {
-    [Trait.Data]: {
-      pattern,
-      validator: [(s: string) => {
-        if (!s.match(regex)) {
-          return [new Error(`expected string to match regex pattern: ${pattern}`)];
-        }
-        return [];
-      }]
-    }
+    pattern,
+    validator: [(s: string) => {
+      if (!s.match(regex)) {
+        return [new Error(`expected string to match regex pattern: ${pattern}`)];
+      }
+      return [];
+    }]
   };
 }

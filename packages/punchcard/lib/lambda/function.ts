@@ -185,7 +185,6 @@ export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D 
       for (const [name, p] of Object.entries(assembly.properties)) {
         lambdaFunction.addEnvironment(name, p);
       }
-
       return lambdaFunction;
     })));
 

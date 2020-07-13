@@ -1,4 +1,4 @@
-import { AnyShape, ArrayShape, BinaryShape, BoolShape, Decorated, EnumShape, IntegerShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, SetShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, Trait, TypeShape, UnionShape } from '@punchcard/shape';
+import { AnyShape, ArrayShape, BinaryShape, BoolShape, Decorated, EnumShape, LiteralShape, MapShape, Meta, NeverShape, NothingShape, NumberShape, SetShape, Shape, ShapeGuards, ShapeVisitor, StringShape, TimestampShape, TypeShape, UnionShape } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 
 import { KeysOfType } from 'typelevel-ts';
@@ -6,15 +6,9 @@ import { KeysOfType } from 'typelevel-ts';
 export type Tag = typeof Tag;
 export const Tag = Symbol.for('@punchcard/shape-Tag');
 
-export const Partition: {
-  [Trait.Data]: {
-    isPartition: true
-  }
-} = {
-  [Trait.Data]: {
-    isPartition: true
-  }
-};
+export const Partition = {
+  isPartition: true
+} as const;
 
 type GetComment<T extends Shape> =
   T extends Decorated<any, { description: infer D }> ?

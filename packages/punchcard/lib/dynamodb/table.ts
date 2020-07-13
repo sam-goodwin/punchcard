@@ -4,8 +4,8 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, array, map, optional, string, Type, TypeShape } from '@punchcard/shape';
-import { DDB, TableClient } from '@punchcard/shape-dynamodb';
+import { any, array, map, optional, string, Type, TypeShape, Value } from '@punchcard/shape';
+import { DDB, Mapper, TableClient } from '@punchcard/shape-dynamodb';
 import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VInteger, VObject, VString, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
@@ -17,8 +17,10 @@ import { DynamoExpr } from './dsl/dynamo-expr';
 import { DynamoDSL } from './dsl/dynamo-repr';
 import { toAttributeValueJson } from './dsl/to-attribute-value';
 import { UpdateRequest } from './dsl/update-request';
+import { Event } from './event';
 import { query, QueryRequest, QueryResponse } from './query-request';
 import { Index } from './table-index';
+import { Stream } from './table-stream';
 import { getKeyNames, keyType } from './util';
 
 /**
@@ -127,12 +129,17 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
    */
   public readonly dataType: DataType;
 
+  public readonly valueMapper: Mapper<DataType>;
+  public readonly keyMapper: Mapper<any>;
+  public readonly attributeValuesMapper: Mapper<any>;
+
   /**
    * The table's key (hash key, or hash+sort key pair).
    */
   public readonly key: Key;
 
   private _keyShape: TypeShape; // cache
+
   private get keyShape() {
     if (!this._keyShape) {
       const keyMembers: any = {
@@ -166,6 +173,10 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
     this.key = props.key;
 
     const [partitionKeyName, sortKeyName] = getKeyNames<DataType>(props.key);
+
+    this.valueMapper = Mapper.of(this.dataType);
+    this.keyMapper = Mapper.of(this.keyShape);
+    this.attributeValuesMapper = Mapper.of(this.attributeValuesShape);
 
     this.resource = CDK.chain(({dynamodb}) => Scope.resolve(scope).map(scope => {
       const extraTableProps = props.tableProps ? Build.resolve(props.tableProps) : {};
@@ -377,6 +388,49 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
    */
   public projectTo<Projection extends TypeShape>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
     return new Projected(this, projection) as any;
+  }
+
+  public stream(): Stream<{
+    old?: Value.Of<DataType>;
+    new?: Value.Of<DataType>;
+    event: Value.Of<typeof Event.Payload>
+  }, []> {
+    const keyMapper = this.keyMapper;
+    const attributeValuesMapper = this.attributeValuesMapper;
+    class Root extends Stream<{
+      old?: Value.Of<DataType>;
+      new?: Value.Of<DataType>;
+      event: Value.Of<typeof Event.Payload>
+    }, []> {
+      /**
+       * Bottom of the recursive async generator - returns the records
+       * parsed and validated out of the DynamoDBEvent.
+       *
+       * @param event payload of DynamoDB event
+       */
+      public async *run(event: Event.Payload) {
+        for (const record of event.Records) {
+          const key = keyMapper.read(record.dynamodb.Keys!);
+          const newImage = record.dynamodb.NewImage ? attributeValuesMapper.read(record.dynamodb.NewImage!) : undefined;
+          const oldImage = record.dynamodb.OldImage ? attributeValuesMapper.read(record.dynamodb.OldImage!) : undefined;
+          yield {
+            newImage: {
+              ...key,
+              ...newImage
+            },
+            oldImage: {
+              ...key,
+              ...oldImage
+            },
+            event
+          };
+        }
+      }
+    }
+    return new Root(this, undefined as any, {
+      depends: [],
+      handle: i => i
+    });
   }
 
   /**
