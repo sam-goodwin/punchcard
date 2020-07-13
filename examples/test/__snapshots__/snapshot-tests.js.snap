@@ -1373,6 +1373,391 @@ Object {
 }
 `;
 
+exports[`elastic-search stack elastic-search should match snapshot 1`] = `
+Object {
+  "Resources": Object {
+    "Domain58E72D41": Object {
+      "Properties": Object {
+        "EBSOptions": Object {
+          "EBSEnabled": true,
+          "Iops": 1000,
+          "VolumeSize": 128,
+          "VolumeType": "io1",
+        },
+        "ElasticsearchClusterConfig": Object {
+          "DedicatedMasterCount": 2,
+          "DedicatedMasterEnabled": true,
+          "DedicatedMasterType": "c5.large.elasticsearch",
+          "InstanceCount": 1,
+          "InstanceType": "c5.large.elasticsearch",
+          "ZoneAwarenessEnabled": false,
+        },
+        "ElasticsearchVersion": "7.4",
+        "NodeToNodeEncryptionOptions": Object {
+          "Enabled": false,
+        },
+      },
+      "Type": "AWS::Elasticsearch::Domain",
+    },
+    "Index4A79713B": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "2",
+            "is_runtime": "true",
+            "punchcard_domainEndpoint": Object {
+              "Fn::GetAtt": Array [
+                "Domain58E72D41",
+                "DomainEndpoint",
+              ],
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "IndexServiceRole4E1BE6F7",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "IndexAllowEventRuleelasticsearch14IndexSchedule4D9370F89DF5B015": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "Index4A79713B",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "IndexSchedule786AB869",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "IndexManagerDC5D7BFA": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "1",
+            "is_runtime": "true",
+            "punchcard_domainEndpoint": Object {
+              "Fn::GetAtt": Array [
+                "Domain58E72D41",
+                "DomainEndpoint",
+              ],
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "IndexManagerServiceRoleAD18DA0B",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+        "Timeout": 600,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "IndexManagerServiceRoleAD18DA0B": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "IndexManagerServiceRoleDefaultPolicyBC07BEED": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "es:*",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "Domain58E72D41",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "IndexManagerServiceRoleDefaultPolicyBC07BEED",
+        "Roles": Array [
+          Object {
+            "Ref": "IndexManagerServiceRoleAD18DA0B",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "IndexSchedule786AB869": Object {
+      "Properties": Object {
+        "ScheduleExpression": "rate(1 minute)",
+        "State": "ENABLED",
+        "Targets": Array [
+          Object {
+            "Arn": Object {
+              "Fn::GetAtt": Array [
+                "Index4A79713B",
+                "Arn",
+              ],
+            },
+            "Id": "Target0",
+          },
+        ],
+      },
+      "Type": "AWS::Events::Rule",
+    },
+    "IndexServiceRole4E1BE6F7": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "IndexServiceRoleDefaultPolicy331DC483": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "es:ESHttpDelete",
+                "es:ESHttpPost",
+                "es:ESHttpPut",
+              ],
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "Domain58E72D41",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "IndexServiceRoleDefaultPolicy331DC483",
+        "Roles": Array [
+          Object {
+            "Ref": "IndexServiceRole4E1BE6F7",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "Search14E54FC3": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "3",
+            "is_runtime": "true",
+            "punchcard_domainEndpoint": Object {
+              "Fn::GetAtt": Array [
+                "Domain58E72D41",
+                "DomainEndpoint",
+              ],
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "SearchServiceRole6943DBFA",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "SearchServiceRole6943DBFA": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "SearchServiceRoleDefaultPolicyF80CF672": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "es:ESHttpGet",
+                "es:ESHttpPost",
+              ],
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "Domain58E72D41",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "SearchServiceRoleDefaultPolicyF80CF672",
+        "Roles": Array [
+          Object {
+            "Ref": "SearchServiceRole6943DBFA",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "posts": Object {
+      "DeletionPolicy": "Delete",
+      "Properties": Object {
+        "IndexName": "posts",
+        "Mappings": Object {
+          "properties": Object {
+            "content": Object {
+              "type": "text",
+            },
+            "postID": Object {
+              "type": "text",
+            },
+            "postTime": Object {
+              "type": "date",
+            },
+          },
+        },
+        "ServiceToken": Object {
+          "Fn::GetAtt": Array [
+            "IndexManagerDC5D7BFA",
+            "Arn",
+          ],
+        },
+        "Settings": Object {
+          "number_of_replicas": 0,
+          "number_of_shards": 1,
+        },
+      },
+      "Type": "Custom::ElasticSearchIndex",
+      "UpdateReplacePolicy": "Delete",
+    },
+  },
+}
+`;
+
 exports[`game-score-service stack game-score-service should match snapshot 1`] = `
 Object {
   "Resources": Object {
