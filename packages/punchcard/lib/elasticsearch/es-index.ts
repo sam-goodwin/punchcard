@@ -2,9 +2,16 @@ import * as elasticsearch from 'elasticsearch';
 
 import type * as cloudformation from '@aws-cdk/aws-cloudformation';
 
-import { any, AnyShape, boolean, Enum, integer, Mapper, Meta, optional, Shape, ShapeGuards, string, StringShape, Type, TypeShape, Value } from '@punchcard/shape';
+import type * as es from '@aws-cdk/aws-elasticsearch';
+import type * as iam from '@aws-cdk/aws-iam';
+import type * as cdk from '@aws-cdk/core';
+
+import { any, AnyShape, array, boolean, Enum, integer, map, Mapper, Meta, number, optional, Shape, ShapeGuards, string, StringShape, Type, TypeShape, Value } from '@punchcard/shape';
 
 import { Json } from '@punchcard/shape-json';
+import { call, DataSourceBindCallback, DataSourceType, VExpression } from '../appsync';
+import { VTL, vtl } from '../appsync/lang/vtl';
+import { VList, VNothing, VObject, VString, VUnion } from '../appsync/lang/vtl-object';
 import { Dependency } from '../core';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
@@ -144,6 +151,92 @@ export class Index<T extends TypeShape, ID extends keyof T['Members']> implement
         this._id
       ))
     };
+  }
+
+  public *search(body: any): VTL<{
+    scrollID: VUnion<VString | VNothing>
+    hits: VList<VObject.Of<T>>
+  }> {
+    const request = VObject.fromExpr(any, VExpression.json({
+      version: '2017-02-28',
+      operation: 'GET',
+      path: `/${this.indexName}/_search`,
+      params: {
+        body
+      }
+    }));
+
+    /*
+    Type({
+      _index: string,
+      _type: string,
+      _id: string,
+      _score: number,
+      _source: this.mappings
+    })
+    */
+    class SearchResponse extends Type({
+      _scroll_id: optional(string),
+      hits: Type({
+        hits: array(map(any))
+      })
+    }) {}
+
+    const response = yield* call(
+      this.dataSourceProps(CDK.map(({iam}) => (domain, role) => {
+        role.addToPolicy(new iam.PolicyStatement({
+          actions: readActions,
+          effect: iam.Effect.ALLOW,
+          resources: [
+            `${domain.attrArn}/${this.indexName}/*`
+          ]
+        }));
+      })),
+      request,
+      SearchResponse
+    );
+
+    const mappings = this.mappings;
+    const hits = yield* vtl(array(this.mappings))`[]`;
+    yield* response.hits.hits.forEach(function*(item) {
+      yield* hits.push(item.get('_source').as(mappings) as any);
+    });
+
+    return {
+      scrollID: response._scroll_id,
+      hits
+    };
+  }
+
+  /**
+   * Return an AppSync DataSource for this Table.
+   * @param props
+   */
+  public dataSourceProps(grant: Build<(domain: es.CfnDomain, role: iam.IRole) => void>, props?: {
+    description?: string;
+    serviceRole?: Build<iam.Role>;
+  }): Build<DataSourceBindCallback> {
+    return Build.concat(
+      CDK,
+      this.domain.resource,
+      props?.serviceRole || Build.of(undefined),
+      grant
+    ).map(([cdk, domain, serviceRole, grant]) => (scope: cdk.Construct, id: string) => {
+      const role = serviceRole || new cdk.iam.Role(scope, `${id}:Role`, {
+        assumedBy: new cdk.iam.ServicePrincipal('appsync')
+      });
+      grant(domain, role);
+      return {
+        type: DataSourceType.AMAZON_ELASTICSEARCH,
+        elasticsearchConfig: {
+          awsRegion: domain.stack.region,
+          endpoint: `https://${domain.getAtt('DomainEndpoint').toString()}`,
+        },
+        description: props?.description,
+        // TODO: are we sure we want to auto-create an IAM Role?
+        serviceRoleArn: role.roleArn
+      };
+    });
   }
 }
 

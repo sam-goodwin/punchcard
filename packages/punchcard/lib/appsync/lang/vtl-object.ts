@@ -641,7 +641,7 @@ export class VMap<T extends VObject = VObject> extends VObject<MapShape<VObject.
 
   public get(key: string | VString): T {
     return VObject.fromExpr(VObject.getType(this).Items, VExpression.concat(
-      this, '.get(', key, ')'
+      this, '.get("', key, '")'
     )) as any as T;
   }
 
