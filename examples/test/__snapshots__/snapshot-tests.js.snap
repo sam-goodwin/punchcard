@@ -1399,7 +1399,7 @@ Object {
       },
       "Type": "AWS::Elasticsearch::Domain",
     },
-    "Index4A79713B": Object {
+    "ForEachPost153D8610": Object {
       "Properties": Object {
         "Code": Object {
           "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
@@ -1413,6 +1413,149 @@ Object {
                 "Domain58E72D41",
                 "DomainEndpoint",
               ],
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "ForEachPostServiceRole1A0E3984",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+        "Timeout": 10,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "ForEachPostDynamoDBEventSourceelasticsearch14PostStore36C546726CA37046": Object {
+      "Properties": Object {
+        "BatchSize": 100,
+        "EventSourceArn": Object {
+          "Fn::GetAtt": Array [
+            "PostStoreE7B00A44",
+            "StreamArn",
+          ],
+        },
+        "FunctionName": Object {
+          "Ref": "ForEachPost153D8610",
+        },
+        "StartingPosition": "TRIM_HORIZON",
+      },
+      "Type": "AWS::Lambda::EventSourceMapping",
+    },
+    "ForEachPostServiceRole1A0E3984": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "ForEachPostServiceRoleDefaultPolicy978D50CD": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "es:ESHttpDelete",
+                "es:ESHttpPost",
+                "es:ESHttpPut",
+              ],
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "Domain58E72D41",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+            Object {
+              "Action": "dynamodb:ListStreams",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "PostStoreE7B00A44",
+                        "Arn",
+                      ],
+                    },
+                    "/stream/*",
+                  ],
+                ],
+              },
+            },
+            Object {
+              "Action": Array [
+                "dynamodb:DescribeStream",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "PostStoreE7B00A44",
+                  "StreamArn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "ForEachPostServiceRoleDefaultPolicy978D50CD",
+        "Roles": Array [
+          Object {
+            "Ref": "ForEachPostServiceRole1A0E3984",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "Index4A79713B": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "3",
+            "is_runtime": "true",
+            "punchcard_tableName": Object {
+              "Ref": "PostStoreE7B00A44",
             },
           },
         },
@@ -1595,25 +1738,23 @@ Object {
           "Statement": Array [
             Object {
               "Action": Array [
-                "es:ESHttpDelete",
-                "es:ESHttpPost",
-                "es:ESHttpPut",
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
               ],
               "Effect": "Allow",
-              "Resource": Object {
-                "Fn::Join": Array [
-                  "",
-                  Array [
-                    Object {
-                      "Fn::GetAtt": Array [
-                        "Domain58E72D41",
-                        "Arn",
-                      ],
-                    },
-                    "/*",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "PostStoreE7B00A44",
+                    "Arn",
                   ],
-                ],
-              },
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
             },
           ],
           "Version": "2012-10-17",
@@ -1627,6 +1768,29 @@ Object {
       },
       "Type": "AWS::IAM::Policy",
     },
+    "PostStoreE7B00A44": Object {
+      "DeletionPolicy": "Retain",
+      "Properties": Object {
+        "AttributeDefinitions": Array [
+          Object {
+            "AttributeName": "postID",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": Array [
+          Object {
+            "AttributeName": "postID",
+            "KeyType": "HASH",
+          },
+        ],
+        "StreamSpecification": Object {
+          "StreamViewType": "NEW_AND_OLD_IMAGES",
+        },
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
     "Search14E54FC3": Object {
       "Properties": Object {
         "Code": Object {
@@ -1634,7 +1798,7 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "entrypoint_id": "3",
+            "entrypoint_id": "4",
             "is_runtime": "true",
             "punchcard_domainEndpoint": Object {
               "Fn::GetAtt": Array [
