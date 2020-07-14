@@ -94,6 +94,7 @@ new Lambda.Function(stack, 'Search', {
   } else {
     response = await postIndex.search({
       scroll: '5m',
+      body: {}
     });
   }
   return new SearchResult({

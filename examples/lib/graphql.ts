@@ -1,4 +1,4 @@
-import { Core, DynamoDB, Lambda } from 'punchcard';
+import { Core, DynamoDB, Lambda, ElasticSearch } from 'punchcard';
 
 import { array, string, Type, optional, } from '@punchcard/shape';
 import { ID, Api, Trait, Query, Mutation, Subscription, CachingBehavior, CachingInstanceType, $context, $if } from 'punchcard/lib/appsync';
@@ -36,6 +36,7 @@ They don't have an implementation until you instantiate them.
 */
 const PostQueryAPI = Query({
   getPost: Fn({ id: ID }, Post),
+  searchPosts: Fn({content: string}, array(Post))
 });
 
 const PostMutationApi = Mutation({
@@ -76,11 +77,46 @@ export const PostApi = (
     /**
      * Can inject dependencies like DDB tables.
      */
-    postStore?: PostStore
+    postStore?: PostStore;
+
+    esCluster?: ElasticSearch.Domain;
   } = {}
 ) => {
   // init the database
   const postStore = props.postStore || new PostStore(scope, 'PostStore');
+
+  const esCluster = props.esCluster || new ElasticSearch.Domain(stack, 'Domain', {
+    version: ElasticSearch.Version.V7_4,
+    ebsOptions: {
+      iops: 1000,
+      volumeSize: 128, // GB
+      volumeType: ElasticSearch.EbsVolumeType.io1, // high performance
+    },
+    elasticsearchClusterConfig: {
+      instanceType: 'c5.large.elasticsearch',
+      dedicatedMasterEnabled: true,
+      dedicatedMasterCount: 2,
+      dedicatedMasterType: 'c5.large.elasticsearch',
+      instanceCount: 1,
+      zoneAwarenessEnabled: false,
+    },
+  });
+
+  const postIndex = esCluster.addIndex({
+    indexName: 'posts',
+    mappings: Post,
+    _id: 'id',
+    settings: {
+      number_of_shards: 1,
+      number_of_replicas: 0,
+    }
+  });
+
+  postStore.stream().forBatch(stack, 'OnPostChange', {
+    depends: postIndex.writeAccess()
+  }, async(events, postIndex) => {
+    await postIndex.index(...events.map(e => e.newImage!));
+  });
 
   // impl PostQueryAPI on Query (adds the `getPost` resolver function to the root of the API)
   const postQueryApi = new PostQueryAPI({
@@ -100,6 +136,20 @@ export const PostApi = (
         return yield * postStore.get({
           id
         });
+      }
+    },
+
+    searchPosts: {
+      *resolve({content}) {
+         const posts = yield* postIndex.search({
+           query: {
+             match: {
+               content
+             }
+           }
+         });
+
+         return posts.hits;
       }
     }
   });
@@ -127,13 +177,23 @@ export const PostApi = (
         });
       }
     }
-  })
-  
+  });
+
   // impl RelatedPostsAPI on Post (adds a `relatedPosts` resolver)
   const relatedPostsApi = new RelatedPostsAPI({
     relatedPosts: {
       *resolve({tags}) {
-        return yield* fn.invoke(tags);
+        const results = yield* postIndex.search({
+          query: {
+            term: {
+              tags: {
+                value: tags,
+                boost: 1.0
+              }
+            }
+          }
+        });
+        return results.hits
       }
     }
   });

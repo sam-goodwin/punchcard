@@ -2197,6 +2197,29 @@ Object {
 exports[`graphql stack graphql should match snapshot 1`] = `
 Object {
   "Resources": Object {
+    "Domain58E72D41": Object {
+      "Properties": Object {
+        "EBSOptions": Object {
+          "EBSEnabled": true,
+          "Iops": 1000,
+          "VolumeSize": 128,
+          "VolumeType": "io1",
+        },
+        "ElasticsearchClusterConfig": Object {
+          "DedicatedMasterCount": 2,
+          "DedicatedMasterEnabled": true,
+          "DedicatedMasterType": "c5.large.elasticsearch",
+          "InstanceCount": 1,
+          "InstanceType": "c5.large.elasticsearch",
+          "ZoneAwarenessEnabled": false,
+        },
+        "ElasticsearchVersion": "7.4",
+        "NodeToNodeEncryptionOptions": Object {
+          "Enabled": false,
+        },
+      },
+      "Type": "AWS::Elasticsearch::Domain",
+    },
     "GetRelatedPosts45E2F422": Object {
       "Properties": Object {
         "Code": Object {
@@ -2204,7 +2227,7 @@ Object {
         },
         "Environment": Object {
           "Variables": Object {
-            "entrypoint_id": "1",
+            "entrypoint_id": "3",
             "is_runtime": "true",
           },
         },
@@ -2249,6 +2272,100 @@ Object {
         ],
       },
       "Type": "AWS::IAM::Role",
+    },
+    "IndexManagerDC5D7BFA": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "1",
+            "is_runtime": "true",
+            "punchcard_domainEndpoint": Object {
+              "Fn::GetAtt": Array [
+                "Domain58E72D41",
+                "DomainEndpoint",
+              ],
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "IndexManagerServiceRoleAD18DA0B",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+        "Timeout": 600,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "IndexManagerServiceRoleAD18DA0B": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "IndexManagerServiceRoleDefaultPolicyBC07BEED": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "es:*",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "Domain58E72D41",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "IndexManagerServiceRoleDefaultPolicyBC07BEED",
+        "Roles": Array [
+          Object {
+            "Ref": "IndexManagerServiceRoleAD18DA0B",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
     },
     "MyApi3597551C": Object {
       "Properties": Object {
@@ -2358,11 +2475,22 @@ Object {
             "ApiId",
           ],
         },
-        "LambdaConfig": Object {
-          "LambdaFunctionArn": Object {
-            "Fn::GetAtt": Array [
-              "GetRelatedPosts45E2F422",
-              "Arn",
+        "ElasticsearchConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "Endpoint": Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "https://",
+                Object {
+                  "Fn::GetAtt": Array [
+                    "Domain58E72D41",
+                    "DomainEndpoint",
+                  ],
+                },
+              ],
             ],
           },
         },
@@ -2373,7 +2501,7 @@ Object {
             "Arn",
           ],
         },
-        "Type": "AWS_LAMBDA",
+        "Type": "AMAZON_ELASTICSEARCH",
       },
       "Type": "AWS::AppSync::DataSource",
     },
@@ -2401,6 +2529,44 @@ Object {
           ],
         },
         "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "MyApiDataSourceQuerysearchPosts1F30C7510": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "ElasticsearchConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "Endpoint": Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "https://",
+                Object {
+                  "Fn::GetAtt": Array [
+                    "Domain58E72D41",
+                    "DomainEndpoint",
+                  ],
+                },
+              ],
+            ],
+          },
+        },
+        "Name": "Query_searchPosts1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcesQuerysearchPosts1Role545FCB5E",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_ELASTICSEARCH",
       },
       "Type": "AWS::AppSync::DataSource",
     },
@@ -2479,12 +2645,23 @@ Object {
         "PolicyDocument": Object {
           "Statement": Array [
             Object {
-              "Action": "lambda:InvokeFunction",
+              "Action": Array [
+                "es:ESHttpGet",
+                "es:ESHttpPost",
+              ],
               "Effect": "Allow",
               "Resource": Object {
-                "Fn::GetAtt": Array [
-                  "GetRelatedPosts45E2F422",
-                  "Arn",
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "Domain58E72D41",
+                        "Arn",
+                      ],
+                    },
+                    "/posts/*",
+                  ],
                 ],
               },
             },
@@ -2550,6 +2727,60 @@ Object {
         "Roles": Array [
           Object {
             "Ref": "MyApiDataSourcesQuerygetPost1Role15C4E688",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiDataSourcesQuerysearchPosts1Role545FCB5E": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesQuerysearchPosts1RoleDefaultPolicy2F42295C": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "es:ESHttpGet",
+                "es:ESHttpPost",
+              ],
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "Domain58E72D41",
+                        "Arn",
+                      ],
+                    },
+                    "/posts/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiDataSourcesQuerysearchPosts1RoleDefaultPolicy2F42295C",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiDataSourcesQuerysearchPosts1Role545FCB5E",
           },
         ],
       },
@@ -2629,12 +2860,29 @@ $util.toJson($context.stash.var2)",
         "Kind": "UNIT",
         "RequestMappingTemplate": "{
   \\"version\\": \\"2017-02-28\\",
-  \\"operation\\": \\"Invoke\\",
-  \\"payload\\": $util.toJson($context.arguments.tags)
+  \\"operation\\": \\"GET\\",
+  \\"path\\": \\"/posts/_search\\",
+  \\"params\\": {
+    \\"body\\": {
+      \\"query\\": {
+        \\"term\\": {
+          \\"tags\\": {
+            \\"value\\": $util.toJson($context.arguments.tags),
+            \\"boost\\": 1
+          }
+        }
+      }
+    }
+  }
 }",
         "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result)
 
-$util.toJson($context.stash.var1)",
+#set($context.stash.var2 = [])
+#foreach( $item1 in $context.stash.var1.hits.hits)
+  $util.qr($context.stash.var2.add($item1.get(\\"_source\\")))
+  
+#end
+$util.toJson($context.stash.var2)",
         "TypeName": "Post",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -2674,6 +2922,51 @@ $util.toJson($context.stash.var1)",
         "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result)
 
 $util.toJson($context.stash.var1)",
+        "TypeName": "Query",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiResolveQuerysearchPosts4E902581": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourceQuerysearchPosts1F30C7510",
+            "Name",
+          ],
+        },
+        "FieldName": "searchPosts",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"GET\\",
+  \\"path\\": \\"/posts/_search\\",
+  \\"params\\": {
+    \\"body\\": {
+      \\"query\\": {
+        \\"match\\": {
+          \\"content\\": $util.toJson($context.arguments.content)
+        }
+      }
+    }
+  }
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result)
+
+#set($context.stash.var2 = [])
+#foreach( $item1 in $context.stash.var1.hits.hits)
+  $util.qr($context.stash.var2.add($item1.get(\\"_source\\")))
+  
+#end
+$util.toJson($context.stash.var2)",
         "TypeName": "Query",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -2721,6 +3014,7 @@ $util.toJson($context.stash.var1)",
         },
         "Definition": "type Query {
   getPost(id: ID!): Post!
+  searchPosts(content: String!): [Post!]!
 }
 type Post {
   id: ID!
@@ -2744,6 +3038,152 @@ schema {
       },
       "Type": "AWS::AppSync::GraphQLSchema",
     },
+    "OnPostChange549FF807": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "2",
+            "is_runtime": "true",
+            "punchcard_domainEndpoint": Object {
+              "Fn::GetAtt": Array [
+                "Domain58E72D41",
+                "DomainEndpoint",
+              ],
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "OnPostChangeServiceRoleAC328D32",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+        "Timeout": 10,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "OnPostChangeDynamoDBEventSourcegraphqlPostStore3A339605948ADB0E": Object {
+      "Properties": Object {
+        "BatchSize": 100,
+        "EventSourceArn": Object {
+          "Fn::GetAtt": Array [
+            "PostStoreE7B00A44",
+            "StreamArn",
+          ],
+        },
+        "FunctionName": Object {
+          "Ref": "OnPostChange549FF807",
+        },
+        "StartingPosition": "TRIM_HORIZON",
+      },
+      "Type": "AWS::Lambda::EventSourceMapping",
+    },
+    "OnPostChangeServiceRoleAC328D32": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "OnPostChangeServiceRoleDefaultPolicy8F9755B7": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "es:ESHttpDelete",
+                "es:ESHttpPost",
+                "es:ESHttpPut",
+              ],
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "Domain58E72D41",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+            Object {
+              "Action": "dynamodb:ListStreams",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "PostStoreE7B00A44",
+                        "Arn",
+                      ],
+                    },
+                    "/stream/*",
+                  ],
+                ],
+              },
+            },
+            Object {
+              "Action": Array [
+                "dynamodb:DescribeStream",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+              ],
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "PostStoreE7B00A44",
+                  "StreamArn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "OnPostChangeServiceRoleDefaultPolicy8F9755B7",
+        "Roles": Array [
+          Object {
+            "Ref": "OnPostChangeServiceRoleAC328D32",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
     "PostStoreE7B00A44": Object {
       "DeletionPolicy": "Retain",
       "Properties": Object {
@@ -2760,6 +3200,9 @@ schema {
             "KeyType": "HASH",
           },
         ],
+        "StreamSpecification": Object {
+          "StreamViewType": "NEW_AND_OLD_IMAGES",
+        },
       },
       "Type": "AWS::DynamoDB::Table",
       "UpdateReplacePolicy": "Retain",
@@ -2838,6 +3281,40 @@ schema {
         ],
       },
       "Type": "AWS::IAM::Role",
+    },
+    "posts": Object {
+      "DeletionPolicy": "Delete",
+      "Properties": Object {
+        "IndexName": "posts",
+        "Mappings": Object {
+          "properties": Object {
+            "content": Object {
+              "type": "text",
+            },
+            "id": Object {
+              "type": "text",
+            },
+            "tags": Object {
+              "type": "text",
+            },
+            "title": Object {
+              "type": "text",
+            },
+          },
+        },
+        "ServiceToken": Object {
+          "Fn::GetAtt": Array [
+            "IndexManagerDC5D7BFA",
+            "Arn",
+          ],
+        },
+        "Settings": Object {
+          "number_of_replicas": 0,
+          "number_of_shards": 1,
+        },
+      },
+      "Type": "Custom::ElasticSearchIndex",
+      "UpdateReplacePolicy": "Delete",
     },
   },
 }
@@ -4012,7 +4489,7 @@ $util.qr($context.stash.var6.put(\\"__typename\\", \\"VoteType\\"))
 $util.qr($context.stash.var6.put(\\"pollId\\", $context.arguments.pollId))
 $util.qr($context.stash.var6.put(\\"candidateId\\", $context.arguments.candidateId))
 $util.qr($context.stash.var6.put(\\"clientId\\", $context.arguments.clientId))
-$util.qr($context.stash.var6.put(\\"upvotes\\", $context.stash.var5.candidates.get($context.arguments.candidateId).upvotes))
+$util.qr($context.stash.var6.put(\\"upvotes\\", $context.stash.var5.candidates.get(\\"$context.arguments.candidateId\\").upvotes))
 $util.qr($context.stash.var6.put(\\"direction\\", $context.arguments.direction))
 $util.toJson($context.stash.var6)",
         "TypeName": "Mutation",

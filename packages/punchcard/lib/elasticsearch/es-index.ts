@@ -270,9 +270,7 @@ export class IndexClient<T extends TypeShape, ID extends keyof T['Members']> {
   public async search(props: SearchRequest): Promise<SearchResponse<Value.Of<T>>> {
     const response: elasticsearch.SearchResponse<Json.Of<T>> = await this.client.search({
       scroll: props.scroll,
-      body: {
-        // todo
-      }
+      body: props.body
     });
 
     return this.parseHits(response);
@@ -355,6 +353,7 @@ export interface ScrollRequest {
 
 export interface SearchRequest {
   scroll?: string;
+  body: any;
 }
 
 export interface SearchResponse<T> {
