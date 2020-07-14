@@ -159,8 +159,10 @@ export const PostApi = (
     addPost: {
       *resolve(input) {
         return yield* postStore.put({
-          id: yield* $util.autoId(),
-          ...input
+          item: {
+            id: yield* $util.autoId(),
+            ...input
+          }
         });
       }
     }

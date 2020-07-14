@@ -2820,6 +2820,19 @@ Object {
         "FieldName": "addPost",
         "Kind": "UNIT",
         "RequestMappingTemplate": "#set($context.stash.var1 = $util.autoId())
+#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
+#if(!$CONDITION.isEmpty())
+  #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
+  #set($context.stash.var2 = {})
+  $util.qr($context.stash.var2.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var2.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var2.put(\\"expressionValues\\", $VALUES))
+  #set($local1 = $context.stash.var2)
+  
+#end
+#set($context.stash.var3 = $local1)
 {
   \\"version\\": \\"2017-02-28\\",
   \\"operation\\": \\"PutItem\\",
@@ -2830,11 +2843,12 @@ Object {
     \\"title\\": $util.dynamodb.toDynamoDBJson($context.arguments.title),
     \\"content\\": $util.dynamodb.toDynamoDBJson($context.arguments.content),
     \\"tags\\": $util.dynamodb.toDynamoDBJson($context.arguments.tags)
-  }
+  },
+  \\"condition\\": $util.toJson($context.stash.var3)
 }",
-        "ResponseMappingTemplate": "#set($context.stash.var2 = $context.result)
+        "ResponseMappingTemplate": "#set($context.stash.var4 = $context.result)
 
-$util.toJson($context.stash.var2)",
+$util.toJson($context.stash.var4)",
         "TypeName": "Mutation",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -4370,6 +4384,19 @@ Object {
 #if($context.stash.var1.isEmpty())
   $util.error(\\"baddy\\")
 #end
+#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
+#if(!$CONDITION.isEmpty())
+  #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
+  #set($context.stash.var7 = {})
+  $util.qr($context.stash.var7.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var7.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var7.put(\\"expressionValues\\", $VALUES))
+  #set($local2 = $context.stash.var7)
+  
+#end
+#set($context.stash.var8 = $local2)
 {
   \\"version\\": \\"2017-02-28\\",
   \\"operation\\": \\"PutItem\\",
@@ -4380,17 +4407,18 @@ Object {
     \\"name\\": $util.dynamodb.toDynamoDBJson($context.arguments.input.name),
     \\"createdAt\\": $util.dynamodb.toDynamoDBJson($context.stash.var2),
     \\"candidates\\": $util.dynamodb.toDynamoDBJson($context.stash.var3)
-  }
+  },
+  \\"condition\\": $util.toJson($context.stash.var8)
 }",
-        "ResponseMappingTemplate": "#set($context.stash.var7 = $context.result)
+        "ResponseMappingTemplate": "#set($context.stash.var9 = $context.result)
 
-#set($context.stash.var8 = {})
-$util.qr($context.stash.var8.put(\\"__typename\\", \\"Poll\\"))
-$util.qr($context.stash.var8.put(\\"id\\", $context.stash.var7.id))
-$util.qr($context.stash.var8.put(\\"name\\", $context.stash.var7.name))
-$util.qr($context.stash.var8.put(\\"createdAt\\", $context.stash.var7.createdAt))
-$util.qr($context.stash.var8.put(\\"candidates\\", $context.stash.var7.candidates.values()))
-$util.toJson($context.stash.var8)",
+#set($context.stash.var10 = {})
+$util.qr($context.stash.var10.put(\\"__typename\\", \\"Poll\\"))
+$util.qr($context.stash.var10.put(\\"id\\", $context.stash.var9.id))
+$util.qr($context.stash.var10.put(\\"name\\", $context.stash.var9.name))
+$util.qr($context.stash.var10.put(\\"createdAt\\", $context.stash.var9.createdAt))
+$util.qr($context.stash.var10.put(\\"candidates\\", $context.stash.var9.candidates.values()))
+$util.toJson($context.stash.var10)",
         "TypeName": "Mutation",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -4415,11 +4443,11 @@ $util.toJson($context.stash.var8)",
         "FieldName": "upVote",
         "Kind": "UNIT",
         "RequestMappingTemplate": "#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
 #set($ADD = [])
 #set($DELETE = [])
 #set($SET = [])
-#set($VALUES = {})
-#set($NAMES = {})
 $util.qr($NAMES.put(\\"#1\\", \\"candidates\\"))
 $util.qr($NAMES.put(\\"#2\\", $context.arguments.candidateId))
 $util.qr($CONDITION.add(\\"attribute_exists(#1.#2)\\"))

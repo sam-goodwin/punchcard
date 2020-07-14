@@ -633,6 +633,19 @@ Object {
   
 #end
 #set($context.stash.var4 = $context.stash.var3)
+#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
+#if(!$CONDITION.isEmpty())
+  #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
+  #set($context.stash.var5 = {})
+  $util.qr($context.stash.var5.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var5.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var5.put(\\"expressionValues\\", $VALUES))
+  #set($local2 = $context.stash.var5)
+  
+#end
+#set($context.stash.var6 = $local2)
 {
   \\"version\\": \\"2017-02-28\\",
   \\"operation\\": \\"PutItem\\",
@@ -651,11 +664,12 @@ Object {
         
       ]
     }
-  }
+  },
+  \\"condition\\": $util.toJson($context.stash.var6)
 }",
-        "ResponseMappingTemplate": "#set($context.stash.var5 = $context.result)
+        "ResponseMappingTemplate": "#set($context.stash.var7 = $context.result)
 
-$util.toJson($context.stash.var5)",
+$util.toJson($context.stash.var7)",
         "TypeName": "Mutation",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -680,6 +694,19 @@ $util.toJson($context.stash.var5)",
         "FieldName": "createUser",
         "Kind": "UNIT",
         "RequestMappingTemplate": "#set($context.stash.var1 = $util.autoId())
+#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
+#if(!$CONDITION.isEmpty())
+  #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
+  #set($context.stash.var2 = {})
+  $util.qr($context.stash.var2.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var2.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var2.put(\\"expressionValues\\", $VALUES))
+  #set($local1 = $context.stash.var2)
+  
+#end
+#set($context.stash.var3 = $local1)
 {
   \\"version\\": \\"2017-02-28\\",
   \\"operation\\": \\"PutItem\\",
@@ -688,11 +715,12 @@ $util.toJson($context.stash.var5)",
   },
   \\"attributeValues\\": {
     \\"alias\\": $util.dynamodb.toDynamoDBJson($context.arguments.alias)
-  }
+  },
+  \\"condition\\": $util.toJson($context.stash.var3)
 }",
-        "ResponseMappingTemplate": "#set($context.stash.var2 = $context.result)
+        "ResponseMappingTemplate": "#set($context.stash.var4 = $context.result)
 
-$util.toJson($context.stash.var2)",
+$util.toJson($context.stash.var4)",
         "TypeName": "Mutation",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -717,11 +745,11 @@ $util.toJson($context.stash.var2)",
         "FieldName": "updatePost",
         "Kind": "UNIT",
         "RequestMappingTemplate": "#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
 #set($ADD = [])
 #set($DELETE = [])
 #set($SET = [])
-#set($VALUES = {})
-#set($NAMES = {})
 #if($context.arguments.id.equalsIgnoreCase(\\"sam\\"))
   $util.qr($NAMES.put(\\"#1\\", \\"id\\"))
   $util.qr($VALUES.put(\\":1\\", $util.dynamodb.toString(\\"sam\\")))

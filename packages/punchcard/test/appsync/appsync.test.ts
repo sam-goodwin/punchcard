@@ -125,8 +125,10 @@ export const UserApi = (
         const id = yield* $util.autoId();
 
         return yield* userStore.put({
-          id,
-          alias: request.alias,
+          item: {
+            id,
+            alias: request.alias,
+          }
         });
       }
     }
@@ -202,16 +204,18 @@ export const PostApi = (scope: Scope) => {
         const timestamp = yield* $util.time.nowISO8601();
 
         const post = yield* postStore.put({
-          id,
-          title: input.title,
-          content: yield* $if($util.isNull(input.content), () =>
-            VTL.string('content'),
-          ).else(function*() {
-            return input.content;
-          }),
-          timestamp,
-          channel: 'category',
-          tags: [],
+          item: {
+            id,
+            title: input.title,
+            content: yield* $if($util.isNull(input.content), () =>
+              VTL.string('content'),
+            ).else(function*() {
+              return input.content;
+            }),
+            timestamp,
+            channel: 'category',
+            tags: [],
+          }
         });
 
         return post;
