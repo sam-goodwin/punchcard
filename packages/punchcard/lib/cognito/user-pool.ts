@@ -39,7 +39,7 @@ export class UserPool<R extends RequiredAttributes, C extends CustomAttributes> 
     super(scope, id);
     this.requiredAttributes = (props.standardAttributes || {}) as R;
     this.customAttributes = (props.customAttributes || {}) as C;
-    this.resource = CDK.chain(({ cognito }) => this.scope.map(scope => {
+    this.resource = Build.concat(CDK, props.buildProps || Build.of({})).chain(([{ cognito }, buildProps]) => this.scope.map(scope => {
       const lambdaTriggers: Partial<cognito.UserPoolTriggers> = {};
       for (const fn of this.triggers || []) {
         for (const triggerName of Object.keys(fn.handlers) as (keyof cognito.UserPoolTriggers)[]) {
@@ -56,10 +56,12 @@ export class UserPool<R extends RequiredAttributes, C extends CustomAttributes> 
       })).reduce((a, b) => ({ ...a, ...b }), {});
 
       return new cognito.UserPool(scope, this.id, {
+        ...buildProps,
         standardAttributes: props.standardAttributes,
         signInAliases: props.signInAliases,
         lambdaTriggers,
         customAttributes,
+
       });
 
       function shapeToAttribute(shape: Shape): cognito.ICustomAttribute {

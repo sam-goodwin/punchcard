@@ -654,7 +654,7 @@ export class VRecord<T extends TypeShape = TypeShape> extends VObject<T> {
   constructor(type: T, expr: VExpression) {
     super(type, expr);
     for (const [name, shape] of Object.entries(type.Members) as [string, Shape][]) {
-      (this as any)[name] = VObject.fromExpr(shape, VExpression.concat(expr, '.', name));
+      (this as any)[name] = VObject.fromExpr(shape, VExpression.concat(expr, '.', name.startsWith('_') ? `get("${name}")` : name));
     }
   }
 }

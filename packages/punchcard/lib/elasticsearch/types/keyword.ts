@@ -1,7 +1,12 @@
 import { string } from '@punchcard/shape';
 
-export function keyword<P extends KeywordProps>(props: P) {
-  return string.apply(props);
+export function keyword<P extends Omit<KeywordProps, 'type'>>(esMappings?: P) {
+  return string.apply({
+    esMappings: {
+      ...(esMappings || {}),
+      type: 'keyword'
+    }
+  });
 }
 
 /**

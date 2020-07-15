@@ -22,7 +22,6 @@ import * as Lambda from '../lambda';
 import { sink } from '../util';
 import { Domain } from './es-domain';
 
-
 export class IndexSettings extends Type({
   number_of_shards: integer,
   number_of_replicas: optional(integer),
