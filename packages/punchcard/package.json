@@ -1,7 +1,7 @@
 {
   "name": "punchcard",
   "description": "Type-safe AWS infrastructure.",
-  "version": "0.17.0",
+  "version": "0.17.5",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -73,7 +73,7 @@
     "@aws-cdk/custom-resources": "1.51.0",
     "@punchcard/constructs": "^0.6.0",
     "@punchcard/erasure": "^0.1.0",
-    "@punchcard/shape-dynamodb": "^0.3.0",
+    "@punchcard/shape-dynamodb": "^0.4.0",
     "@punchcard/shape-hive": "^0.3.0",
     "@punchcard/shape-json": "^0.3.0",
     "@punchcard/shape-jsonpath": "^0.3.0",
@@ -117,7 +117,7 @@
     "@aws-cdk/core": "1.51.0",
     "@aws-cdk/custom-resources": "1.51.0",
     "@punchcard/constructs": "^0.6.0",
-    "@punchcard/shape-dynamodb": "^0.3.0",
+    "@punchcard/shape-dynamodb": "^0.4.0",
     "@punchcard/shape-hive": "^0.3.0",
     "@punchcard/shape-json": "^0.3.0",
     "@punchcard/shape-jsonpath": "^0.3.0",

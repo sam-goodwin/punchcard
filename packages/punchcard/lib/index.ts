@@ -9,6 +9,7 @@ export * as Util from './util';
  */
 export * as AppSync from './appsync';
 export * as CloudWatch from './cloudwatch';
+export * as Cognito from './cognito';
 export * as DynamoDB from './dynamodb';
 export * as ElasticSearch from './elasticsearch';
 export * as Firehose from './firehose';
@@ -18,3 +19,5 @@ export * as Lambda from './lambda';
 export * as S3 from './s3';
 export * as SNS from './sns';
 export * as SQS from './sqs';
+
+export { CDK } from './core/cdk';

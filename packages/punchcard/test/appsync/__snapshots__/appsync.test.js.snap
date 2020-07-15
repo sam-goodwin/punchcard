@@ -948,8 +948,12 @@ type Post {
   channel: String!
   timestamp: AWSDateTime!
   tags: [String!]!
-  relatedPosts: [Post!]!
+  relatedPosts(sortType: SortType!): [Post!]!
     @aws_cognito_user_pools(cognito_groups: [\\"Reader\\"])
+}
+enum SortType {
+  NEW
+  OLD
 }
 type Mutation {
   createUser(alias: String!): User!

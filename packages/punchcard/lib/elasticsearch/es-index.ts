@@ -6,7 +6,7 @@ import type * as es from '@aws-cdk/aws-elasticsearch';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, AnyShape, array, boolean, Enum, integer, map, Mapper, Meta, number, optional, Shape, ShapeGuards, string, StringShape, Type, TypeShape, Value } from '@punchcard/shape';
+import { any, AnyShape, array, boolean, Enum, integer, isOptional, map, Mapper, Meta, number, optional, Shape, ShapeGuards, string, StringShape, Type, TypeShape, Value } from '@punchcard/shape';
 
 import { Json } from '@punchcard/shape-json';
 import { call, DataSourceBindCallback, DataSourceType, VExpression } from '../appsync';
@@ -489,7 +489,16 @@ function toMappings<S extends Shape>(shape: S): any {
   if (esMappings) {
     return esMappings;
   }
-  if (ShapeGuards.isRecordShape(shape)) {
+  if (ShapeGuards.isUnionShape(shape)) {
+    if (!isOptional(shape)) {
+      throw new Error(`union types are not currently supported`);
+    }
+    if (ShapeGuards.isNothingShape(shape.Items[0])) {
+      return toMappings(shape.Items[1]);
+    } else {
+      return toMappings(shape.Items[0]);
+    }
+  } else if (ShapeGuards.isRecordShape(shape)) {
     return {
       properties: Object.entries(shape.Members).map(([name, shape]) => ({
         [name]: toMappings(shape)
@@ -517,6 +526,10 @@ function toMappings<S extends Shape>(shape: S): any {
   } else if (ShapeGuards.isBinaryShape(shape)) {
     return {
       type: 'binary'
+    };
+  } else if (ShapeGuards.isEnumShape(shape)) {
+    return {
+      type: 'keyword'
     };
   }
   throw new Error(`unsupported type: ${shape.Kind}`);

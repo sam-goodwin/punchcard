@@ -203,6 +203,8 @@ export class Api<
             throw new Error(`union types not supported as input types`);
           }
           shape.Items.forEach(parseInputType);
+        } else if (ShapeGuards.isEnumShape(shape)) {
+          parseType(shape);
         }
       }
 
@@ -507,7 +509,7 @@ function getTypeAnnotation(shape: Shape): string {
       return shape.FQN!;
     } else if (ShapeGuards.isEnumShape(shape) && shape.FQN !== undefined) {
       return shape.FQN!;
-    } {
+    } else {
       throw new Error(`shape type ${shape.Kind} is not supported by GraphQL`);
     }
   }

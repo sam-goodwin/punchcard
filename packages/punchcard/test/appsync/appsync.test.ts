@@ -1,6 +1,6 @@
 import 'jest';
 
-import { array, integer, map, nothing, number, optional, Pointer, set, Shape, Static, string, StringShape, timestamp, Type, TypeShape, union, Value } from '@punchcard/shape';
+import { array, Enum, integer, map, nothing, number, optional, Pointer, set, Shape, Static, string, StringShape, timestamp, Type, TypeShape, union, Value } from '@punchcard/shape';
 import { Fn } from '@punchcard/shape/lib/function';
 import { $if, ID, VTL } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
@@ -31,6 +31,11 @@ export class UserStore extends DynamoDB.Table.NewType({
     partition: 'id'
   }
 }) {}
+
+const SortType = Enum('SortType', {
+  NEW: 'NEW',
+  OLD: 'OLD'
+} as const);
 
 /**
  * Query for getting Users.
@@ -92,7 +97,7 @@ export const PostMutations = Mutation({
 });
 
 export const RelatedPostsTrait = Trait({
-  relatedPosts: array(Post)
+  relatedPosts: Fn({sortType: SortType}, array(Post))
 });
 
 export const PostSubscriptions = Subscription({
