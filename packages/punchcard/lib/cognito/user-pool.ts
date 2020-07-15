@@ -61,7 +61,6 @@ export class UserPool<R extends RequiredAttributes, C extends CustomAttributes> 
         signInAliases: props.signInAliases,
         lambdaTriggers,
         customAttributes,
-
       });
 
       function shapeToAttribute(shape: Shape): cognito.ICustomAttribute {

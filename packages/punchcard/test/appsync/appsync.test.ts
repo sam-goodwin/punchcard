@@ -318,7 +318,6 @@ const userPool = new UserPool(stack, 'UserPool', {
   },
   signInAliases: {
     email: true,
-    preferredUsername: true,
   },
   customAttributes: {
     favoriteNumber: integer

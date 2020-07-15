@@ -58,7 +58,7 @@ Object {
     },
     "MyApi3597551C": Object {
       "Properties": Object {
-        "AuthenticationType": "AWS_IAM",
+        "AuthenticationType": "AMAZON_COGNITO_USER_POOLS",
         "LogConfig": Object {
           "CloudWatchLogsRoleArn": Object {
             "Fn::GetAtt": Array [
@@ -69,6 +69,15 @@ Object {
           "FieldLogLevel": "ALL",
         },
         "Name": "MyApi",
+        "UserPoolConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "DefaultAction": "ALLOW",
+          "UserPoolId": Object {
+            "Ref": "UserPool6BA7E5F2",
+          },
+        },
       },
       "Type": "AWS::AppSync::GraphQLApi",
     },
@@ -989,6 +998,103 @@ schema {
       },
       "Type": "AWS::DynamoDB::Table",
       "UpdateReplacePolicy": "Retain",
+    },
+    "UserPool6BA7E5F2": Object {
+      "Properties": Object {
+        "AccountRecoverySetting": Object {
+          "RecoveryMechanisms": Array [
+            Object {
+              "Name": "verified_phone_number",
+              "Priority": 1,
+            },
+            Object {
+              "Name": "verified_email",
+              "Priority": 2,
+            },
+          ],
+        },
+        "AdminCreateUserConfig": Object {
+          "AllowAdminCreateUserOnly": true,
+        },
+        "AutoVerifiedAttributes": Array [
+          "email",
+        ],
+        "EmailVerificationMessage": "The verification code to your new account is {####}",
+        "EmailVerificationSubject": "Verify your new account",
+        "Schema": Array [
+          Object {
+            "Mutable": true,
+            "Name": "email",
+            "Required": true,
+          },
+          Object {
+            "Mutable": true,
+            "Name": "birthdate",
+            "Required": true,
+          },
+          Object {
+            "AttributeDataType": "Number",
+            "Name": "favoriteNumber",
+          },
+        ],
+        "SmsConfiguration": Object {
+          "ExternalId": "stackUserPool4933E007",
+          "SnsCallerArn": Object {
+            "Fn::GetAtt": Array [
+              "UserPoolsmsRole4EA729DD",
+              "Arn",
+            ],
+          },
+        },
+        "SmsVerificationMessage": "The verification code to your new account is {####}",
+        "UsernameAttributes": Array [
+          "email",
+        ],
+        "VerificationMessageTemplate": Object {
+          "DefaultEmailOption": "CONFIRM_WITH_CODE",
+          "EmailMessage": "The verification code to your new account is {####}",
+          "EmailSubject": "Verify your new account",
+          "SmsMessage": "The verification code to your new account is {####}",
+        },
+      },
+      "Type": "AWS::Cognito::UserPool",
+    },
+    "UserPoolsmsRole4EA729DD": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Condition": Object {
+                "StringEquals": Object {
+                  "sts:ExternalId": "stackUserPool4933E007",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "cognito-idp.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": "sns:Publish",
+                  "Effect": "Allow",
+                  "Resource": "*",
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "sns-publish",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
     },
     "UserStore7DE05EBF": Object {
       "DeletionPolicy": "Retain",
