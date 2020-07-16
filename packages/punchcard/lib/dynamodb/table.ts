@@ -4,21 +4,25 @@ import type * as dynamodb from '@aws-cdk/aws-dynamodb';
 import type * as iam from '@aws-cdk/aws-iam';
 import type * as cdk from '@aws-cdk/core';
 
-import { any, array, map, optional, string, Type, TypeShape } from '@punchcard/shape';
-import { DDB, TableClient } from '@punchcard/shape-dynamodb';
-import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VBool, VExpression, VInteger, VObject, VString, VTL, vtl } from '../appsync';
+import { any, array, map, optional, string, Type, TypeShape, Value } from '@punchcard/shape';
+import { DDB, Mapper, TableClient } from '@punchcard/shape-dynamodb';
+import { $if, call, DataSourceBindCallback, DataSourceProps, DataSourceType, getState, VAny, VBool, VExpression, VInteger, VList, VMap, VNothing, VObject, VString, VTL, vtl } from '../appsync';
 import { Build } from '../core/build';
 import { CDK } from '../core/cdk';
 import { Construct, Scope } from '../core/construct';
 import { Dependency } from '../core/dependency';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
+import { ConditionExpression } from './dsl/condition';
 import { DynamoExpr } from './dsl/dynamo-expr';
 import { DynamoDSL } from './dsl/dynamo-repr';
+import { PutRequest } from './dsl/put-request';
 import { toAttributeValueJson } from './dsl/to-attribute-value';
 import { UpdateRequest } from './dsl/update-request';
+import { Event } from './event';
 import { query, QueryRequest, QueryResponse } from './query-request';
 import { Index } from './table-index';
+import { Stream } from './table-stream';
 import { getKeyNames, keyType } from './util';
 
 /**
@@ -127,12 +131,19 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
    */
   public readonly dataType: DataType;
 
+  public readonly valueMapper: Mapper<DataType>;
+  public readonly keyMapper: Mapper<any>;
+  public readonly attributeValuesMapper: Mapper<any>;
+
+  private streamViewType: dynamodb.StreamViewType;
+
   /**
    * The table's key (hash key, or hash+sort key pair).
    */
   public readonly key: Key;
 
   private _keyShape: TypeShape; // cache
+
   private get keyShape() {
     if (!this._keyShape) {
       const keyMembers: any = {
@@ -167,6 +178,10 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
 
     const [partitionKeyName, sortKeyName] = getKeyNames<DataType>(props.key);
 
+    this.valueMapper = Mapper.of(this.dataType);
+    this.keyMapper = Mapper.of(this.keyShape);
+    this.attributeValuesMapper = Mapper.of(this.attributeValuesShape);
+
     this.resource = CDK.chain(({dynamodb}) => Scope.resolve(scope).map(scope => {
       const extraTableProps = props.tableProps ? Build.resolve(props.tableProps) : {};
 
@@ -183,7 +198,8 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
         sortKey: sortKeyName ? {
           name: sortKeyName,
           type: keyType((dataType.Members as any)[sortKeyName])
-        } : undefined
+        } : undefined,
+        stream: this.streamViewType as any
       });
     }));
   }
@@ -204,60 +220,57 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
     return call(this.dataSourceProps((table, role) => table.grantReadData(role), props), request, this.dataType);
   }
 
-  public put(value: VObject.Like<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
+  public *put(putRequest: PutRequest<DataType>, props?: Table.DataSourceProps): VTL<VObject.Of<DataType>> {
+    const {
+      condition,
+      expressionNames,
+      expressionValues
+    } = yield* this.initConditionExpression();
+
+    const fields = this.fieldDsl();
+
+    if (putRequest.condition) {
+      yield* putRequest.condition(fields);
+    }
+
     // TODO: address redundancy between this and `get`.
     const PutItemRequest = Type({
       version: string,
       operation: string,
       key: this.keyShape,
-      attributeValues: this.attributeValuesShape
+      attributeValues: this.attributeValuesShape,
+      condition: optional(ConditionExpression)
     });
 
     const request = VObject.fromExpr(PutItemRequest, VExpression.json({
       version: '2017-02-28',
       operation: 'PutItem',
-      key: toAttributeValueJson(this.keyShape, value),
-      attributeValues: toAttributeValueJson(this.attributeValuesShape, value)
+      key: toAttributeValueJson(this.keyShape, putRequest.item),
+      attributeValues: toAttributeValueJson(this.attributeValuesShape, putRequest.item),
+      condition: yield* this.compileConditionExpression(condition, expressionNames, expressionValues)
     }));
 
-    return call(this.dataSourceProps((table, role) => table.grantWriteData(role), props), request, this.dataType);
+    return yield* call(this.dataSourceProps((table, role) => table.grantWriteData(role), props), request, this.dataType);
   }
 
   public *update(request: UpdateRequest<DataType, Key>, props?: DataSourceProps): VTL<VObject.Of<DataType>> {
     // TODO: https://docs.aws.amazon.com/appsync/latest/devguide/resolver-mapping-template-reference-dynamodb.html#aws-appsync-resolver-mapping-template-reference-dynamodb-condition-handling
+    const {
+      condition,
+      expressionNames,
+      expressionValues
+    } = yield* this.initConditionExpression();
 
-    const condition = yield* stringList('$CONDITION');
     const ADD = yield* stringList('$ADD');
     const DELETE = yield* stringList('$DELETE');
     const SET = yield* stringList('$SET');
 
-    // map of id -> attribute-value
-    const expressionValues = yield* vtl(map(any), {
-      local: true,
-      id: '$VALUES'
-    })`{}`;
-
-    // map of name -> id
-    const expressionNames = yield* vtl(map(string), {
-      local: true,
-      id: '$NAMES'
-    })`{}`;
-
-    const fields: any = {};
-    for (const [name, field] of Object.entries(this.dataType.Members)) {
-      fields[name] = DynamoDSL.of(field, new DynamoExpr.Reference(undefined, field, name));
-    }
+    const fields = this.fieldDsl();
 
     if (request.condition) {
       yield* request.condition(fields);
     }
     yield* request.transaction(fields);
-
-    const UpdateItemRequestCondition = Type({
-      expression: string,
-      expressionNames: map(string),
-      expressionValues: map(any)
-    });
 
     const UpdateItemRequest = Type({
       version: string,
@@ -268,7 +281,7 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
         expressionNames: map(string),
         expressionValues: map(any)
       }),
-      condition: optional(UpdateItemRequestCondition)
+      condition: optional(ConditionExpression)
     });
 
     const expression = yield* vtl(string, {
@@ -297,15 +310,7 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
         expressionNames,
         expressionValues
       },
-      condition: yield* $if(VBool.not(condition.isEmpty()), function*() {
-        yield* vtl`#set($conditionExpression = "#foreach($item in ${condition})($item)#if($foreach.hasNext) and #end#end")`;
-
-        return yield* VObject.of(UpdateItemRequestCondition, {
-          expression: new VString(VExpression.text('$conditionExpression')),
-          expressionNames,
-          expressionValues
-        });
-      })
+      condition: yield* this.compileConditionExpression(condition, expressionNames, expressionValues)
     }));
 
     return yield* call(
@@ -323,6 +328,52 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
       request,
       dataSourceProps: this.dataSourceProps((table, role) => table.grantReadData(role), props)
     });
+  }
+
+  private fieldDsl() {
+    const fields: any = {};
+    for (const [name, field] of Object.entries(this.dataType.Members)) {
+      fields[name] = DynamoDSL.of(field, new DynamoExpr.Reference(undefined, field, name));
+    }
+    return fields;
+  }
+
+  private *compileConditionExpression(
+    condition: VList<VString>,
+    expressionNames: VMap<VString>,
+    expressionValues: VMap<VAny>
+  ) {
+    return yield* $if(VBool.not(condition.isEmpty()), function*() {
+      yield* vtl`#set($conditionExpression = "#foreach($item in ${condition})($item)#if($foreach.hasNext) and #end#end")`;
+
+      return yield* VObject.of(ConditionExpression, {
+        expression: new VString(VExpression.text('$conditionExpression')),
+        expressionNames,
+        expressionValues
+      });
+    });
+  }
+
+  private *initConditionExpression() {
+    const condition = yield* stringList('$CONDITION');
+
+    // map of id -> attribute-value
+    const expressionValues = yield* vtl(map(any), {
+      local: true,
+      id: '$VALUES'
+    })`{}`;
+
+    // map of name -> id
+    const expressionNames = yield* vtl(map(string), {
+      local: true,
+      id: '$NAMES'
+    })`{}`;
+
+    return {
+      condition,
+      expressionValues,
+      expressionNames
+    };
   }
 
   /**
@@ -377,6 +428,56 @@ export class Table<DataType extends TypeShape, Key extends DDB.KeyOf<DataType>> 
    */
   public projectTo<Projection extends TypeShape>(projection: AssertValidProjection<DataType, Projection>): Projected<this, Projection> {
     return new Projected(this, projection) as any;
+  }
+
+  public stream(type: 'KEYS_ONLY' | 'NEW_AND_OLD_IMAGES' | 'NEW_IMAGE' | 'OLD_IMAGE' = 'NEW_AND_OLD_IMAGES'): Stream<{
+    keys: DDB.KeyValue<DataType, Key>;
+    oldImage?: Value.Of<DataType>;
+    newImage?: Value.Of<DataType>;
+    event: Value.Of<typeof Event.Payload>
+  }, []> {
+    if (this.streamViewType) {
+      throw new Error(`stream already configured to ${this.streamViewType}`);
+    }
+    this.streamViewType = type as dynamodb.StreamViewType ;
+    const keyMapper = this.keyMapper;
+    const valueMapper = this.valueMapper;
+    class Root extends Stream<{
+      keys: DDB.KeyValue<DataType, Key>;
+      oldImage?: Value.Of<DataType>;
+      newImage?: Value.Of<DataType>;
+      event: Value.Of<typeof Event.Payload>
+    }, []> {
+      /**
+       * Bottom of the recursive async generator - returns the records
+       * parsed and validated out of the DynamoDBEvent.
+       *
+       * @param event payload of DynamoDB event
+       */
+      public async *run(event: Event.Payload) {
+        for (const record of event.Records) {
+          const keys = keyMapper.read({M: record.dynamodb.Keys!});
+          const newImage = record.dynamodb.NewImage ? valueMapper.read({M: record.dynamodb.NewImage!}) : undefined;
+          const oldImage = record.dynamodb.OldImage ? valueMapper.read({M: record.dynamodb.OldImage!}) : undefined;
+          yield {
+            keys,
+            newImage: {
+              ...keys,
+              ...newImage
+            },
+            oldImage: {
+              ...keys,
+              ...oldImage
+            },
+            event
+          };
+        }
+      }
+    }
+    return new Root(this, undefined as any, {
+      depends: [],
+      handle: i => i
+    });
   }
 
   /**

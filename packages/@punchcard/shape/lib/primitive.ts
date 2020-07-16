@@ -1,6 +1,6 @@
 import { EnumShape } from './enum';
 import { ShapeGuards } from './guards';
-import { Decorated, Trait } from './metadata';
+import { Decorated } from './metadata';
 import { Shape } from './shape';
 
 export type PrimitiveShapes =
@@ -49,15 +49,8 @@ export class NumberShape extends Shape {
 export namespace NumberShape {
   export function type<T extends string>(numberType: T) {
     return number.apply({
-      [Trait.Data]: {
-        numberType
-      }
+      numberType
     });
-  }
-  export interface Type<T extends string> {
-    [Trait.Data]: {
-      numberType: T
-    }
   }
 }
 

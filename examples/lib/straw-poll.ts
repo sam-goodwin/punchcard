@@ -162,10 +162,12 @@ const pollMutations = new PollMutations({
       });
 
       const poll = yield* pollStore.put({
-        ...input,
-        id,
-        createdAt,
-        candidates: candidates,
+        item: {
+          ...input,
+          id,
+          createdAt,
+          candidates: candidates,
+        }
       });
 
       return yield* VObject.of(Poll, {

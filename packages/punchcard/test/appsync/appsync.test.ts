@@ -1,6 +1,6 @@
 import 'jest';
 
-import { array, integer, map, nothing, number, optional, Pointer, set, Shape, Static, string, StringShape, timestamp, Type, TypeShape, union, Value } from '@punchcard/shape';
+import { array, Enum, integer, map, nothing, number, optional, Pointer, set, Shape, Static, string, StringShape, timestamp, Type, TypeShape, union, Value } from '@punchcard/shape';
 import { Fn } from '@punchcard/shape/lib/function';
 import { $if, ID, VTL } from '../../lib/appsync';
 import { Api } from '../../lib/appsync/api';
@@ -31,6 +31,11 @@ export class UserStore extends DynamoDB.Table.NewType({
     partition: 'id'
   }
 }) {}
+
+const SortType = Enum('SortType', {
+  NEW: 'NEW',
+  OLD: 'OLD'
+} as const);
 
 /**
  * Query for getting Users.
@@ -92,7 +97,7 @@ export const PostMutations = Mutation({
 });
 
 export const RelatedPostsTrait = Trait({
-  relatedPosts: array(Post)
+  relatedPosts: Fn({sortType: SortType}, array(Post))
 });
 
 export const PostSubscriptions = Subscription({
@@ -125,8 +130,10 @@ export const UserApi = (
         const id = yield* $util.autoId();
 
         return yield* userStore.put({
-          id,
-          alias: request.alias,
+          item: {
+            id,
+            alias: request.alias,
+          }
         });
       }
     }
@@ -202,16 +209,18 @@ export const PostApi = (scope: Scope) => {
         const timestamp = yield* $util.time.nowISO8601();
 
         const post = yield* postStore.put({
-          id,
-          title: input.title,
-          content: yield* $if($util.isNull(input.content), () =>
-            VTL.string('content'),
-          ).else(function*() {
-            return input.content;
-          }),
-          timestamp,
-          channel: 'category',
-          tags: [],
+          item: {
+            id,
+            title: input.title,
+            content: yield* $if($util.isNull(input.content), () =>
+              VTL.string('content'),
+            ).else(function*() {
+              return input.content;
+            }),
+            timestamp,
+            channel: 'category',
+            tags: [],
+          }
         });
 
         return post;
@@ -309,7 +318,6 @@ const userPool = new UserPool(stack, 'UserPool', {
   },
   signInAliases: {
     email: true,
-    preferredUsername: true,
   },
   customAttributes: {
     favoriteNumber: integer

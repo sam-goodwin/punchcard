@@ -58,7 +58,7 @@ Object {
     },
     "MyApi3597551C": Object {
       "Properties": Object {
-        "AuthenticationType": "AWS_IAM",
+        "AuthenticationType": "AMAZON_COGNITO_USER_POOLS",
         "LogConfig": Object {
           "CloudWatchLogsRoleArn": Object {
             "Fn::GetAtt": Array [
@@ -69,6 +69,15 @@ Object {
           "FieldLogLevel": "ALL",
         },
         "Name": "MyApi",
+        "UserPoolConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "DefaultAction": "ALLOW",
+          "UserPoolId": Object {
+            "Ref": "UserPool6BA7E5F2",
+          },
+        },
       },
       "Type": "AWS::AppSync::GraphQLApi",
     },
@@ -633,6 +642,19 @@ Object {
   
 #end
 #set($context.stash.var4 = $context.stash.var3)
+#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
+#if(!$CONDITION.isEmpty())
+  #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
+  #set($context.stash.var5 = {})
+  $util.qr($context.stash.var5.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var5.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var5.put(\\"expressionValues\\", $VALUES))
+  #set($local2 = $context.stash.var5)
+  
+#end
+#set($context.stash.var6 = $local2)
 {
   \\"version\\": \\"2017-02-28\\",
   \\"operation\\": \\"PutItem\\",
@@ -651,11 +673,12 @@ Object {
         
       ]
     }
-  }
+  },
+  \\"condition\\": $util.toJson($context.stash.var6)
 }",
-        "ResponseMappingTemplate": "#set($context.stash.var5 = $context.result)
+        "ResponseMappingTemplate": "#set($context.stash.var7 = $context.result)
 
-$util.toJson($context.stash.var5)",
+$util.toJson($context.stash.var7)",
         "TypeName": "Mutation",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -680,6 +703,19 @@ $util.toJson($context.stash.var5)",
         "FieldName": "createUser",
         "Kind": "UNIT",
         "RequestMappingTemplate": "#set($context.stash.var1 = $util.autoId())
+#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
+#if(!$CONDITION.isEmpty())
+  #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
+  #set($context.stash.var2 = {})
+  $util.qr($context.stash.var2.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var2.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var2.put(\\"expressionValues\\", $VALUES))
+  #set($local1 = $context.stash.var2)
+  
+#end
+#set($context.stash.var3 = $local1)
 {
   \\"version\\": \\"2017-02-28\\",
   \\"operation\\": \\"PutItem\\",
@@ -688,11 +724,12 @@ $util.toJson($context.stash.var5)",
   },
   \\"attributeValues\\": {
     \\"alias\\": $util.dynamodb.toDynamoDBJson($context.arguments.alias)
-  }
+  },
+  \\"condition\\": $util.toJson($context.stash.var3)
 }",
-        "ResponseMappingTemplate": "#set($context.stash.var2 = $context.result)
+        "ResponseMappingTemplate": "#set($context.stash.var4 = $context.result)
 
-$util.toJson($context.stash.var2)",
+$util.toJson($context.stash.var4)",
         "TypeName": "Mutation",
       },
       "Type": "AWS::AppSync::Resolver",
@@ -717,11 +754,11 @@ $util.toJson($context.stash.var2)",
         "FieldName": "updatePost",
         "Kind": "UNIT",
         "RequestMappingTemplate": "#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
 #set($ADD = [])
 #set($DELETE = [])
 #set($SET = [])
-#set($VALUES = {})
-#set($NAMES = {})
 #if($context.arguments.id.equalsIgnoreCase(\\"sam\\"))
   $util.qr($NAMES.put(\\"#1\\", \\"id\\"))
   $util.qr($VALUES.put(\\":1\\", $util.dynamodb.toString(\\"sam\\")))
@@ -920,8 +957,12 @@ type Post {
   channel: String!
   timestamp: AWSDateTime!
   tags: [String!]!
-  relatedPosts: [Post!]!
+  relatedPosts(sortType: SortType!): [Post!]!
     @aws_cognito_user_pools(cognito_groups: [\\"Reader\\"])
+}
+enum SortType {
+  NEW
+  OLD
 }
 type Mutation {
   createUser(alias: String!): User!
@@ -957,6 +998,103 @@ schema {
       },
       "Type": "AWS::DynamoDB::Table",
       "UpdateReplacePolicy": "Retain",
+    },
+    "UserPool6BA7E5F2": Object {
+      "Properties": Object {
+        "AccountRecoverySetting": Object {
+          "RecoveryMechanisms": Array [
+            Object {
+              "Name": "verified_phone_number",
+              "Priority": 1,
+            },
+            Object {
+              "Name": "verified_email",
+              "Priority": 2,
+            },
+          ],
+        },
+        "AdminCreateUserConfig": Object {
+          "AllowAdminCreateUserOnly": true,
+        },
+        "AutoVerifiedAttributes": Array [
+          "email",
+        ],
+        "EmailVerificationMessage": "The verification code to your new account is {####}",
+        "EmailVerificationSubject": "Verify your new account",
+        "Schema": Array [
+          Object {
+            "Mutable": true,
+            "Name": "email",
+            "Required": true,
+          },
+          Object {
+            "Mutable": true,
+            "Name": "birthdate",
+            "Required": true,
+          },
+          Object {
+            "AttributeDataType": "Number",
+            "Name": "favoriteNumber",
+          },
+        ],
+        "SmsConfiguration": Object {
+          "ExternalId": "stackUserPool4933E007",
+          "SnsCallerArn": Object {
+            "Fn::GetAtt": Array [
+              "UserPoolsmsRole4EA729DD",
+              "Arn",
+            ],
+          },
+        },
+        "SmsVerificationMessage": "The verification code to your new account is {####}",
+        "UsernameAttributes": Array [
+          "email",
+        ],
+        "VerificationMessageTemplate": Object {
+          "DefaultEmailOption": "CONFIRM_WITH_CODE",
+          "EmailMessage": "The verification code to your new account is {####}",
+          "EmailSubject": "Verify your new account",
+          "SmsMessage": "The verification code to your new account is {####}",
+        },
+      },
+      "Type": "AWS::Cognito::UserPool",
+    },
+    "UserPoolsmsRole4EA729DD": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Condition": Object {
+                "StringEquals": Object {
+                  "sts:ExternalId": "stackUserPool4933E007",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "cognito-idp.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": "sns:Publish",
+                  "Effect": "Allow",
+                  "Resource": "*",
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "sns-publish",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
     },
     "UserStore7DE05EBF": Object {
       "DeletionPolicy": "Retain",

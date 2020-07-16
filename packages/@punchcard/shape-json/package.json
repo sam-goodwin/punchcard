@@ -1,7 +1,7 @@
 {
   "name": "@punchcard/shape-json",
   "description": "Adds support for Json Serialization and Deserialization for Punchcard Shapes",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -42,10 +42,10 @@
     "typelevel-ts": "^0.4.0"
   },
   "dependencies": {
-    "@punchcard/shape": "^0.2.0"
+    "@punchcard/shape": "^0.3.0"
   },
   "peerDependencies": {
-    "@punchcard/shape": "^0.2.0"
+    "@punchcard/shape": "^0.3.0"
   },
   "jest": {
     "testMatch": [

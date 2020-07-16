@@ -1,6 +1,6 @@
 import { any, array, binary, BinaryShape, boolean, EnumShape, integer, LiteralShape, never, NeverShape, nothing, NothingShape, number, ShapeGuards, ShapeVisitor, timestamp, Value } from '@punchcard/shape';
 import { AnyShape, ArrayShape, BoolShape, IntegerShape, MapShape, NumberShape, SetShape, Shape, StringShape, TimestampShape, TypeShape } from '@punchcard/shape';
-import { string, Trait } from '@punchcard/shape';
+import { string } from '@punchcard/shape';
 import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
 import { IsInstance } from '@punchcard/shape/lib/is-instance';
 import { UnionShape } from '@punchcard/shape/lib/union';
@@ -243,15 +243,9 @@ export namespace VObject {
   );
 }
 
-export const IDTrait: {
-  [Trait.Data]: {
-    graphqlType: 'ID'
-  }
-} = {
-  [Trait.Data]: {
-    graphqlType: 'ID'
-  }
-};
+export const IDTrait = {
+  graphqlType: 'ID'
+} as const;
 
 export const ID = string.apply(IDTrait);
 
@@ -647,7 +641,7 @@ export class VMap<T extends VObject = VObject> extends VObject<MapShape<VObject.
 
   public get(key: string | VString): T {
     return VObject.fromExpr(VObject.getType(this).Items, VExpression.concat(
-      this, '.get(', key, ')'
+      this, '.get("', key, '")'
     )) as any as T;
   }
 
@@ -660,7 +654,7 @@ export class VRecord<T extends TypeShape = TypeShape> extends VObject<T> {
   constructor(type: T, expr: VExpression) {
     super(type, expr);
     for (const [name, shape] of Object.entries(type.Members) as [string, Shape][]) {
-      (this as any)[name] = VObject.fromExpr(shape, VExpression.concat(expr, '.', name));
+      (this as any)[name] = VObject.fromExpr(shape, VExpression.concat(expr, '.', name.startsWith('_') ? `get("${name}")` : name));
     }
   }
 }

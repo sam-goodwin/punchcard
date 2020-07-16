@@ -73,8 +73,9 @@ export class Api<
     this.resource = Build.concat(
       CDK,
       Scope.resolve(scope),
-      props.overrideProps || Build.of({})
-    ).map(([{appsync, core, iam}, scope, buildProps]) => {
+      props.userPool?.resource || Build.of(undefined),
+      props.overrideProps || Build.of({}),
+    ).map(([{appsync, core, iam}, scope, userPool, buildProps]) => {
       const blocks: string[] = [];
 
       scope = new core.Construct(scope, id);
@@ -95,12 +96,17 @@ export class Api<
       }));
       const api = new appsync.CfnGraphQLApi(scope, 'Api', {
         name: props.name,
-        authenticationType: 'AWS_IAM',
         logConfig: {
           cloudWatchLogsRoleArn: cwRole.roleArn,
           fieldLogLevel: 'ALL',
         },
-        ...buildProps
+        authenticationType: userPool ? 'AMAZON_COGNITO_USER_POOLS' : 'AWS_IAM',
+        userPoolConfig: userPool ? {
+          defaultAction: 'ALLOW',
+          userPoolId: userPool.userPoolId,
+          awsRegion: userPool.stack.region
+        } : undefined,
+        ...buildProps,
       });
       const apiCache: appsync.CfnApiCache | undefined = props.caching ? new appsync.CfnApiCache(scope, 'ApiCache', {
         apiId: api.attrApiId,
@@ -203,6 +209,8 @@ export class Api<
             throw new Error(`union types not supported as input types`);
           }
           shape.Items.forEach(parseInputType);
+        } else if (ShapeGuards.isEnumShape(shape)) {
+          parseType(shape);
         }
       }
 
@@ -507,7 +515,7 @@ function getTypeAnnotation(shape: Shape): string {
       return shape.FQN!;
     } else if (ShapeGuards.isEnumShape(shape) && shape.FQN !== undefined) {
       return shape.FQN!;
-    } {
+    } else {
       throw new Error(`shape type ${shape.Kind} is not supported by GraphQL`);
     }
   }

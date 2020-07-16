@@ -1,6 +1,6 @@
 import { EnumShape, ShapeGuards, ShapeVisitor, TypeShape, UnionShape, Value } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { AnyShape, BinaryShape, bool, BoolShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { AnyShape, BinaryShape, bool, BoolShape, NothingShape, number, NumberShape, string, StringShape, timestamp, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
@@ -21,7 +21,7 @@ export namespace DSL {
     T extends AnyShape ? DSL.Any<T> :
     T extends NumberShape ? DSL.Number :
     T extends StringShape ? DSL.String :
-    T extends TimestampShape ? DSL.String :
+    T extends TimestampShape ? DSL.Timestamp :
     T extends UnionShape<infer U> ?
       U extends 1 ? {
         [i in Extract<keyof U, number>]: Of<U[i]>
@@ -131,8 +131,7 @@ export namespace DSL {
       return new String(expression, shape);
     },
     timestampShape: (shape: TimestampShape, expression: ExpressionNode<any>): Node => {
-      // TODO
-      return new String(expression);
+      return new Timestamp(expression, shape);
     }
   };
 }
@@ -560,6 +559,13 @@ export namespace DSL {
       return new Bool(new String.BeginsWith(resolveExpression(string, lhs), resolveExpression(string, rhs)));
     }
   }
+
+  export class Timestamp extends Object<TimestampShape> {
+    constructor(expression: ExpressionNode<TimestampShape>, shape?: TimestampShape) {
+      super(shape || timestamp, expression);
+    }
+  }
+
   export class Enum<E extends EnumShape> extends StringLike<E> {}
 
   export class List<T extends Shape> extends Object<ArrayShape<T>> {

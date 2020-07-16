@@ -3,29 +3,41 @@ import type { Construct } from '@aws-cdk/core';
 
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import { TypeShape, Value } from '@punchcard/shape';
-import { Glue, Kinesis, S3 } from 'punchcard';
+import { ElasticSearch, Glue, Kinesis, S3 } from 'punchcard';
 import { Build } from 'punchcard/lib/core/build';
 import { CDK } from 'punchcard/lib/core/cdk';
+import { IndexSettings } from 'punchcard/lib/elasticsearch';
+import type { DataLake } from './data-lake';
 import { Period, PT1M } from './period';
 import { Schema } from './schema';
 
-export interface DataPipelineProps<C extends TypeShape, TS extends keyof C['Members']> {
-  database: Build<Database>;
-  schema: Schema<C, TS>;
+export interface DataPipelineProps<T extends TypeShape, TS extends keyof T['Members'], ID extends keyof T['Members']> {
+  schema: Schema<T, TS, ID>;
+  indexSettings?: IndexSettings;
 }
-export class DataPipeline<T extends TypeShape, TS extends keyof T['Members']> {
+export class DataPipeline<T extends TypeShape, TS extends keyof T['Members'], ID extends keyof T['Members']> {
   public readonly bucket: S3.Bucket;
   public readonly stream: Kinesis.Stream<T>;
   public readonly table: Glue.Table<T, Period.PT1M>;
+  public readonly index: ElasticSearch.Index<T, ID>;
 
-  constructor(_scope: Build<Construct>, id: string, props: DataPipelineProps<T, TS>) {
-    const scope = CDK.chain(({core}) => _scope.map(scope => new core.Construct(scope, id)));
+  constructor(public readonly dataLake: DataLake, id: string, props: DataPipelineProps<T, TS, ID>) {
+    const scope = CDK.chain(({core}) => dataLake.database.map(dataLake => new core.Construct(dataLake, id)));
 
     this.stream = new Kinesis.Stream(scope, 'Stream', {
       shape: props.schema.shape,
       streamProps: Build.of({
         encryption: StreamEncryption.KMS
       })
+    });
+
+    this.index = dataLake.domain.addIndex({
+      _id: props.schema.id,
+      indexName: props.schema.schemaName,
+      mappings: props.schema.shape,
+      settings: props.indexSettings || {
+        number_of_shards: 1
+      }
     });
 
     this.bucket = new S3.Bucket(CDK.chain(({s3}) => scope.map(scope => new s3.Bucket(scope, 'Bucket', {
@@ -36,7 +48,7 @@ export class DataPipeline<T extends TypeShape, TS extends keyof T['Members']> {
       .toFirehoseDeliveryStream(scope, 'ToS3').objects()
       .toGlueTable(scope, 'ToGlue', {
         bucket: this.bucket.resource,
-        database: props.database,
+        database: dataLake.database,
         tableName: props.schema.schemaName,
         columns: props.schema.shape,
         partition: {
