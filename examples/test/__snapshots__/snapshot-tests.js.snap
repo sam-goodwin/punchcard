@@ -137,26 +137,7 @@ Object {
       },
       "Type": "AWS::IAM::Policy",
     },
-    "DummyDataPointsAllowEventRuledatalakeDummyDataPointsScheduleF68FC4E142FAF5F6": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "DummyDataPointsE5E16468",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "DummyDataPointsSchedule65A46D54",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
-    "DummyDataPointsE5E16468": Object {
+    "DummyData3BBFD842": Object {
       "Properties": Object {
         "Code": Object {
           "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
@@ -166,14 +147,14 @@ Object {
             "entrypoint_id": "4",
             "is_runtime": "true",
             "punchcard_streamName": Object {
-              "Ref": "LakeDatabasedataPointsStreamF9D85971",
+              "Ref": "datalakeDatabasePostStreamF76719CA",
             },
           },
         },
         "Handler": "index.handler",
         "Role": Object {
           "Fn::GetAtt": Array [
-            "DummyDataPointsServiceRoleB15DAC9D",
+            "DummyDataServiceRoleF6E3733B",
             "Arn",
           ],
         },
@@ -181,7 +162,26 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "DummyDataPointsSchedule65A46D54": Object {
+    "DummyDataAllowEventRuledatalakeDummyDataScheduleC2CC6904833012C4": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "DummyData3BBFD842",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "DummyDataSchedule02704414",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
+    "DummyDataSchedule02704414": Object {
       "Properties": Object {
         "ScheduleExpression": "rate(1 minute)",
         "State": "ENABLED",
@@ -189,7 +189,7 @@ Object {
           Object {
             "Arn": Object {
               "Fn::GetAtt": Array [
-                "DummyDataPointsE5E16468",
+                "DummyData3BBFD842",
                 "Arn",
               ],
             },
@@ -199,38 +199,7 @@ Object {
       },
       "Type": "AWS::Events::Rule",
     },
-    "DummyDataPointsServiceRoleB15DAC9D": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": Object {
-                "Service": "lambda.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "ManagedPolicyArns": Array [
-          Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "arn:",
-                Object {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "DummyDataPointsServiceRoleDefaultPolicy4F10122A": Object {
+    "DummyDataServiceRoleDefaultPolicy777E876E": Object {
       "Properties": Object {
         "PolicyDocument": Object {
           "Statement": Array [
@@ -243,7 +212,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsStreamF9D85971",
+                  "datalakeDatabasePostStreamF76719CA",
                   "Arn",
                 ],
               },
@@ -257,7 +226,7 @@ Object {
               "Effect": "Allow",
               "Resource": Object {
                 "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsStreamKey6D78F220",
+                  "datalakeDatabasePostStreamKeyA342820D",
                   "Arn",
                 ],
               },
@@ -265,55 +234,16 @@ Object {
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "DummyDataPointsServiceRoleDefaultPolicy4F10122A",
+        "PolicyName": "DummyDataServiceRoleDefaultPolicy777E876E",
         "Roles": Array [
           Object {
-            "Ref": "DummyDataPointsServiceRoleB15DAC9D",
+            "Ref": "DummyDataServiceRoleF6E3733B",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "ForEachDataPoint3838832C": Object {
-      "Properties": Object {
-        "Code": Object {
-          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
-        },
-        "Environment": Object {
-          "Variables": Object {
-            "entrypoint_id": "3",
-            "is_runtime": "true",
-          },
-        },
-        "Handler": "index.handler",
-        "Role": Object {
-          "Fn::GetAtt": Array [
-            "ForEachDataPointServiceRole11B2F00E",
-            "Arn",
-          ],
-        },
-        "Runtime": "nodejs10.x",
-        "Timeout": 10,
-      },
-      "Type": "AWS::Lambda::Function",
-    },
-    "ForEachDataPointKinesisEventSourcedatalakeLakeDatabasedataPointsStreamCC89A340AE3B311E": Object {
-      "Properties": Object {
-        "BatchSize": 100,
-        "EventSourceArn": Object {
-          "Fn::GetAtt": Array [
-            "LakeDatabasedataPointsStreamF9D85971",
-            "Arn",
-          ],
-        },
-        "FunctionName": Object {
-          "Ref": "ForEachDataPoint3838832C",
-        },
-        "StartingPosition": "TRIM_HORIZON",
-      },
-      "Type": "AWS::Lambda::EventSourceMapping",
-    },
-    "ForEachDataPointServiceRole11B2F00E": Object {
+    "DummyDataServiceRoleF6E3733B": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [
@@ -344,70 +274,114 @@ Object {
       },
       "Type": "AWS::IAM::Role",
     },
-    "ForEachDataPointServiceRoleDefaultPolicyECA5D450": Object {
+    "Search14E54FC3": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "5",
+            "is_runtime": "true",
+            "punchcard_domainEndpoint": Object {
+              "Fn::GetAtt": Array [
+                "datalakeDomainDCED9E6E",
+                "DomainEndpoint",
+              ],
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "SearchServiceRole6943DBFA",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "SearchServiceRole6943DBFA": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "SearchServiceRoleDefaultPolicyF80CF672": Object {
       "Properties": Object {
         "PolicyDocument": Object {
           "Statement": Array [
             Object {
               "Action": Array [
-                "kinesis:DescribeStreamSummary",
-                "kinesis:GetRecords",
-                "kinesis:GetShardIterator",
-                "kinesis:ListShards",
-                "kinesis:SubscribeToShard",
+                "es:ESHttpGet",
+                "es:ESHttpPost",
               ],
               "Effect": "Allow",
               "Resource": Object {
-                "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsStreamF9D85971",
-                  "Arn",
-                ],
-              },
-            },
-            Object {
-              "Action": "kms:Decrypt",
-              "Effect": "Allow",
-              "Resource": Object {
-                "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsStreamKey6D78F220",
-                  "Arn",
-                ],
-              },
-            },
-            Object {
-              "Action": "kinesis:DescribeStream",
-              "Effect": "Allow",
-              "Resource": Object {
-                "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsStreamF9D85971",
-                  "Arn",
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "datalakeDomainDCED9E6E",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
                 ],
               },
             },
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "ForEachDataPointServiceRoleDefaultPolicyECA5D450",
+        "PolicyName": "SearchServiceRoleDefaultPolicyF80CF672",
         "Roles": Array [
           Object {
-            "Ref": "ForEachDataPointServiceRole11B2F00E",
+            "Ref": "SearchServiceRole6943DBFA",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "LakeDatabase6CA13201": Object {
+    "datalakeDatabaseEF90DA68": Object {
       "Properties": Object {
         "CatalogId": Object {
           "Ref": "AWS::AccountId",
         },
         "DatabaseInput": Object {
-          "Name": "my_lake",
+          "Name": "my-lake",
         },
       },
       "Type": "AWS::Glue::Database",
     },
-    "LakeDatabasedataPointsBucketB080069E": Object {
+    "datalakeDatabasePostBucket1768D5D7": Object {
       "DeletionPolicy": "Retain",
       "Properties": Object {
         "BucketEncryption": Object {
@@ -423,7 +397,7 @@ Object {
       "Type": "AWS::S3::Bucket",
       "UpdateReplacePolicy": "Retain",
     },
-    "LakeDatabasedataPointsStreamF9D85971": Object {
+    "datalakeDatabasePostStreamF76719CA": Object {
       "Properties": Object {
         "RetentionPeriodHours": 24,
         "ShardCount": 1,
@@ -431,7 +405,7 @@ Object {
           "EncryptionType": "KMS",
           "KeyId": Object {
             "Fn::GetAtt": Array [
-              "LakeDatabasedataPointsStreamKey6D78F220",
+              "datalakeDatabasePostStreamKeyA342820D",
               "Arn",
             ],
           },
@@ -439,10 +413,10 @@ Object {
       },
       "Type": "AWS::Kinesis::Stream",
     },
-    "LakeDatabasedataPointsStreamKey6D78F220": Object {
+    "datalakeDatabasePostStreamKeyA342820D": Object {
       "DeletionPolicy": "Retain",
       "Properties": Object {
-        "Description": "Created by data-lake/Lake/Database/dataPoints/Stream",
+        "Description": "Created by data-lake/data-lake/Database/Post/Stream",
         "KeyPolicy": Object {
           "Statement": Array [
             Object {
@@ -490,20 +464,7 @@ Object {
               "Principal": Object {
                 "AWS": Object {
                   "Fn::GetAtt": Array [
-                    "LakeDatabasedataPointsToS3DeliveryStreamKinesisRole95E2FA2F",
-                    "Arn",
-                  ],
-                },
-              },
-              "Resource": "*",
-            },
-            Object {
-              "Action": "kms:Decrypt",
-              "Effect": "Allow",
-              "Principal": Object {
-                "AWS": Object {
-                  "Fn::GetAtt": Array [
-                    "ForEachDataPointServiceRole11B2F00E",
+                    "datalakeDatabasePostToS3DeliveryStreamKinesisRoleC2AA1CFA",
                     "Arn",
                   ],
                 },
@@ -520,7 +481,7 @@ Object {
               "Principal": Object {
                 "AWS": Object {
                   "Fn::GetAtt": Array [
-                    "DummyDataPointsServiceRoleB15DAC9D",
+                    "DummyDataServiceRoleF6E3733B",
                     "Arn",
                   ],
                 },
@@ -534,17 +495,17 @@ Object {
       "Type": "AWS::KMS::Key",
       "UpdateReplacePolicy": "Retain",
     },
-    "LakeDatabasedataPointsToGlueTableF86F6D7D": Object {
+    "datalakeDatabasePostToGlueTableFE671E56": Object {
       "Properties": Object {
         "CatalogId": Object {
           "Ref": "AWS::AccountId",
         },
         "DatabaseName": Object {
-          "Ref": "LakeDatabase6CA13201",
+          "Ref": "datalakeDatabaseEF90DA68",
         },
         "TableInput": Object {
-          "Description": "data_points generated by CDK",
-          "Name": "data_points",
+          "Description": "Post generated by CDK",
+          "Name": "Post",
           "Parameters": Object {
             "has_encrypted_data": false,
           },
@@ -573,20 +534,16 @@ Object {
           "StorageDescriptor": Object {
             "Columns": Array [
               Object {
-                "Name": "key",
+                "Name": "postID",
                 "Type": "string",
               },
               Object {
-                "Name": "value",
-                "Type": "char(10)",
-              },
-              Object {
-                "Name": "data_points",
-                "Type": "array<int>",
-              },
-              Object {
-                "Name": "timestamp",
+                "Name": "postTime",
                 "Type": "timestamp",
+              },
+              Object {
+                "Name": "postContent",
+                "Type": "string",
               },
             ],
             "Compressed": false,
@@ -597,9 +554,9 @@ Object {
                 Array [
                   "s3://",
                   Object {
-                    "Ref": "LakeDatabasedataPointsBucketB080069E",
+                    "Ref": "datalakeDatabasePostBucket1768D5D7",
                   },
-                  "/data_points/",
+                  "/Post/",
                 ],
               ],
             },
@@ -614,36 +571,36 @@ Object {
       },
       "Type": "AWS::Glue::Table",
     },
-    "LakeDatabasedataPointsToGlueToTable3427B72C": Object {
+    "datalakeDatabasePostToGlueToTable5841E251": Object {
       "Properties": Object {
         "Code": Object {
           "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
         },
         "Environment": Object {
           "Variables": Object {
-            "entrypoint_id": "2",
+            "entrypoint_id": "3",
             "is_runtime": "true",
             "punchcard_bucketName": Object {
-              "Ref": "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
+              "Ref": "datalakeDatabasePostToS3DeliveryStreamBucket6AED79B8",
             },
             "punchcard_bucket_bucketName": Object {
-              "Ref": "LakeDatabasedataPointsBucketB080069E",
+              "Ref": "datalakeDatabasePostBucket1768D5D7",
             },
             "punchcard_catalogId": Object {
               "Ref": "AWS::AccountId",
             },
             "punchcard_databaseName": Object {
-              "Ref": "LakeDatabase6CA13201",
+              "Ref": "datalakeDatabaseEF90DA68",
             },
             "punchcard_tableName": Object {
-              "Ref": "LakeDatabasedataPointsToGlueTableF86F6D7D",
+              "Ref": "datalakeDatabasePostToGlueTableFE671E56",
             },
           },
         },
         "Handler": "index.handler",
         "Role": Object {
           "Fn::GetAtt": Array [
-            "LakeDatabasedataPointsToGlueToTableServiceRole67CA1129",
+            "datalakeDatabasePostToGlueToTableServiceRoleED0F6016",
             "Arn",
           ],
         },
@@ -652,12 +609,12 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "LakeDatabasedataPointsToGlueToTableAllowBucketNotificationsFromdatalakeLakeDatabasedataPointsToS3DeliveryStreamBucketF9808C9D37D54768": Object {
+    "datalakeDatabasePostToGlueToTableAllowBucketNotificationsFromdatalakeDatabasePostToS3DeliveryStreamBucket96F9CBB386C54096": Object {
       "Properties": Object {
         "Action": "lambda:InvokeFunction",
         "FunctionName": Object {
           "Fn::GetAtt": Array [
-            "LakeDatabasedataPointsToGlueToTable3427B72C",
+            "datalakeDatabasePostToGlueToTable5841E251",
             "Arn",
           ],
         },
@@ -667,45 +624,14 @@ Object {
         },
         "SourceArn": Object {
           "Fn::GetAtt": Array [
-            "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
+            "datalakeDatabasePostToS3DeliveryStreamBucket6AED79B8",
             "Arn",
           ],
         },
       },
       "Type": "AWS::Lambda::Permission",
     },
-    "LakeDatabasedataPointsToGlueToTableServiceRole67CA1129": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": Object {
-                "Service": "lambda.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "ManagedPolicyArns": Array [
-          Object {
-            "Fn::Join": Array [
-              "",
-              Array [
-                "arn:",
-                Object {
-                  "Ref": "AWS::Partition",
-                },
-                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-              ],
-            ],
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "LakeDatabasedataPointsToGlueToTableServiceRoleDefaultPolicyADAFD4E2": Object {
+    "datalakeDatabasePostToGlueToTableServiceRoleDefaultPolicy43464843": Object {
       "Properties": Object {
         "PolicyDocument": Object {
           "Statement": Array [
@@ -737,11 +663,11 @@ Object {
                       },
                       ":table/",
                       Object {
-                        "Ref": "LakeDatabase6CA13201",
+                        "Ref": "datalakeDatabaseEF90DA68",
                       },
                       "/",
                       Object {
-                        "Ref": "LakeDatabasedataPointsToGlueTableF86F6D7D",
+                        "Ref": "datalakeDatabasePostToGlueTableFE671E56",
                       },
                     ],
                   ],
@@ -764,7 +690,7 @@ Object {
                       },
                       ":database/",
                       Object {
-                        "Ref": "LakeDatabase6CA13201",
+                        "Ref": "datalakeDatabaseEF90DA68",
                       },
                     ],
                   ],
@@ -801,7 +727,7 @@ Object {
               "Resource": Array [
                 Object {
                   "Fn::GetAtt": Array [
-                    "LakeDatabasedataPointsBucketB080069E",
+                    "datalakeDatabasePostBucket1768D5D7",
                     "Arn",
                   ],
                 },
@@ -811,11 +737,11 @@ Object {
                     Array [
                       Object {
                         "Fn::GetAtt": Array [
-                          "LakeDatabasedataPointsBucketB080069E",
+                          "datalakeDatabasePostBucket1768D5D7",
                           "Arn",
                         ],
                       },
-                      "/data_points/",
+                      "/Post/",
                     ],
                   ],
                 },
@@ -831,7 +757,7 @@ Object {
               "Resource": Array [
                 Object {
                   "Fn::GetAtt": Array [
-                    "LakeDatabasedataPointsBucketB080069E",
+                    "datalakeDatabasePostBucket1768D5D7",
                     "Arn",
                   ],
                 },
@@ -841,7 +767,7 @@ Object {
                     Array [
                       Object {
                         "Fn::GetAtt": Array [
-                          "LakeDatabasedataPointsBucketB080069E",
+                          "datalakeDatabasePostBucket1768D5D7",
                           "Arn",
                         ],
                       },
@@ -861,7 +787,7 @@ Object {
               "Resource": Array [
                 Object {
                   "Fn::GetAtt": Array [
-                    "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
+                    "datalakeDatabasePostToS3DeliveryStreamBucket6AED79B8",
                     "Arn",
                   ],
                 },
@@ -871,7 +797,7 @@ Object {
                     Array [
                       Object {
                         "Fn::GetAtt": Array [
-                          "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
+                          "datalakeDatabasePostToS3DeliveryStreamBucket6AED79B8",
                           "Arn",
                         ],
                       },
@@ -884,249 +810,16 @@ Object {
           ],
           "Version": "2012-10-17",
         },
-        "PolicyName": "LakeDatabasedataPointsToGlueToTableServiceRoleDefaultPolicyADAFD4E2",
+        "PolicyName": "datalakeDatabasePostToGlueToTableServiceRoleDefaultPolicy43464843",
         "Roles": Array [
           Object {
-            "Ref": "LakeDatabasedataPointsToGlueToTableServiceRole67CA1129",
+            "Ref": "datalakeDatabasePostToGlueToTableServiceRoleED0F6016",
           },
         ],
       },
       "Type": "AWS::IAM::Policy",
     },
-    "LakeDatabasedataPointsToS3DeliveryStream14BC848A": Object {
-      "Properties": Object {
-        "DeliveryStreamType": "KinesisStreamAsSource",
-        "ExtendedS3DestinationConfiguration": Object {
-          "BucketARN": Object {
-            "Fn::GetAtt": Array [
-              "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
-              "Arn",
-            ],
-          },
-          "BufferingHints": Object {
-            "IntervalInSeconds": 60,
-            "SizeInMBs": 64,
-          },
-          "CompressionFormat": "GZIP",
-          "Prefix": "",
-          "ProcessingConfiguration": Object {
-            "Enabled": true,
-            "Processors": Array [
-              Object {
-                "Parameters": Array [
-                  Object {
-                    "ParameterName": "LambdaArn",
-                    "ParameterValue": Object {
-                      "Fn::GetAtt": Array [
-                        "LakeDatabasedataPointsToS3ValidatorProcessor676DF886",
-                        "Arn",
-                      ],
-                    },
-                  },
-                  Object {
-                    "ParameterName": "NumberOfRetries",
-                    "ParameterValue": "3",
-                  },
-                ],
-                "Type": "Lambda",
-              },
-            ],
-          },
-          "RoleARN": Object {
-            "Fn::GetAtt": Array [
-              "LakeDatabasedataPointsToS3DeliveryStreamKinesisRole95E2FA2F",
-              "Arn",
-            ],
-          },
-        },
-        "KinesisStreamSourceConfiguration": Object {
-          "KinesisStreamARN": Object {
-            "Fn::GetAtt": Array [
-              "LakeDatabasedataPointsStreamF9D85971",
-              "Arn",
-            ],
-          },
-          "RoleARN": Object {
-            "Fn::GetAtt": Array [
-              "LakeDatabasedataPointsToS3DeliveryStreamKinesisRole95E2FA2F",
-              "Arn",
-            ],
-          },
-        },
-      },
-      "Type": "AWS::KinesisFirehose::DeliveryStream",
-    },
-    "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3": Object {
-      "DeletionPolicy": "Retain",
-      "Type": "AWS::S3::Bucket",
-      "UpdateReplacePolicy": "Retain",
-    },
-    "LakeDatabasedataPointsToS3DeliveryStreamBucketNotifications879BF603": Object {
-      "Properties": Object {
-        "BucketName": Object {
-          "Ref": "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
-        },
-        "NotificationConfiguration": Object {
-          "LambdaFunctionConfigurations": Array [
-            Object {
-              "Events": Array [
-                "s3:ObjectCreated:*",
-              ],
-              "LambdaFunctionArn": Object {
-                "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsToGlueToTable3427B72C",
-                  "Arn",
-                ],
-              },
-            },
-          ],
-        },
-        "ServiceToken": Object {
-          "Fn::GetAtt": Array [
-            "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "Custom::S3BucketNotifications",
-    },
-    "LakeDatabasedataPointsToS3DeliveryStreamKinesisRole95E2FA2F": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
-              "Action": "sts:AssumeRole",
-              "Effect": "Allow",
-              "Principal": Object {
-                "Service": "firehose.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-      },
-      "Type": "AWS::IAM::Role",
-    },
-    "LakeDatabasedataPointsToS3DeliveryStreamKinesisRoleDefaultPolicy3788B980": Object {
-      "Properties": Object {
-        "PolicyDocument": Object {
-          "Statement": Array [
-            Object {
-              "Action": Array [
-                "kinesis:DescribeStreamSummary",
-                "kinesis:GetRecords",
-                "kinesis:GetShardIterator",
-                "kinesis:ListShards",
-                "kinesis:SubscribeToShard",
-              ],
-              "Effect": "Allow",
-              "Resource": Object {
-                "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsStreamF9D85971",
-                  "Arn",
-                ],
-              },
-            },
-            Object {
-              "Action": "kms:Decrypt",
-              "Effect": "Allow",
-              "Resource": Object {
-                "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsStreamKey6D78F220",
-                  "Arn",
-                ],
-              },
-            },
-            Object {
-              "Action": "kinesis:DescribeStream",
-              "Effect": "Allow",
-              "Resource": Object {
-                "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsStreamF9D85971",
-                  "Arn",
-                ],
-              },
-            },
-            Object {
-              "Action": Array [
-                "s3:GetObject*",
-                "s3:GetBucket*",
-                "s3:List*",
-                "s3:DeleteObject*",
-                "s3:PutObject*",
-                "s3:Abort*",
-              ],
-              "Effect": "Allow",
-              "Resource": Array [
-                Object {
-                  "Fn::GetAtt": Array [
-                    "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
-                    "Arn",
-                  ],
-                },
-                Object {
-                  "Fn::Join": Array [
-                    "",
-                    Array [
-                      Object {
-                        "Fn::GetAtt": Array [
-                          "LakeDatabasedataPointsToS3DeliveryStreamBucket621E10D3",
-                          "Arn",
-                        ],
-                      },
-                      "/*",
-                    ],
-                  ],
-                },
-              ],
-            },
-            Object {
-              "Action": "lambda:InvokeFunction",
-              "Effect": "Allow",
-              "Resource": Object {
-                "Fn::GetAtt": Array [
-                  "LakeDatabasedataPointsToS3ValidatorProcessor676DF886",
-                  "Arn",
-                ],
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "PolicyName": "LakeDatabasedataPointsToS3DeliveryStreamKinesisRoleDefaultPolicy3788B980",
-        "Roles": Array [
-          Object {
-            "Ref": "LakeDatabasedataPointsToS3DeliveryStreamKinesisRole95E2FA2F",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Policy",
-    },
-    "LakeDatabasedataPointsToS3ValidatorProcessor676DF886": Object {
-      "Properties": Object {
-        "Code": Object {
-          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
-        },
-        "Environment": Object {
-          "Variables": Object {
-            "entrypoint_id": "1",
-            "is_runtime": "true",
-          },
-        },
-        "Handler": "index.handler",
-        "MemorySize": 256,
-        "Role": Object {
-          "Fn::GetAtt": Array [
-            "LakeDatabasedataPointsToS3ValidatorProcessorServiceRoleD02004B2",
-            "Arn",
-          ],
-        },
-        "Runtime": "nodejs10.x",
-        "Timeout": 60,
-      },
-      "Type": "AWS::Lambda::Function",
-    },
-    "LakeDatabasedataPointsToS3ValidatorProcessorServiceRoleD02004B2": Object {
+    "datalakeDatabasePostToGlueToTableServiceRoleED0F6016": Object {
       "Properties": Object {
         "AssumeRolePolicyDocument": Object {
           "Statement": Array [
@@ -1156,6 +849,417 @@ Object {
         ],
       },
       "Type": "AWS::IAM::Role",
+    },
+    "datalakeDatabasePostToS3DeliveryStreamAC271138": Object {
+      "Properties": Object {
+        "DeliveryStreamType": "KinesisStreamAsSource",
+        "ExtendedS3DestinationConfiguration": Object {
+          "BucketARN": Object {
+            "Fn::GetAtt": Array [
+              "datalakeDatabasePostToS3DeliveryStreamBucket6AED79B8",
+              "Arn",
+            ],
+          },
+          "BufferingHints": Object {
+            "IntervalInSeconds": 60,
+            "SizeInMBs": 64,
+          },
+          "CompressionFormat": "GZIP",
+          "Prefix": "",
+          "ProcessingConfiguration": Object {
+            "Enabled": true,
+            "Processors": Array [
+              Object {
+                "Parameters": Array [
+                  Object {
+                    "ParameterName": "LambdaArn",
+                    "ParameterValue": Object {
+                      "Fn::GetAtt": Array [
+                        "datalakeDatabasePostToS3ValidatorProcessorEDEF7E10",
+                        "Arn",
+                      ],
+                    },
+                  },
+                  Object {
+                    "ParameterName": "NumberOfRetries",
+                    "ParameterValue": "3",
+                  },
+                ],
+                "Type": "Lambda",
+              },
+            ],
+          },
+          "RoleARN": Object {
+            "Fn::GetAtt": Array [
+              "datalakeDatabasePostToS3DeliveryStreamKinesisRoleC2AA1CFA",
+              "Arn",
+            ],
+          },
+        },
+        "KinesisStreamSourceConfiguration": Object {
+          "KinesisStreamARN": Object {
+            "Fn::GetAtt": Array [
+              "datalakeDatabasePostStreamF76719CA",
+              "Arn",
+            ],
+          },
+          "RoleARN": Object {
+            "Fn::GetAtt": Array [
+              "datalakeDatabasePostToS3DeliveryStreamKinesisRoleC2AA1CFA",
+              "Arn",
+            ],
+          },
+        },
+      },
+      "Type": "AWS::KinesisFirehose::DeliveryStream",
+    },
+    "datalakeDatabasePostToS3DeliveryStreamBucket6AED79B8": Object {
+      "DeletionPolicy": "Retain",
+      "Type": "AWS::S3::Bucket",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "datalakeDatabasePostToS3DeliveryStreamBucketNotifications935C373D": Object {
+      "Properties": Object {
+        "BucketName": Object {
+          "Ref": "datalakeDatabasePostToS3DeliveryStreamBucket6AED79B8",
+        },
+        "NotificationConfiguration": Object {
+          "LambdaFunctionConfigurations": Array [
+            Object {
+              "Events": Array [
+                "s3:ObjectCreated:*",
+              ],
+              "LambdaFunctionArn": Object {
+                "Fn::GetAtt": Array [
+                  "datalakeDatabasePostToGlueToTable5841E251",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+        },
+        "ServiceToken": Object {
+          "Fn::GetAtt": Array [
+            "BucketNotificationsHandler050a0587b7544547bf325f094a3db8347ECC3691",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "Custom::S3BucketNotifications",
+    },
+    "datalakeDatabasePostToS3DeliveryStreamKinesisRoleC2AA1CFA": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "firehose.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "datalakeDatabasePostToS3DeliveryStreamKinesisRoleDefaultPolicyB4AE143B": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "kinesis:DescribeStreamSummary",
+                "kinesis:GetRecords",
+                "kinesis:GetShardIterator",
+                "kinesis:ListShards",
+                "kinesis:SubscribeToShard",
+              ],
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "datalakeDatabasePostStreamF76719CA",
+                  "Arn",
+                ],
+              },
+            },
+            Object {
+              "Action": "kms:Decrypt",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "datalakeDatabasePostStreamKeyA342820D",
+                  "Arn",
+                ],
+              },
+            },
+            Object {
+              "Action": "kinesis:DescribeStream",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "datalakeDatabasePostStreamF76719CA",
+                  "Arn",
+                ],
+              },
+            },
+            Object {
+              "Action": Array [
+                "s3:GetObject*",
+                "s3:GetBucket*",
+                "s3:List*",
+                "s3:DeleteObject*",
+                "s3:PutObject*",
+                "s3:Abort*",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "datalakeDatabasePostToS3DeliveryStreamBucket6AED79B8",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Fn::Join": Array [
+                    "",
+                    Array [
+                      Object {
+                        "Fn::GetAtt": Array [
+                          "datalakeDatabasePostToS3DeliveryStreamBucket6AED79B8",
+                          "Arn",
+                        ],
+                      },
+                      "/*",
+                    ],
+                  ],
+                },
+              ],
+            },
+            Object {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "datalakeDatabasePostToS3ValidatorProcessorEDEF7E10",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "datalakeDatabasePostToS3DeliveryStreamKinesisRoleDefaultPolicyB4AE143B",
+        "Roles": Array [
+          Object {
+            "Ref": "datalakeDatabasePostToS3DeliveryStreamKinesisRoleC2AA1CFA",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "datalakeDatabasePostToS3ValidatorProcessorEDEF7E10": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "2",
+            "is_runtime": "true",
+          },
+        },
+        "Handler": "index.handler",
+        "MemorySize": 256,
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "datalakeDatabasePostToS3ValidatorProcessorServiceRole0CF1A918",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+        "Timeout": 60,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "datalakeDatabasePostToS3ValidatorProcessorServiceRole0CF1A918": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "datalakeDomainDCED9E6E": Object {
+      "Properties": Object {
+        "EBSOptions": Object {
+          "EBSEnabled": true,
+          "Iops": 1000,
+          "VolumeSize": 128,
+          "VolumeType": "io1",
+        },
+        "ElasticsearchClusterConfig": Object {
+          "DedicatedMasterCount": 2,
+          "DedicatedMasterEnabled": true,
+          "DedicatedMasterType": "c5.large.elasticsearch",
+          "InstanceCount": 1,
+          "InstanceType": "c5.large.elasticsearch",
+          "ZoneAwarenessEnabled": false,
+        },
+        "ElasticsearchVersion": "7.4",
+        "NodeToNodeEncryptionOptions": Object {
+          "Enabled": false,
+        },
+      },
+      "Type": "AWS::Elasticsearch::Domain",
+    },
+    "datalakeIndexManager0AF09174": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "1",
+            "is_runtime": "true",
+            "punchcard_domainEndpoint": Object {
+              "Fn::GetAtt": Array [
+                "datalakeDomainDCED9E6E",
+                "DomainEndpoint",
+              ],
+            },
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "datalakeIndexManagerServiceRoleC4621127",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+        "Timeout": 600,
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "datalakeIndexManagerServiceRoleC4621127": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "datalakeIndexManagerServiceRoleDefaultPolicy022DDFAE": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "es:*",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::Join": Array [
+                  "",
+                  Array [
+                    Object {
+                      "Fn::GetAtt": Array [
+                        "datalakeDomainDCED9E6E",
+                        "Arn",
+                      ],
+                    },
+                    "/*",
+                  ],
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "datalakeIndexManagerServiceRoleDefaultPolicy022DDFAE",
+        "Roles": Array [
+          Object {
+            "Ref": "datalakeIndexManagerServiceRoleC4621127",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "datalakePostD8B22979": Object {
+      "DeletionPolicy": "Delete",
+      "Properties": Object {
+        "IndexName": "Post",
+        "Mappings": Object {
+          "properties": Object {
+            "postContent": Object {
+              "type": "text",
+            },
+            "postID": Object {
+              "type": "text",
+            },
+            "postTime": Object {
+              "type": "date",
+            },
+          },
+        },
+        "ServiceToken": Object {
+          "Fn::GetAtt": Array [
+            "datalakeIndexManager0AF09174",
+            "Arn",
+          ],
+        },
+        "Settings": Object {
+          "number_of_shards": 1,
+        },
+      },
+      "Type": "Custom::ElasticSearchIndex",
+      "UpdateReplacePolicy": "Delete",
     },
   },
 }
@@ -2369,7 +2473,7 @@ Object {
     },
     "MyApi3597551C": Object {
       "Properties": Object {
-        "AuthenticationType": "AWS_IAM",
+        "AuthenticationType": "AMAZON_COGNITO_USER_POOLS",
         "LogConfig": Object {
           "CloudWatchLogsRoleArn": Object {
             "Fn::GetAtt": Array [
@@ -2380,6 +2484,15 @@ Object {
           "FieldLogLevel": "ALL",
         },
         "Name": "MyApi",
+        "UserPoolConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "DefaultAction": "ALLOW",
+          "UserPoolId": Object {
+            "Ref": "UserPool6BA7E5F2",
+          },
+        },
       },
       "Type": "AWS::AppSync::GraphQLApi",
     },
@@ -4589,16 +4702,16 @@ type Mutation {
   upVote(pollId: ID!,candidateId: ID!,clientId: ID!,direction: VoteDirection!): VoteType!
   addPoll(input: CreatePollInput!): Poll!
 }
+enum VoteDirection {
+  UP
+  DOWN
+}
 type VoteType {
   pollId: ID!
   candidateId: ID!
   clientId: ID!
   upvotes: Int!
   direction: VoteDirection!
-}
-enum VoteDirection {
-  UP
-  DOWN
 }
 input CandidateInput {
   answer: String!
