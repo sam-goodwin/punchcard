@@ -71,7 +71,7 @@ export class Stream<T extends Shape = AnyShape> implements Resource<kinesis.Stre
   }
 
   /**
-   * Create an stream for this stream to perform chainable computations (map, flatMap, filter, etc.)
+   * Create a `Stream` for this stream to perform chainable computations (map, flatMap, filter, etc.)
    */
   public records(): Records<Value.Of<T>, []> {
     const mapper = this.mapper;

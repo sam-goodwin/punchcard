@@ -72,6 +72,8 @@ export namespace ApiFragments {
           .map(m => getTypes(m as any))
           .reduce((a, b) => a.concat(b))
           .concat([shape] as any);
+      } else if (ShapeGuards.isUnionShape(shape)) {
+        return shape.Items.map(getTypes).reduce((a, b) => a.concat(b));
       }
       return [];
     }

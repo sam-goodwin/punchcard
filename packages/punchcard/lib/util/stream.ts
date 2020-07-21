@@ -48,10 +48,11 @@ export abstract class Stream<E extends TypeShape, T, D extends any[], C> {
    */
   public map<U>(handle: (value: T) => Promise<U>): Stream<E, U, D, C>;
   public map<U, D2 extends Dependency<any> | undefined>(
-      input: {
-        depends?: D2;
-      },
-      handle: (value: T, deps: Client<D2>) => Promise<U>): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C>;
+    input: {
+      depends?: D2;
+    },
+    handle: (value: T, deps: Client<D2>) => Promise<U>
+  ): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C>;
   public map(inputOrHandle: any, handle?: any): any {
     if (typeof inputOrHandle === 'function') {
       return this.flatMap({}, async (v, c) => [await handle(v, c)]);
@@ -69,8 +70,9 @@ export abstract class Stream<E extends TypeShape, T, D extends any[], C> {
    * @param f transformation function
    */
   public flatMap<U, D2 extends Dependency<any> | undefined>(
-      input: { depends?: D2; },
-      handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C> {
+    input: { depends?: D2; },
+    handle: (value: T, deps: Client<D2>) => Promise<Iterable<U>>
+  ): Stream<E, U, D2 extends undefined ? D : Cons<D, D2>, C> {
     return this.chain({
       depends: (input.depends === undefined ? this.dependencies : [input.depends].concat(this.dependencies)) as any,
       handle: (async function*(values: AsyncIterableIterator<T>, clients: any) {

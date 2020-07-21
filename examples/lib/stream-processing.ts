@@ -50,6 +50,7 @@ const enrichments = new DynamoDB.Table(stack, 'Enrichments', {
   }))
 });
 
+
 /**
  * Schedule a Lambda Function to send a (dummy) message to the SNS topic:
  * 
