@@ -3,15 +3,15 @@ import AWS = require('aws-sdk');
 import { isOptional } from '@punchcard/shape';
 import { ShapeGuards } from '@punchcard/shape/lib/guards';
 import { HashSet } from '@punchcard/shape/lib/hash-set';
+import { IsInstance } from '@punchcard/shape/lib/is-instance';
 import { ValidatingMapper } from '@punchcard/shape/lib/mapper';
-import { ShapeOrRecord } from '@punchcard/shape/lib/record';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { Value } from '@punchcard/shape/lib/value';
 import { AttributeValue } from './attribute';
 
-export interface Mapper<T extends ShapeOrRecord> {
-  read(value: AttributeValue.Of<T>): Value.Of<T>;
-  write(value: Value.Of<T>): AttributeValue.Of<T>;
+export interface Mapper<T extends Shape> {
+  read(value: any): Value.Of<T>;
+  write(value: Value.Of<T>): Value.Of<AttributeValue.ShapeOf<T>>;
 }
 
 export namespace Mapper {
@@ -20,13 +20,11 @@ export namespace Mapper {
     cache: WeakMap<any, any>;
   }
 
-  export function of<T extends ShapeOrRecord>(type: T, options: Options = { validate: true, cache: new WeakMap() }): Mapper<T> {
-    const shape = Shape.of(type);
-
+  export function of<T extends Shape>(shape: T, options: Options = { validate: true, cache: new WeakMap() }): Mapper<T> {
     if (!options.cache.has(shape)) {
       let m = resolve();
       if (options.validate) {
-        m = ValidatingMapper.of(type, m);
+        m = ValidatingMapper.of(shape, m);
       }
       options.cache.set(shape, m);
     }
@@ -67,10 +65,9 @@ export namespace Mapper {
     }
 
     function resolveShape() {
-
       if (ShapeGuards.isRecordShape(shape)) {
-        const mappers: {[key: string]: Mapper<any>; } = Object.values(shape.Members)
-          .map(m => ({ [m.Name]: Mapper.of(m.Shape, options) }))
+        const mappers: {[key: string]: Mapper<any>; } = Object.entries(shape.Members)
+          .map(([name, m]) => ({ [name]: Mapper.of(m as Shape, options) }))
           .reduce((a, b) => ({...a, ...b}), {});
 
         function traverse(f: (mapper: Mapper<any>, value: any) => any): (value: any) => any {
@@ -91,7 +88,7 @@ export namespace Mapper {
         return {
           read: (value: any) => {
             assertHasKey('M', value);
-            return new shape.Type(reader(value.M));
+            return new (shape as any)(reader(value.M));
           },
           write: (value: any) => {
             return { M: writer(value) };
@@ -110,20 +107,20 @@ export namespace Mapper {
           })
         } as any;
       } else if (ShapeGuards.isSetShape(shape)) {
-        if (ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isNumberShape(shape.Items) || ShapeGuards.isBinaryShape(shape.Items)) {
+        if (ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isNumberShape(shape.Items) || ShapeGuards.isBinaryShape(shape.Items) || ShapeGuards.isEnumShape(shape.Items)) {
           const key =
-            ShapeGuards.isStringShape(shape.Items) ? 'SS' :
+            ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isEnumShape(shape.Items) ? 'SS' :
             ShapeGuards.isBinaryShape(shape.Items) ? 'BS' :
             'NS';
 
           const read =
-            ShapeGuards.isStringShape(shape.Items) ? (s: any) => s as string :
+            ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isEnumShape(shape.Items) ? (s: any) => s as string :
             ShapeGuards.isBinaryShape(shape.Items) ? (b: any) => b as Buffer :
             (n: any) => parseFloat(n)
             ;
 
           const write =
-            ShapeGuards.isStringShape(shape.Items) ? (s: string) => s :
+            ShapeGuards.isStringShape(shape.Items) || ShapeGuards.isEnumShape(shape.Items) ? (s: string) => s :
             ShapeGuards.isBinaryShape(shape.Items) ? (b: Buffer) => b :
             (n: any) => n.toString()
             ;
@@ -132,7 +129,7 @@ export namespace Mapper {
             read: (value: any) => {
               assertHasKey(key, value);
               if (ShapeGuards.isBinaryShape(shape.Items)) {
-                const s = new HashSet(shape.Items);
+                const s = HashSet.of(shape.Items);
                 value[key].forEach((v: any) => s.add(v));
                 return s;
               }
@@ -166,7 +163,7 @@ export namespace Mapper {
             };
           }
         } as any;
-      } else if (ShapeGuards.isStringShape(shape)) {
+      } else if (ShapeGuards.isStringShape(shape) || ShapeGuards.isEnumShape(shape)) {
         return {
           read: (value: { S: string }) => {
             assertHasKey('S', value);
@@ -222,7 +219,7 @@ export namespace Mapper {
             };
           }
         } as any;
-      } else if (ShapeGuards.isDynamicShape(shape)) {
+      } else if (ShapeGuards.isAnyShape(shape)) {
         return {
           read: AWS.DynamoDB.Converter.output,
           write: AWS.DynamoDB.Converter.input,
@@ -250,8 +247,41 @@ export namespace Mapper {
             BOOL: b
           })
         };
+      } else if (ShapeGuards.isUnionShape(shape)) {
+        const items = shape.Items.map(item => [IsInstance.of(item, {deep: true}), of(item) as any] as const);
+
+        return {
+          read: (value: any) => {
+            for (const [isType, mapper] of items) {
+              try {
+                return mapper.read(value);
+              } catch (err) {
+                // no-op
+              }
+            }
+            throw new Error(`failed to read DDB union type: ${shape.Items.map(_ => _.Kind).join(',')}, but got ${Object.keys(value).join('')}`);
+          },
+          write: (value: any) => {
+            for (const [isType, mapper] of items) {
+              if (isType(value)) {
+                return mapper.write(value);
+              }
+            }
+            throw new Error(`failed to write DDB union type: ${shape.Items.map(_ => _.Kind).join(',')}, but got ${Object.keys(value).join('')}`);
+          }
+        };
+      } else if (ShapeGuards.isLiteralShape(shape)) {
+        return of(shape.Type);
+      } else if (ShapeGuards.isNothingShape(shape)) {
+        return {
+          read: () => undefined,
+          write: () => ({
+            NULL: true
+          })
+        };
       } else {
-        throw new Error(`Shape ${shape} is not supported by DynamoDB`);
+        console.error(shape);
+        throw new Error(`Shape ${shape.Kind} is not supported by DynamoDB`);
       }
     }
   }

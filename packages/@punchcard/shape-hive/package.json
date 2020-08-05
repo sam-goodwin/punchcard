@@ -1,7 +1,7 @@
 {
   "name": "@punchcard/shape-hive",
   "description": "Apache Hive Schemas from Shapes",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -38,16 +38,16 @@
     "jest": "^24.9.0",
     "sinon": "^8.0.1",
     "tslint": "^6.0.0",
-    "typescript": "^3.8.3"
+    "typescript": "^3.9.6"
   },
   "dependencies": {
-    "@punchcard/shape": "^0.1.0",
-    "@punchcard/shape-json": "^0.1.0",
+    "@punchcard/shape": "^0.3.0",
+    "@punchcard/shape-json": "^0.3.0",
     "typelevel-ts": "^0.4.0"
   },
   "peerDependencies": {
-    "@punchcard/shape": "^0.1.0",
-    "@punchcard/shape-json": "^0.1.0"
+    "@punchcard/shape": "^0.3.0",
+    "@punchcard/shape-json": "^0.3.0"
   },
   "jest": {
     "testMatch": [

@@ -1,75 +1,63 @@
-import { isOptional, RecordType, RequiredKeys } from '@punchcard/shape';
-import { HashSet, Mapper, ValidatingMapper, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { EnumShape, Equals, isOptional, LiteralShape, UnionShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
-import { RecordShape, ShapeOrRecord } from '@punchcard/shape/lib/record';
+import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
+import { HashSet } from '@punchcard/shape/lib/hash-set';
+import { IsInstance } from '@punchcard/shape/lib/is-instance';
+import { Mapper, ValidatingMapper } from '@punchcard/shape/lib/mapper';
+import { AnyShape, BinaryShape, BoolShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
+import { Fields, TypeShape } from '@punchcard/shape/lib/type';
+import { Value } from '@punchcard/shape/lib/value';
+import { ShapeVisitor } from '@punchcard/shape/lib/visitor';
 
 export type Tag = typeof Tag;
 export const Tag = Symbol.for('@punchcard/shape-json.Json.Tag');
 
 export namespace Json {
-  export type Of<T extends RecordType | Shape> =  Shape.Of<T> extends { [Tag]: infer J } ? J : never;
-}
+  export type From<T extends Shape, V extends Value.Of<T> | any> =
+    T extends ArrayShape<infer I> ? {
+      [i in keyof I]: From<I, V[Extract<keyof V, number>]>
+    }[keyof I][] :
+    T extends SetShape<infer I> ? {
+      [i in keyof I]: From<I, V[Extract<keyof V, number>]>
+    }[keyof I][] :
+    T extends MapShape<infer I> ? Record<string, {
+      [i in keyof I]: From<I, V[keyof V]>
+    }[keyof I]> :
+    T extends TypeShape<infer M> ? {
+      [f in keyof M]: From<M[f], V[Extract<f, keyof V>]>
+    } :
+    T extends TimestampShape ? string :
+    V
+  ;
+  export type Of<T> =
+    T extends TypeShape<infer M> ? {
+      [m in keyof Fields.Natural<M>]: Of<Fields.Natural<M>[m]>;
+    } :
+    // use the instance type if this type can be constructed (for class A extends Record({}) {})
+    // support overriding the type of a value
+    T extends AnyShape ? any :
+    T extends BinaryShape ? string :
+    T extends BoolShape ? boolean :
+    T extends NothingShape ? undefined | null :
+    T extends NumberShape ? number :
+    T extends StringShape ? string :
+    T extends TimestampShape ? Date :
+    T extends UnionShape<infer I> ? {
+      [i in Extract<keyof I, number>]: Of<I[i]>;
+    }[Extract<keyof I, number>] :
+    T extends LiteralShape<infer L, infer V> ? {
+      [i in keyof L]: From<L, V>;
+    }[keyof L] :
+    T extends EnumShape<infer E> ? E[keyof E] :
 
-declare module '@punchcard/shape/lib/shape' {
-  export interface Shape {
-    [Tag]: unknown;
-  }
-}
-declare module '@punchcard/shape/lib/primitive' {
-  export interface DynamicShape<T extends unknown | any> {
-    [Tag]: T;
-  }
-  export interface BinaryShape {
-    [Tag]: string;
-  }
-  export interface BoolShape {
-    [Tag]: boolean;
-  }
-  export interface NumberShape {
-    [Tag]: number;
-  }
-  export interface NothingShape {
-    [Tag]: null;
-  }
-  export interface StringShape {
-    [Tag]: string;
-  }
-  export interface TimestampShape {
-    [Tag]: string;
-  }
-}
+    T extends ArrayShape<infer I> ? Of<I>[] :
+    T extends MapShape<infer V> ? { [key: string]: Of<V>; } :
+    T extends SetShape<infer I> ? Of<I>[] :
 
-declare module '@punchcard/shape/lib/collection' {
-  export interface ArrayShape<T extends Shape> {
-    [Tag]: Json.Of<T>[];
-  }
-  export interface SetShape<T extends Shape> {
-    [Tag]: Json.Of<T>[]
-  }
-  export interface MapShape<T extends Shape> {
-    [Tag]: {
-      [key: string]: Json.Of<T>;
-    };
-  }
-}
-
-declare module '@punchcard/shape/lib/record' {
-  export interface RecordShape<M extends RecordMembers, I extends any> {
-    [Tag]: {
-      /**
-       * Write each member and their documentation to the structure.
-       * Write them all as '?' for now.
-       */
-      [m in keyof M]+?: Json.Of<M[m]>;
-    } & {
-      /**
-       * Remove '?' from required properties.
-       */
-      [m in RequiredKeys<M>]-?: Json.Of<M[m]>;
-    };
-  }
+    T extends { [Tag]: infer V } ? V :
+    never
+    ;
 }
 
 export namespace Json {
@@ -78,14 +66,13 @@ export namespace Json {
     validate?: boolean;
   }
 
-  export function mapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json.Of<T>> {
-    const shape = Shape.of(type) as any;
+  export function mapper<T extends Shape>(shape: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Json.Of<T>> {
     let mapper = (shape as any).visit(options.visitor || new MapperVisitor());
     if (options.validate === true) {
-      mapper = ValidatingMapper.of(type, mapper);
+      mapper = ValidatingMapper.of(shape as any, mapper);
     }
 
-    if (isOptional(shape)) {
+    if (isOptional(shape as any)) {
       return {
         read: (v: any) => {
           if (v === undefined || v === null) {
@@ -112,7 +99,7 @@ export namespace Json {
     };
   }
 
-  export function stringifyMapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, string> {
+  export function stringifyMapper<T extends Shape>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, string> {
     const m = mapper(type, options);
     return {
       read: (s: string) => m.read(JSON.parse(s)) as any,
@@ -120,7 +107,7 @@ export namespace Json {
     };
   }
 
-  export function bufferMapper<T extends ShapeOrRecord>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Buffer> {
+  export function bufferMapper<T extends Shape>(type: T, options: MapperOptions = {}): Mapper<Value.Of<T>, Buffer> {
     const m = mapper(type, options);
     return {
       read: (s: Buffer) => m.read(JSON.parse(s.toString('utf8'))) as any,
@@ -129,6 +116,71 @@ export namespace Json {
   }
 
   export class MapperVisitor implements ShapeVisitor<Mapper<any, any>> {
+    public enumShape(shape: EnumShape<any, any>, context: undefined): Mapper<any, any> {
+      const isInstance = IsInstance.of(shape);
+      return {
+        read: s => {
+          if (isInstance(s)) {
+            return s;
+          } else {
+            throw new Error(`expected a value of the enum, ${Object.values(shape.Values).join(',')}`);
+          }
+        },
+        write: s => s
+      };
+    }
+    public literalShape(shape: LiteralShape<Shape, any>, context: undefined): Mapper<any, any> {
+      const valueMapper = shape.Type.visit(this, context) as Mapper<any, any>;
+      const isEqual = Equals.of(shape.Type);
+      const literalValue = valueMapper.write(shape.Value);
+      return {
+        read: (a: any) => {
+          const v = valueMapper.read(a);
+          if (!isEqual(a, shape.Value)) {
+            throw new Error(`expected literal value: ${shape.Value}`);
+          }
+          return shape.Value;
+        },
+        write: () => literalValue
+      };
+    }
+    public unionShape(shape: UnionShape<Shape[]>, context: undefined): Mapper<any, any> {
+      const items = shape.Items.map(item => [
+        IsInstance.of(item, { deep: true }),
+        Json.mapper(item) as Mapper<any, any>
+      ] as const);
+
+      return {
+        read: (a: any) => {
+          for (const [_, mapper] of items) {
+            // TODO: this approach sucks, e.g. timestamps collide with strings ...
+            // TODO: should we encode union types in JSON like how Avro does?
+            // TODO: should probably be a case by case basis, e.g. in GraphQL, we can't introduce extra layers for unions
+            try {
+              return mapper.read(a);
+            } catch (err) {
+              // no-op
+            }
+          }
+          throw new Error(`expected a value of ${shape}, but got: ${a}`);
+        },
+        write: (value: any) => {
+          for (const [isType, mapper] of items) {
+            // TODO: this is expensive
+            if (isType(value)) {
+              return mapper.write(value as any);
+            }
+          }
+          throw new Error(`expected one of union type: ${shape}, but got: ${value}`);
+        }
+      };
+    }
+    public neverShape(shape: NeverShape, context: undefined): Mapper<any, any> {
+      throw new Error("NeverShape is not supported by JSON");
+    }
+    public functionShape(shape: FunctionShape<FunctionArgs, Shape>): Mapper<any, any> {
+      throw new Error("FunctionShape is not supported by JSON");
+    }
     public nothingShape(shape: NothingShape, context: undefined): Mapper<void, any> {
       return {
         read: (a: any) => {
@@ -140,7 +192,7 @@ export namespace Json {
         write: () => null
       };
     }
-    public dynamicShape(shape: DynamicShape<any>, context: undefined): Mapper<any, any> {
+    public anyShape(shape: AnyShape, context: undefined): Mapper<any, any> {
       return {
         read: a => a,
         write: a => a
@@ -177,10 +229,10 @@ export namespace Json {
         write: (b: boolean) => b
       };
     }
-    public recordShape(shape: RecordShape<any, any>): Mapper<any, any> {
+    public recordShape(shape: TypeShape<any>): Mapper<any, any> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
-          [name]: mapper(member.Shape, {
+          [name]: mapper((member as any), {
             visitor: this
           })
         }))
@@ -196,7 +248,7 @@ export namespace Json {
           for (const [name, codec] of Object.entries(fields)) {
             res[name] = codec.read(value[name]);
           }
-          return new shape.Type(res);
+          return new (shape as any)(res);
         },
         write: (value: any) => {
           const res: any = {};
@@ -272,7 +324,7 @@ export namespace Json {
             shape.Items.Kind === 'stringShape'  ||
             shape.Items.Kind === 'numberShape'  ||
             shape.Items.Kind === 'integerShape' ||
-            shape.Items.Kind === 'boolShape' ? new Set() : new HashSet(shape.Items);
+            shape.Items.Kind === 'boolShape' ? new Set() : HashSet.of(shape.Items);
           arr.forEach(i => set.add(item.read(i)));
           return set;
         }

@@ -1,16 +1,15 @@
 import 'jest';
-import { any, AnyShape, binary, Member, number, NumberShape, optional, Record, RecordShape, Shape, string, StringShape, unknown, UnknownShape } from '../lib';
+import { any, AnyShape, binary, NothingShape, number, NumberShape, optional, string, StringShape, Type, union, UnionShape } from '../lib';
 import { array, ArrayShape, map, MapShape, set, SetShape } from '../lib/collection';
 
 // tslint:disable: member-access
 
-class Nested extends Record({
+class Nested extends Type('Nested', {
   a: string
 }) {}
 
-class MyType extends Record({
+class MyType extends Type('MyType', {
   anyType: any,
-  unknownType: unknown,
   binaryType: binary,
   id: string,
   count: optional(number),
@@ -20,68 +19,30 @@ class MyType extends Record({
   set: set(string),
   complexSet: set(Nested),
   map: map(string),
-  complexMap: map(Nested)
+  complexMap: map(Nested),
+  union: union(string, number)
 }) {}
 
-const MyTypeShape = Shape.of(MyType);
-
 it('should have Kind, "recordShape"', () => {
-  expect(MyTypeShape.Kind).toEqual('recordShape');
-});
-
-it('should cache derived shapes', () => {
-  expect(Shape.of(MyType) === Shape.of(MyType)).toBe(true);
+  expect(MyType.Kind).toEqual('recordShape');
 });
 
 it('should parse members', () => {
-  expect(MyTypeShape.Members.anyType).toEqual(new Member(
-    'anyType', new AnyShape(), {}
-  ));
-
-  expect(MyTypeShape.Members.unknownType).toEqual(new Member(
-    'unknownType', new UnknownShape(), {}
-  ));
-
-  expect(MyTypeShape.Members.id).toEqual(new Member(
-    'id', new StringShape(), {}
-  ));
-
-  expect(MyTypeShape.Members.count).toEqual(new Member(
-    'count', new NumberShape(), {
-      nullable: true
-    }
-  ));
-
-  const nestedShape = new RecordShape(Nested, {});
-
-  expect(MyTypeShape.Members.nested).toEqual(new Member(
-    'nested', nestedShape, {}
-  ));
-
-  expect(MyTypeShape.Members.array).toEqual(new Member(
-    'array', new ArrayShape(new StringShape()), {}
-  ));
-  expect(MyTypeShape.Members.complexArray).toEqual(new Member(
-    'complexArray', new ArrayShape(nestedShape), {}
-  ));
-
-  expect(MyTypeShape.Members.set).toEqual(new Member(
-    'set', new SetShape(new StringShape()), {}
-  ));
-  expect(MyTypeShape.Members.complexSet).toEqual(new Member(
-    'complexSet', new SetShape(nestedShape), {},
-  ));
-
-  expect(MyTypeShape.Members.map).toEqual(new Member(
-    'map', new MapShape(new StringShape()), {}
-  ));
-  expect(MyTypeShape.Members.complexMap).toEqual(new Member(
-    'complexMap', new MapShape(nestedShape), {}
-  ));
+  expect(MyType.Members.anyType).toEqual(new AnyShape());
+  expect(MyType.Members.id).toEqual(new StringShape());
+  expect(MyType.Members.count).toEqual(new UnionShape([new NumberShape(), new NothingShape()]));
+  expect(MyType.Members.nested).toEqual(Nested);
+  expect(MyType.Members.array).toEqual(new ArrayShape(new StringShape()));
+  expect(MyType.Members.complexArray).toEqual(new ArrayShape(Nested));
+  expect(MyType.Members.set).toEqual(new SetShape(new StringShape()));
+  expect(MyType.Members.complexSet).toEqual(new SetShape(Nested),);
+  expect(MyType.Members.map).toEqual(new MapShape(new StringShape()));
+  expect(MyType.Members.complexMap).toEqual(new MapShape(Nested));
+  expect(MyType.Members.union).toEqual(new UnionShape([new StringShape(), new NumberShape()]));
 });
 
-class Empty extends Record({}) {}
+class Empty extends Type('Empty', {}) {}
 
 it('should support no members', () => {
-  expect(Shape.of(Empty).Members).toEqual({});
+  expect(Empty.Members).toEqual({});
 });

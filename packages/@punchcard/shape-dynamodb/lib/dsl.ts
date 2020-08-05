@@ -1,17 +1,12 @@
-import { Member, RecordShape, RecordType, ShapeOrRecord, Value, Visitor } from '@punchcard/shape';
+import { EnumShape, ShapeGuards, ShapeVisitor, TypeShape, UnionShape, Value } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, NumericShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
+import { AnyShape, BinaryShape, bool, BoolShape, NothingShape, number, NumberShape, string, StringShape, timestamp, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
 import { AttributeValue } from './attribute';
 import { Mapper } from './mapper';
 import { Writer } from './writer';
 
 // tslint:disable: ban-types
-declare module '@punchcard/shape/lib/shape' {
-  export interface Shape {
-    [DSL.Tag]: DSL.Node;
-  }
-}
 
 // we have a thing named Object inside Query, so stash this here.
 const Objekt = Object;
@@ -20,25 +15,74 @@ export namespace DSL {
   export type Tag = typeof Tag;
   export const Tag = Symbol.for('@punchcard/shape-dynamodb.Query.Tag');
 
-  export type Of<T extends ShapeOrRecord> = Shape.Of<T> extends { [Tag]: infer Q } ? Q : never;
+  export type Of<T extends Shape> =
+    T extends BinaryShape ? DSL.Binary :
+    T extends BoolShape ? DSL.Bool :
+    T extends AnyShape ? DSL.Any<T> :
+    T extends NumberShape ? DSL.Number :
+    T extends StringShape ? DSL.String :
+    T extends TimestampShape ? DSL.Timestamp :
+    T extends UnionShape<infer U> ?
+      U extends 1 ? {
+        [i in Extract<keyof U, number>]: Of<U[i]>
+      }[1] :
+      NothingShape extends Extract<U[Extract<keyof U, number>], NothingShape> ?
+        U['length'] extends 1 ? DSL.Object<NothingShape> :
+        U['length'] extends 2 ?
+          Exclude<{
+            [i in Extract<keyof U, number>]: Of<U[i]>;
+          }[Extract<keyof U, number>], DSL.Object<NothingShape>> :
+        DSL.Union<T> :
+      DSL.Union<T> :
 
-  export type Root<T extends RecordType> = Struct<Shape.Of<T>>['fields'];
+    T extends EnumShape ? Enum<T> :
+    T extends TypeShape<any> ? DSL.Struct<T> :
+    T extends MapShape<infer V> ? DSL.Map<V> :
+    T extends SetShape<infer I> ? DSL.Set<I> :
+    T extends ArrayShape<infer I> ? DSL.List<I> :
+    T extends { [Tag]: infer Q } ? Q :
+    DSL.Object<T>
+    ;
 
-  export function of<T extends RecordType>(type: T): Root<T> {
-    const shape = Shape.of(type);
+  export type Root<T extends TypeShape<any>> = Struct<T>['fields'];
+
+  export function of<T extends TypeShape<any>>(shape: T): Root<T> {
     const result: any = {};
     for (const [name, member] of Objekt.entries(shape.Members)) {
-      result[name] = member.Shape.visit(DslVisitor, new RootProperty(member.Shape, name));
+      result[name] = (member as Shape).visit(DslVisitor, new RootProperty(member as Shape, name));
     }
     return result;
   }
 
-  export const DslVisitor: Visitor<Node, ExpressionNode<any>> = {
+  export function _of<T extends Shape>(shape: T, expr: ExpressionNode<any>): Of<T> {
+    return shape.visit(DslVisitor as any, expr) as Of<T>;
+  }
+
+  export const DslVisitor: ShapeVisitor<Node, ExpressionNode<any>> = {
+    enumShape: (shape, expr) => {
+      return new Enum(shape, expr);
+    },
+    literalShape: (shape, expression) => {
+      return shape.Type.visit(DslVisitor as any, expression);
+    },
+    unionShape: (shape, expression) => {
+      const items = shape.Items.filter(i => !ShapeGuards.isNothingShape(i));
+      if (items.length === 1) {
+        return _of(items[0], expression);
+      }
+      return new Union(shape, expression);
+    },
+    functionShape: (() => {
+      throw new Error(`functionShape is not valid on a DynamoDB DSL`);
+    }) as any,
+    neverShape: (() => {
+      throw new Error(`neverShape is not valid on a DynamoDB DSL`);
+    }) as any,
     nothingShape: (shape: NothingShape, expression: ExpressionNode<any>): Object<NothingShape> => {
       return new Object(shape, expression);
     },
-    dynamicShape: (shape: DynamicShape<any>, expression: ExpressionNode<any>): Dynamic<any> => {
-      return new Dynamic(shape, expression);
+    anyShape: (shape: AnyShape, expression: ExpressionNode<any>): Any<any> => {
+      return new Any(shape, expression);
     },
     binaryShape: (shape: BinaryShape, expression: ExpressionNode<any>): Binary => {
       return new Binary(shape, expression);
@@ -60,7 +104,7 @@ export namespace DSL {
     boolShape: (shape: BoolShape, expression: ExpressionNode<any>): Bool => {
       return new Bool(expression, shape);
     },
-    recordShape: (shape: RecordShape<any>, expression: ExpressionNode<any>): Struct<any> => {
+    recordShape: (shape: TypeShape<any>, expression: ExpressionNode<any>): Struct<any> => {
       return new Struct(shape, expression);
     },
     mapShape: (shape: MapShape<any>, expression: ExpressionNode<any>): Map<any> => {
@@ -76,9 +120,6 @@ export namespace DSL {
         }
       });
     },
-    integerShape: (shape: IntegerShape, expression: ExpressionNode<any>): Number => {
-      return new DSL.Number(expression, shape);
-    },
     numberShape: (shape: NumberShape, expression: ExpressionNode<any>): Number => {
       return new DSL.Number(expression, shape);
     },
@@ -90,8 +131,7 @@ export namespace DSL {
       return new String(expression, shape);
     },
     timestampShape: (shape: TimestampShape, expression: ExpressionNode<any>): Node => {
-      // TODO
-      return new String(expression);
+      return new Timestamp(expression, shape);
     }
   };
 }
@@ -154,7 +194,7 @@ export namespace DSL {
   export class Literal<T extends Shape> extends ExpressionNode<T> {
     public readonly [SubNodeType] = 'literal';
 
-    constructor(type: T, public readonly value: AttributeValue.Of<T>) {
+    constructor(type: T, public readonly value: Value.Of<AttributeValue.ShapeOf<T>>) {
       super(type);
     }
 
@@ -186,7 +226,11 @@ export namespace DSL {
 
   export class FunctionCall<T extends Shape> extends ExpressionNode<T> {
     public [SubNodeType] = 'function-call';
-    constructor(public readonly name: string, public readonly returnType: T, public readonly parameters: ExpressionNode<any>[]) {
+    constructor(
+      public readonly name: string,
+      public readonly returnType: T,
+      public readonly parameters: ExpressionNode<any>[]
+    ) {
       super(returnType);
     }
 
@@ -457,42 +501,39 @@ export namespace DSL {
   /**
    * Represents a number in a DynamoDB Filter, Query or Update expression.
    */
-  export class Number extends Ord<NumericShape> {
-    constructor(expression: ExpressionNode<NumericShape>, shape?: NumericShape) {
+  export class Number extends Ord<NumberShape> {
+    constructor(expression: ExpressionNode<NumberShape>, shape?: NumberShape) {
       super(shape || number, expression);
     }
 
-    public decrement(value?: Expression<NumericShape>) {
+    public decrement(value?: Expression<NumberShape>) {
       return this.set(this.minus(value === undefined ? 1 : value));
     }
 
-    public increment(value?: Expression<NumericShape>) {
+    public increment(value?: Expression<NumberShape>) {
       return this.set(this.plus(value === undefined ? 1 : value));
     }
 
-    public minus(value: Expression<NumericShape>): Number.Minus {
+    public minus(value: Expression<NumberShape>): Number.Minus {
       return new Number.Minus(this, resolveExpression(this[DataType], value));
     }
 
-    public plus(value: Expression<NumericShape>): Number.Plus {
+    public plus(value: Expression<NumberShape>): Number.Plus {
       return new Number.Plus(this, resolveExpression(this[DataType], value));
     }
   }
   export namespace Number {
-    export class Plus extends Computation<NumericShape> {
+    export class Plus extends Computation<NumberShape> {
       public operator: '+' = '+';
     }
-    export class Minus extends Computation<NumericShape> {
+    export class Minus extends Computation<NumberShape> {
       public operator: '-' = '-';
     }
   }
 
   export class Binary extends Object<BinaryShape> {}
 
-  export class String extends Ord<StringShape> {
-    constructor(expression: ExpressionNode<StringShape>, shape?: StringShape) {
-      super(shape || string, expression);
-    }
+  export class StringLike<T extends StringShape | EnumShape> extends Ord<T> {
     public beginsWith(value: Expression<StringShape>): Bool {
       return String.beginsWith(this, value);
     }
@@ -500,24 +541,39 @@ export namespace DSL {
       return this.size;
     }
   }
+
+  export class String extends StringLike<StringShape> {
+    constructor(expression: ExpressionNode<StringShape>, shape?: StringShape) {
+      super(shape || string, expression);
+    }
+  }
   export namespace String {
     export class BeginsWith extends FunctionCall<BoolShape> {
       public readonly [SubNodeType] = 'string-begins-with';
 
-      constructor(lhs: ExpressionNode<StringShape>, rhs: ExpressionNode<StringShape>) {
+      constructor(lhs: ExpressionNode<StringShape | EnumShape>, rhs: ExpressionNode<StringShape | EnumShape>) {
         super('begins_with', bool, [lhs, rhs]);
       }
     }
-
-    export function beginsWith(lhs: Expression<StringShape>, rhs: Expression<StringShape>) {
+    export function beginsWith(lhs: Expression<StringShape | EnumShape>, rhs: Expression<StringShape | EnumShape>) {
       return new Bool(new String.BeginsWith(resolveExpression(string, lhs), resolveExpression(string, rhs)));
     }
   }
+
+  export class Timestamp extends Object<TimestampShape> {
+    constructor(expression: ExpressionNode<TimestampShape>, shape?: TimestampShape) {
+      super(shape || timestamp, expression);
+    }
+  }
+
+  export class Enum<E extends EnumShape> extends StringLike<E> {}
 
   export class List<T extends Shape> extends Object<ArrayShape<T>> {
     constructor(type: ArrayShape<T>, expression: ExpressionNode<ArrayShape<T>>) {
       super(type, expression);
     }
+
+    [index: number]: Of<T>;
 
     public get length() {
       return this.size;
@@ -540,7 +596,7 @@ export namespace DSL {
       public readonly [SubNodeType] = 'list-item';
 
       constructor(public readonly list: List<T>, public readonly index: ExpressionNode<NumberShape>) {
-        super(list[DataType].Items);
+        super(list[DataType].Items as T);
       }
 
       public [Synthesize](writer: Writer): void {
@@ -589,7 +645,7 @@ export namespace DSL {
     export class GetValue<T extends Shape> extends ExpressionNode<T> {
       public readonly [SubNodeType] = 'map-value';
       constructor(public readonly map: Map<T>, public readonly key: ExpressionNode<StringShape>) {
-        super(map[DataType].Items);
+        super(map[DataType].Items as T);
       }
 
       public [Synthesize](writer: Writer): void {
@@ -600,17 +656,16 @@ export namespace DSL {
     }
   }
 
-  export class Struct<T extends RecordShape<any>> extends Object<T> {
+  export class Struct<T extends TypeShape<any>> extends Object<T> {
     public readonly fields: {
-      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]['Shape']>;
+      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
     };
 
     constructor(type: T, expression: ExpressionNode<T>) {
       super(type, expression);
       this.fields = {} as any;
       for (const [name, prop] of Objekt.entries(type.Members)) {
-        Member.assertInstance(prop);
-        (this.fields as any)[name] = prop.Shape.visit(DslVisitor, new Struct.Field(this, prop.Shape, name));
+        (this.fields as any)[name] = (prop as Shape).visit(DslVisitor, new Struct.Field(this, prop as Shape, name));
       }
     }
   }
@@ -630,7 +685,7 @@ export namespace DSL {
     }
   }
 
-  export class Dynamic<T extends DynamicShape<any | unknown>> extends Object<T> {
+  export class Any<T extends AnyShape> extends Object<T> {
     public as<S extends Shape>(shape: S): DSL.Of<S> {
       return shape.visit(DslVisitor as any, this);
     }
@@ -641,6 +696,12 @@ export namespace DSL {
 
     public set(args: never): never {
       throw new Error('equals is not supported on a dynamic type, you must first cast with `as(shape)`');
+    }
+  }
+
+  export class Union<T extends UnionShape<Shape[]>> extends Object<T> {
+    public as<S extends T['Items'][Extract<keyof T['Items'], number>]>(shape: S): DSL.Of<S> {
+      return shape.visit(DslVisitor as any, this);
     }
   }
 }

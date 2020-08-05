@@ -1,10 +1,9 @@
-import { ShapeOrRecord, Value } from '@punchcard/shape';
-import { Integration, LambdaIntegration, Resource } from '../api-gateway';
+import { NothingShape, Shape, Value } from '@punchcard/shape';
 import * as CloudWatch from '../cloudwatch';
 import { Build } from '../core/build';
 import { Client } from '../core/client';
 import { Dependency } from '../core/dependency';
-import { Function, FunctionOverrideProps, FunctionProps } from './function';
+import { Function, FunctionProps } from './function';
 import { schedule, ScheduleProps } from './schedule';
 
 import * as cdk from '@aws-cdk/core';
@@ -23,7 +22,16 @@ export const L = λ;
 export class ExecutorService {
   constructor(private readonly props: ExecutorServiceProps = {}) {}
 
-  public spawn<T extends ShapeOrRecord, U extends ShapeOrRecord, D extends Dependency<any> = any>(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handler: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<Value.Of<U>>): Function<T, U, D> {
+  public spawn<
+    T extends Shape,
+    U extends Shape,
+    D extends Dependency<any> = any
+  >(
+    scope: Build<cdk.Construct>,
+    id: string,
+    props: FunctionProps<T, U, D>,
+    handler: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<U extends NothingShape ? void : Value.Of<U>>
+  ): Function<T, U, D> {
     return new Function<T, U, D>(scope, id, this.applyDefaultProps(props), handler);
   }
 
@@ -45,22 +53,5 @@ export class ExecutorService {
       ...this.props,
       ...props
     };
-  }
-
-  public apiIntegration<D extends Dependency<any>>(scope: Build<cdk.Construct>, id: string, props: {
-    depends: D;
-  }): Integration<D> {
-    const handler = this.spawn(scope, id, {
-      depends: props.depends
-    }, async (event: any, runtimeContext: Client<D>) => {
-      const resourceId = event.__resourceId; // TODO: we implicitly know this field exists - magic field. see ../api-gateway/resource.ts
-      const resource: Resource = integration.findResource(resourceId);
-      if (!resource) {
-        throw new Error(`could not resolve resource handler for resourceId: ${resourceId}`);
-      }
-      return await resource.handle(event, runtimeContext);
-    });
-    const integration = new LambdaIntegration(handler);
-    return integration;
   }
 }

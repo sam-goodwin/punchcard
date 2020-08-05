@@ -1,28 +1,18 @@
-import { ArrayShape, MapShape, SetShape } from './collection';
-import { Member } from './member';
-import { AnyShape, BinaryShape, BoolShape, DynamicShape, IntegerShape, NumberShape, NumericShape, StringShape, TimestampShape, UnknownShape } from './primitive';
-import { RecordShape } from './record';
+import { ArrayShape, CollectionShape, MapShape, SetShape } from './collection';
+import { EnumShape, EnumValues } from './enum';
+import { FunctionArgs, FunctionShape } from './function';
+import { LiteralShape } from './literal';
+import { Decorated } from './metadata';
+import { AnyShape, BinaryShape, BoolShape, IntegerShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { Shape } from './shape';
+import { Fields, TypeShape } from './type';
+import { UnionShape } from './union';
 
 export namespace ShapeGuards {
-  export const isDynamicShape = (a: any): a is DynamicShape<unknown> => isShape(a) && a.Kind === 'dynamicShape';
-  export const assertDynamicShape = (a: any): asserts a is DynamicShape<unknown> => {
-    if (!isDynamicShape(a)) {
-      throw new Error(`${a} is not of type: DynamicShape`);
-    }
-  };
-
-  export const isAnyShape = (a: any): a is AnyShape => isDynamicShape(a) && a.Tag === 'any';
+  export const isAnyShape = (a: any): a is AnyShape => isShape(a) && a.Kind === 'anyShape';
   export const assertAnyShape = (a: any): asserts a is AnyShape => {
     if (!isAnyShape(a)) {
       throw new Error(`${a} is not of type: AnyShape`);
-    }
-  };
-
-  export const isUnknownShape = (a: any): a is UnknownShape => isDynamicShape(a) && a.Tag === 'unknown';
-  export const assertUnknownShape = (a: any): asserts a is UnknownShape => {
-    if (!isUnknownShape(a)) {
-      throw new Error(`${a} is not of type: UnknownShape`);
     }
   };
 
@@ -33,8 +23,14 @@ export namespace ShapeGuards {
     }
   };
 
-  export const isArrayShape = (a: any): a is ArrayShape<any> => a.Kind === 'arrayShape';
-  export const assertArrayShape = (a: any): asserts a is ArrayShape<any> => {
+  export const isCollectionShape = (a: any): a is CollectionShape<Shape> => isArrayShape(a) || isSetShape(a) || isMapShape(a);
+  export const assertCollectionShape = (a: any): asserts a is CollectionShape<Shape> => {
+    if (!isCollectionShape(a)) {
+      throw new Error(`${a} is not of type: CollectionShape`);
+    }
+  };
+  export const isArrayShape = (a: any): a is ArrayShape<Shape> => isShape(a) && a.Kind === 'arrayShape';
+  export const assertArrayShape = (a: any): asserts a is ArrayShape<Shape> => {
     if (!isArrayShape(a)) {
       throw new Error(`${a} is not of type: ArrayShape`);
     }
@@ -45,29 +41,47 @@ export namespace ShapeGuards {
       throw new Error(`${a} is not of type: BoolShape`);
     }
   };
-  export const isRecordShape = (a: any): a is RecordShape<any> => isShape(a) && a.Kind === 'recordShape';
-  export const assertRecordShape = (a: any): asserts a is RecordShape<any> => {
+  export const isFunctionShape = (a: any): a is FunctionShape<FunctionArgs, Shape> => isShape(a) && a.Kind === 'functionShape';
+  export const assertFunctionShape = (a: any): asserts a is FunctionShape<FunctionArgs, Shape> => {
+    if (!isFunctionShape(a)) {
+      throw new Error(`${a} is not of type: FunctionShape`);
+    }
+  };
+  export const isRecordShape = (a: any): a is TypeShape<Fields> => isShape(a) && a.Kind === 'recordShape';
+  export const assertRecordShape = (a: any): asserts a is TypeShape<Fields> => {
     if (!isRecordShape(a)) {
       throw new Error(`${a} is not of type: RecordShape`);
     }
   };
-  export const isMapShape = (a: any): a is MapShape<any> => a.Kind === 'mapShape';
-  export const assertMapShape = (a: any): asserts a is MapShape<any> => {
+
+  export const isMapShape = (a: any): a is MapShape<Shape> => isShape(a) && a.Kind === 'mapShape';
+  export const assertMapShape = (a: any): asserts a is MapShape<Shape> => {
     if (!isMapShape(a)) {
       throw new Error(`${a} is not of type: MapShape`);
     }
   };
-  // numeric
-  export const isNumericShape = (a: any): a is NumericShape => isShape(a) && (isNumberShape(a) || isIntegerShape(a));
-  export const assertNumericShape = (a: any): asserts a is NumericShape => {
-    if (!isNumericShape(a)) {
-      throw new Error(`${a} is not of type: NumericShape`);
+  export const isNeverShape = (a: any): a is NeverShape => isShape(a) && a.Kind === 'neverShape';
+  export const assertNeverShape = (a: any): asserts a is NeverShape => {
+    if (!isNeverShape(a)) {
+      throw new Error(`${a} is not of type: NeverShape`);
     }
   };
-  export const isIntegerShape = (a: any): a is IntegerShape => isShape(a) && a.Kind === 'integerShape';
+  export const isIntegerShape = (a: any): a is IntegerShape => isNumberShape(a) && (a[Decorated.Data] as any).numberType === 'integer';
   export const assertIntegerShape = (a: any): asserts a is IntegerShape => {
     if (!isIntegerShape(a)) {
       throw new Error(`${a} is not of type: IntegerShape`);
+    }
+  };
+  export const isLiteralShape = (a: any): a is LiteralShape<Shape, any> => isShape(a) && a.Kind === 'literalShape';
+  export const assertLiteralShape = (a: any): asserts a is LiteralShape<Shape, any> => {
+    if (!isLiteralShape(a)) {
+      throw new Error(`${a} is not of type: LiteralShape`);
+    }
+  };
+  export const isNothingShape = (a: any): a is NothingShape => isShape(a) && a.Kind === 'nothingShape';
+  export const assertNothingShape = (a: any): asserts a is NothingShape => {
+    if (!isNothingShape(a)) {
+      throw new Error(`${a} is not of type: NothingShape`);
     }
   };
   export const isNumberShape = (a: any): a is NumberShape => isShape(a) && a.Kind === 'numberShape';
@@ -77,13 +91,13 @@ export namespace ShapeGuards {
     }
   };
 
-  export const isSetShape = (a: any): a is SetShape<any> => a.Kind === 'setShape';
-  export const assertSetShape = (a: any): asserts a is SetShape<any> => {
+  export const isSetShape = (a: any): a is SetShape<Shape> => isShape(a) && a.Kind === 'setShape';
+  export const assertSetShape = (a: any): asserts a is SetShape<Shape> => {
     if (!isSetShape(a)) {
       throw new Error(`${a} is not of type: SetShape`);
     }
   };
-  export const isShape = (a: any): a is Shape => a.NodeType === 'shape';
+  export const isShape = (a: any): a is Shape => a && a.NodeType === 'shape';
   export const assertShape = (a: any): asserts a is Shape => {
     if (!isShape(a)) {
       throw new Error(`${a} is not of type: Shape`);
@@ -101,22 +115,28 @@ export namespace ShapeGuards {
       throw new Error(`${a} is not of type: TimestampShape`);
     }
   };
+  export const isUnionShape = (a: any): a is UnionShape<Shape[]> => isShape(a) && a.Kind === 'unionShape';
+  export const assertUnionShape = (a: any): asserts a is UnionShape<Shape[]> => {
+    if (!isUnionShape(a)) {
+      throw new Error(`${a} is not of type: UnionShape`);
+    }
+  };
 
-  export type IsArrayShape<T> = T extends ArrayShape<any> ? T : never;
-  export type IsClassShape<T> = T extends RecordShape<any> ? T : never;
-  export type IsMapShape<T> = T extends MapShape<any> ? T : never;
+  export const isEnumShape = (a: any): a is EnumShape<EnumValues, string | undefined> => isShape(a) && a.Kind === 'enumShape';
+  export const assertEnumShape = (a: any): asserts a is EnumShape<EnumValues, string | undefined> => {
+    if (!isEnumShape(a)) {
+      throw new Error(`${a} is not of type: EnumShape`);
+    }
+  };
+
+  export type IsArrayShape<T> = T extends ArrayShape<Shape> ? T : never;
+  export type IsRecordShape<T> = T extends TypeShape<Fields> ? T : never;
+  export type IsMapShape<T> = T extends MapShape<Shape> ? T : never;
   export type IsNumberShape<T> = T extends NumberShape ? T : never;
-  export type IsSetShape<T> = T extends SetShape<any> ? T : never;
+  export type IsSetShape<T> = T extends SetShape<Shape> ? T : never;
   export type IsShape<T> = T extends Shape ? T : never;
   export type IsStringShape<T> = T extends StringShape ? T : never;
   export type IsTimestampShape<T> = T extends TimestampShape ? T : never;
-
-  export const isMember = (a: any): a is Member => Member.isInstance(a);
-  export const assertMember = (a: any): asserts a is Member => {
-    if (!(Member.isInstance(a)))  {
-      throw new Error(`${a} is not of type Member`);
-    }
-  };
 }
 
 export namespace MetadataGuards {

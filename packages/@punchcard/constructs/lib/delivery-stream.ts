@@ -134,6 +134,7 @@ export class DeliveryStream extends BaseDeliveryStream {
     if (props.type === DeliveryStreamType.KinesisStreamAsSource) {
       if (props.kinesisStream) {
         props.kinesisStream.grantRead(this.role);
+        props.kinesisStream.grant(this.role, 'kinesis:DescribeStream');
 
         return {
           kinesisStreamArn: props.kinesisStream.streamArn,

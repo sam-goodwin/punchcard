@@ -1,24 +1,5 @@
 
-import { IO } from 'fp-ts/lib/IO';
-import { Monad1 } from 'fp-ts/lib/Monad';
 import { HList } from '../util/hlist';
-
-const URI = 'Run';
-type URI = typeof URI;
-
-declare module 'fp-ts/lib/HKT' {
-  interface URItoKind<A> {
-    Run: Run<A>
-  }
-}
-
-export const RUN: Monad1<URI> = {
-  URI,
-  ap: (fab, fa) => RUN.chain(fab, ab => fa.map(ab)),
-  chain: (fa, f) => new Run(() => f(fa[get]())[get]()),
-  map: (fa, f) => RUN.chain(fa, a => new Run(() => f(a))),
-  of: (a) => new Run(() => a),
-};
 
 const get = Symbol.for('Runtime.get');
 
@@ -26,43 +7,48 @@ const get = Symbol.for('Runtime.get');
  * The Runtime Universe.
  */
 export class Run<A> {
-  public readonly [get]: IO<A>;
+  public readonly [get]: () => A;
 
   public static resolve<T>(r: Run<T>): T {
     return r[get]();
   }
 
-  public static lazy<B>(f: IO<B>): Run<B> {
-    return RUN.of(f).map(_ => _());
+  public static lazy<B>(f: () => B): Run<B> {
+    return new Run(f);
   }
 
   public static of<B>(b: B): Run<B> {
-    return RUN.of(b);
+    return new Run(() => b);
   }
 
-  constructor(_next: IO<A>) {
+  constructor(io: () => A) {
     // memoize
     let isMemoized = false;
-    let value: A | undefined;
+    let memoizedValue: A | undefined;
+    let memoizedError: Error | undefined;
     this[get] = () => {
       if (!isMemoized) {
-        value = _next();
+        try {
+          memoizedValue = io();
+        } catch (err) {
+          memoizedError = err;
+        }
         isMemoized = true;
       }
-      return value!;
+      if (memoizedError) {
+        throw memoizedError;
+      } else {
+        return memoizedValue!;
+      }
     };
   }
 
-  public ap<B>(fab: Run<(a: A) => B>, fa: Run<A>): Run<B> {
-    return RUN.ap(fab, fa);
-  }
-
   public map<B>(f: (a: A) => B): Run<B> {
-    return RUN.map(this, f);
+    return this.chain(a => new Run(() => f(a)));
   }
 
   public chain<C2>(f: (a: A) => Run<C2>): Run<C2> {
-    return RUN.chain(this, f);
+    return new Run(() => Run.resolve(f(this[get]())));
   }
 
   public static concat<T extends any[]>(...runArray: T): Flatten<HList<T>> {

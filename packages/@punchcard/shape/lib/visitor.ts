@@ -1,22 +1,31 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
-import { RecordShape } from './record';
+import { EnumShape } from './enum';
+import { FunctionArgs, FunctionShape } from './function';
+import { LiteralShape } from './literal';
+import { AnyShape, BinaryShape, BoolShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
+import type { Shape } from './shape';
+import { Fields, TypeShape } from './type';
+import { UnionShape } from './union';
 
-export interface Visitor<T = unknown, C = undefined> {
-  arrayShape(shape: ArrayShape<any>, context: C): T;
+export interface ShapeVisitor<T = unknown, C = undefined> {
+  anyShape(shape: AnyShape, context: C): T;
+  arrayShape(shape: ArrayShape<Shape>, context: C): T;
   binaryShape(shape: BinaryShape, context: C): T;
   boolShape(shape: BoolShape, context: C): T;
-  recordShape(shape: RecordShape<any>, context: C): T;
-  dynamicShape(shape: DynamicShape<any>, context: C): T;
-  integerShape(shape: IntegerShape, context: C): T;
-  mapShape(shape: MapShape<any>, context: C): T;
+  enumShape(shape: EnumShape<any, any>, context: C): T;
+  functionShape(shape: FunctionShape<FunctionArgs, Shape>): T;
+  literalShape(shape: LiteralShape<Shape, any>, context: C): T;
+  mapShape(shape: MapShape<Shape>, context: C): T;
+  neverShape(shape: NeverShape, context: C): T;
   nothingShape(shape: NothingShape, context: C): T;
   numberShape(shape: NumberShape, context: C): T;
-  setShape(shape: SetShape<any>, context: C): T;
+  recordShape(shape: TypeShape<Fields>, context: C): T;
+  setShape(shape: SetShape<Shape>, context: C): T;
   stringShape(shape: StringShape, context: C): T;
   timestampShape(shape: TimestampShape, context: C): T;
+  unionShape(shape: UnionShape<Shape[]>, context: C): T;
 }
 export namespace Visitor {
-  export type YieldType<V extends Visitor> = V extends Visitor<infer T, any>  ? T : never;
-  export type ContextType<V extends Visitor> = V extends Visitor<any, infer C>  ? C : null;
+  export type YieldType<V extends ShapeVisitor> = V extends ShapeVisitor<infer T, any>  ? T : never;
+  export type ContextType<V extends ShapeVisitor> = V extends ShapeVisitor<any, infer C>  ? C : null;
 }

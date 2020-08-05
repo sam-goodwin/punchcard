@@ -1,18 +1,19 @@
 import 'jest';
 
-import { bool, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, Optional, optional, Pattern, Record, string } from '@punchcard/shape';
+import { bool, Enum, HashSet, Maximum, MaxLength, Minimum, MinLength, MultipleOf, nothing, number, optional, Pattern, string, Type, union } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import { Json } from '../lib';
 
 // tslint:disable: member-access
 
-class Nested extends Record({
-  a: string
-    .apply(Optional)
+class Nested extends Type('Nested', {
+  /**
+   * A docs.
+   */
+  a: optional(string)
 }) {}
-
-class MyType extends Record({
+class MyType extends Type('MyType', {
   /**
    * Field documentation.
    */
@@ -37,9 +38,13 @@ class MyType extends Record({
   complexSet: set(Nested),
   map: map(string),
   complexMap: map(Nested),
+  union: union(string, number),
 
   null: nothing,
-  optional: optional(string)
+  optional: optional(string),
+  enum: Enum({
+    Up: 'Up'
+  } as const)
 }) {}
 
 const mapper = Json.mapper(MyType);
@@ -56,12 +61,14 @@ const jsonRepr = {
   map: {
     a: 'map'
   },
+  union: 1,
   complexMap: {
     key: {
       a: 'complexMap'
     }
   },
-  null: null
+  null: undefined,
+  enum: 'Up' as const
 };
 
 const runtimeRepr = new MyType({
@@ -76,12 +83,14 @@ const runtimeRepr = new MyType({
   map: {
     a: 'map'
   },
+  union: 1,
   complexMap: {
     key: new Nested({
       a: 'complexMap'
     })
   },
-  null: null
+  null: undefined,
+  enum: 'Up'
 });
 
 test('should read shape from json', () => {
@@ -92,7 +101,7 @@ test('should write shape to json', () => {
   expect(mapper.write(runtimeRepr)).toEqual(jsonRepr);
 });
 
-class Empty extends Record({}) {}
+class Empty extends Type('Empty', {}) {}
 
 test('should support empty record', () => {
   expect(() => Json.mapper(Empty)).not.toThrow();

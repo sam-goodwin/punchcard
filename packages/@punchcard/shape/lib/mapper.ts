@@ -1,4 +1,4 @@
-import { ShapeOrRecord } from './record';
+import { Shape } from './shape';
 import { Validator } from './validation';
 import { Value } from './value';
 
@@ -13,10 +13,10 @@ export interface Mapper<T, U> {
 /**
  * Creates a Mapper to serialize a shape to/from some serialization format, `Ser`.
  */
-export type MapperFactory<Ser> = <T extends ShapeOrRecord>(shapeOrRecord: T) => Mapper<Value.Of<T>, Ser>;
+export type MapperFactory<Ser> = <T extends Shape>(shapeOrRecord: T) => Mapper<Value.Of<T>, Ser>;
 
-export class ValidatingMapper<T extends ShapeOrRecord, U> implements Mapper<Value.Of<T>, U> {
-  public static of<T extends ShapeOrRecord, U>(shape: T, mapper: Mapper<Value.Of<T>, U>) {
+export class ValidatingMapper<T extends Shape, U> implements Mapper<Value.Of<T>, U> {
+  public static of<T extends Shape, U>(shape: T, mapper: Mapper<Value.Of<T>, U>) {
     return new ValidatingMapper(mapper, Validator.of(shape));
   }
 

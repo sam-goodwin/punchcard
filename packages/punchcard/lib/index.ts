@@ -1,37 +1,23 @@
 /**
  * Core packages.
  */
-import * as Core from './core';
-import * as Util from './util';
-
-export {
-  Core,
-  Util
-};
+export * as Core from './core';
+export * as Util from './util';
 
 /**
  * Export namespaces for each AWS service
  */
-import * as ApiGateway from './api-gateway';
-import * as CloudWatch from './cloudwatch';
-import * as DynamoDB from './dynamodb';
-import * as Firehose from './firehose';
-import * as Glue from './glue';
-import * as Kinesis from './kinesis';
-import * as Lambda from './lambda';
-import * as S3 from './s3';
-import * as SNS from './sns';
-import * as SQS from './sqs';
+export * as AppSync from './appsync';
+export * as CloudWatch from './cloudwatch';
+export * as Cognito from './cognito';
+export * as DynamoDB from './dynamodb';
+export * as ElasticSearch from './elasticsearch';
+export * as Firehose from './firehose';
+export * as Glue from './glue';
+export * as Kinesis from './kinesis';
+export * as Lambda from './lambda';
+export * as S3 from './s3';
+export * as SNS from './sns';
+export * as SQS from './sqs';
 
-export {
-  ApiGateway,
-  CloudWatch,
-  DynamoDB,
-  Firehose,
-  Glue,
-  Kinesis,
-  Lambda,
-  S3,
-  SNS,
-  SQS,
-};
+export { CDK } from './core/cdk';

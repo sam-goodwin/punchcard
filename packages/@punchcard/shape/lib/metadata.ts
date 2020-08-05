@@ -39,7 +39,7 @@ export namespace Meta {
    * @param shape target to apply Trait to.
    * @param metadata payload of metadata to merge into the shape's metadata store
    */
-  export function apply<Target extends Object, T extends Trait<Target, M>, M extends Metadata>(shape: Target, metadata: T): Apply<T, M> {
+  export function apply<Target extends Object, M extends Metadata>(shape: Target, metadata: M): Apply<Target, M> {
     const mergedMetadata = mergeMetadataValue((shape as any)[Decorated.Data] || {}, metadata);
 
     // is this a really bad idea?
@@ -114,29 +114,11 @@ export type Apply<T, D> =
  */
 export interface Decorated<T, D> {
   [Decorated.Type]?: T;
-  [Decorated.Data]?: D
+  [Decorated.Data]: D
 }
 export namespace Decorated {
   export const Data = Symbol.for('@punchcard/shape.Decorated.Data');
   export const Type = Symbol.for('@punchcard/shape.Decorated.Type');
-}
-
-/**
- * A Trait is a value that can decorate a type with metadata.
- *
- * @typeparam Target - type of allowed targets (e.g. StringShape)
- * @typeparam Data - type of metadata to apply to the target
- */
-export interface Trait<T, D> {
-  [Trait.Target]?: T;
-  [Trait.Data]?: D
-}
-export namespace Trait {
-  export const Data = Symbol.for('@punchcard/shape.Trait.Data');
-  export const Target = Symbol.for('@punchcard/shape.Trait.Target');
-
-  export type GetTarget<T extends Trait<any, any>> = T extends Trait<infer T2, any> ? T2 : never;
-  export type GetData<T extends Trait<any, any>> = T extends Trait<any, infer D> ? D : never;
 }
 
 // tslint:disable: ban-types

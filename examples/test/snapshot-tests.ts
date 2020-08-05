@@ -25,4 +25,3 @@ for (const app of apps) {
     }
   });
 }
-

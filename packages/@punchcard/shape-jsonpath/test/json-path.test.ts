@@ -1,27 +1,26 @@
 import 'jest';
 
-import { number, Optional, Record, string } from '@punchcard/shape';
+import { number, optional, string, Type } from '@punchcard/shape';
 import { array, map, set } from '@punchcard/shape/lib/collection';
 
 import '../lib';
 import { JsonPath } from '../lib';
 
 // tslint:disable: member-access
-export class Nested extends Record({
+export class Nested extends Type('Nested', {
   /**
    * This is a nested string.
    */
   a: string
 }) {}
 
-export class MyType extends Record({
+export class MyType extends Type('MyType', {
   /**
    * Field documentation.
    */
   id: string,
 
-  count: number
-    .apply(Optional),
+  count: optional(number),
 
   nested: Nested,
   array: array(string),
@@ -50,7 +49,7 @@ test(`$['complexArray'][?(@['a']=='value')]`, () => {
 });
 
 test(`$['map']['item']`, () => {
-  const jp = _.map.item;
+  const jp = _.map.get('item');
   expect(JsonPath.compile(jp)).toEqual(`$['map']['item']`);
 });
 

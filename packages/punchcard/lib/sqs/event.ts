@@ -1,7 +1,7 @@
-import { any, array, map, Record, string } from "@punchcard/shape";
+import { any, array, map, string, Type } from "@punchcard/shape";
 
 export namespace Event {
-  export class Message extends Record({
+  export class Message extends Type({
     messageId: string,
     receiptHandle: string,
     body: string,
@@ -18,7 +18,7 @@ export namespace Event {
    *
    * @see https://docs.aws.amazon.com/lambda/latest/dg/with-sqs.html
    */
-  export class Payload extends Record({
+  export class Payload extends Type({
     Records: array(Message)
   }) {}
 }

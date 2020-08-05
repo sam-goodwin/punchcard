@@ -1,14 +1,14 @@
-import { Record } from '@punchcard/shape';
+import { Type } from '@punchcard/shape';
 import { smallint } from '@punchcard/shape-hive';
 
-export class PT1H extends Record({
+export class PT1H extends Type({
   year: smallint,
   month: smallint,
   day: smallint,
   hour: smallint
 }) {}
 
-export class PT1M extends Record({
+export class PT1M extends Type({
   year: smallint,
   month: smallint,
   day: smallint,

@@ -1,7 +1,7 @@
 {
   "name": "@punchcard/shape",
   "description": "Punchcard's Shape Type System",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -38,7 +38,7 @@
     "jest": "^24.9.0",
     "sinon": "^8.0.1",
     "tslint": "^6.0.0",
-    "typescript": "^3.8.3"
+    "typescript": "^3.9.6"
   },
   "dependencies": {
     "reflect-metadata": "^0.1.13",

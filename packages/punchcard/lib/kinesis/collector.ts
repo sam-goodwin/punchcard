@@ -1,4 +1,4 @@
-import { NothingShape, Shape, ShapeOrRecordWithValue, Value } from '@punchcard/shape';
+import { NothingShape, Shape, Value } from '@punchcard/shape';
 import { Build } from '../core/build';
 import { Dependency } from '../core/dependency';
 import { Function } from '../lambda/function';
@@ -24,7 +24,11 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to stream
      */
-    toKinesisStream<DataType extends ShapeOrRecordWithValue<T>>(scope: Build<cdk.Construct>, id: string, streamProps: StreamProps<DataType>, runtimeProps?: C): CollectedStream<Shape.Of<DataType>, this>;
+    toKinesisStream<DataType extends Shape>(
+      scope: Build<cdk.Construct>,
+      id: string,
+      streamProps: StreamProps<Value.Of<DataType> extends T ? DataType : never>,
+      runtimeProps?: C): CollectedStream<DataType, this>;
   }
 }
 SStream.prototype.toKinesisStream = function(scope: Build<cdk.Construct>, id: string, props: StreamProps<any>): any {

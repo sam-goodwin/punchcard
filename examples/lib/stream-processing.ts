@@ -1,6 +1,6 @@
 import { CDK } from 'punchcard/lib/core/cdk';
 import { Core, SNS, Lambda, DynamoDB, Glue } from 'punchcard';
-import { integer, string, array, timestamp, Record, } from '@punchcard/shape';
+import { integer, string, array, timestamp, Type, } from '@punchcard/shape';
 import { Build } from 'punchcard/lib/core/build';
 
 import uuid = require('uuid');
@@ -13,7 +13,7 @@ const stack = app.stack('stream-processing');
  * Define the shape of the SNS notifications
  * with a Record.
  */
-class NotificationRecord extends Record({
+class NotificationRecord extends Type({
   /**
    * This is a property named `key` with type `string.
    */
@@ -32,7 +32,7 @@ const topic = new SNS.Topic(stack, 'Topic', {
 /**
  * Shape of the data we'll store in AWS DynamoDB.
  */
-class TagLookupRecord extends Record({
+class TagLookupRecord extends Type({
   key: string,
   tags: array(string)
 }) {}
@@ -114,7 +114,7 @@ const queue = topic.toSQSQueue(stack, 'Queue');
 /**
  * Log record to collect into Kinesis and store in Glue.
  */
-class LogDataRecord extends Record({
+class LogDataRecord extends Type({
   key: string,
   count: integer,
   tags: array(string),

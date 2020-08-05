@@ -3,17 +3,17 @@ import core = require('@aws-cdk/core');
 
 import 'jest';
 
-import { array, binary, bool, integer, map, Record, Shape, string, timestamp } from '@punchcard/shape';
+import { array, binary, bool, integer, map, Shape, string, timestamp, Type } from '@punchcard/shape';
 import { Glue, } from '../../lib';
 import { Build } from '../../lib/core/build';
 // tslint:disable-next-line: ordered-imports
 import { bigint, tinyint, smallint, char, varchar, float, double, DataType } from '@punchcard/shape-hive';
 
-class Struct extends Record({
+class Struct extends Type('Struct', {
   a: integer
 }) {}
 
-class MyTable extends Record({
+class MyTable extends Type('MyTable', {
   boolean: bool,
   binary,
   str: string,
@@ -47,7 +47,7 @@ it('should map columns and partition keys to their respective types', () => {
     }
   });
 
-  expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.Json);
+  expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.JSON);
   expect(Build.resolve(table.resource).columns).toEqual([{
     name: 'boolean',
     type: {
@@ -174,7 +174,7 @@ it('should default to Json Codec', () => {
   });
 
   expect(table.dataType).toEqual(DataType.Json);
-  expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.Json);
+  expect(Build.resolve(table.resource).dataFormat).toEqual(glue.DataFormat.JSON);
 });
 
 function partitionTest(type: Shape): void {

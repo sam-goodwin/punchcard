@@ -51,7 +51,7 @@ export class App {
   }
 
   public stack(id: string): Build<cdk.Stack> {
-    return CDK.chain(({core}) => this.root.map(app => new core.Stack(app, id)));
+    return CDK.chain(({core}) => this.root.map(a => new core.Stack(a, id)));
   }
 
   public addExternal(external: string): void {

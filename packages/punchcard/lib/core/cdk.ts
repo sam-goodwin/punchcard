@@ -42,8 +42,14 @@ export class CloudDevelopmentKit {
   private constructor() {}
 
   public readonly apigateway: typeof import('@aws-cdk/aws-apigateway') = require('@aws-cdk/aws-apigateway');
+  public readonly appsync: typeof import('@aws-cdk/aws-appsync') = require('@aws-cdk/aws-appsync');
+  public readonly cloudwatch: typeof import('@aws-cdk/aws-cloudwatch') = require('@aws-cdk/aws-cloudwatch');
+  public readonly cognito: typeof import('@aws-cdk/aws-cognito') = require('@aws-cdk/aws-cognito');
   public readonly core: typeof import('@aws-cdk/core') = require('@aws-cdk/core');
+  public readonly cloudformation: typeof import('@aws-cdk/aws-cloudformation') = require('@aws-cdk/aws-cloudformation');
+  public readonly customResources: typeof import('@aws-cdk/custom-resources') = require('@aws-cdk/custom-resources');
   public readonly dynamodb: typeof import('@aws-cdk/aws-dynamodb') = require('@aws-cdk/aws-dynamodb');
+  public readonly elasticSearch: typeof import('@aws-cdk/aws-elasticsearch') = require('@aws-cdk/aws-elasticsearch');
   public readonly events: typeof import('@aws-cdk/aws-events') = require('@aws-cdk/aws-events');
   public readonly eventsTargets: typeof import('@aws-cdk/aws-events-targets') = require('@aws-cdk/aws-events-targets');
   public readonly glue: typeof import('@aws-cdk/aws-glue') = require('@aws-cdk/aws-glue');

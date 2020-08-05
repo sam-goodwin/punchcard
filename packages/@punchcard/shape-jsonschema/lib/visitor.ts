@@ -1,15 +1,37 @@
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, Meta, NumberShape, RecordShape, StringShape, TimestampShape, Visitor } from '@punchcard/shape';
+import { AnyShape, BinaryShape, BoolShape, EnumShape, IntegerShape, isOptional, LiteralShape, Meta, NeverShape, NumberShape, Shape, ShapeGuards, ShapeVisitor, string, StringShape, TimestampShape, TypeShape, UnionShape } from '@punchcard/shape';
 import { ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { ArraySchema, MapSchema, SetSchema } from './collection';
-import { JsonSchema } from './json-schema';
-import { ObjectSchema } from './object';
-import { AnySchema, BinarySchema, BoolSchema, IntegerSchema, NothingSchema, NumberSchema, StringSchema, TimestampSchema } from './primitive';
+import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
+import { AnySchema, ArraySchema, BinarySchema, BoolSchema, EnumSchema, IntegerSchema, JsonSchema, MapSchema, NothingSchema, NumberSchema, ObjectSchema, SetSchema, StringSchema, TimestampSchema } from './json-schema';
 
 /**
  * Transforms a Shape into its corresponding JSON Schema representation.
  */
-export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
-  public dynamicShape(shape: DynamicShape<any>, context: undefined): AnySchema {
+export class ToJsonSchemaVisitor implements ShapeVisitor<JsonSchema, undefined> {
+  public enumShape(shape: EnumShape<any, any>, context: undefined): EnumSchema<any> {
+    return {
+      type: 'string',
+      enum: Object.values(shape.Values)
+    };
+  }
+  public neverShape(shape: NeverShape, context: undefined): JsonSchema {
+    throw new Error("JSON schema does not support never types");
+  }
+  public literalShape(shape: LiteralShape<Shape, any>, context: undefined): JsonSchema {
+    throw new Error("Method not implemented.");
+  }
+  public unionShape(shape: UnionShape<Shape[]>, context: undefined): JsonSchema {
+    const items = shape.Items.filter(i => !ShapeGuards.isNothingShape(i));
+    if(items.length === 1) {
+      return items[0].visit(this, context);
+    }
+    return {
+      oneOf: shape.Items.map(s => s.visit(this, context))
+    } as any;
+  }
+  public functionShape(shape: FunctionShape<FunctionArgs, Shape>): JsonSchema {
+    throw new Error("JSON schema does not support function types");
+  }
+  public anyShape(shape: AnyShape, context: undefined): AnySchema {
     return {
       type: {}
     };
@@ -85,17 +107,17 @@ export class ToJsonSchemaVisitor implements Visitor<JsonSchema> {
     };
   }
 
-  public recordShape(shape: RecordShape<any>): ObjectSchema<any> {
-    const required = Object.values(shape.Members)
-      .map((value) => {
-        return (value.Metadata as any).nullable === true ? [] : [value.Name];
+  public recordShape(shape: TypeShape<any>): ObjectSchema<any> {
+    const required = (Object.entries(shape.Members) as [string, Shape][])
+      .map(([name, member]) => {
+        return isOptional(member) || ShapeGuards.isNothingShape(member) ? [] : [name];
       })
       .reduce((a, b) => a.concat(b), []);
 
     const schema: any = {
       type: 'object',
       properties: Object.entries(shape.Members)
-        .map(([name, member]) => ({ [name]: (member as any).Shape.visit(this) }))
+        .map(([name, member]) => ({ [name]: (member as any).visit(this) }))
         .reduce((a, b) => ({...a, ...b}), {})
     };
     if (required.length > 0) {

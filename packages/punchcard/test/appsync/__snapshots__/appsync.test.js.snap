@@ -1,0 +1,1121 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`should 1`] = `
+Object {
+  "Resources": Object {
+    "GetRelatedPosts45E2F422": Object {
+      "Properties": Object {
+        "Code": Object {
+          "ZipFile": "exports.handler = function(){ throw new Error(\\"Mocked code is running, oops!\\");}",
+        },
+        "Environment": Object {
+          "Variables": Object {
+            "entrypoint_id": "1",
+            "is_runtime": "true",
+          },
+        },
+        "Handler": "index.handler",
+        "Role": Object {
+          "Fn::GetAtt": Array [
+            "GetRelatedPostsServiceRoleAB59E692",
+            "Arn",
+          ],
+        },
+        "Runtime": "nodejs10.x",
+      },
+      "Type": "AWS::Lambda::Function",
+    },
+    "GetRelatedPostsServiceRoleAB59E692": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "lambda.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "ManagedPolicyArns": Array [
+          Object {
+            "Fn::Join": Array [
+              "",
+              Array [
+                "arn:",
+                Object {
+                  "Ref": "AWS::Partition",
+                },
+                ":iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+              ],
+            ],
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApi3597551C": Object {
+      "Properties": Object {
+        "AuthenticationType": "AMAZON_COGNITO_USER_POOLS",
+        "LogConfig": Object {
+          "CloudWatchLogsRoleArn": Object {
+            "Fn::GetAtt": Array [
+              "MyApiCloudWatchRole2BEC1A9C",
+              "Arn",
+            ],
+          },
+          "FieldLogLevel": "ALL",
+        },
+        "Name": "MyApi",
+        "UserPoolConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "DefaultAction": "ALLOW",
+          "UserPoolId": Object {
+            "Ref": "UserPool6BA7E5F2",
+          },
+        },
+      },
+      "Type": "AWS::AppSync::GraphQLApi",
+    },
+    "MyApiApiCache6C5B11D6": Object {
+      "Properties": Object {
+        "ApiCachingBehavior": "PER_RESOLVER_CACHING",
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "Ttl": 60,
+        "Type": "T2_SMALL",
+      },
+      "Type": "AWS::AppSync::ApiCache",
+    },
+    "MyApiCloudWatchRole2BEC1A9C": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiCloudWatchRoleDefaultPolicy04DC78F2": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "logs:DescribeLogStreams",
+              ],
+              "Effect": "Allow",
+              "Resource": "arn:aws:logs:*:*:*",
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiCloudWatchRoleDefaultPolicy04DC78F2",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiCloudWatchRole2BEC1A9C",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiDataSourceMutationcreatePost115C208AA": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DynamoDBConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "TableName": Object {
+            "Ref": "PostStoreE7B00A44",
+          },
+        },
+        "Name": "Mutation_createPost1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcesMutationcreatePost1Role129EF312",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "MyApiDataSourceMutationcreateUser1B5662CD3": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DynamoDBConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "TableName": Object {
+            "Ref": "UserStore7DE05EBF",
+          },
+        },
+        "Name": "Mutation_createUser1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcesMutationcreateUser1Role5943B849",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "MyApiDataSourceMutationupdatePost174DAD62C": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DynamoDBConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "TableName": Object {
+            "Ref": "PostStoreE7B00A44",
+          },
+        },
+        "Name": "Mutation_updatePost1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcesMutationupdatePost1RoleEF885A63",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "MyApiDataSourcePostrelatedPosts180328305": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "LambdaConfig": Object {
+          "LambdaFunctionArn": Object {
+            "Fn::GetAtt": Array [
+              "GetRelatedPosts45E2F422",
+              "Arn",
+            ],
+          },
+        },
+        "Name": "Post_relatedPosts1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcesPostrelatedPosts1RoleC208A0EC",
+            "Arn",
+          ],
+        },
+        "Type": "AWS_LAMBDA",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "MyApiDataSourceQuerygetPost10B9473D8": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DynamoDBConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "TableName": Object {
+            "Ref": "PostStoreE7B00A44",
+          },
+        },
+        "Name": "Query_getPost1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcesQuerygetPost1Role15C4E688",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "MyApiDataSourceQuerygetUser1CDEE7CB0": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DynamoDBConfig": Object {
+          "AwsRegion": Object {
+            "Ref": "AWS::Region",
+          },
+          "TableName": Object {
+            "Ref": "UserStore7DE05EBF",
+          },
+        },
+        "Name": "Query_getUser1",
+        "ServiceRoleArn": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcesQuerygetUser1Role428D0EA5",
+            "Arn",
+          ],
+        },
+        "Type": "AMAZON_DYNAMODB",
+      },
+      "Type": "AWS::AppSync::DataSource",
+    },
+    "MyApiDataSourcesMutationcreatePost1Role129EF312": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesMutationcreatePost1RoleDefaultPolicyEAF7F7C4": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "PostStoreE7B00A44",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiDataSourcesMutationcreatePost1RoleDefaultPolicyEAF7F7C4",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiDataSourcesMutationcreatePost1Role129EF312",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiDataSourcesMutationcreateUser1Role5943B849": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesMutationcreateUser1RoleDefaultPolicyBF9367D2": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "UserStore7DE05EBF",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiDataSourcesMutationcreateUser1RoleDefaultPolicyBF9367D2",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiDataSourcesMutationcreateUser1Role5943B849",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiDataSourcesMutationupdatePost1RoleDefaultPolicyCE83935B": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchWriteItem",
+                "dynamodb:PutItem",
+                "dynamodb:UpdateItem",
+                "dynamodb:DeleteItem",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "PostStoreE7B00A44",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiDataSourcesMutationupdatePost1RoleDefaultPolicyCE83935B",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiDataSourcesMutationupdatePost1RoleEF885A63",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiDataSourcesMutationupdatePost1RoleEF885A63": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesPostrelatedPosts1RoleC208A0EC": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesPostrelatedPosts1RoleDefaultPolicy08B55495": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "lambda:InvokeFunction",
+              "Effect": "Allow",
+              "Resource": Object {
+                "Fn::GetAtt": Array [
+                  "GetRelatedPosts45E2F422",
+                  "Arn",
+                ],
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiDataSourcesPostrelatedPosts1RoleDefaultPolicy08B55495",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiDataSourcesPostrelatedPosts1RoleC208A0EC",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiDataSourcesQuerygetPost1Role15C4E688": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesQuerygetPost1RoleDefaultPolicy1FCBC18A": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "PostStoreE7B00A44",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiDataSourcesQuerygetPost1RoleDefaultPolicy1FCBC18A",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiDataSourcesQuerygetPost1Role15C4E688",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiDataSourcesQuerygetUser1Role428D0EA5": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "appsync.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "MyApiDataSourcesQuerygetUser1RoleDefaultPolicyC485FA78": Object {
+      "Properties": Object {
+        "PolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": Array [
+                "dynamodb:BatchGetItem",
+                "dynamodb:GetRecords",
+                "dynamodb:GetShardIterator",
+                "dynamodb:Query",
+                "dynamodb:GetItem",
+                "dynamodb:Scan",
+              ],
+              "Effect": "Allow",
+              "Resource": Array [
+                Object {
+                  "Fn::GetAtt": Array [
+                    "UserStore7DE05EBF",
+                    "Arn",
+                  ],
+                },
+                Object {
+                  "Ref": "AWS::NoValue",
+                },
+              ],
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "PolicyName": "MyApiDataSourcesQuerygetUser1RoleDefaultPolicyC485FA78",
+        "Roles": Array [
+          Object {
+            "Ref": "MyApiDataSourcesQuerygetUser1Role428D0EA5",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Policy",
+    },
+    "MyApiResolveMutationcreatePost9ADFC13A": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourceMutationcreatePost115C208AA",
+            "Name",
+          ],
+        },
+        "FieldName": "createPost",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "#set($context.stash.var1 = $util.autoId())
+#set($context.stash.var2 = $util.time.nowISO8601())
+#if($util.isNull($context.arguments.content))
+  #set($context.stash.var3 = \\"content\\")
+  #set($local1 = $context.stash.var3)
+  
+#{else}
+  #set($local1 = $context.arguments.content)
+  
+#end
+#set($context.stash.var4 = $context.stash.var3)
+#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
+#if(!$CONDITION.isEmpty())
+  #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
+  #set($context.stash.var5 = {})
+  $util.qr($context.stash.var5.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var5.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var5.put(\\"expressionValues\\", $VALUES))
+  #set($local2 = $context.stash.var5)
+  
+#end
+#set($context.stash.var6 = $local2)
+{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"PutItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.stash.var1)
+  },
+  \\"attributeValues\\": {
+    \\"title\\": $util.dynamodb.toDynamoDBJson($context.arguments.title),
+    \\"content\\": $util.dynamodb.toDynamoDBJson($context.stash.var4),
+    \\"channel\\": {
+      \\"S\\": \\"category\\"
+    },
+    \\"timestamp\\": $util.dynamodb.toDynamoDBJson($context.stash.var2),
+    \\"tags\\": {
+      \\"SS\\": [
+        
+      ]
+    }
+  },
+  \\"condition\\": $util.toJson($context.stash.var6)
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var7 = $context.result)
+
+$util.toJson($context.stash.var7)",
+        "TypeName": "Mutation",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiResolveMutationcreateUser7D4BA117": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourceMutationcreateUser1B5662CD3",
+            "Name",
+          ],
+        },
+        "FieldName": "createUser",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "#set($context.stash.var1 = $util.autoId())
+#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
+#if(!$CONDITION.isEmpty())
+  #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
+  #set($context.stash.var2 = {})
+  $util.qr($context.stash.var2.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var2.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var2.put(\\"expressionValues\\", $VALUES))
+  #set($local1 = $context.stash.var2)
+  
+#end
+#set($context.stash.var3 = $local1)
+{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"PutItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.stash.var1)
+  },
+  \\"attributeValues\\": {
+    \\"alias\\": $util.dynamodb.toDynamoDBJson($context.arguments.alias)
+  },
+  \\"condition\\": $util.toJson($context.stash.var3)
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var4 = $context.result)
+
+$util.toJson($context.stash.var4)",
+        "TypeName": "Mutation",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiResolveMutationupdatePost57C2DFBA": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourceMutationupdatePost174DAD62C",
+            "Name",
+          ],
+        },
+        "FieldName": "updatePost",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "#set($CONDITION = [])
+#set($VALUES = {})
+#set($NAMES = {})
+#set($ADD = [])
+#set($DELETE = [])
+#set($SET = [])
+#if($context.arguments.id.equalsIgnoreCase(\\"sam\\"))
+  $util.qr($NAMES.put(\\"#1\\", \\"id\\"))
+  $util.qr($VALUES.put(\\":1\\", $util.dynamodb.toString(\\"sam\\")))
+  $util.qr($NAMES.put(\\"#2\\", \\"tags\\"))
+  #set($var1 = $util.dynamodb.toNumber(0))
+  $util.qr($VALUES.put(\\":2\\", $var1))
+  $util.qr($CONDITION.add(\\"#1 = :1 and size(#2) > :2\\"))
+  
+#end
+#if($util.typeOf($context.arguments.title) == \\"String\\")
+  $util.qr($NAMES.put(\\"#3\\", \\"title\\"))
+  $util.qr($VALUES.put(\\":3\\", $util.dynamodb.toDynamoDB($context.arguments.title)))
+  $util.qr($SET.add(\\"#3 = :3\\"))
+  
+#end
+#set($EXPRESSION = \\"\\")
+
+## DynamoDB Update Expressions - SET
+#if(!$SET.isEmpty())
+  #set($EXPRESSION = \\"$EXPRESSION SET #foreach($item in $SET)$item#if($foreach.hasNext), #end#end\\")
+  
+#end
+
+## DynamoDB Update Expressions - ADD
+#if(!$ADD.isEmpty())
+  #set($EXPRESSION = \\"$EXPRESSION ADD #foreach($item in $ADD)$item#if($foreach.hasNext), #end#end\\")
+  
+#end
+
+## DynamoDB Update Expressions - DELETE
+#if(!$DELETE.isEmpty())
+  #set($EXPRESSION = \\"$EXPRESSION DELETE #foreach($item in $DELETE)$item#if($foreach.hasNext), #end#end\\")
+  
+#end
+#if(!$CONDITION.isEmpty())
+  #set($conditionExpression = \\"#foreach($item in $CONDITION)($item)#if($foreach.hasNext) and #end#end\\")
+  #set($context.stash.var2 = {})
+  $util.qr($context.stash.var2.put(\\"expression\\", $conditionExpression))
+  $util.qr($context.stash.var2.put(\\"expressionNames\\", $NAMES))
+  $util.qr($context.stash.var2.put(\\"expressionValues\\", $VALUES))
+  #set($local6 = $context.stash.var2)
+  
+#end
+#set($context.stash.var3 = $local6)
+{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"UpdateItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.arguments.id)
+  },
+  \\"update\\": {
+    \\"expression\\": $util.toJson($EXPRESSION),
+    \\"expressionNames\\": $util.toJson($NAMES),
+    \\"expressionValues\\": $util.toJson($VALUES)
+  },
+  \\"condition\\": $util.toJson($context.stash.var3)
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var4 = $context.result)
+
+$util.toJson($context.stash.var4)",
+        "TypeName": "Mutation",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiResolvePostrelatedPostsBD59287C": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourcePostrelatedPosts180328305",
+            "Name",
+          ],
+        },
+        "FieldName": "relatedPosts",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"Invoke\\",
+  \\"payload\\": $util.toJson($context.source.id)
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result)
+
+$util.toJson($context.stash.var1)",
+        "TypeName": "Post",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiResolveQuerygetPostF0D4061E": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "CachingConfig": Object {
+          "CachingKeys": Array [
+            "$context.arguments.id",
+          ],
+          "Ttl": 60,
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourceQuerygetPost10B9473D8",
+            "Name",
+          ],
+        },
+        "FieldName": "getPost",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"GetItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.arguments.id)
+  }
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result)
+
+$util.toJson($context.stash.var1)",
+        "TypeName": "Query",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiResolveQuerygetUser2A518A6C": Object {
+      "DependsOn": Array [
+        "MyApiSchema552ABCAD",
+      ],
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "CachingConfig": Object {
+          "CachingKeys": Array [
+            "$context.arguments.id",
+          ],
+          "Ttl": 60,
+        },
+        "DataSourceName": Object {
+          "Fn::GetAtt": Array [
+            "MyApiDataSourceQuerygetUser1CDEE7CB0",
+            "Name",
+          ],
+        },
+        "FieldName": "getUser",
+        "Kind": "UNIT",
+        "RequestMappingTemplate": "{
+  \\"version\\": \\"2017-02-28\\",
+  \\"operation\\": \\"GetItem\\",
+  \\"key\\": {
+    \\"id\\": $util.dynamodb.toDynamoDBJson($context.arguments.id)
+  }
+}",
+        "ResponseMappingTemplate": "#set($context.stash.var1 = $context.result)
+
+$util.toJson($context.stash.var1)",
+        "TypeName": "Query",
+      },
+      "Type": "AWS::AppSync::Resolver",
+    },
+    "MyApiSchema552ABCAD": Object {
+      "Properties": Object {
+        "ApiId": Object {
+          "Fn::GetAtt": Array [
+            "MyApi3597551C",
+            "ApiId",
+          ],
+        },
+        "Definition": "type Query {
+  getUser(id: ID!): User!
+    @aws_cognito_user_pools(cognito_groups: [\\"Reader\\"])
+  getPost(id: ID!): Post!
+    @aws_cognito_user_pools(cognito_groups: [\\"Write\\"])
+}
+type User {
+  id: ID!
+  alias: String!
+}
+type Post {
+  id: ID!
+  title: String!
+  content: String!
+  channel: String!
+  timestamp: AWSDateTime!
+  tags: [String!]!
+  relatedPosts(sortType: SortType!): [Post!]!
+    @aws_cognito_user_pools(cognito_groups: [\\"Reader\\"])
+}
+enum SortType {
+  NEW
+  OLD
+}
+type Mutation {
+  createUser(alias: String!): User!
+    @aws_cognito_user_pools(cognito_groups: [\\"Writer\\"])
+  createPost(title: String!,content: String!): Post!
+    @aws_cognito_user_pools(cognito_groups: [\\"Write\\"])
+  updatePost(id: ID!,title: String,content: String,tags: [String!]): Post!
+    @aws_cognito_user_pools(cognito_groups: [\\"Write\\"])
+}
+schema {
+  query: Query,
+  mutation: Mutation
+}",
+      },
+      "Type": "AWS::AppSync::GraphQLSchema",
+    },
+    "PostStoreE7B00A44": Object {
+      "DeletionPolicy": "Retain",
+      "Properties": Object {
+        "AttributeDefinitions": Array [
+          Object {
+            "AttributeName": "id",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": Array [
+          Object {
+            "AttributeName": "id",
+            "KeyType": "HASH",
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+    "UserPool6BA7E5F2": Object {
+      "Properties": Object {
+        "AccountRecoverySetting": Object {
+          "RecoveryMechanisms": Array [
+            Object {
+              "Name": "verified_phone_number",
+              "Priority": 1,
+            },
+            Object {
+              "Name": "verified_email",
+              "Priority": 2,
+            },
+          ],
+        },
+        "AdminCreateUserConfig": Object {
+          "AllowAdminCreateUserOnly": true,
+        },
+        "AutoVerifiedAttributes": Array [
+          "email",
+        ],
+        "EmailVerificationMessage": "The verification code to your new account is {####}",
+        "EmailVerificationSubject": "Verify your new account",
+        "Schema": Array [
+          Object {
+            "Mutable": true,
+            "Name": "email",
+            "Required": true,
+          },
+          Object {
+            "Mutable": true,
+            "Name": "birthdate",
+            "Required": true,
+          },
+          Object {
+            "AttributeDataType": "Number",
+            "Name": "favoriteNumber",
+          },
+        ],
+        "SmsConfiguration": Object {
+          "ExternalId": "stackUserPool4933E007",
+          "SnsCallerArn": Object {
+            "Fn::GetAtt": Array [
+              "UserPoolsmsRole4EA729DD",
+              "Arn",
+            ],
+          },
+        },
+        "SmsVerificationMessage": "The verification code to your new account is {####}",
+        "UsernameAttributes": Array [
+          "email",
+        ],
+        "VerificationMessageTemplate": Object {
+          "DefaultEmailOption": "CONFIRM_WITH_CODE",
+          "EmailMessage": "The verification code to your new account is {####}",
+          "EmailSubject": "Verify your new account",
+          "SmsMessage": "The verification code to your new account is {####}",
+        },
+      },
+      "Type": "AWS::Cognito::UserPool",
+    },
+    "UserPoolsmsRole4EA729DD": Object {
+      "Properties": Object {
+        "AssumeRolePolicyDocument": Object {
+          "Statement": Array [
+            Object {
+              "Action": "sts:AssumeRole",
+              "Condition": Object {
+                "StringEquals": Object {
+                  "sts:ExternalId": "stackUserPool4933E007",
+                },
+              },
+              "Effect": "Allow",
+              "Principal": Object {
+                "Service": "cognito-idp.amazonaws.com",
+              },
+            },
+          ],
+          "Version": "2012-10-17",
+        },
+        "Policies": Array [
+          Object {
+            "PolicyDocument": Object {
+              "Statement": Array [
+                Object {
+                  "Action": "sns:Publish",
+                  "Effect": "Allow",
+                  "Resource": "*",
+                },
+              ],
+              "Version": "2012-10-17",
+            },
+            "PolicyName": "sns-publish",
+          },
+        ],
+      },
+      "Type": "AWS::IAM::Role",
+    },
+    "UserStore7DE05EBF": Object {
+      "DeletionPolicy": "Retain",
+      "Properties": Object {
+        "AttributeDefinitions": Array [
+          Object {
+            "AttributeName": "id",
+            "AttributeType": "S",
+          },
+        ],
+        "BillingMode": "PAY_PER_REQUEST",
+        "KeySchema": Array [
+          Object {
+            "AttributeName": "id",
+            "KeyType": "HASH",
+          },
+        ],
+      },
+      "Type": "AWS::DynamoDB::Table",
+      "UpdateReplacePolicy": "Retain",
+    },
+  },
+}
+`;

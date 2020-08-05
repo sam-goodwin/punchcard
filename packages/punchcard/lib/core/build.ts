@@ -1,24 +1,4 @@
-import { Monad1 } from 'fp-ts/lib/Monad';
-
-import { IO } from 'fp-ts/lib/IO';
 import { HList } from '../util';
-
-const URI = 'Build';
-type URI = typeof URI;
-
-declare module 'fp-ts/lib/HKT' {
-  interface URItoKind<A> {
-    Build: Build<A>
-  }
-}
-
-export const BUILD: Monad1<URI> = {
-  URI,
-  ap: (fab, fa) => BUILD.chain(fab, ab => fa.map(ab)),
-  chain: (fa, f) => new Build(() => Build.resolve(f(Build.resolve(fa)))),
-  map: (fa, f) => new Build(() => f(Build.resolve(fa))),
-  of: (a) => new Build(() => a),
-};
 
 const get = Symbol.for('Build.get');
 
@@ -56,10 +36,10 @@ export class Build<A> {
   }
 
   public static of<A>(a: A): Build<A> {
-    return BUILD.of(a);
+    return new Build(() => a);
   }
 
-  public static lazy<A>(a: IO<A>): Build<A> {
+  public static lazy<A>(a: () => A): Build<A> {
     return new Build(a);
   }
 
@@ -69,44 +49,43 @@ export class Build<A> {
     return a[get]();
   }
 
-  public readonly [get]: IO<A>;
+  private readonly [get]: () => A;
 
-  constructor(public readonly io: IO<A>) {
+  constructor(public readonly io: () => A) {
     // add this Build instance to the global state
     add(this);
 
     // memoize
     let isMemoized = false;
-    let value: A | undefined;
-    let i = 0;
+    let memoizedValue: A | undefined;
+    let memoizedError: Error | undefined;
     this[get] = () => {
       if (process.env.is_runtime === 'true') {
-        const err = 'attempted to resolve a Build value at runtime';
-        console.error(err);
-        throw new Error(err);
+        throw new Error('attempted to resolve a Build value at runtime');
       }
       if (!isMemoized) {
-        i += 1;
-        if (i > 1) {
-          throw new Error('broke');
+        try {
+          memoizedValue = io();
+        } catch (err) {
+          // we should also memoize the error if it throws one to avoid confusing errors
+          memoizedError = err;
         }
-        value = io();
         isMemoized = true;
       }
-      return value!;
+      if (memoizedError) {
+        throw memoizedError;
+      } else {
+        return memoizedValue!;
+      }
     };
   }
 
-  public ap<B>(fab: Build<(a: A) => B>, fa: Build<A>): Build<B> {
-    return BUILD.ap(fab, fa);
-  }
-
   public map<B>(f: (a: A) => B): Build<B> {
-    return BUILD.map(this, f);
+    return new Build(() => f(this[get]()));
   }
 
   public chain<C2>(f: (a: A) => Build<C2>): Build<C2> {
-    return BUILD.chain(this, f);
+    return new Build(() =>  Build.resolve(f(this[get]())));
   }
 
   public static concat<T extends any[]>(...buildArray: T): Flatten<HList<T>> {

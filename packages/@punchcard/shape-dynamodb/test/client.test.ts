@@ -2,21 +2,23 @@ import 'jest';
 
 import sinon = require('sinon');
 
-import { any, array, map, number, Record, string } from '@punchcard/shape';
+import { any, array, map, number, optional, string, Type, union } from '@punchcard/shape';
 import { TableClient } from '../lib/client';
 
 // tslint:disable: member-access
-class Type extends Record({
+class DataType extends Type('Type', {
   key: string,
   count: number,
   list: array(string),
   dict: map(string),
   dynamic: any,
+  optional: optional(string),
+  union: union(string, number)
 }) {}
 
 const hashTable = new TableClient({
   tableName: 'my-table-name',
-  data: Type,
+  data: DataType,
   key: {
     partition: 'key'
   },
@@ -24,7 +26,7 @@ const hashTable = new TableClient({
 
 const sortedTable = new TableClient({
   tableName: 'my-table-name',
-  data: Type,
+  data: DataType,
   key: {
     partition: 'key',
     sort: 'count'
@@ -45,7 +47,9 @@ test('getItem', async () => {
       count: { N: '1' },
       list: { L: [ {S: 'list value'} ] },
       dict: { M: { key: { S: 'string' } } },
-      dynamic: { S: 'value' }
+      dynamic: { S: 'value' },
+      optional: { S: 'optional' },
+      union: { N: '1' }
     }
   });
   const getItem = sinon.fake.returns({ promise: getItemPromise });
@@ -57,12 +61,14 @@ test('getItem', async () => {
   const skResult = await sortedTable.get({ key: 'value', count: 1});
 
   expect(hkResult).toEqual(skResult);
-  expect(skResult).toEqual(new Type({
+  expect(skResult).toEqual(new DataType({
     key: 'value',
     count: 1,
     list: ['list value'],
     dict: { key: 'string' },
-    dynamic: 'value'
+    dynamic: 'value',
+    optional: 'optional',
+    union: 1
   }));
 
   expect(getItem.args[0][0]).toEqual({
@@ -87,16 +93,18 @@ test('put-if', async () => {
     putItem
   });
 
-  await sortedTable.put(new Type({
+  await sortedTable.put(new DataType({
     key: 'key',
     count: 1,
     list: ['a', 'b'],
     dict: {
       key: 'value'
     },
-    dynamic: 'dynamic-value'
+    dynamic: 'dynamic-value',
+    optional: 'optional',
+    union: 1
   }), {
-    if: _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.a.equals('value'))
+    if: _ => _.count.equals(1).and(_.list[0].lessThanOrEqual(0)).and(_.dict.get('a').equals('value'))
   });
 
   expect(putItem.args[0][0]).toEqual({
@@ -106,7 +114,9 @@ test('put-if', async () => {
       count: { N: '1' },
       list: { L: [ {S: 'a'}, {S: 'b'} ] },
       dict: { M: { key: { S: 'value' } } },
-      dynamic: { S: 'dynamic-value' }
+      dynamic: { S: 'dynamic-value' },
+      optional: { S: 'optional' },
+      union: { N: '1' }
     },
     ConditionExpression: '((#1=:1 AND #2[0]<=:2) AND #3.#4=:3)',
     ExpressionAttributeNames: {

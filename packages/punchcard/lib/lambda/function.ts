@@ -1,44 +1,50 @@
 import AWS = require('aws-sdk');
 
+import type * as iam from '@aws-cdk/aws-iam';
+import type * as lambda from '@aws-cdk/aws-lambda';
+import type * as cdk from '@aws-cdk/core';
+
 import { Json } from '@punchcard/shape-json';
 
-import { any, AnyShape, Mapper, MapperFactory, ShapeOrRecord, Value } from '@punchcard/shape';
+import { any, AnyShape, Mapper, MapperFactory, NothingShape, Pointer, Shape, Value } from '@punchcard/shape';
+import { DataSourceType, VExpression } from '../appsync';
+import { call } from '../appsync/lang/statement';
+import { VTL } from '../appsync/lang/vtl';
+import { VObject } from '../appsync/lang/vtl-object';
 import { Assembly } from '../core/assembly';
 import { Build } from '../core/build';
 import { Cache } from '../core/cache';
 import { CDK } from '../core/cdk';
 import { Client } from '../core/client';
 import { Code } from '../core/code';
+import { Scope } from '../core/construct';
 import { Dependency } from '../core/dependency';
+import { Duration } from '../core/duration';
 import { Entrypoint, entrypoint } from '../core/entrypoint';
 import { Global } from '../core/global';
 import { Resource } from '../core/resource';
 import { Run } from '../core/run';
 import { ENTRYPOINT_ENV_KEY, IS_RUNTIME_ENV_KEY } from '../util/constants';
 
-import type * as lambda from '@aws-cdk/aws-lambda';
-import type * as cdk from '@aws-cdk/core';
-import { Duration } from '../core/duration';
-
 /**
  * Overridable subset of @aws-cdk/aws-lambda.FunctionProps
  */
 export interface FunctionOverrideProps extends Omit<Partial<lambda.FunctionProps>, 'code' | 'functionName' | 'handler' | 'runtime' | 'memorySize'> {}
 
-export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> {
+export interface HandlerProps<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined> {
   /**
    * Type of the request
    *
    * @default any
    */
-  request?: T;
+  request?: Pointer<T>;
 
   /**
    * Type of the response
    *
    * @default any
    */
-  response?: U;
+  response?: Pointer<U>;
 
   /**
    * Factory for a `Mapper` to serialize shapes to/from a `string`.
@@ -52,8 +58,11 @@ export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends Sha
    *
    * Each client will have a chance to grant permissions to the function and environment variables.
    */
-  depends?: D;
+  depends?: D | ((it?: undefined) => D);
+}
 
+export interface FunctionProps<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = undefined>
+    extends HandlerProps<T, U, D> {
   /**
    * A name for the function.
    *
@@ -101,7 +110,7 @@ export interface FunctionProps<T extends ShapeOrRecord = AnyShape, U extends Sha
  * @typeparam U return type
  * @typeparam D runtime dependencies
  */
-export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecord = AnyShape, D extends Dependency<any> | undefined = undefined> implements Entrypoint, Resource<lambda.Function> {
+export class Function<T extends Shape = AnyShape, U extends Shape = AnyShape, D extends Dependency<any> | undefined = any> implements Entrypoint, Resource<lambda.Function> {
   public readonly [entrypoint] = true;
   public readonly filePath: string;
 
@@ -123,22 +132,39 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
    */
   public readonly handle: (event: Value.Of<T>, clients: Client<D>, context: any) => Promise<Value.Of<U>>;
 
-  private readonly dependencies?: D;
+  public readonly request: Pointer<T>;
+  public readonly response: Pointer<U>;
 
-  private readonly requestMapper: Mapper<Value.Of<T>, Json.Of<T>>;
-  private readonly responseMapper: Mapper<Value.Of<U>, Json.Of<T>>;
+  private readonly depends?: D | ((it?: undefined) => D);
 
-  constructor(scope: Build<cdk.Construct>, id: string, props: FunctionProps<T, U, D>, handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<Value.Of<U>>) {
-    this.handle = handle;
+  private readonly mapperFactory: MapperFactory<Json.Of<T>>;
+
+  private _dependencies: D;
+  private get dependencies(): D {
+    if (this._dependencies === undefined && this.depends !== undefined) {
+      this._dependencies = (this.depends as any).install ?
+        this.depends as D :
+        (this.depends as () => D)();
+    }
+    return this._dependencies;
+  }
+
+  constructor(
+    scope: Scope,
+    id: string,
+    props: FunctionProps<T, U, D>,
+    handle: (event: Value.Of<T>, run: Client<D>, context: any) => Promise<U extends NothingShape ? void : Value.Of<U>>
+  ) {
+    this.request = (props.request || any) as any;
+    this.response = (props.request || any) as any;
+    this.handle = handle as any;
     const entrypointId = Global.addEntrypoint(this);
 
     // default to JSON serialization
-    const mapperFactory = (props.mapper || Json.mapper) as MapperFactory<Json.Of<T>>;
-    this.requestMapper = mapperFactory(props.request || any);
-    this.responseMapper = mapperFactory(props.response || any);
-    this.dependencies = props.depends;
+    this.mapperFactory = (props.mapper || Json.mapper) as MapperFactory<Json.Of<T>>;
+    this.depends = props.depends;
 
-    this.resource = CDK.chain(({lambda}) => scope.chain(scope => (props.functionProps || Build.empty).map(functionProps => {
+    this.resource = CDK.chain(({lambda}) => Scope.resolve(scope).chain(scope => (props.functionProps || Build.empty).map(functionProps => {
       const lambdaFunction: lambda.Function = new lambda.Function(scope, id, {
         code: Code.tryGetCode(scope) || Code.mock(),
         runtime: lambda.Runtime.NODEJS_10_X,
@@ -159,11 +185,12 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
       for (const [name, p] of Object.entries(assembly.properties)) {
         lambdaFunction.addEnvironment(name, p);
       }
-
       return lambdaFunction;
     })));
 
     this.entrypoint = Run.lazy(async () => {
+      const requestMapper = this.mapperFactory(Pointer.resolve(props.request) || any);
+      const responseMapper = this.mapperFactory(Pointer.resolve(props.response) || any);
       const bag: {[name: string]: string} = {};
       for (const [env, value] of Object.entries(process.env)) {
         if (env.startsWith('punchcard') && value !== undefined) {
@@ -178,16 +205,78 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
         client = await (Run.resolve(this.dependencies!.bootstrap))(runtimeProperties, cache);
       }
       return (async (event: any, context: any) => {
-        const parsed = this.requestMapper.read(event);
+        const parsed = requestMapper.read(event);
         try {
           const result = await this.handle(parsed as any, client, context);
-          return this.responseMapper.write(result as any);
+          return responseMapper.write(result as any);
         } catch (err) {
           console.error(err);
           throw err;
         }
       });
     });
+  }
+
+  /**
+   * Invoke this function from within an AWS AppSync Resolver.
+   *
+   * ```ts
+   * class A extends Record({
+   *   key: string
+   * }) {}
+   *
+   * const myFunction: Lambda.Function<typeof A, StringShape>;
+   * const obj: VObject.Of<typeof A>;
+   *
+   * // option 1 - pass a VObject that represents a reference to an A
+   * const response: VString = yield* myFunction.invoke(obj)
+   *
+   * // option 2 - pass in an object that is the same structure
+   * const id = yield* $util.autoId();
+   * const response: VString =  yield* myFunction.invoke({
+   *   key: id
+   * });
+   * ```
+   *
+   * @param request VTL object for the request
+   * @param props optional props to customize the Lambda data source.
+   */
+  public invoke(request: VObject.Like<T>, props?: Function.DataSourceProps): VTL<VObject.Of<U>> {
+    const requestShape: T = Pointer.resolve(this.request);
+    const responseShape: U = Pointer.resolve(this.response);
+
+    const requestObject = VObject.fromExpr(requestShape, VExpression.json({
+      version: '2017-02-28',
+      operation: 'Invoke',
+      payload: VObject.isObject(request) ?
+        VExpression.concat(
+          VExpression.text('$util.toJson('),
+          VObject.getExpr(request),
+          VExpression.text(')')
+        ) :
+        VExpression.json(request),
+    }));
+
+    const dataSourceProps = Build.concat(
+      CDK,
+      this.resource,
+      props?.serviceRole || Build.of(undefined)
+    ).map(([cdk, fn, serviceRole]) => (scope: cdk.Construct, id: string) => {
+      const role = serviceRole || new cdk.iam.Role(scope, `${id}:Role`, {
+        assumedBy: new cdk.iam.ServicePrincipal('appsync')
+      });
+      fn.grantInvoke(role);
+      return {
+        type: DataSourceType.AWS_LAMBDA,
+        lambdaConfig: {
+          lambdaFunctionArn: fn.functionArn
+        },
+        description: props?.description,
+        serviceRoleArn: role.roleArn,
+      };
+    });
+
+    return call(dataSourceProps, requestObject, responseShape) ;
   }
 
   /**
@@ -200,11 +289,13 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
         ns.set('functionArn', fn.functionArn);
       }),
       bootstrap: Run.of(async (ns, cache) => {
+        const requestMapper = this.mapperFactory(Pointer.resolve(this.request)) || any;
+        const responseMapper = this.mapperFactory(Pointer.resolve(this.response)) || any;
         return new Function.Client(
           cache.getOrCreate('aws:lambda', () => new AWS.Lambda()),
           ns.get('functionArn'),
-          Json.asString(this.requestMapper),
-          Json.asString(this.requestMapper)
+          Json.asString(requestMapper),
+          Json.asString(responseMapper)
         ) as any;
       })
     };
@@ -212,6 +303,11 @@ export class Function<T extends ShapeOrRecord = AnyShape, U extends ShapeOrRecor
 }
 
 export namespace Function {
+  export interface DataSourceProps {
+    description?: string;
+    serviceRole?: Build<iam.IRole>
+  }
+
   /**
    * Client for invoking a Lambda Function
    */
@@ -258,3 +354,4 @@ export namespace Function {
     }
   }
 }
+

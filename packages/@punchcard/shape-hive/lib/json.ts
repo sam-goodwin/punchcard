@@ -57,7 +57,7 @@ function pad(str: string | number, length: number) {
 export class JsonDataType implements DataType {
   public static readonly instance = new JsonDataType();
 
-  public readonly format = DataFormat.Json;
+  public readonly format = DataFormat.JSON;
 
   public readonly extension: 'json' = 'json';
 

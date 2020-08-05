@@ -1,27 +1,31 @@
 import { ArrayShape, MapShape, SetShape } from './collection';
-import { BinaryShape, BoolShape, DynamicShape, IntegerShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
-import { RecordShape, ShapeOrRecord } from './record';
+import { EnumShape } from './enum';
+import { FunctionArgs, FunctionShape } from './function';
+import { IsInstance } from './is-instance';
+import { LiteralShape } from './literal';
+import { AnyShape, BinaryShape, BoolShape, NeverShape, NothingShape, NumberShape, StringShape, TimestampShape } from './primitive';
 import { Shape } from './shape';
+import { TypeShape } from './type';
+import { UnionShape } from './union';
 import { Value } from './value';
-import { Visitor as ShapeVisitor } from './visitor';
+import { ShapeVisitor } from './visitor';
 
 /**
  * Computes whether two Values of a Shape are equal.
  */
-export type Equals<T extends Shape> = (a: Value.Of<T>, b: Value.Of<T>) => boolean;
+export type Equals<T> = (a: T, b: T) => boolean;
 
 export namespace Equals {
   const cache = new WeakMap();
 
-  export function of<T extends ShapeOrRecord>(type: T, noCache: boolean = false): Equals<Shape.Of<T>> {
-    const shape = Shape.of(type);
+  export function of<T extends Shape>(shape: T, noCache: boolean = false): Equals<Value.Of<T>> {
     if (noCache) {
       return make();
     }
-    if (!cache.has(type)) {
-      cache.set(type, make());
+    if (!cache.has(shape)) {
+      cache.set(shape, make());
     }
-    return cache.get(type);
+    return cache.get(shape);
 
     function make() {
       return (shape as any).visit(visitor );
@@ -29,10 +33,37 @@ export namespace Equals {
   }
 
   export class Visitor implements ShapeVisitor<Equals<any>> {
+    public enumShape(shape: EnumShape<any, any>, context: undefined): Equals<any> {
+      return (a, b) => a === b;
+    }
+    public literalShape(shape: LiteralShape<Shape, any>, context: undefined): Equals<any> {
+      return Equals.of(shape.Type);
+    }
+    public unionShape(shape: UnionShape<Shape[]>, context: undefined): Equals<any> {
+      const items = shape.Items.map(item => [IsInstance.of(item), Equals.of(item)] as const);
+      return (a, b) => {
+        if (a === b) {
+          return true;
+        }
+        for (const [isType, isEqual] of items) {
+          if (isType(a) && isType(b)) {
+            return isEqual(a, b);
+          }
+        }
+        return false;
+      };
+    }
+    public neverShape(shape: NeverShape, context: undefined): Equals<any> {
+      return (a, b) => false;
+    }
+    // todo: is this the logic we want?
+    public functionShape(shape: FunctionShape<FunctionArgs, Shape>): Equals<any> {
+      return (a, b) => a === b && typeof a === 'function';
+    }
     public nothingShape(shape: NothingShape, context: undefined): Equals<NothingShape> {
       return (a, b) => a === b && a === undefined;
     }
-    public dynamicShape(shape: DynamicShape<any>, context: undefined): Equals<DynamicShape<any>> {
+    public anyShape(shape: AnyShape, context: undefined): Equals<AnyShape> {
       return function equals(a: any, b: any): boolean {
         const type = typeof a;
         if (type !== typeof b) {
@@ -110,10 +141,10 @@ export namespace Equals {
     public boolShape(shape: BoolShape): Equals<BoolShape> {
       return (a, b) => a === b;
     }
-    public recordShape(shape: RecordShape<any>): Equals<RecordShape<any>> {
+    public recordShape(shape: TypeShape<any>): Equals<TypeShape<any>> {
       const fields = Object.entries(shape.Members)
         .map(([name, member]) => ({
-          [name]: of(member.Shape)
+          [name]: of((member as any))
         }))
         .reduce((a, b) => ({...a, ...b}));
 
@@ -160,9 +191,6 @@ export namespace Equals {
       }) as any;
     }
     public numberShape(shape: NumberShape): Equals<NumberShape> {
-      return (a, b) => a === b;
-    }
-    public integerShape(shape: IntegerShape): Equals<IntegerShape> {
       return (a, b) => a === b;
     }
     public setShape(shape: SetShape<any>): Equals<SetShape<any>> {

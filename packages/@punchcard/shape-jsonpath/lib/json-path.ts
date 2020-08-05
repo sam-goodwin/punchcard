@@ -1,8 +1,9 @@
-import { Member, Value, Visitor as ShapeVisitor } from '@punchcard/shape';
+import { EnumShape, LiteralShape, ShapeGuards, ShapeVisitor, UnionShape, Value } from '@punchcard/shape';
 import { array, ArrayShape, MapShape, SetShape } from '@punchcard/shape/lib/collection';
-import { BinaryShape, bool, BoolShape, DynamicShape, IntegerShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
-import { RecordShape, RecordType, ShapeOrRecord } from '@punchcard/shape/lib/record';
+import { FunctionArgs, FunctionShape } from '@punchcard/shape/lib/function';
+import { AnyShape, BinaryShape, bool, BoolShape, IntegerShape, NeverShape, NothingShape, number, NumberShape, string, StringShape, TimestampShape } from '@punchcard/shape/lib/primitive';
 import { Shape } from '@punchcard/shape/lib/shape';
+import { TypeShape } from '@punchcard/shape/lib/type';
 import { Writer } from './writer';
 
 const Objekt = Object;
@@ -13,15 +14,49 @@ export namespace JsonPath {
   export type Tag = typeof Tag;
   export const Tag = Symbol.for('@punchcard/shape-jsonpath.JsonPath.Tag');
 
-  export type Of<T extends ShapeOrRecord> = Shape.Of<T> extends { [Tag]: infer Q } ? Q : never;
+  export type Of<T extends Shape> =
+    T extends BinaryShape ? JsonPath.Binary :
+    T extends BoolShape ? JsonPath.Bool :
+    T extends AnyShape ? JsonPath.Any<T> :
+    T extends NumberShape ? JsonPath.Number :
+    T extends StringShape ? JsonPath.String :
 
-  export type Root<T extends RecordType> = Struct<Shape.Of<T>>[Fields];
+    T extends EnumShape ? JsonPath.String :
 
-  export function of<T extends RecordType>(type: T): Root<T> {
-    const shape = Shape.of(type);
+    T extends LiteralShape<infer S> ? {
+      [k in keyof T]: Of<S>
+    }[keyof T] :
+
+    T extends ArrayShape<infer I> ? JsonPath.Array<I> :
+    T extends MapShape<infer V> ? JsonPath.Map<V> :
+    T extends TypeShape<any> ? JsonPath.Struct<T> & {
+      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
+    } :
+    T extends SetShape<infer V> ? JsonPath.Array<V> :
+    T extends UnionShape<infer U> ?
+      U extends 1 ? {
+        [i in Extract<keyof U, number>]: Of<U[i]>
+      }[1] :
+      NothingShape extends Extract<U[Extract<keyof U, number>], NothingShape> ?
+        U['length'] extends 1 ? JsonPath.Object<NothingShape> :
+        U['length'] extends 2 ?
+          Exclude<{
+            [i in Extract<keyof U, number>]: Of<U[i]>;
+          }[Extract<keyof U, number>], JsonPath.Object<NothingShape>> :
+        JsonPath.Union<T> :
+      JsonPath.Union<T> :
+
+    T extends { [Tag]: infer Q } ? Q :
+
+    JsonPath.Object<T>
+    ;
+
+  export type Root<T extends TypeShape> = Struct<T>[Fields];
+
+  export function of<T extends TypeShape>(shape: T): Root<T> {
     const result: any = {};
-    for (const [name, member] of Objekt.entries(shape.Members)) {
-      result[name] = member.Shape.visit(visitor as any, new Id(member.Shape, `$['${name}']`));
+    for (const [name, member] of Objekt.entries(shape.Members) as [string, Shape][]) {
+      result[name] = member.visit(visitor as any, new Id(member, `$['${name}']`));
     }
     return result;
   }
@@ -122,8 +157,14 @@ export namespace JsonPath {
     }
   }
 
-  export class Dynamic<T extends DynamicShape<any | unknown>> extends Object<T> {
+  export class Any<T extends AnyShape> extends Object<T> {
     public as<S extends Shape>(shape: S): JsonPath.Of<S> {
+      return shape.visit(visitor as any, this);
+    }
+  }
+
+  export class Union<T extends UnionShape<Shape[]>> extends Object<T> {
+    public as<S extends T['Items'][Extract<keyof T['Items'], number>]>(shape: S): JsonPath.Of<S> {
       return shape.visit(visitor as any, this);
     }
   }
@@ -357,17 +398,17 @@ export namespace JsonPath {
 
   export const Fields = Symbol.for('@punchcard/shape-jsonpath.JsonPath.Fields');
   export type Fields = typeof Fields;
-  export class Struct<T extends RecordShape<any, any>> extends Object<T> {
+
+  export class Struct<T extends TypeShape<any>> extends Object<T> {
     public readonly [Fields]: {
-      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]['Shape']>;
+      [fieldName in keyof T['Members']]: Of<T['Members'][fieldName]>;
     };
 
     constructor(type: T, expression: ExpressionNode<T>) {
       super(type, expression);
       this[Fields] = {} as any;
-      for (const [name, prop] of Objekt.entries(type.Members)) {
-        Member.assertInstance(prop);
-        (this[Fields] as any)[name] = prop.Shape.visit(visitor as any, new Struct.Field(this, prop.Shape, name));
+      for (const [name, prop] of Objekt.entries(type.Members) as [string, Shape][]) {
+        (this[Fields] as any)[name] = prop.visit(visitor as any, new Struct.Field(this, prop, name));
       }
     }
   }
@@ -388,11 +429,30 @@ export namespace JsonPath {
 }
 
 class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
+  public enumShape(shape: EnumShape<any, any>, expr: JsonPath.ExpressionNode<any>) {
+    return this.stringShape(string, expr);
+  }
+  public literalShape(shape: LiteralShape<Shape, any>, expr: JsonPath.ExpressionNode<any>): any {
+    return shape.Type.visit(this, expr);
+  }
+  public unionShape(shape: UnionShape<Shape[]>, expr: JsonPath.ExpressionNode<any>): any {
+    const items = shape.Items.filter(i => !ShapeGuards.isNothingShape(i));
+    if (items.length === 1) {
+      return items[0].visit(this, expr);
+    }
+    throw new Error("Method not implemented.");
+  }
+  public neverShape(shape: NeverShape, context: JsonPath.ExpressionNode<any>) {
+    throw new Error("NeverShape is not supported by JSON Path");
+  }
+  public functionShape(shape: FunctionShape<FunctionArgs, Shape>) {
+    throw new Error("FunctionShape is not supported by JSON Path");
+  }
   public nothingShape(shape: NothingShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Object<NothingShape> {
     return new JsonPath.Object(shape, expression);
   }
-  public dynamicShape(shape: DynamicShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Dynamic<any> {
-    return new JsonPath.Dynamic(shape, expression);
+  public anyShape(shape: AnyShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Any<any> {
+    return new JsonPath.Any(shape, expression);
   }
   public binaryShape(shape: BinaryShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Binary {
     return new JsonPath.Binary(shape, expression);
@@ -414,7 +474,7 @@ class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
   public boolShape(shape: BoolShape, expression: JsonPath.ExpressionNode<any>): JsonPath.Bool {
     return new JsonPath.Bool(expression, shape);
   }
-  public recordShape(shape: RecordShape<any, any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Struct<RecordShape<any, any>> {
+  public recordShape(shape: TypeShape<any>, expression: JsonPath.ExpressionNode<any>): JsonPath.Struct<TypeShape<any>> {
     return new Proxy(new JsonPath.Struct(shape, expression), {
       get: (target, prop) => {
         if (typeof prop === 'string') {
@@ -455,47 +515,3 @@ class Visitor implements ShapeVisitor<any, JsonPath.ExpressionNode<any>> {
 }
 
 const visitor = new Visitor();
-
-declare module '@punchcard/shape/lib/shape' {
-  export interface Shape {
-    [JsonPath.Tag]: unknown;
-  }
-}
-declare module '@punchcard/shape/lib/primitive' {
-  export interface BoolShape {
-    [JsonPath.Tag]: JsonPath.Bool;
-  }
-  export interface NumberShape {
-    [JsonPath.Tag]: JsonPath.Number;
-  }
-  export interface StringShape {
-    [JsonPath.Tag]: JsonPath.String;
-  }
-  export interface TimestampShape {
-    [JsonPath.Tag]: JsonPath.String;
-  }
-}
-
-declare module '@punchcard/shape/lib/collection' {
-  export interface ArrayShape<T extends Shape> {
-    [JsonPath.Tag]: JsonPath.Array<T> & {
-      [key: number]: JsonPath.Of<T>;
-    };
-  }
-  export interface SetShape<T extends Shape> {
-    [JsonPath.Tag]: JsonPath.Array<T>;
-  }
-  export interface MapShape<T extends Shape> {
-    [JsonPath.Tag]: JsonPath.Map<T> & {
-      [key: string]: JsonPath.Of<T>;
-    };
-  }
-}
-
-declare module '@punchcard/shape/lib/record' {
-  export interface RecordShape<M extends RecordMembers, I = any> {
-    [JsonPath.Tag]: JsonPath.Struct<this> & {
-      [fieldName in keyof this['Members']]: JsonPath.Of<this['Members'][fieldName]['Shape']>;
-    };
-  }
-}
