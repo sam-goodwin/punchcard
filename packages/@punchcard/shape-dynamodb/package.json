@@ -38,11 +38,11 @@
     "jest": "^24.9.0",
     "sinon": "^8.0.1",
     "tslint": "^6.0.0",
-    "typescript": "^3.9.6"
+    "typescript": "^4.0.2"
   },
   "dependencies": {
+    "aws-sdk": "^2.738.0",
     "@punchcard/shape": "^0.3.0",
-    "aws-sdk": "^2.709.0",
     "typelevel-ts": "^0.4.0"
   },
   "peerDependencies": {

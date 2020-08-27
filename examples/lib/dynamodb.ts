@@ -115,8 +115,9 @@ Lambda.schedule(stack, 'Caller', {
       _.count.set(1), // item.count = 1
       _.count.decrement(1), // item.count -- or item.count -= 1
       _.count.increment(1), // item.count += 1
+
       _.count.set(_.count.plus(1)), // explicitly: item.count += 1
-      
+      _.count.set(_.struct.fields.number.minus(1)),
       // structs
       _.count.set(_.struct.fields.number), // item.count = item.struct.number
       _.struct.set(new Struct({ // item.struct = { 
@@ -130,6 +131,8 @@ Lambda.schedule(stack, 'Caller', {
       _.name.set(_.array[0]), // item.name = item.array[0]
       _.array[1].set('value'), // item.array[0] = 'value'
       _.array[1].set(_.name), // item.array[0] = item.name
+
+      _.array.push('hello'),
     ], 
     if: item => item.id.exists(),
   });

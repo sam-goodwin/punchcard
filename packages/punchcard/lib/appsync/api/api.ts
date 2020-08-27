@@ -58,7 +58,7 @@ export class Api<
     super(scope, id);
 
     this.fragments = props.fragments;
-    this.types = ApiFragments.reduce(...props.fragments);
+    this.types = ApiFragments.reduce(...props.fragments) as any;
     this.query = (this.types as any).Query;
     this.mutation = (this.types as any).Mutation;
     this.subscription = (this.types as any).Subscription;

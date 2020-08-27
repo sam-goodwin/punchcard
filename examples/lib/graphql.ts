@@ -35,7 +35,7 @@ interface PostQueryAPI {
 They don't have an implementation until you instantiate them. 
 */
 const PostQueryAPI = Query({
-  getPost: Fn({ id: ID }, Post),
+  getPost: Fn({ id: ID }, optional(Post)),
   searchPosts: Fn({content: string}, array(Post))
 });
 
@@ -118,7 +118,18 @@ export const PostApi = (
     await postIndex.index(...events.map(e => e.newImage!));
   });
 
-  // impl PostQueryAPI on Query (adds the `getPost` resolver function to the root of the API)
+  // lambda function we'll call from AppSync
+  const getPost = new Lambda.Function(stack, 'GetPostFn', {
+    request: Type({
+      id: string
+    }),
+    depends: postStore.readAccess()
+  }, async (request, postStore) => {
+    return await postStore.get({
+      id: request.id
+    });
+  })
+
   const postQueryApi = new PostQueryAPI({
     getPost: {
       cache: {
@@ -128,14 +139,8 @@ export const PostApi = (
         ttl: 60
       },
       *resolve({id}) {
-        // this generator function represents AWS AppSync's resolver pipeline
-        // you use yield* to issue commands that translate to Velocity Templates
-        // and AppSync Resolvers/Functions/DataSources.
-  
-        // here, we make a call to DynamoDB GetItem and return the result as JSON
-        return yield * postStore.get({
-          id
-        });
+        // call the DynamoDB Table from AppSync resolver
+        return yield* getPost.invoke({id});
       }
     },
 
@@ -198,20 +203,6 @@ export const PostApi = (
         return results.hits
       }
     }
-  });
-
-  // A Lambda Function that we call from the relatedPostsAPI AppSync Resolvers
-  const fn = new Lambda.Function(scope, 'GetRelatedPosts', {
-    request: array(string),
-    response: array(Post)
-  }, async (tags) => {
-    // dummy lambda function implemementation
-    return tags.map(tag => new Post({
-      id: 'id',
-      title: 'title',
-      content: `tag: ${tag}`,
-      tags
-    }));
   });
 
   // export thee API implementations

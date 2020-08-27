@@ -8,7 +8,10 @@ Punchcard is a TypeScript framework for building cloud applications with the [AW
 
 # Blog Series
 
-If you'd like to learn more about the philosophy behind this project, check out my blog series (WIP) [Punchcard: Imagining the future of cloud programming](https://bit.ly/punchcard-cdk).
+If you'd like to learn more about the philosophy behind this project, check out my blog series:
+* [Punchcard: Imagining the future of cloud programming](https://bit.ly/punchcard-cdk).
+* [Type-Safe Infrastructure, Part 1 — Data Types and Data Flows.](https://medium.com/swlh/punchcard-building-a-data-lake-5471cfadf66f?source=friends_link&sk=56b4d7647a348d53c1542d9b4ab9da17)
+* [Type Safe Infrastructure, Part 2 — GraphQL APIs with AWS AppSync.](https://medium.com/@sam.goodwin1989/type-safe-infrastructure-part-2-graphql-apis-with-aws-appsync-d1225e4e21e3?source=friends_link&sk=e27527002a553d5e3e2e6fc9c7d3ba1a)
 
 # Sample Repository
 

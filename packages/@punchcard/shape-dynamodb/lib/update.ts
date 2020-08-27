@@ -22,7 +22,7 @@ export namespace Update {
     write(DSL.ActionType.SET);
 
     const expr = writer.toExpression();
-    const res = {
+    const res: any = {
       UpdateExpression: expr.Expression,
       ExpressionAttributeNames: expr.ExpressionAttributeNames,
       ExpressionAttributeValues: expr.ExpressionAttributeValues,

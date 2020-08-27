@@ -1,7 +1,7 @@
 {
   "name": "punchcard",
   "description": "Type-safe AWS infrastructure.",
-  "version": "0.17.9",
+  "version": "0.17.11",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -44,7 +44,7 @@
     "sinon": "^8.0.1",
     "ts-jest": "25.4.0",
     "tslint": "^6.0.0",
-    "typescript": "^3.9.6"
+    "typescript": "^4.0.2"
   },
   "dependencies": {
     "constructs": "^3.0.4",
@@ -79,7 +79,7 @@
     "@punchcard/shape-jsonpath": "^0.3.0",
     "@punchcard/shape-jsonschema": "^0.3.0",
     "@punchcard/shape": "^0.3.0",
-    "aws-sdk": "^2.709.0",
+    "aws-sdk": "^2.738.0",
     "elasticsearch": "^16.7.1",
     "http-aws-es": "^6.0.0",
     "reflect-metadata": "0.1.13",

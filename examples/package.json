@@ -35,7 +35,7 @@
     "@aws-cdk/core": "1.51.0",
     "@aws-cdk/custom-resources": "1.51.0",
     "@types/uuid": "^3.4.4",
-    "punchcard": "^0.17.9",
+    "punchcard": "^0.17.11",
     "@punchcard/data-lake": "0.15.0",
     "@punchcard/constructs": "^0.6.0",
     "@punchcard/shape": "^0.3.0",

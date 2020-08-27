@@ -20,6 +20,9 @@ export namespace DSL {
     T extends BoolShape ? DSL.Bool :
     T extends AnyShape ? DSL.Any<T> :
     T extends NumberShape ? DSL.Number :
+    /*
+    { type: 'string' }
+    */
     T extends StringShape ? DSL.String :
     T extends TimestampShape ? DSL.Timestamp :
     T extends UnionShape<infer U> ?

@@ -12,7 +12,7 @@ export namespace Condition {
   export function compile(expression: DSL.Bool, writer: Writer = new Writer()): Condition.Expression {
     write(expression, writer);
     const expr = writer.toExpression();
-    const res = {
+    const res: any = {
       Expression: expr.Expression,
       ExpressionAttributeNames: expr.ExpressionAttributeNames,
       ExpressionAttributeValues: expr.ExpressionAttributeValues
