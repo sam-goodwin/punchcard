@@ -1,7 +1,7 @@
 {
   "name": "@punchcard/shape-dynamodb",
   "description": "Maps Punchcard Shape to a DynamoDB AST value",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {

@@ -19,7 +19,7 @@ describe('Function', () => {
     };
     const f = Lambda.L().spawn(stack, 'function', {depends: client, }, null as any);
     const fn = Build.resolve(f.resource);
-    expect((fn as any).environment[`punchcard_test`]).toEqual('value');
+    expect((fn as any).environment[`punchcard_test`]).toEqual({value: 'value'});
   });
   it('should bootstrap all clients on boot and pass to handler', async () => {
     const stack = Build.of(new core.Stack(new core.App({ autoSynth: false }), 'stack'));

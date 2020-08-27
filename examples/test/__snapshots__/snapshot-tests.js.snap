@@ -34,7 +34,7 @@ Object {
     function log(obj) {
         console.error(event.RequestId, event.StackId, event.LogicalResourceId, obj);
     }
-    // tslint:disable-next-line:max-line-length
+    // eslint-disable-next-line max-len
     // adapted from https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-lambda-function-code.html#cfn-lambda-function-code-cfnresponsemodule
     // to allow sending an error messge as a reason.
     function submitResponse(responseStatus, reason) {
@@ -3382,15 +3382,6 @@ schema {
         },
         "EmailVerificationMessage": "The verification code to your new account is {####}",
         "EmailVerificationSubject": "Verify your new account",
-        "SmsConfiguration": Object {
-          "ExternalId": "graphqlUserPool8D7802F2",
-          "SnsCallerArn": Object {
-            "Fn::GetAtt": Array [
-              "UserPoolsmsRole4EA729DD",
-              "Arn",
-            ],
-          },
-        },
         "SmsVerificationMessage": "The verification code to your new account is {####}",
         "VerificationMessageTemplate": Object {
           "DefaultEmailOption": "CONFIRM_WITH_CODE",
@@ -3400,43 +3391,6 @@ schema {
         },
       },
       "Type": "AWS::Cognito::UserPool",
-    },
-    "UserPoolsmsRole4EA729DD": Object {
-      "Properties": Object {
-        "AssumeRolePolicyDocument": Object {
-          "Statement": Array [
-            Object {
-              "Action": "sts:AssumeRole",
-              "Condition": Object {
-                "StringEquals": Object {
-                  "sts:ExternalId": "graphqlUserPool8D7802F2",
-                },
-              },
-              "Effect": "Allow",
-              "Principal": Object {
-                "Service": "cognito-idp.amazonaws.com",
-              },
-            },
-          ],
-          "Version": "2012-10-17",
-        },
-        "Policies": Array [
-          Object {
-            "PolicyDocument": Object {
-              "Statement": Array [
-                Object {
-                  "Action": "sns:Publish",
-                  "Effect": "Allow",
-                  "Resource": "*",
-                },
-              ],
-              "Version": "2012-10-17",
-            },
-            "PolicyName": "sns-publish",
-          },
-        ],
-      },
-      "Type": "AWS::IAM::Role",
     },
     "posts": Object {
       "DeletionPolicy": "Delete",
@@ -4799,7 +4753,7 @@ Object {
     function log(obj) {
         console.error(event.RequestId, event.StackId, event.LogicalResourceId, obj);
     }
-    // tslint:disable-next-line:max-line-length
+    // eslint-disable-next-line max-len
     // adapted from https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-properties-lambda-function-code.html#cfn-lambda-function-code-cfnresponsemodule
     // to allow sending an error messge as a reason.
     function submitResponse(responseStatus, reason) {
