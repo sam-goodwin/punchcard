@@ -20,7 +20,7 @@ import { MutationRoot, QueryRoot } from './root';
 import { SubscribeMetadata } from './subscription';
 import { TypeSpec } from './type-system';
 
-export interface OverrideApiProps extends Omit<appsync.GraphQLApiProps,
+export interface OverrideApiProps extends Omit<appsync.GraphqlApiProps,
   | 'name'
   | 'schemaDefinition'
   | 'schemaDefinitionFile'

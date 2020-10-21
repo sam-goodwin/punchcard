@@ -1,6 +1,9 @@
 {
   "name": "root",
   "private": true,
+  "scripts": {
+    "release": "lerna bootstrap && lerna run build && lerna run test --parallel"
+  },
   "devDependencies": {
     "conventional-changelog-cli": "^2.0.23",
     "lerna": "^3.16.4"

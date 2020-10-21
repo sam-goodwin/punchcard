@@ -154,7 +154,7 @@ describe('run', () => {
       sink: sinon.fake()
     };
 
-    await stream.sender.handle(payload, [sink as any, 'd1'], {});
+    await (stream as any).sender.handle(payload, [sink as any, 'd1'], {});
 
     expect(sink.sink.calledOnceWith(['string'.length])).toBe(true);
     expect.assertions(2);

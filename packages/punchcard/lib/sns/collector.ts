@@ -23,10 +23,10 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to topic
      */
-    toSNSTopic<DataType extends Shape & { [Value.Tag]: T; }>(scope: Build<cdk.Construct>, id: string, topicProps: TopicProps<DataType>, runtimeProps?: C): CollectedTopic<DataType, this>;
+    toSNSTopic<DataType extends Shape & { [Value.Tag]: T; }>(scope: Build<cdk.Construct>, id: string, topicProps: TopicProps<DataType>, runtimeProps?: C): Topic<DataType>;
   }
 }
-Stream.prototype.toSNSTopic = function(scope: Build<cdk.Construct>, id: string, props: TopicProps<any>): any {
+Stream.prototype.toSNSTopic = function(scope: Build<cdk.Construct>, id: string, props: TopicProps<any>): Topic<any> {
   return this.collect(scope, id, new TopicCollector(props));
 };
 
@@ -35,7 +35,7 @@ Stream.prototype.toSNSTopic = function(scope: Build<cdk.Construct>, id: string, 
  *
  * @typeparam T type of notififcations sent to (and emitted from) the SNS Topic.
  */
-export class TopicCollector<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<CollectedTopic<T, S>, S> {
+export class TopicCollector<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<Topic<T>, S> {
   constructor(private readonly props: TopicProps<T>) { }
 
   public collect(scope: Build<cdk.Construct>, id: string, stream: S): CollectedTopic<T, S> {

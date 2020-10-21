@@ -22,7 +22,7 @@ declare module '../util/stream' {
      * @param tableProps properties of the created s3 delivery stream
      * @param runtimeConfig optional runtime properties to configure the function processing the stream's data.
      */
-    toGlueTable<T extends TypeShape, P extends TypeShape>(scope: Build<cdk.Construct>, id: string, tableProps: TableProps<T, P>, runtimeConfig?: T): CollectedGlueTable<T, P, this>;
+    toGlueTable<T extends TypeShape, P extends TypeShape>(scope: Build<cdk.Construct>, id: string, tableProps: TableProps<T, P>, runtimeConfig?: T): Table<T, P>;
   }
 }
 Stream.prototype.toGlueTable = function(scope: Build<cdk.Construct>, id: string, tableProps: any): any {
@@ -34,7 +34,7 @@ Stream.prototype.toGlueTable = function(scope: Build<cdk.Construct>, id: string,
  *
  * @typeparam T type of notififcations sent to (and emitted from) the Glue Table.
  */
-export class GlueTableCollector<T extends TypeShape, P extends TypeShape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<CollectedGlueTable<T, P, S>, S> {
+export class GlueTableCollector<T extends TypeShape, P extends TypeShape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<Table<T, P>, S> {
   constructor(private readonly props: TableProps<T, P>) { }
 
   public collect(scope: Build<cdk.Construct>, id: string, stream: S): CollectedGlueTable<T, P, S> {
