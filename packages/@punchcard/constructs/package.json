@@ -1,7 +1,7 @@
 {
   "name": "@punchcard/constructs",
   "description": "Supplementary constructs for the CDK",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
