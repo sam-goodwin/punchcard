@@ -5,8 +5,6 @@ import { ID } from 'punchcard/lib/appsync';
 import { SearchResponse } from 'punchcard/lib/elasticsearch/es-index';
 import * as uuid from 'uuid';
 import { DataLake } from '@punchcard/data-lake';
-import { Construct } from '../../packages/punchcard/lib/core/construct';
-import { Build } from 'punchcard/lib/core/build';
 
 export const app = new Core.App();
 

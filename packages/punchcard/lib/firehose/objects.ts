@@ -24,7 +24,12 @@ export class Objects<T, D extends any[]> extends Stream<typeof Event.Payload, T,
     })));
   }
 
-  public chain<U, D2 extends any[]>(input: { depends: D2; handle: (value: AsyncIterableIterator<T>, deps: Clients<D2>) => AsyncIterableIterator<U>; }): Objects<U, D2> {
+  public chain<U, D2 extends any[]>(input: {
+    depends: D2;
+    handle: (
+      value: AsyncIterableIterator<T>,
+      deps: Clients<D2>
+    ) => AsyncIterableIterator<U>; }): Objects<U, D2> {
     return new Objects(this.s3Stream, this, input);
   }
 }

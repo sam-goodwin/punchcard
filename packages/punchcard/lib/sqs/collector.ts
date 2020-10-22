@@ -23,7 +23,7 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to queue
      */
-    toSQSQueue<DataType extends Shape & { [Value.Tag]: T; }>(scope: Build<cdk.Construct>, id: string, queueProps: QueueProps<DataType>, runtimeProps?: C): CollectedQueue<DataType, this>;
+    toSQSQueue<DataType extends Shape & { [Value.Tag]: T; }>(scope: Build<cdk.Construct>, id: string, queueProps: QueueProps<DataType>, runtimeProps?: C): Queue<DataType>;
   }
 }
 Stream.prototype.toSQSQueue = function(scope: Build<cdk.Construct>, id: string, props: QueueProps<any>): any {
@@ -35,10 +35,10 @@ Stream.prototype.toSQSQueue = function(scope: Build<cdk.Construct>, id: string, 
  *
  * @typeparam T type of messages in the SQS Queue.
  */
-export class QueueCollector<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<CollectedQueue<T, S>, S> {
+export class QueueCollector<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<Queue<T>, S> {
   constructor(private readonly props: QueueProps<T>) { }
 
-  public collect(scope: Build<cdk.Construct>, id: string, stream: S): CollectedQueue<T, S> {
+  public collect(scope: Build<cdk.Construct>, id: string, stream: S): Queue<T> {
     return new CollectedQueue(scope, id, {
       ...this.props,
       stream

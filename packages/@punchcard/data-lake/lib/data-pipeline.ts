@@ -1,6 +1,3 @@
-import type { Database } from '@aws-cdk/aws-glue';
-import type { Construct } from '@aws-cdk/core';
-
 import { StreamEncryption } from '@aws-cdk/aws-kinesis';
 import { TypeShape, Value } from '@punchcard/shape';
 import { ElasticSearch, Glue, Kinesis, S3 } from 'punchcard';

@@ -25,7 +25,7 @@ declare module '../util/stream' {
      * @param runtimeProps optional runtime properties to configure the function processing the stream's data.
      * @typeparam T concrete type of data flowing to s3
      */
-    toFirehoseDeliveryStream<T extends Shape>(scope: Build<core.Construct>, id: string, s3DeliveryStreamProps: DeliveryStreamDirectPut<T>, runtimeProps?: C): CollectedDeliveryStream<T, this>;
+    toFirehoseDeliveryStream<T extends Shape>(scope: Build<core.Construct>, id: string, s3DeliveryStreamProps: DeliveryStreamDirectPut<T>, runtimeProps?: C): DeliveryStream<T>;
   }
 }
 Stream.prototype.toFirehoseDeliveryStream = function(scope: Build<core.Construct>, id: string, props: DeliveryStreamDirectPut<any>): any {
@@ -37,10 +37,10 @@ Stream.prototype.toFirehoseDeliveryStream = function(scope: Build<core.Construct
  *
  * @typeparam T type of notififcations sent to (and emitted from) the DeliveryStream.
  */
-export class DeliveryStreamCollector<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<CollectedDeliveryStream<T, S>, S> {
+export class DeliveryStreamCollector<T extends Shape, S extends Stream<any, Value.Of<T>, any, any>> implements Collector<DeliveryStream<T>, S> {
   constructor(private readonly props: DeliveryStreamDirectPut<T>) { }
 
-  public collect(scope: Build<core.Construct>, id: string, stream: S): CollectedDeliveryStream<T, S> {
+  public collect(scope: Build<core.Construct>, id: string, stream: S): DeliveryStream<T> {
     return new CollectedDeliveryStream(scope, id, {
       ...this.props,
       stream
