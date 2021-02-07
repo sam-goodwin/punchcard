@@ -1,8 +1,7 @@
-*.js
-*.d.ts
 node_modules
 .punchcard
 .vscode
 cdk.out
 .cdk.staging
 punchcard*.tgz
+lib

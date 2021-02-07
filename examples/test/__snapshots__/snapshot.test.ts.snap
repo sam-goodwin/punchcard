@@ -162,25 +162,6 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "DummyDataAllowEventRuledatalakeDummyDataScheduleC2CC6904833012C4": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "DummyData3BBFD842",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "DummyDataSchedule02704414",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
     "DummyDataSchedule02704414": Object {
       "Properties": Object {
         "ScheduleExpression": "rate(1 minute)",
@@ -198,6 +179,25 @@ Object {
         ],
       },
       "Type": "AWS::Events::Rule",
+    },
+    "DummyDataScheduleAllowEventRuledatalakeDummyDataScheduleC2CC69046358A4EC": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "DummyData3BBFD842",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "DummyDataSchedule02704414",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
     },
     "DummyDataServiceRoleDefaultPolicy777E876E": Object {
       "Properties": Object {
@@ -1269,25 +1269,6 @@ Object {
 exports[`dynamodb stack dynamodb should match snapshot 1`] = `
 Object {
   "Resources": Object {
-    "CallerAllowEventRuleinvokefunctionCallerSchedule0611FE68E8022069": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "CallerBA8D1D35",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "CallerSchedule962F6585",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
     "CallerBA8D1D35": Object {
       "Properties": Object {
         "Code": Object {
@@ -1330,6 +1311,25 @@ Object {
         ],
       },
       "Type": "AWS::Events::Rule",
+    },
+    "CallerScheduleAllowEventRuleinvokefunctionCallerSchedule0611FE689F9A39A8": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "CallerBA8D1D35",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "CallerSchedule962F6585",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
     },
     "CallerServiceRole8749D4FA": Object {
       "Properties": Object {
@@ -1374,6 +1374,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
                 "dynamodb:BatchWriteItem",
                 "dynamodb:PutItem",
                 "dynamodb:UpdateItem",
@@ -1400,6 +1401,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
               ],
               "Effect": "Allow",
               "Resource": Array [
@@ -1662,25 +1664,6 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "IndexAllowEventRuleelasticsearch14IndexSchedule4D9370F89DF5B015": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "Index4A79713B",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "IndexSchedule786AB869",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
     "IndexManagerDC5D7BFA": Object {
       "Properties": Object {
         "Code": Object {
@@ -1792,6 +1775,25 @@ Object {
         ],
       },
       "Type": "AWS::Events::Rule",
+    },
+    "IndexScheduleAllowEventRuleelasticsearch14IndexSchedule4D9370F85122662D": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "Index4A79713B",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "IndexSchedule786AB869",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
     },
     "IndexServiceRole4E1BE6F7": Object {
       "Properties": Object {
@@ -2086,6 +2088,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
               ],
               "Effect": "Allow",
               "Resource": Array [
@@ -2241,6 +2244,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
                 "dynamodb:BatchWriteItem",
                 "dynamodb:PutItem",
                 "dynamodb:UpdateItem",
@@ -2380,6 +2384,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
               ],
               "Effect": "Allow",
               "Resource": Array [
@@ -3536,7 +3541,7 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "MyFunctionAllowEventRulehelloworldMyFunctionScheduleAED6CE6B66BC7FB4": Object {
+    "MyFunctionScheduleAllowEventRulehelloworldMyFunctionScheduleAED6CE6BF1680465": Object {
       "Properties": Object {
         "Action": "lambda:InvokeFunction",
         "FunctionName": Object {
@@ -3616,6 +3621,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
                 "dynamodb:BatchWriteItem",
                 "dynamodb:PutItem",
                 "dynamodb:UpdateItem",
@@ -3758,6 +3764,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
                 "dynamodb:BatchWriteItem",
                 "dynamodb:PutItem",
                 "dynamodb:UpdateItem",
@@ -3787,25 +3794,6 @@ Object {
         ],
       },
       "Type": "AWS::IAM::Policy",
-    },
-    "CallerAllowEventRuleinvokefunctionexampleCallerSchedule6A5466654735B083": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "CallerBA8D1D35",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "CallerSchedule962F6585",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
     },
     "CallerBA8D1D35": Object {
       "Properties": Object {
@@ -3852,6 +3840,25 @@ Object {
         ],
       },
       "Type": "AWS::Events::Rule",
+    },
+    "CallerScheduleAllowEventRuleinvokefunctionexampleCallerSchedule6A5466652055D002": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "CallerBA8D1D35",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "CallerSchedule962F6585",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
     },
     "CallerServiceRole8749D4FA": Object {
       "Properties": Object {
@@ -3962,25 +3969,6 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "PollerAllowEventRulescheduledfunctionexamplePollerScheduleB75FCD574E4896FE": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "Poller8D8A3186",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "PollerSchedule74EB746C",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
     "PollerSchedule74EB746C": Object {
       "Properties": Object {
         "ScheduleExpression": "rate(1 minute)",
@@ -3999,6 +3987,25 @@ Object {
       },
       "Type": "AWS::Events::Rule",
     },
+    "PollerScheduleAllowEventRulescheduledfunctionexamplePollerScheduleB75FCD5760301C48": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "Poller8D8A3186",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "PollerSchedule74EB746C",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
+    },
     "PollerServiceRoleDefaultPolicy6BA3D6F9": Object {
       "Properties": Object {
         "PolicyDocument": Object {
@@ -4011,6 +4018,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
                 "dynamodb:BatchWriteItem",
                 "dynamodb:PutItem",
                 "dynamodb:UpdateItem",
@@ -4270,6 +4278,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
               ],
               "Effect": "Allow",
               "Resource": Array [
@@ -4870,25 +4879,6 @@ Object {
       },
       "Type": "AWS::Lambda::Function",
     },
-    "DummyDataAllowEventRulestreamprocessingDummyDataScheduleC3AD2CFF74B25A46": Object {
-      "Properties": Object {
-        "Action": "lambda:InvokeFunction",
-        "FunctionName": Object {
-          "Fn::GetAtt": Array [
-            "DummyData3BBFD842",
-            "Arn",
-          ],
-        },
-        "Principal": "events.amazonaws.com",
-        "SourceArn": Object {
-          "Fn::GetAtt": Array [
-            "DummyDataSchedule02704414",
-            "Arn",
-          ],
-        },
-      },
-      "Type": "AWS::Lambda::Permission",
-    },
     "DummyDataSchedule02704414": Object {
       "Properties": Object {
         "ScheduleExpression": "rate(1 minute)",
@@ -4906,6 +4896,25 @@ Object {
         ],
       },
       "Type": "AWS::Events::Rule",
+    },
+    "DummyDataScheduleAllowEventRulestreamprocessingDummyDataScheduleC3AD2CFF6CAD51CA": Object {
+      "Properties": Object {
+        "Action": "lambda:InvokeFunction",
+        "FunctionName": Object {
+          "Fn::GetAtt": Array [
+            "DummyData3BBFD842",
+            "Arn",
+          ],
+        },
+        "Principal": "events.amazonaws.com",
+        "SourceArn": Object {
+          "Fn::GetAtt": Array [
+            "DummyDataSchedule02704414",
+            "Arn",
+          ],
+        },
+      },
+      "Type": "AWS::Lambda::Permission",
     },
     "DummyDataServiceRoleDefaultPolicy777E876E": Object {
       "Properties": Object {
@@ -5338,6 +5347,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
               ],
               "Effect": "Allow",
               "Resource": Array [

@@ -7,7 +7,7 @@ import path = require('path');
 import { Build } from 'punchcard/lib/core/build';
 import { Global } from 'punchcard/lib/core';
 
-const apps = fs.readdirSync(path.join(__dirname, '../lib/'))
+const apps = fs.readdirSync(path.join(__dirname, '../src/'))
   .filter(f => f.endsWith('.ts'))
   .map(f => path.basename(f, '.ts'));
 

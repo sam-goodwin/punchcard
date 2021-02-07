@@ -79,7 +79,7 @@ function promisifiedPipe(input: any, output?: any) {
 
     function niceEnding() {
       if (end()) {
-        resolve();
+        resolve(undefined);
       }
     }
 
