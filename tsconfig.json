@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "es2018",
+    "lib": [
+      "es2019",
+      "es5",
+      "es6",
+      "esnext.asynciterable",
+      "dom"
+    ],
+    "downlevelIteration": true,
+    "module": "commonjs",
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "inlineSourceMap": true,
+    "forceConsistentCasingInFileNames": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true
+  },
+  "exclude": [
+    "node_modules",
+    "build"
+  ]
+}

@@ -2,8 +2,8 @@
   "name": "@punchcard/erasure",
   "description": "Hook for marking dependencies for erasure",
   "version": "0.1.0",
-  "main": "index.js",
-  "types": "index.d.ts",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc && tslint --project .",
     "test": "echo no-op",
@@ -27,16 +27,5 @@
     "serverless",
     "aws",
     "cloudformation"
-  ],
-  "devDependencies": {
-    "@types/jest": "^24.0.25",
-    "@types/node": "^12.0.0",
-    "@types/sinon": "^7.0.11",
-    "@types/uuid": "^3.4.4",
-    "@types/webpack": "^4.41.0",
-    "jest": "^24.9.0",
-    "sinon": "^8.0.1",
-    "tslint": "^6.0.0",
-    "typescript": "^4.0.2"
-  }
+  ]
 }

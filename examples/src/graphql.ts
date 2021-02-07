@@ -146,15 +146,15 @@ export const PostApi = (
 
     searchPosts: {
       *resolve({content}) {
-         const posts = yield* postIndex.search({
-           query: {
-             match: {
-               content
-             }
-           }
-         });
+        const posts = yield* postIndex.search({
+          query: {
+            match: {
+              content
+            }
+          }
+        });
 
-         return posts.hits;
+        return posts.hits;
       }
     }
   });
@@ -168,7 +168,7 @@ export const PostApi = (
             id: yield* $util.autoId(),
             ...input
           }
-        }) as any;
+        });
       }
     }
   });

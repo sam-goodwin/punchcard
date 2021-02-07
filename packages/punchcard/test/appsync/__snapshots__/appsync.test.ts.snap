@@ -531,6 +531,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
               ],
               "Effect": "Allow",
               "Resource": Array [
@@ -586,6 +587,7 @@ Object {
                 "dynamodb:Query",
                 "dynamodb:GetItem",
                 "dynamodb:Scan",
+                "dynamodb:ConditionCheckItem",
               ],
               "Effect": "Allow",
               "Resource": Array [

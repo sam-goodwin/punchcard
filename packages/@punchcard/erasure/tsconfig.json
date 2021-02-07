@@ -1,25 +1,9 @@
 {
+  "extends": "../../../tsconfig.json",
   "compilerOptions": {
-    "target": "es2018",
-    "lib": [
-      "es5",
-      "es6",
-      "esnext.asynciterable"
-    ],
-    "downlevelIteration": true,
-    "module": "commonjs",
-    "strict": true,
-    "strictPropertyInitialization": false,
-    "strictNullChecks": true,
-    "noImplicitAny": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "inlineSourceMap": true,
-    "declaration": true
+    "outDir": "lib"
   },
-  "exclude": [
-    "node_modules"
+  "include": [
+    "src"
   ]
 }
