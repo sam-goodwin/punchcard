@@ -168,7 +168,7 @@ export const PostApi = (
             id: yield* $util.autoId(),
             ...input
           }
-        }) as any;
+        });
       }
     }
   });
