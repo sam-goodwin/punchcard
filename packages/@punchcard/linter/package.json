@@ -1,7 +1,7 @@
 {
 	"name": "@punchcard/linter",
 	"description": "TS Lint for detecting mis-use of the Punchcard framework",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"main": "lib/index.js",
 	"types": "lib/index.d.ts",
 	"license": "Apache-2.0",
@@ -10,7 +10,7 @@
 		"email": "sam.goodwin1989@gmail.com"
 	},
 	"scripts": {
-		"build": "tsc && tslint --project .",
+		"build": "tsc",
 		"test": "echo no-op",
 		"watch": "tsc -w"
 	},

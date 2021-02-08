@@ -1,11 +1,11 @@
 {
   "name": "@punchcard/shape-dynamodb",
   "description": "Maps Punchcard Shape to a DynamoDB AST value",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc && tslint --project .",
+    "build": "tsc",
     "test": "jest",
     "watch": "tsc -w",
     "cdk": "cdk"
@@ -34,14 +34,14 @@
   },
   "devDependencies": {
     "aws-sdk": "^2.839.0",
-    "@punchcard/shape": "^0.3.0",
+    "@punchcard/shape": "^0.5.0",
     "@types/jest": "^26.0.19",
     "jest": "^26.6.3",
     "ts-jest": "^26.4.4"
   },
   "peerDependencies": {
     "aws-sdk": "^2.839.0",
-    "@punchcard/shape": "^0.3.0"
+    "@punchcard/shape": "^0.5.0"
   },
   "jest": {
     "testPathIgnorePatterns": [

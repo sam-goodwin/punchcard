@@ -1,11 +1,11 @@
 {
   "name": "@punchcard/shape-hive",
   "description": "Apache Hive Schemas from Shapes",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc && tslint --project .",
+    "build": "tsc",
     "test": "jest",
     "watch": "tsc -w",
     "cdk": "cdk"
@@ -33,15 +33,15 @@
     "typelevel-ts": "^0.4.0"
   },
   "devDependencies": {
-    "@punchcard/shape": "^0.3.0",
-    "@punchcard/shape-json": "^0.3.0",
+    "@punchcard/shape": "^0.5.0",
+    "@punchcard/shape-json": "^0.5.0",
     "@types/jest": "^26.0.19",
     "jest": "^26.6.3",
     "ts-jest": "^26.4.4"
   },
   "peerDependencies": {
-    "@punchcard/shape": "^0.3.0",
-    "@punchcard/shape-json": "^0.3.0"
+    "@punchcard/shape": "^0.5.0",
+    "@punchcard/shape-json": "^0.5.0"
   },
   "jest": {
     "testPathIgnorePatterns": [

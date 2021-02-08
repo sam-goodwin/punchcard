@@ -50,7 +50,7 @@ export class VExpression {
         VExpression.indent(),
         VExpression.line(),
 
-        ...obj.map((item, i) => VExpression.concat(
+        ...(obj as any).map((item: any, i: number) => VExpression.concat(
           VExpression.json(item),
           i < obj.length - 1 ?
             VExpression.concat(',', VExpression.line()) :

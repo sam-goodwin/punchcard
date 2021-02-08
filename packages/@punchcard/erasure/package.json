@@ -1,11 +1,11 @@
 {
   "name": "@punchcard/erasure",
   "description": "Hook for marking dependencies for erasure",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc && tslint --project .",
+    "build": "tsc",
     "test": "echo no-op",
     "watch": "tsc -w"
   },

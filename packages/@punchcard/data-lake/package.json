@@ -1,11 +1,11 @@
 {
   "name": "@punchcard/data-lake",
   "description": "Data Lake Construct",
-  "version": "0.17.0",
+  "version": "0.20.0",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "build": "tsc && tslint --project .",
+    "build": "tsc",
     "test": "echo no-op",
     "watch": "tsc -w",
     "cdk": "cdk"
@@ -58,15 +58,15 @@
     "@aws-cdk/aws-stepfunctions": "^1.88.0",
     "@aws-cdk/core": "^1.88.0",
     "@aws-cdk/custom-resources": "^1.88.0",
-    "@punchcard/constructs": "^0.7.1",
-    "@punchcard/erasure": "^0.1.0",
-    "@punchcard/shape-dynamodb": "^0.4.1",
-    "@punchcard/shape-hive": "^0.4.0",
-    "@punchcard/shape-json": "^0.3.0",
-    "@punchcard/shape-jsonpath": "^0.3.0",
-    "@punchcard/shape-jsonschema": "^0.3.0",
-    "@punchcard/shape": "^0.3.0",
-    "punchcard": "^0.19.0"
+    "@punchcard/constructs": "^0.8.0",
+    "@punchcard/erasure": "^0.2.0",
+    "@punchcard/shape-dynamodb": "^0.5.0",
+    "@punchcard/shape-hive": "^0.5.0",
+    "@punchcard/shape-json": "^0.5.0",
+    "@punchcard/shape-jsonpath": "^0.5.0",
+    "@punchcard/shape-jsonschema": "^0.5.0",
+    "@punchcard/shape": "^0.5.0",
+    "punchcard": "^0.20.0"
   },
   "peerDependencies": {
     "aws-sdk": "2.*",
@@ -97,15 +97,15 @@
     "@aws-cdk/aws-stepfunctions": "^1.88.0",
     "@aws-cdk/core": "^1.88.0",
     "@aws-cdk/custom-resources": "^1.88.0",
-    "@punchcard/constructs": "^0.7.1",
-    "@punchcard/erasure": "^0.1.0",
-    "@punchcard/shape-dynamodb": "^0.4.1",
-    "@punchcard/shape-hive": "^0.4.0",
-    "@punchcard/shape-json": "^0.3.0",
-    "@punchcard/shape-jsonpath": "^0.3.0",
-    "@punchcard/shape-jsonschema": "^0.3.0",
-    "@punchcard/shape": "^0.3.0",
-    "punchcard": "^0.19.0"
+    "@punchcard/constructs": "^0.8.0",
+    "@punchcard/erasure": "^0.2.0",
+    "@punchcard/shape-dynamodb": "^0.5.0",
+    "@punchcard/shape-hive": "^0.5.0",
+    "@punchcard/shape-json": "^0.5.0",
+    "@punchcard/shape-jsonpath": "^0.5.0",
+    "@punchcard/shape-jsonschema": "^0.5.0",
+    "@punchcard/shape": "^0.5.0",
+    "punchcard": "^0.20.0"
   },
   "jest": {
     "testMatch": [
