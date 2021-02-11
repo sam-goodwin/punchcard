@@ -4,7 +4,7 @@ Data structures in punchcard are like ordinary collections such as an `Array<T>`
 Shapes are an in-code abstraction for (and agnostic to) data and schema formats such as JSON Schema, Glue Tables, DynamoDB, and (soon) Avro, Protobuf, Parquet, Orc.
 
 ```ts
-class NotificationRecord extends Record({
+class NotificationRecord extends Type({
   key: string,
   count: integer
     .apply(Minimum(0)), // apply a Trait to constrain the value of this integer
@@ -51,7 +51,7 @@ The framework makes use of Shapes to type-check your code against its schema and
 
 For reference, the above Topic's Shape:
 ```ts
-class NotificationRecord extends Record({
+class NotificationRecord extends Type({
   key: string,
   count: integer
     .apply(Minimum(0)),
