@@ -6,7 +6,7 @@ Data structures that implement `Stream` are: `SNS.Topic`, `SQS.Queue`, `Kinesis.
 
 Given an `SNS.Topic`:
 ```ts
-class NotificationRecord extends Record({
+class NotificationRecord extends Type({
   key: string,
   count: integer,
   timestamp
@@ -43,7 +43,7 @@ These functions are called `Collectors` and they follow the naming convention `t
 We can then, perhaps, `map` over each message in the `Queue` and collect the results into a new AWS Kinesis `Stream`:
 
 ```ts
-class StreamDataRecord extends Record({
+class StreamDataRecord extends Type({
   key: string,
   count: integer,
   tags: array(string),

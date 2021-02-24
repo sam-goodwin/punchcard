@@ -7,7 +7,7 @@ This library extends the Punchcard Shape Type-System to provide a high-level abs
 The type of data in a Table is defined as a class with properties that represent its "Shape".
 
 ```ts
-class Type extends Record({
+class Type extends Type({
   key: string;
   count: number;
   list: array(string);

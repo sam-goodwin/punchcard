@@ -68,7 +68,7 @@ Furthermore, its interface is higher-level than what would normally be expected 
 /**
  * Message is a JSON Object with properties: `key`, `count` and `timestamp`.
  */
-class NotificationRecord extends Record({
+class NotificationRecord extends Type({
   key: string,
   count: integer,
   timestamp
@@ -90,7 +90,7 @@ This feature in punchcard becomes even more evident when using DynamoDB. To demo
 
 ```ts
 // class describing the data in the DynamoDB Table
-class TableRecord extends Record({
+class TableRecord extends Type({
   id: string,
   count: integer
     .apply(Minimum(0))
@@ -195,7 +195,7 @@ const queue = topic.toSQSQueue(stack, 'MyNewQueue');
 We can then, perhaps, `map` over each message in the `Queue` and collect the results into a new AWS Kinesis `Stream`:
 
 ```ts
-class LogDataRecord extends Record({
+class LogDataRecord extends Type({
   key: string,
   count: integer,
   tags: array(string)

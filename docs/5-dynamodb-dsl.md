@@ -4,7 +4,7 @@ Punchcard uses TypeScript's [Advanced Types](https://www.typescriptlang.org/docs
 
 To demonstrate, let's create a `DynamoDB.Table` "with some Shape":
 ```ts
-class TableRecord extends Record({
+class TableRecord extends Type({
   id: string,
   count: integer
 }) {}

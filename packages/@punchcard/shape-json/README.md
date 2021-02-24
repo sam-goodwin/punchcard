@@ -2,10 +2,10 @@
 
 Provides JSON serialization and deserialization for Punchcard Shapes.
 
-# Create a Record
+# Create a Type
 
 ```ts
-class MyType extends Record({
+class MyType extends Type({
   key: string
     .apply(MinLength(1)), // apply constraints with Traits
   count: integer
