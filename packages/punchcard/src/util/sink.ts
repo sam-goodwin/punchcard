@@ -28,7 +28,7 @@ export async function sink<T>(values: T[], tryPutBatch: (values: T[]) => Promise
     const redrive = await tryPutBatch(values);
     if (redrive && redrive.length > 0) {
       if (retry.attemptsLeft === 0) {
-        throw new Error(`failed to send records to Kinesis`);
+        throw new Error('Failed to send records to stream');
       }
       return sink(redrive, tryPutBatch, {
         retry: {
