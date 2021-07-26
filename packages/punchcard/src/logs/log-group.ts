@@ -67,7 +67,7 @@ export class LogGroup<T extends Shape = AnyShape> implements Resource<logs.LogGr
     return new class extends Events<Value.Of<T>, []> {
       /**
        * Return an iterator of records parsed from the raw data in the event.
-       * @param event kinesis event sent to lambda
+       * @param event Logs event sent to lambda
        */
       public async *run(payload: Event.Payload) {
         const zlib = require('zlib');
@@ -114,6 +114,9 @@ export namespace LogGroup {
 
     /**
      * Put events to this log group.
+     *
+     * Max batch size: 1,048,576 bytes, where size is sum of all event messages in UTF-8, plus 26 bytes for each log event.
+     * Max batch count: 10,000.
      *
      * @param events events to send
      */

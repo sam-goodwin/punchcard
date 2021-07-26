@@ -11,7 +11,7 @@ export namespace Event {
   }) {}
 
   export class Data extends Type({
-    // switch to enum? 'DATA_MESSAGE' | 'CONTROL_MESSAGE', latter of should can be ignored
+    // true type 'DATA_MESSAGE' | 'CONTROL_MESSAGE', latter can be ignored
     messageType: string,
     // account
     owner: string,
