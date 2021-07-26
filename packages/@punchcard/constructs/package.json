@@ -35,6 +35,7 @@
     "@aws-cdk/aws-kms": "^1.88.0",
     "@aws-cdk/aws-lambda": "^1.88.0",
     "@aws-cdk/aws-logs": "^1.88.0",
+    "@aws-cdk/aws-logs-destinations": "^1.88.0",
     "@aws-cdk/aws-s3": "^1.88.0",
     "@aws-cdk/core": "^1.88.0",
     "@punchcard/erasure": "^0.2.0"
@@ -46,6 +47,7 @@
     "@aws-cdk/aws-kms": "^1.88.0",
     "@aws-cdk/aws-lambda": "^1.88.0",
     "@aws-cdk/aws-logs": "^1.88.0",
+    "@aws-cdk/aws-logs-destinations": "^1.88.0",
     "@aws-cdk/aws-s3": "^1.88.0",
     "@aws-cdk/core": "^1.88.0",
     "@punchcard/erasure": "^0.2.0"

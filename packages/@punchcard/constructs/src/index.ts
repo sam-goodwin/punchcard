@@ -1,4 +1,5 @@
 export * from './delivery-stream';
+export * from './log-group';
 
 import erasure = require('@punchcard/erasure');
 
