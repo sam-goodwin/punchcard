@@ -1,5 +1,5 @@
 export * from './delivery-stream';
-export * from './log-group';
+export * from './log-group-event-source';
 
 import erasure = require('@punchcard/erasure');
 
