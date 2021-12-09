@@ -246,12 +246,12 @@ s3DeliveryStream.objects().toGlueTable(stack, 'ToGlue', {
 
 ## Example Stacks
 
-* [GraphQL API](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/straw-poll.ts) - Implements a GraphQL API with AWS AppSync for a real-time voting app, "straw poll".
-* [Stream Processing](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/stream-processing.ts) - respond to SNS notifications with a Lambda Function; subscribe notifications to a SQS Queue and process them with a Lambda Function; process and forward data from a SQS Queue to a Kinesis Stream; sink records from the Stream to S3 and catalog it in a Glue Table.
-* [Invoke a Function from another Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/invoke-function.ts) - call a Function from another Function
-* [Real-Time Data Lake](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/data-lake.ts) - collects data with Kinesis and persists to S3, exposed as a Glue Table in a Glue Database.
-* [Scheduled Lambda Function](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/scheduled-function.ts) - runs a Lambda Function every minute and stores data in a DynamoDB Table.
-* [Pet Store API Gateway](https://github.com/sam-goodwin/punchcard/blob/master/examples/lib/pet-store-apigw.ts) - implementation of the [Pet Store API Gateway canonical example](https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-create-api-from-example.html).
+* [GraphQL API](https://github.com/punchcard/punchcard/blob/master/examples/src/straw-poll.ts) - Implements a GraphQL API with AWS AppSync for a real-time voting app, "straw poll".
+* [Stream Processing](https://github.com/punchcard/punchcard/blob/master/examples/src/stream-processing.ts) - respond to SNS notifications with a Lambda Function; subscribe notifications to a SQS Queue and process them with a Lambda Function; process and forward data from a SQS Queue to a Kinesis Stream; sink records from the Stream to S3 and catalog it in a Glue Table.
+* [Invoke a Function from another Function](https://github.com/punchcard/punchcard/blob/master/examples/src/invoke-function.ts) - call a Function from another Function
+* [Real-Time Data Lake](https://github.com/punchcard/punchcard/blob/master/examples/src/data-lake.ts) - collects data with Kinesis and persists to S3, exposed as a Glue Table in a Glue Database.
+* [Scheduled Lambda Function](https://github.com/punchcard/punchcard/blob/master/examples/src/scheduled-function.ts) - runs a Lambda Function every minute and stores data in a DynamoDB Table.
+
 
 ## License
 
